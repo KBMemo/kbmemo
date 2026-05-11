@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* Slim / Rails templates are not part of the JS graph — tell Tailwind where classes live. */
+@source "../../views/**/*.{slim,erb,html}";
+@source "../../views/layouts/**/*.{slim,erb,html}";
+@source "../../helpers/**/*.rb";
+@source "../../javascript/**/*.js";
+@source "../entrypoints/**/*.js";

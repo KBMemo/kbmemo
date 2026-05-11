@@ -1,0 +1,6 @@
+- content_for :title, @memo.title
+
+= turbo_stream_from @memo
+
+- content_for :memos_editor do
+  = render "memos/show_content", memo: @memo
