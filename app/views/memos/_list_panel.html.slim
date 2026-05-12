@@ -1,4 +1,4 @@
-.flex.min-h-0.flex-1.flex-col.overflow-hidden
+#memos_list_panel.flex.min-h-0.flex-1.flex-col.overflow-hidden
   .flex-shrink-0.border-b.border-zinc-200.px-3.py-3
     p.text-xs.font-medium.uppercase.tracking-wide.text-zinc-500 メモ一覧
     = link_to new_memo_path, class: memo_sidebar_link_classes(:new) do
@@ -9,18 +9,23 @@
       ul.divide-y.divide-zinc-100
         - @memos.each do |memo|
           li
-            = link_to edit_memo_path(memo), class: memo_sidebar_link_classes(memo.id) do
-              .flex.items-start.justify-between.gap-2
-                span.min-w-0.flex-1.font-medium.leading-snug.text-zinc-900 = memo.title
-                time.flex-shrink-0.text-xs.text-zinc-400 datetime=memo.updated_at.iso8601
-                  = memo.updated_at.strftime("%m/%d %H:%M")
-              - if memo.tags.any?
-                ul.mt-1.5.flex.flex-wrap.gap-1
-                  - memo.tags.take(4).each do |tag|
-                    li[class="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600"] = tag.name
-                  - if memo.tags.size > 4
-                    li[class="text-[11px] text-zinc-400"]
-                      | …
+            = link_to memo_sidebar_memo_main_href(memo), class: memo_sidebar_link_classes(memo.id) do
+              .flex.items-start.gap-2
+                span.inline-flex.shrink-0.pt-0.5.text-zinc-400 title=memo_list_state_icon_title(memo)
+                  span.sr-only = memo_list_state_icon_title(memo)
+                  i.h-4.w-4 aria-hidden="true" data-lucide=memo_list_state_lucide_name(memo)
+                .min-w-0.flex-1
+                  .flex.items-start.justify-between.gap-2
+                    span.min-w-0.flex-1.font-medium.leading-snug.text-zinc-900 = memo.title
+                    time.flex-shrink-0.text-xs.text-zinc-400 datetime=memo.updated_at.iso8601
+                      = memo.updated_at.strftime("%m/%d %H:%M")
+                  - if memo.tags.any?
+                    ul.mt-1.5.flex.flex-wrap.gap-1
+                      - memo.tags.take(4).each do |tag|
+                        li[class="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600"] = tag.name
+                      - if memo.tags.size > 4
+                        li[class="text-[11px] text-zinc-400"]
+                          | …
     - else
       .px-3.py-8.text-center.text-sm.text-zinc-500
         p まだありません

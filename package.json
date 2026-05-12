@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@hotwired/turbo-rails": "^8.0.23",
+    "lucide": "^1.14.0",
     "stimulus-use": "^0.52.3"
   }
 }

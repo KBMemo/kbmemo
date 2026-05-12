@@ -2,14 +2,16 @@
 #
 # Table name: memos
 #
-#  id           :integer          not null, primary key
-#  body         :text             default(""), not null
-#  properties   :json             not null
-#  slug         :string
-#  title        :string           not null
-#  title_manual :boolean          default(FALSE), not null
-#  created_at   :datetime         not null
-#  updated_at   :datetime         not null
+#  id                :integer          not null, primary key
+#  body              :text             default(""), not null
+#  file_committed_at :datetime
+#  properties        :json             not null
+#  slug              :string
+#  slug_manual       :boolean          default(FALSE), not null
+#  title             :string           not null
+#  title_manual      :boolean          default(FALSE), not null
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
 #
 # Indexes
 #
@@ -26,7 +28,14 @@ class Memo < ApplicationRecord
 
   before_validation :normalize_unfilled_title_marker
   before_validation :prepare_title_from_body_and_manual
-  before_save -> { self.slug = slug.presence }
+  before_validation :prepare_slug_from_title_and_manual
+  before_save :normalize_slug_for_storage
+
+  # 保存時のスラッグ（パス用）。空は nil。MemoRepository のファイル名と揃える。
+  def self.normalize_slug_fragment(value)
+    raw = value.to_s.strip.gsub(%r{[/\\]}, "")
+    raw.parameterize(separator: "-").presence
+  end
 
   # 本文1行目から一覧用タイトルを派生（行頭の連続する "=" と続く空白を除く）。title_manual が true のときは同期しない。
   def self.derived_title_from_body(body)
@@ -37,11 +46,23 @@ class Memo < ApplicationRecord
   end
 
   def self.title_unfilled_value?(value)
-    value.to_s.strip.blank? || value.to_s == TITLE_PLACEHOLDER
+    s = value.to_s.strip
+    return true if s.blank?
+    return true if s == TITLE_PLACEHOLDER
+    # strip 後はスペース位置が変わるため、空白を除いて「未入力」プレースホルダーと比較する
+    s.gsub(/\s+/, "") == TITLE_PLACEHOLDER.gsub(/\s+/, "")
   end
 
   def title_unfilled?
     self.class.title_unfilled_value?(title)
+  end
+
+  # 一覧・プレビュー文言など UI 用。未コミット、またはファイル保存後に DB が更新されている＝再編集ドラフト。
+  # スラッグ自動同期の可否は file_committed_at? のまま（一度コミットしたメモは別）。
+  def display_as_draft?
+    return true if file_committed_at.blank?
+
+    updated_at > file_committed_at
   end
 
   # Comma-separated labels; assigns tags before or after save via association.
@@ -53,6 +74,44 @@ class Memo < ApplicationRecord
   # save(validate: false) では before_validation が実行されないため、ドラフト保存前に明示する
   def apply_title_from_body_rules!
     prepare_title_from_body_and_manual
+  end
+
+  def apply_slug_from_title_rules!
+    prepare_slug_from_title_and_manual
+  end
+
+  # ファイルにコミットする前はタイトルから派生。file_committed_at があればスラッグは手動同期ルールへ（一度コミットしたら維持）。
+  # file_committed_at は最終コミット時の updated_at と揃え、一覧の「再編集ドラフト」表示に使う。
+  # 日本語など parameterize が空のときは memo-{id} にフォールバック（一意・ファイル名用）。
+  # 英字と日本語が混在すると parameterize は日本語を落とすだけの断片を返すため、その場合は MeCab 経路を優先する。
+  def self.derived_slug_from_title(title, memo = nil)
+    t = title.to_s.strip
+    return nil if title_unfilled_value?(t)
+
+    if title_includes_japanese_script?(t)
+      romaji = MemoMecabRomaji.romaji_slug_from(t)
+      seg = normalize_slug_fragment(romaji) if romaji.present?
+      return seg if seg.present?
+
+      return "memo-#{memo.id}" if memo&.persisted?
+
+      return nil
+    end
+
+    seg = t.parameterize(separator: "-").presence
+    return seg if seg.present?
+
+    romaji = MemoMecabRomaji.romaji_slug_from(t)
+    seg = normalize_slug_fragment(romaji) if romaji.present?
+    return seg if seg.present?
+
+    return "memo-#{memo.id}" if memo&.persisted?
+
+    nil
+  end
+
+  def self.title_includes_japanese_script?(text)
+    text.match?(/\p{Hiragana}|\p{Katakana}|\p{Han}|\uFF61-\uFF9F/u)
   end
 
   private
@@ -70,5 +129,21 @@ class Memo < ApplicationRecord
     unless title_manual?
       self.title = self.class.derived_title_from_body(body)
     end
+  end
+
+  def prepare_slug_from_title_and_manual
+    return if file_committed_at.present?
+
+    # 空に戻したら自動同期モードへ
+    self.slug_manual = false if slug.to_s.strip.blank?
+
+    # 初回コミット前かつ自動モードでは常にタイトルから決める（クライアントの slug 単体 PATCH とサーバー側タイトルのずれで slug_manual が誤って true になるのを防ぐ）
+    unless slug_manual?
+      self.slug = self.class.derived_slug_from_title(title, self)&.presence
+    end
+  end
+
+  def normalize_slug_for_storage
+    self.slug = self.class.normalize_slug_fragment(slug)
   end
 end

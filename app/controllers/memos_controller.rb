@@ -33,7 +33,8 @@ class MemosController < ApplicationController
             id: @memo.id,
             draft_url: draft_memo_url(@memo),
             edit_path: edit_memo_path(@memo),
-            title_unfilled: @memo.title_unfilled?
+            title_unfilled: @memo.title_unfilled?,
+            slug: @memo.slug
           }, status: :created
         end
       end
@@ -51,9 +52,27 @@ class MemosController < ApplicationController
       return
     end
 
+    @memo.apply_title_from_body_rules!
+    @memo.apply_slug_from_title_rules!
+
+    unless @memo.valid?
+      render :edit, status: :unprocessable_entity
+      return
+    end
+
+    begin
+      MemoRepository.new.write_and_commit!(@memo)
+    rescue MemoRepository::Error => e
+      flash.now[:alert] = e.message
+      render :edit, status: :unprocessable_entity
+      return
+    end
+
     if @memo.save
+      # 最終コミット時点と updated_at を一致させ、直後に再編集ドラフトと誤判定しないようにする
+      @memo.update_column(:file_committed_at, @memo.updated_at)
       @memo.broadcast_replace partial: "memos/show_content"
-      redirect_to edit_memo_path(@memo), notice: "メモを更新しました。"
+      redirect_to memo_path(@memo), notice: "ファイルへ保存し、Git に記録しました。"
     else
       render :edit, status: :unprocessable_entity
     end
@@ -72,6 +91,7 @@ class MemosController < ApplicationController
     end
 
     @memo.apply_title_from_body_rules!
+    @memo.apply_slug_from_title_rules!
 
     if @memo.save(validate: false)
       @memo.broadcast_replace partial: "memos/show_content"
@@ -83,6 +103,11 @@ class MemosController < ApplicationController
               partial: "memos/title_field",
               locals: { memo: @memo }
             ),
+            turbo_stream.replace(
+              "memo_slug_field",
+              partial: "memos/slug_field",
+              locals: { memo: @memo }
+            ),
             turbo_stream.replace("memos_list_panel", partial: "memos/list_panel")
           ]
         end
@@ -91,7 +116,10 @@ class MemosController < ApplicationController
             saved_at: @memo.updated_at.iso8601(3),
             title: @memo.title,
             title_manual: @memo.title_manual,
-            title_unfilled: @memo.title_unfilled?
+            title_unfilled: @memo.title_unfilled?,
+            slug: @memo.slug,
+            slug_manual: @memo.slug_manual,
+            file_committed: @memo.file_committed_at.present?
           }
         end
       end
@@ -111,36 +139,47 @@ class MemosController < ApplicationController
   end
 
   def memo_params
-    params.require(:memo).permit(:title, :body, :slug, :title_manual)
+    params.require(:memo).permit(:title, :body, :slug, :title_manual, :slug_manual, :properties_yaml)
   end
 
   def draft_params
-    params.require(:memo).permit(:body, :title, :title_manual, :slug, :tag_list, :properties_json)
+    params.require(:memo).permit(:body, :title, :title_manual, :slug, :slug_manual, :tag_list, :properties_yaml)
   end
 
   # raw_params は通常の request.params か、draft 用に構築した Parameters（キー :memo）
   def assign_memo_fields(memo, raw_params = nil)
     raw_params ||= params
-    src = raw_params.require(:memo)
-    memo.assign_attributes(src.permit(:title, :body, :slug, :title_manual))
+    src = raw_params.require(:memo).permit(:title, :body, :slug, :title_manual, :slug_manual, :tag_list, :properties_yaml)
+    memo.assign_attributes(src.slice(:title, :body, :slug, :title_manual, :slug_manual))
     memo.assign_tags_from_list(src[:tag_list]) if src.key?(:tag_list)
 
-    if src.key?(:properties_json)
-      memo.properties = parse_properties_json(src[:properties_json])
+    if src.key?(:properties_yaml)
+      memo.properties = parse_properties_yaml(src[:properties_yaml])
     end
 
     true
-  rescue JSON::ParserError
-    memo.errors.add(:properties_json, "must be valid JSON")
+  rescue Psych::SyntaxError
+    memo.errors.add(:properties_yaml, "must be valid YAML")
+    false
+  rescue ArgumentError => e
+    memo.errors.add(:properties_yaml, e.message)
     false
   end
 
-  def parse_properties_json(raw)
+  def parse_properties_yaml(raw)
     return {} if raw.blank?
 
-    parsed = JSON.parse(raw)
-    raise JSON::ParserError, "properties must be a JSON object" unless parsed.is_a?(Hash)
+    parsed = YAML.safe_load(
+      raw.to_s,
+      permitted_classes: [Symbol, Date, Time],
+      permitted_symbols: [],
+      aliases: true
+    )
 
-    parsed
+    return {} if parsed.nil?
+
+    raise ArgumentError, "properties must be a YAML mapping (object)" unless parsed.is_a?(Hash)
+
+    parsed.deep_stringify_keys
   end
 end

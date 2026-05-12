@@ -2,14 +2,16 @@
 #
 # Table name: memos
 #
-#  id           :integer          not null, primary key
-#  body         :text             default(""), not null
-#  properties   :json             not null
-#  slug         :string
-#  title        :string           not null
-#  title_manual :boolean          default(FALSE), not null
-#  created_at   :datetime         not null
-#  updated_at   :datetime         not null
+#  id                :integer          not null, primary key
+#  body              :text             default(""), not null
+#  file_committed_at :datetime
+#  properties        :json             not null
+#  slug              :string
+#  slug_manual       :boolean          default(FALSE), not null
+#  title             :string           not null
+#  title_manual      :boolean          default(FALSE), not null
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
 #
 # Indexes
 #
@@ -45,5 +47,83 @@ class MemoTest < ActiveSupport::TestCase
     m.valid?
     assert m.title_unfilled?
     assert_equal Memo::TITLE_PLACEHOLDER, m.title
+  end
+
+  test "derived_slug_from_title parameterizes title" do
+    assert_equal "hello-world", Memo.derived_slug_from_title("Hello World")
+    assert_nil Memo.derived_slug_from_title(Memo::TITLE_PLACEHOLDER)
+    assert_nil Memo.derived_slug_from_title("")
+  end
+
+  test "derived_slug_from_title uses MeCab romaji for Japanese when available" do
+    m = memos(:one)
+    slug = Memo.derived_slug_from_title("はじめに", m)
+    if MemoMecabRomaji.romaji_slug_from("はじめに").present?
+      assert_equal "hajime-ni", slug
+    else
+      assert_equal "memo-#{m.id}", slug
+    end
+  end
+
+  test "derived_slug_from_title keeps Japanese when title mixes ASCII and Japanese" do
+    m = memos(:one)
+    title = "Note メモ"
+    slug = Memo.derived_slug_from_title(title, m)
+    if MemoMecabRomaji.romaji_slug_from(title).present?
+      assert_equal "note-memo", slug
+    else
+      assert_equal "memo-#{m.id}", slug
+    end
+  end
+
+  test "normalize_slug_fragment matches storage rules" do
+    assert_equal "weird-slug", Memo.normalize_slug_fragment("  WEIRD SLUG!!  ")
+    assert_nil Memo.normalize_slug_fragment("")
+    assert_nil Memo.normalize_slug_fragment("   ")
+  end
+
+  test "slug syncs from title before file commit when not slug_manual" do
+    m = Memo.new(
+      body: "= Hi\n",
+      title_manual: false,
+      slug_manual: false,
+      file_committed_at: nil
+    )
+    m.valid?
+    assert_not m.slug_manual?
+    assert_equal "hi", m.slug
+  end
+
+  test "slug does not auto sync from title after file commit" do
+    m = Memo.new(
+      body: "= New title\n",
+      title_manual: false,
+      slug: "kept-slug",
+      slug_manual: false,
+      file_committed_at: Time.current
+    )
+    m.valid?
+    assert_equal "kept-slug", m.slug
+  end
+
+  test "display_as_draft? when never file-committed" do
+    m = memos(:one)
+    m.update_column(:file_committed_at, nil)
+    assert m.reload.display_as_draft?
+  end
+
+  test "display_as_draft? is false when updated_at matches last file commit" do
+    m = memos(:one)
+    t = Time.zone.parse("2026-01-02 12:00:00")
+    m.update_columns(file_committed_at: t, updated_at: t)
+    assert_not m.reload.display_as_draft?
+  end
+
+  test "display_as_draft? when edited after file commit" do
+    m = memos(:one)
+    t = Time.zone.parse("2026-01-02 12:00:00")
+    m.update_columns(file_committed_at: t, updated_at: t)
+    m.touch
+    assert m.reload.display_as_draft?
   end
 end

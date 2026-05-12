@@ -50,4 +50,8 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # 並列テストでワーカーごとに別の Git 作業ツリー（application.rb の既定を上書き）
+  suffix = [ ENV["TEST_ENV_NUMBER"], Process.pid.to_s ].compact.join("_")
+  config.x.memo_git_work_tree = Rails.root.join("tmp", "memo_git_test", suffix).to_s
 end

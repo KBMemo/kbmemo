@@ -36,8 +36,7 @@ html
           = yield
         div[class="flex -mx-4 flex-col border-t border-zinc-200 bg-zinc-50 md:min-h-[calc(100vh-6.75rem)] md:flex-row md:items-stretch"]
           aside[class="flex max-h-[min(42vh,360px)] w-full flex-shrink-0 flex-col border-b border-zinc-200 bg-white md:max-h-none md:h-full md:w-80 md:max-w-[min(40vw,24rem)] md:flex-shrink-0 md:border-b-0 md:border-r md:border-t-0"]
-            div[id="memos_list_panel"]
-              = render "memos/list_panel"
+            = render "memos/list_panel"
           section[class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"]
             div[class="flex-1 overflow-y-auto px-4 py-5 md:px-8"]
               = yield :memos_editor

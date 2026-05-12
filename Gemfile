@@ -67,3 +67,6 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 end
+
+gem "natto", "~> 1.2"
+gem "romaji", "~> 0.3.0"

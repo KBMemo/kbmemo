@@ -6,11 +6,38 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "memo list row links to edit when draft and to show when file committed" do
+    draft = memos(:one)
+    committed = memos(:two)
+    t = 1.hour.ago.change(usec: 0)
+    committed.update_columns(file_committed_at: t, updated_at: t)
+
+    get memos_url
+    assert_response :success
+    assert_includes response.body, %(href="#{edit_memo_path(draft)}")
+    assert_includes response.body, %(href="#{memo_path(committed)}")
+  end
+
+  test "memo list uses edit link after committed memo is changed by draft" do
+    committed = memos(:two)
+    t = 1.hour.ago.change(usec: 0)
+    committed.update_columns(file_committed_at: t, updated_at: t)
+
+    patch draft_memo_url(committed), params: { memo: { body: "= Revised\n\nx" } }, as: :json
+    assert_response :success
+    assert committed.reload.display_as_draft?
+
+    get memos_url
+    assert_includes response.body, %(href="#{edit_memo_path(committed)}")
+  end
+
   test "edit has memo draft stimulus bindings" do
     get edit_memo_url(memos(:one))
     assert_response :success
     assert_includes response.body, 'data-controller="memo-draft"'
-    assert_includes response.body, 'data-action="submit-&gt;memo-draft#preventSubmit"'
+    assert_includes response.body, "memo-draft#preventSubmit"
+    assert_includes response.body, "memo-draft#suppressEnterSubmit"
+    assert_includes response.body, "memo_slug_field"
   end
 
   test "should create memo and redirect" do
@@ -21,7 +48,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
           body: "= Doc\n\nHello.",
           slug: "",
           tag_list: "alpha, beta",
-          properties_json: "{\n  \"priority\": 1\n}"
+          properties_yaml: "priority: 1"
         }
       }
     end
@@ -40,7 +67,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
           title_manual: false,
           slug: "draft-slug",
           tag_list: "draft-tag, other",
-          properties_json: '{"k":1}'
+          properties_yaml: "k: 1"
         }
       },
       as: :json
@@ -48,7 +75,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     memo.reload
     assert_equal "= Draft title\n\nBody.", memo.body
     assert_equal "Draft title", memo.title
-    assert_equal "draft-slug", memo.slug
+    assert_equal "draft-title", memo.slug
     assert_equal({ "k" => 1 }, memo.properties)
     assert_includes memo.tags.map(&:name), "draft-tag"
     assert_not memo.title_manual
@@ -58,7 +85,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
   test "body draft save works even when properties field is currently invalid on client" do
     memo = memos(:one)
-    # properties_json は送らない（別フィールド単位保存）
+    # properties_yaml は送らない（別フィールド単位保存）
     patch draft_memo_url(memo),
       params: { memo: { body: "= Updated only body\n\nText" } },
       as: :json
@@ -66,6 +93,26 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     memo.reload
     assert_equal "= Updated only body\n\nText", memo.body
     assert_equal "Updated only body", memo.title
+  end
+
+  test "update writes memo file and commits to git" do
+    memo = memos(:one)
+    patch memo_url(memo),
+      params: {
+        memo: {
+          title: "Git integration title",
+          body: "= Git integration\n\nParagraph.",
+          slug: "git-integration-slug",
+          title_manual: "1"
+        }
+      }
+    assert_redirected_to memo_path(memo)
+    memo.reload
+    assert memo.file_committed_at.present?
+    assert_equal memo.updated_at.to_i, memo.file_committed_at.to_i
+    repo = MemoRepository.new
+    assert_predicate repo.absolute_path_for(memo), :exist?
+    assert_includes repo.absolute_path_for(memo).read, "Git integration"
   end
 
   test "draft can respond with turbo stream for title sync" do
@@ -76,6 +123,32 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.media_type, "vnd.turbo-stream.html"
     assert_includes response.body, "memo_title_field"
+    assert_includes response.body, "memo_slug_field"
+  end
+
+  test "draft turbo stream keeps memos_list_panel id so repeated saves refresh sidebar" do
+    memo = memos(:one)
+    headers = { "Accept" => "text/vnd.turbo-stream.html" }
+    patch draft_memo_url(memo), params: { memo: { body: "= First sidebar title\n\nA." } }, headers: headers
+    assert_response :success
+    assert_includes response.body, 'id="memos_list_panel"'
+
+    patch draft_memo_url(memo), params: { memo: { body: "= Second sidebar title\n\nB." } }, headers: headers
+    assert_response :success
+    assert_includes response.body, "Second sidebar title"
+    assert_includes response.body, 'id="memos_list_panel"'
+  end
+
+  test "draft json returns normalized slug" do
+    memo = memos(:one)
+    patch draft_memo_url(memo),
+      params: { memo: { slug: "  WEIRD SLUG!!  ", title: "Fixed", title_manual: true, slug_manual: true } },
+      as: :json
+    assert_response :success
+    memo.reload
+    assert_equal "weird-slug", memo.slug
+    body = JSON.parse(response.body)
+    assert_equal "weird-slug", body["slug"]
   end
 
   test "draft broadcasts show content replace to memo turbo stream" do
@@ -97,7 +170,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
             title_manual: false,
             slug: "",
             tag_list: "json-tag",
-            properties_json: "{}"
+            properties_yaml: "{}"
           }
         },
         as: :json
@@ -106,18 +179,19 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     json = JSON.parse(response.body)
     assert json["edit_path"].present?
     assert json["draft_url"].present?
+    assert_equal "from-json", json["slug"]
     m = Memo.order(:id).last
     assert_equal "From Json", m.title
     assert_includes m.tags.map(&:name), "json-tag"
   end
 
-  test "should reject invalid properties json" do
+  test "should reject invalid properties yaml" do
     assert_no_difference("Memo.count") do
       post memos_url, params: {
         memo: {
-          title: "Bad json",
+          title: "Bad yaml",
           body: "",
-          properties_json: "{"
+          properties_yaml: "[not a mapping"
         }
       }
     end

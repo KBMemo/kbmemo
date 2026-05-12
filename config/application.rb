@@ -23,5 +23,11 @@ module Kbmemo
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+
+    # メモ本文の Git 作業ツリー（環境変数 MEMO_GIT_WORK_TREE で上書き）
+    config.x.memo_git_work_tree = ENV.fetch(
+      "MEMO_GIT_WORK_TREE",
+      Rails.root.join("storage", "memo_git_worktree").to_s
+    )
   end
 end

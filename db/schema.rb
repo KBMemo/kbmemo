@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_05_004044) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_12_045540) do
   create_table "memo_tags", force: :cascade do |t|
     t.integer "memo_id", null: false
     t.integer "tag_id", null: false
@@ -22,8 +22,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_05_004044) do
   create_table "memos", force: :cascade do |t|
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
+    t.datetime "file_committed_at"
     t.json "properties", default: {}, null: false
     t.string "slug"
+    t.boolean "slug_manual", default: false, null: false
     t.string "title", null: false
     t.boolean "title_manual", default: false, null: false
     t.datetime "updated_at", null: false

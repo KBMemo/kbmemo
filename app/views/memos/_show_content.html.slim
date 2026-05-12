@@ -20,7 +20,7 @@ div id=dom_id(memo)
   - if memo.properties.present?
     section.mb-8.rounded-lg.border.border-zinc-200.bg-white.p-4.shadow-sm
       h2.mb-2.text-sm.font-semibold.text-zinc-800 プロパティ
-      pre.overflow-x-auto.rounded-md.bg-zinc-50.p-3.font-mono.text-xs.text-zinc-800 = memo_properties_json_value(memo)
+      pre.overflow-x-auto.rounded-md.bg-zinc-50.p-3.font-mono.text-xs.text-zinc-800 = memo_properties_yaml_value(memo)
 
   article.memo-body.rounded-lg.border.border-zinc-200.bg-white.p-6.shadow-sm
     .max-w-none.text-zinc-800 class="[&_a]:text-blue-600 [&_a]:underline [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_h1]:mb-4 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_li]:my-1 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-zinc-900 [&_pre]:p-4 [&_pre]:text-sm [&_pre]:text-zinc-100"

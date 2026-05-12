@@ -1,13 +1,14 @@
 ruby:
   form_data = {
     controller: "memo-draft",
-    action: "submit->memo-draft#preventSubmit",
+    action: "submit->memo-draft#preventSubmit keydown->memo-draft#suppressEnterSubmit",
     turbo: "false"
   }
   form_data[:memo_draft_draft_url_value] = draft_memo_path(memo) if memo.persisted?
   form_data[:memo_draft_create_url_value] = memos_path unless memo.persisted?
+  form_data[:memo_draft_file_committed_value] = memo.file_committed_at.present?
 
-= form_with model: memo, class: "space-y-6", data: form_data do |f|
+= form_with model: memo, class: "space-y-3", data: form_data do |f|
   = hidden_field_tag "memo[title_manual]", memo.title_manual ? "1" : "0", data: { memo_draft_target: "titleManualFlag" }
   - if memo.errors.any?
     .rounded-md.border.border-red-200.bg-red-50.px-4.py-3.text-sm.text-red-900
@@ -20,24 +21,25 @@ ruby:
     = render "title_field", memo: memo
 
   div
-    = f.label :slug, "スラッグ（任意・将来URL用）", class: "block text-sm font-medium text-zinc-800"
-    = f.text_field :slug, autocomplete: "off", placeholder: "例: weekly-notes", class: "mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 font-mono text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900", data: { memo_draft_target: "slug", action: "input->memo-draft#slugInput compositionend->memo-draft#slugInput" }
+    = render "slug_field", memo: memo
+
+  .flex.items-start.gap-3
+    = label_tag "memo_properties_yaml", "プロパティ", class: "pt-1 text-sm font-medium text-zinc-800 whitespace-nowrap"
+    .min-w-0.flex-1
+      = text_area_tag "memo[properties_yaml]", memo_properties_yaml_value(memo), rows: 4, placeholder: "priority: 1\nlabels:\n  - ideas", class: memo_form_underline_properties_textarea(memo), data: { memo_draft_target: "propertiesYaml", action: "input->memo-draft#propertiesInput compositionend->memo-draft#propertiesInput" }
+      - if memo.errors[:properties_yaml].any?
+        p.mt-1.text-sm.text-red-700 = memo.errors[:properties_yaml].first
+
+  .flex.items-center.gap-3
+    = label_tag "memo_tag_list", "タグ", class: "text-sm font-medium text-zinc-800 whitespace-nowrap"
+    = text_field_tag "memo[tag_list]", memo.tags.map(&:name).join(", "), autocomplete: "off", placeholder: "ideas, work", class: memo_form_underline_input, data: { memo_draft_target: "tagList", action: "input->memo-draft#tagListInput compositionend->memo-draft#tagListInput" }
 
   div
-    = f.label :body, "本文（AsciiDoc）", class: "block text-sm font-medium text-zinc-800"
-    = f.text_area :body, rows: 18, class: "mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 font-mono text-sm leading-relaxed text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900", data: { memo_draft_target: "body", action: "input->memo-draft#bodyInput compositionend->memo-draft#bodyInput blur->memo-draft#bodyInput" }
+    = f.label :body, "本文（AsciiDoc）", class: "mb-1 block text-sm font-medium text-zinc-800"
+    = f.text_area :body, rows: 14, class: memo_form_underline_body, data: { memo_draft_target: "body", action: "input->memo-draft#bodyInput compositionend->memo-draft#bodyInput blur->memo-draft#bodyInput" }
 
-  div
-    = label_tag "memo_tag_list", "タグ（カンマ区切り）", class: "block text-sm font-medium text-zinc-800"
-    = text_field_tag "memo[tag_list]", memo.tags.map(&:name).join(", "), autocomplete: "off", placeholder: "ideas, work", class: "mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900", data: { memo_draft_target: "tagList", action: "input->memo-draft#tagListInput compositionend->memo-draft#tagListInput" }
+  - if memo.persisted?
+    .mt-4.flex.justify-end.gap-2
+      = link_to (memo.display_as_draft? ? "プレビュー" : "表示"), memo_path(memo), class: "rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
+      = f.submit "コミット", title: "ファイルへ保存して、Gitに記録", data: { memo_commit: true }, class: "rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
 
-  div
-    = label_tag "memo_properties_json", "プロパティ（JSON オブジェクト）", class: "block text-sm font-medium text-zinc-800"
-    - props_classes = "mt-1 block w-full rounded-md border px-3 py-2 font-mono text-sm leading-relaxed shadow-sm focus:outline-none focus:ring-1 "
-    - props_classes += memo.errors[:properties_json].any? ? "border-red-500 text-red-900 focus:border-red-600 focus:ring-red-600" : "border-zinc-300 text-zinc-900 focus:border-zinc-900 focus:ring-zinc-900"
-    = text_area_tag "memo[properties_json]", memo_properties_json_value(memo), rows: 8, class: props_classes, data: { memo_draft_target: "propertiesJson", action: "input->memo-draft#propertiesInput compositionend->memo-draft#propertiesInput" }
-    - if memo.errors[:properties_json].any?
-      p.mt-1.text-sm.text-red-700 = memo.errors[:properties_json].first
-
-  .mt-8.border-t.border-zinc-200.pt-6
-    = link_to "一覧へ", memos_path, class: "text-sm text-zinc-600 hover:text-zinc-900"
