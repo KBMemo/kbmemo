@@ -10,31 +10,53 @@
 #  slug_manual       :boolean          default(FALSE), not null
 #  title             :string           not null
 #  title_manual      :boolean          default(FALSE), not null
+#  visibility        :integer          default(0), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
+#  account_id        :integer          not null
 #  memo_directory_id :integer          not null
+#  memo_group_id     :integer
 #
 # Indexes
 #
+#  index_memos_on_account_id                  (account_id)
 #  index_memos_on_memo_directory_id           (memo_directory_id)
 #  index_memos_on_memo_directory_id_and_slug  (memo_directory_id,slug) UNIQUE
+#  index_memos_on_memo_group_id               (memo_group_id)
 #
 # Foreign Keys
 #
+#  account_id         (account_id => accounts.id)
 #  memo_directory_id  (memo_directory_id => memo_directories.id)
+#  memo_group_id      (memo_group_id => memo_groups.id)
 #
 class Memo < ApplicationRecord
   TITLE_PLACEHOLDER = " - 未入力 - ".freeze
 
   belongs_to :memo_directory
+  belongs_to :account
+  belongs_to :memo_group, optional: true
 
   has_many :memo_tags, dependent: :destroy
   has_many :tags, through: :memo_tags
 
+  # 0: 全体（未ログイン含む閲覧可） 1: グループ閲覧のみ 2: 自分のみ閲覧
+  # 3: グループ内読み書き 4: 自分のみ読み書き
+  enum :visibility, {
+    public_everyone: 0,
+    group_read: 1,
+    owner_read: 2,
+    group_read_write: 3,
+    owner_read_write: 4
+  }
+
   validates :title, presence: true
   validates :slug, uniqueness: { scope: :memo_directory_id, allow_blank: true }
+  validates :memo_group_id, presence: true, if: -> { group_read? || group_read_write? }
+  validate :memo_group_must_include_owner, if: -> { group_read? || group_read_write? }
 
   before_validation :assign_default_memo_directory
+  before_validation :clear_memo_group_when_not_group_visibility
   before_validation :normalize_unfilled_title_marker
   before_validation :prepare_title_from_body_and_manual
   before_validation :prepare_slug_from_title_and_manual
@@ -124,6 +146,19 @@ class Memo < ApplicationRecord
   end
 
   private
+
+  def clear_memo_group_when_not_group_visibility
+    return if group_read? || group_read_write?
+
+    self.memo_group_id = nil
+  end
+
+  def memo_group_must_include_owner
+    return if memo_group_id.blank? || account_id.blank?
+    return if MemoGroupMembership.exists?(memo_group_id: memo_group_id, account_id: account_id)
+
+    errors.add(:memo_group_id, "はオーナーが参加しているグループを選んでください")
+  end
 
   def assign_default_memo_directory
     self.memo_directory = MemoDirectory.root if memo_directory_id.blank?

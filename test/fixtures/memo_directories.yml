@@ -1,5 +1,19 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
+# == Schema Information
+#
+# Table name: memo_directories
+#
+#  id           :integer          not null, primary key
+#  label        :string           default(""), not null
+#  path_segment :string           default(""), not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#
+# Indexes
+#
+#  index_memo_directories_on_path_segment  (path_segment) UNIQUE
+#
 root:
   path_segment: ""
   label: ルート

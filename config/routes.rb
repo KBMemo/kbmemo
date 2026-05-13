@@ -11,6 +11,10 @@ Rails.application.routes.draw do
 
   root "memos#index"
 
+  if Rails.env.development?
+    mount LetterOpenerWeb::Engine, at: "/letter_opener"
+  end
+
   resources :memo_directories, except: [:show]
 
   resources :tags, only: %i[index edit update destroy] do

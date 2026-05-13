@@ -59,7 +59,8 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
-  gem 'annotaterb'
+  gem "annotaterb"
+  gem "letter_opener_web", "~> 3.0"
 end
 
 group :test do
@@ -70,3 +71,11 @@ end
 
 gem "natto", "~> 1.2"
 gem "romaji", "~> 0.3.0"
+
+gem "rodauth-rails", "~> 2.1"
+gem "bcrypt", "~> 3.1"
+gem "pundit", "~> 2.5"
+# Enables Sequel to use Active Record's database connection
+gem "sequel-activerecord_connection", "~> 2.0", require: false
+# Used by Rodauth for rendering built-in view and email templates
+gem "tilt", "~> 2.4", require: false

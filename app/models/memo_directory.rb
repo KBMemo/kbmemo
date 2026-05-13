@@ -4,11 +4,11 @@
 #
 # Table name: memo_directories
 #
-#  id            :integer          not null, primary key
-#  label         :string           default(""), not null
-#  path_segment  :string           default(""), not null
-#  created_at    :datetime         not null
-#  updated_at    :datetime         not null
+#  id           :integer          not null, primary key
+#  label        :string           default(""), not null
+#  path_segment :string           default(""), not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
 #
 # Indexes
 #

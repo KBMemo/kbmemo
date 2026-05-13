@@ -13,3 +13,16 @@ module ActiveSupport
     # Add more helper methods to be used by all tests here...
   end
 end
+
+module RodauthIntegrationSignIn
+  def sign_in_as(fixture_key = :one)
+    account = accounts(fixture_key)
+    post "/login", params: { email: account.email, password: "password" }
+  end
+end
+
+class ActionDispatch::IntegrationTest
+  include RodauthIntegrationSignIn
+
+  setup { sign_in_as(:one) }
+end

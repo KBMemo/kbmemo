@@ -34,17 +34,17 @@ module MemoSidebar
   def load_sidebar_memos_list
     return unless %w[memos memo_directories tags].include?(controller_path)
 
+    base = policy_scope(Memo).order(updated_at: :desc).includes(:tags, :memo_directory)
+
     @memos =
       if @sidebar_view == "tag"
-        scope = Memo.order(updated_at: :desc).includes(:tags, :memo_directory)
         if @current_tag
-          scope.joins(:memo_tags).where(memo_tags: { tag_id: @current_tag.id }).distinct
+          base.joins(:memo_tags).where(memo_tags: { tag_id: @current_tag.id }).distinct
         else
-          scope.none
+          base.none
         end
       else
-        Memo.order(updated_at: :desc).includes(:tags, :memo_directory)
-          .where(memo_directory_id: @current_memo_directory.id)
+        base.where(memo_directory_id: @current_memo_directory.id)
       end
   end
 end

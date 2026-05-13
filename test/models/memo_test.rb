@@ -10,18 +10,25 @@
 #  slug_manual       :boolean          default(FALSE), not null
 #  title             :string           not null
 #  title_manual      :boolean          default(FALSE), not null
+#  visibility        :integer          default(0), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
+#  account_id        :integer          not null
 #  memo_directory_id :integer          not null
+#  memo_group_id     :integer
 #
 # Indexes
 #
+#  index_memos_on_account_id                  (account_id)
 #  index_memos_on_memo_directory_id           (memo_directory_id)
 #  index_memos_on_memo_directory_id_and_slug  (memo_directory_id,slug) UNIQUE
+#  index_memos_on_memo_group_id               (memo_group_id)
 #
 # Foreign Keys
 #
+#  account_id         (account_id => accounts.id)
 #  memo_directory_id  (memo_directory_id => memo_directories.id)
+#  memo_group_id      (memo_group_id => memo_groups.id)
 #
 require "test_helper"
 
@@ -35,21 +42,38 @@ class MemoTest < ActiveSupport::TestCase
   end
 
   test "title stays manual when user sets title different from derived" do
-    m = Memo.new(body: "Line1\nLine2", title: "Custom", title_manual: false)
+    m = Memo.new(
+      body: "Line1\nLine2",
+      title: "Custom",
+      title_manual: false,
+      account: accounts(:one),
+      memo_directory: memo_directories(:root)
+    )
     m.valid?
     assert m.title_manual?
     assert_equal "Custom", m.title
   end
 
   test "title syncs from body when not manual" do
-    m = Memo.new(body: "= Doc title\n\nx", title_manual: false)
+    m = Memo.new(
+      body: "= Doc title\n\nx",
+      title_manual: false,
+      account: accounts(:one),
+      memo_directory: memo_directories(:root)
+    )
     m.valid?
     assert_not m.title_manual?
     assert_equal "Doc title", m.title
   end
 
   test "placeholder title is treated as unfilled" do
-    m = Memo.new(body: "", title: Memo::TITLE_PLACEHOLDER, title_manual: true)
+    m = Memo.new(
+      body: "",
+      title: Memo::TITLE_PLACEHOLDER,
+      title_manual: true,
+      account: accounts(:one),
+      memo_directory: memo_directories(:root)
+    )
     m.valid?
     assert m.title_unfilled?
     assert_equal Memo::TITLE_PLACEHOLDER, m.title
@@ -93,7 +117,9 @@ class MemoTest < ActiveSupport::TestCase
       body: "= Hi\n",
       title_manual: false,
       slug_manual: false,
-      file_committed_at: nil
+      file_committed_at: nil,
+      account: accounts(:one),
+      memo_directory: memo_directories(:root)
     )
     m.valid?
     assert_not m.slug_manual?
@@ -106,7 +132,9 @@ class MemoTest < ActiveSupport::TestCase
       title_manual: false,
       slug: "kept-slug",
       slug_manual: false,
-      file_committed_at: Time.current
+      file_committed_at: Time.current,
+      account: accounts(:one),
+      memo_directory: memo_directories(:root)
     )
     m.valid?
     assert_equal "kept-slug", m.slug
@@ -131,5 +159,24 @@ class MemoTest < ActiveSupport::TestCase
     m.update_columns(file_committed_at: t, updated_at: t)
     m.touch
     assert m.reload.display_as_draft?
+  end
+
+  test "group_read requires memo_group" do
+    m = memos(:one)
+    m.assign_attributes(visibility: :group_read, memo_group_id: nil)
+    assert_not m.valid?
+    assert m.errors[:memo_group_id].any?
+  end
+
+  test "group_read requires owner to belong to memo_group" do
+    m = memos(:one)
+    m.assign_attributes(visibility: :group_read, memo_group_id: memo_groups(:beta).id)
+    assert_not m.valid?
+  end
+
+  test "group_read is valid when owner belongs to memo_group" do
+    m = memos(:one)
+    m.assign_attributes(visibility: :group_read, memo_group_id: memo_groups(:alpha).id)
+    assert m.valid?
   end
 end

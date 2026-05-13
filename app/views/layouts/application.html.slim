@@ -22,9 +22,15 @@ html
       nav.mx-auto.flex.w-full.flex-wrap.items-center.justify-between.gap-3.px-4.py-3 class=(memos_wide_layout? ? "max-w-[1800px]" : "max-w-3xl")
         = link_to root_path, class: "text-lg font-semibold tracking-tight text-zinc-900" do
           | Kbmemo
-        .flex.items-center.gap-4.text-sm
+        .flex.flex-wrap.items-center.gap-x-4.gap-y-2.text-sm
           = link_to "メモ", memos_path, class: "text-zinc-600 hover:text-zinc-900"
           = link_to "タグ管理", tags_path, class: "text-zinc-600 hover:text-zinc-900"
+          - if rodauth.rails_account
+            span.hidden.text-zinc-500.sm:inline = rodauth.rails_account.email
+            = link_to "パスワード変更", rodauth.change_password_path, class: "text-zinc-600 hover:text-zinc-900"
+            = button_to "ログアウト", rodauth.logout_path, method: :post, form: { class: "inline" }, class: "rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 hover:bg-zinc-50"
+          - if Rails.env.development?
+            = link_to "送信メール", "/letter_opener", class: "text-zinc-500 hover:text-zinc-800", target: "_blank", rel: "noopener"
           = link_to "新規メモ", new_memo_path_with_current_directory, class: "rounded-md bg-zinc-900 px-3 py-1.5 font-medium text-white hover:bg-zinc-800"
     main.mx-auto.w-full.px-4 class=(memos_wide_layout? ? "max-w-[1800px] py-6" : "max-w-3xl py-8")
       - flash.each do |level, message|

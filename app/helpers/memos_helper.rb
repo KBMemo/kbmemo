@@ -1,4 +1,16 @@
 module MemosHelper
+  MEMO_VISIBILITY_LABELS = {
+    "public_everyone" => "全体（未ログインでも閲覧可）",
+    "group_read" => "グループ内のみ閲覧",
+    "owner_read" => "自分のみ閲覧",
+    "group_read_write" => "グループ内で読み書き",
+    "owner_read_write" => "自分のみ読み書き"
+  }.freeze
+
+  def memo_visibility_options_for_select
+    Memo.visibilities.keys.map { |key| [ MEMO_VISIBILITY_LABELS.fetch(key, key.humanize), key ] }
+  end
+
   # :new = 新規フォーム表示中, Integer = そのメモが選択中, nil = 一覧のみ（トップ）
   def memo_sidebar_highlight
     if %w[new create].include?(controller.action_name) && (!instance_variable_defined?(:@memo) || @memo.nil? || !@memo.persisted?)

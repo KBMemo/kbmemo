@@ -1,0 +1,12 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+one_in_alpha:
+  memo_group: alpha
+  account: one
+
+two_in_alpha:
+  memo_group: alpha
+  account: two
+
+two_in_beta:
+  memo_group: beta
+  account: two

@@ -224,4 +224,24 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :unprocessable_entity
   end
+
+  test "guest can show public memo without signing in" do
+    memos(:one).update_columns(visibility: Memo.visibilities[:public_everyone])
+    post "/logout"
+    get memo_url(memos(:one))
+    assert_response :success
+  end
+
+  test "guest gets not found for non-public memo" do
+    post "/logout"
+    memos(:one).update_columns(visibility: Memo.visibilities[:owner_read])
+    get memo_url(memos(:one))
+    assert_response :not_found
+  end
+
+  test "guest cannot access memo index" do
+    post "/logout"
+    get memos_url
+    assert_response :redirect
+  end
 end

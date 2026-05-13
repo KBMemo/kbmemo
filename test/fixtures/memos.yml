@@ -1,11 +1,44 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
+# == Schema Information
+#
+# Table name: memos
+#
+#  id                :integer          not null, primary key
+#  body              :text             default(""), not null
+#  file_committed_at :datetime
+#  properties        :json             not null
+#  slug              :string
+#  slug_manual       :boolean          default(FALSE), not null
+#  title             :string           not null
+#  title_manual      :boolean          default(FALSE), not null
+#  visibility        :integer          default(0), not null
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#  account_id        :integer          not null
+#  memo_directory_id :integer          not null
+#  memo_group_id     :integer
+#
+# Indexes
+#
+#  index_memos_on_account_id                  (account_id)
+#  index_memos_on_memo_directory_id           (memo_directory_id)
+#  index_memos_on_memo_directory_id_and_slug  (memo_directory_id,slug) UNIQUE
+#  index_memos_on_memo_group_id               (memo_group_id)
+#
+# Foreign Keys
+#
+#  account_id         (account_id => accounts.id)
+#  memo_directory_id  (memo_directory_id => memo_directories.id)
+#  memo_group_id      (memo_group_id => memo_groups.id)
+#
 one:
   title: First memo
   body: "= Hello"
   properties: {}
   slug: first-memo
   memo_directory: root
+  account: one
 
 two:
   title: Second memo
@@ -13,3 +46,4 @@ two:
   properties: {}
   slug: second-memo
   memo_directory: work
+  account: one

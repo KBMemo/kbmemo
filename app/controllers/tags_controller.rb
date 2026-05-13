@@ -4,17 +4,22 @@ class TagsController < ApplicationController
   include MemoSidebar
   helper MemosHelper
 
+  after_action :verify_authorized
+
   before_action :set_tag, only: %i[edit update destroy]
 
   def index
+    authorize Tag
     @tags = Tag.order(:name)
     @tag_counts = MemoTag.group(:tag_id).count
   end
 
   def edit
+    authorize @tag
   end
 
   def update
+    authorize @tag
     if @tag.update(tag_params)
       redirect_to tags_path, notice: "タグを更新しました。"
     else
@@ -23,6 +28,7 @@ class TagsController < ApplicationController
   end
 
   def destroy
+    authorize @tag
     if @tag.memo_tags.exists?
       redirect_to tags_path, alert: "メモに紐付いているタグは削除できません。先に統合するか、各メモから外してください。", status: :see_other
       return
@@ -32,11 +38,13 @@ class TagsController < ApplicationController
   end
 
   def merge_form
+    authorize Tag, :merge_form?
     @tags_for_select = Tag.order(:name)
     @source_tag = Tag.find_by(id: params[:from_tag_id])
   end
 
   def merge
+    authorize Tag, :merge?
     source = Tag.find_by(id: params[:source_tag_id])
     target = Tag.find_by(id: params[:target_tag_id])
 

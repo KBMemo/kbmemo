@@ -1,0 +1,26 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+# == Schema Information
+#
+# Table name: accounts
+#
+#  id            :integer          not null, primary key
+#  admin         :boolean          default(FALSE), not null
+#  email         :string           not null
+#  password_hash :string
+#  status        :integer          default("unverified"), not null
+#
+# Indexes
+#
+#  index_accounts_on_email  (email) UNIQUE WHERE status IN (1, 2)
+#
+one:
+  email: freddie@queen.com
+  password_hash: <%= RodauthApp.rodauth.allocate.password_hash("password") %>
+  status: verified
+  admin: true
+
+two:
+  email: brian@queen.com
+  password_hash: <%= RodauthApp.rodauth.allocate.password_hash("password") %>
+  status: verified
+  admin: false
