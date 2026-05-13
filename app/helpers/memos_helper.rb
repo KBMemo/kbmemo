@@ -23,9 +23,61 @@ module MemosHelper
     end
   end
 
-  # 一覧のメモ行: ドラフト表示中は編集、確定のみ show へ
+  # メモ一覧の行（グリップ＋リンク）用。左ボーダーで選択中を示す。
+  def memo_sidebar_memo_list_row_classes(memo_id)
+    base = "flex min-w-0 flex-1 items-stretch border-l-2 text-sm transition"
+    if memo_sidebar_selected?(memo_id)
+      "#{base} border-l-zinc-900 bg-zinc-100 text-zinc-900"
+    else
+      "#{base} border-l-transparent hover:bg-zinc-50"
+    end
+  end
+
+  # 一覧のメモ行: ドラフト表示中は編集、確定のみ show へ（サイドバー表示モードをクエリで維持）
   def memo_sidebar_memo_main_href(memo)
-    memo.display_as_draft? ? edit_memo_path(memo) : memo_path(memo)
+    q = memo_sidebar_nav_query
+    if memo.display_as_draft?
+      q.present? ? edit_memo_path(memo, q) : edit_memo_path(memo)
+    else
+      q.present? ? memo_path(memo, q) : memo_path(memo)
+    end
+  end
+
+  # ディレクトリ / タグ切り替え後も一覧・編集の文脈を保つクエリ（ハッシュ）
+  def memo_sidebar_nav_query
+    h = {}
+    if defined?(@sidebar_view) && @sidebar_view == "tag"
+      h[:sidebar_view] = "tag"
+      tid = (@current_tag&.id || params[:tag_id]).presence
+      h[:tag_id] = tid if tid
+    elsif defined?(@current_memo_directory) && @current_memo_directory && !@current_memo_directory.root?
+      h[:memo_directory_id] = @current_memo_directory.id
+    end
+    h
+  end
+
+  def memos_sidebar_directory_tab_path
+    return memos_path unless defined?(@current_memo_directory) && @current_memo_directory
+    return memos_path if @current_memo_directory.root?
+
+    memos_path(memo_directory_id: @current_memo_directory.id)
+  end
+
+  def memos_sidebar_tag_tab_path
+    first = Tag.order(:name).first
+    return memos_path(sidebar_view: "tag") if first.nil?
+
+    memos_path(sidebar_view: "tag", tag_id: first.id)
+  end
+
+  def memo_sidebar_view_tab_classes(mode)
+    base = "flex-1 rounded-md px-2 py-1.5 text-center text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+    active = defined?(@sidebar_view) && @sidebar_view == mode
+    if active
+      "#{base} bg-white text-zinc-900 shadow-sm"
+    else
+      "#{base} text-zinc-600 hover:text-zinc-900"
+    end
   end
 
   # 一覧左アイコン
@@ -43,7 +95,20 @@ module MemosHelper
 
   def memo_directory_nav_link_classes(directory)
     base = "block rounded-md px-2 py-1.5 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
-    if defined?(@current_memo_directory) && @current_memo_directory&.id == directory.id
+    active = defined?(@sidebar_view) && @sidebar_view == "directory" &&
+      defined?(@current_memo_directory) && @current_memo_directory&.id == directory.id
+    if active
+      "#{base} bg-zinc-200 font-medium text-zinc-900"
+    else
+      "#{base} text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+    end
+  end
+
+  def memo_tag_nav_link_classes(tag)
+    base = "block rounded-md px-2 py-1.5 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+    active = defined?(@sidebar_view) && @sidebar_view == "tag" &&
+      defined?(@current_tag) && @current_tag&.id == tag.id
+    if active
       "#{base} bg-zinc-200 font-medium text-zinc-900"
     else
       "#{base} text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"

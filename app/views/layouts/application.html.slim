@@ -24,6 +24,7 @@ html
           | Kbmemo
         .flex.items-center.gap-4.text-sm
           = link_to "メモ", memos_path, class: "text-zinc-600 hover:text-zinc-900"
+          = link_to "タグ管理", tags_path, class: "text-zinc-600 hover:text-zinc-900"
           = link_to "新規メモ", new_memo_path_with_current_directory, class: "rounded-md bg-zinc-900 px-3 py-1.5 font-medium text-white hover:bg-zinc-800"
     main.mx-auto.w-full.px-4 class=(memos_wide_layout? ? "max-w-[1800px] py-6" : "max-w-3xl py-8")
       - flash.each do |level, message|

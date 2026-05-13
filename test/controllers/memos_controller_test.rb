@@ -6,6 +6,23 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "tag sidebar redirects to first tag when tag_id omitted" do
+    first = Tag.order(:name).first
+    assert first
+
+    get memos_url(sidebar_view: "tag")
+    assert_redirected_to memos_url(sidebar_view: "tag", tag_id: first.id)
+  end
+
+  test "tag sidebar lists memos for selected tag" do
+    tag = tags(:two)
+    get memos_url(sidebar_view: "tag", tag_id: tag.id)
+    assert_response :success
+    assert_includes response.body, tag.name
+    assert_includes response.body, memos(:two).title
+    assert_not_includes response.body, memos(:one).title
+  end
+
   test "memo list row links to edit when draft and to show when file committed" do
     draft = memos(:one)
     committed = memos(:two)
@@ -43,6 +60,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     get edit_memo_url(memos(:one))
     assert_response :success
     assert_includes response.body, 'data-controller="memo-draft"'
+    assert_includes response.body, 'data-controller="memo-directory-dnd"'
     assert_includes response.body, "memo-draft#preventSubmit"
     assert_includes response.body, "memo-draft#suppressEnterSubmit"
     assert_includes response.body, "memo_slug_field"

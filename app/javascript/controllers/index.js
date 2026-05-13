@@ -6,5 +6,7 @@ import { application } from "./application"
 
 import HelloController from "./hello_controller"
 import MemoDraftController from "./memo_draft_controller"
+import MemoDirectoryDndController from "./memo_directory_dnd_controller"
 application.register("hello", HelloController)
 application.register("memo-draft", MemoDraftController)
+application.register("memo-directory-dnd", MemoDirectoryDndController)

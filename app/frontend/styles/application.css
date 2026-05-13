@@ -6,3 +6,13 @@
 @source "../../helpers/**/*.rb";
 @source "../../javascript/**/*.js";
 @source "../entrypoints/**/*.js";
+
+/* メモ→ディレクトリ DnD 中のカーソル（memo_directory_dnd_controller が html にクラス付与） */
+html.memo-directory-dnd-dragging,
+html.memo-directory-dnd-dragging * {
+  cursor: grabbing !important;
+}
+
+html.memo-directory-dnd-dragging a[data-drop-directory] {
+  cursor: move !important;
+}

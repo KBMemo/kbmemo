@@ -1,0 +1,26 @@
+- content_for :title, "タグを統合"
+
+- content_for :memos_editor do
+  .max-w-md
+    h1.mb-4.text-xl.font-semibold.text-zinc-900 タグを統合
+    p.mb-6.text-sm.leading-relaxed.text-zinc-600
+      | 統合元のタグは削除され、付いていたメモはすべて統合先のタグへ付け替えられます。すでに統合先のタグを持つメモでは、統合元の紐付けだけが外れます。
+    - if @tags_for_select.size >= 2
+      = form_with url: merge_tags_path, method: :post, class: "space-y-5" do
+        div
+          = label_tag :source_tag_id, "統合元（削除されるタグ）", class: "mb-1 block text-sm font-medium text-zinc-800"
+          = select_tag :source_tag_id, options_from_collection_for_select(@tags_for_select, :id, :name, @source_tag&.id), class: "mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+        div
+          = label_tag :target_tag_id, "統合先（残るタグ）", class: "mb-1 block text-sm font-medium text-zinc-800"
+          = select_tag :target_tag_id, options_from_collection_for_select(@tags_for_select, :id, :name, nil), class: "mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+        .flex.flex-wrap.gap-3.pt-2
+          = submit_tag "統合する", class: "rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800", data: { turbo_confirm: "統合元のタグを削除し、メモの紐付けを移します。よろしいですか？" }
+          = link_to "一覧へ", tags_path, class: "rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+    - elsif @tags_for_select.any?
+      p.text-sm.text-zinc-500 タグが1件しかないため、統合できる相手がありません。
+      p.mt-4
+        = link_to "一覧へ", tags_path, class: "text-sm font-medium text-zinc-700 underline hover:text-zinc-900"
+    - else
+      p.text-sm.text-zinc-500 タグがありません。
+      p.mt-4
+        = link_to "一覧へ", tags_path, class: "text-sm font-medium text-zinc-700 underline hover:text-zinc-900"

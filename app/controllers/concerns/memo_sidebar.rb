@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# メモ一覧サイドバー: 現在ディレクトリのメモ一覧とナビ用ディレクトリ一覧
+# メモ一覧サイドバー: ディレクトリまたはタグで絞り込み、ナビ一覧を表示
 module MemoSidebar
   extend ActiveSupport::Concern
 
@@ -13,6 +13,9 @@ module MemoSidebar
 
   def set_memo_directory_nav_context
     @memo_directories_for_nav = MemoDirectory.nav_ordered
+    @tags_for_nav = Tag.order(:name)
+    @sidebar_view = params[:sidebar_view] == "tag" ? "tag" : "directory"
+
     @current_memo_directory =
       if instance_variable_defined?(:@memo) && @memo&.persisted? && %w[show edit update draft destroy].include?(action_name)
         @memo.memo_directory
@@ -21,12 +24,27 @@ module MemoSidebar
       else
         MemoDirectory.root
       end
+
+    @current_tag =
+      if @sidebar_view == "tag" && params[:tag_id].present?
+        Tag.find_by(id: params[:tag_id])
+      end
   end
 
   def load_sidebar_memos_list
-    return unless %w[memos memo_directories].include?(controller_path)
+    return unless %w[memos memo_directories tags].include?(controller_path)
 
-    @memos = Memo.order(updated_at: :desc).includes(:tags, :memo_directory)
-      .where(memo_directory_id: @current_memo_directory.id)
+    @memos =
+      if @sidebar_view == "tag"
+        scope = Memo.order(updated_at: :desc).includes(:tags, :memo_directory)
+        if @current_tag
+          scope.joins(:memo_tags).where(memo_tags: { tag_id: @current_tag.id }).distinct
+        else
+          scope.none
+        end
+      else
+        Memo.order(updated_at: :desc).includes(:tags, :memo_directory)
+          .where(memo_directory_id: @current_memo_directory.id)
+      end
   end
 end

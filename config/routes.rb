@@ -13,6 +13,13 @@ Rails.application.routes.draw do
 
   resources :memo_directories, except: [:show]
 
+  resources :tags, only: %i[index edit update destroy] do
+    collection do
+      get "merge", action: :merge_form
+      post "merge", action: :merge
+    end
+  end
+
   resources :memos do
     member do
       patch :draft

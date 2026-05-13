@@ -3,6 +3,11 @@ class MemosController < ApplicationController
   include MemoSidebar
 
   def index
+    if params[:sidebar_view] == "tag" && params[:tag_id].blank? && Tag.exists?
+      first = Tag.order(:name).first
+      redirect_to memos_path(sidebar_view: "tag", tag_id: first.id)
+      return
+    end
   end
 
   def show

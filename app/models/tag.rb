@@ -29,6 +29,25 @@ class Tag < ApplicationRecord
     find_by(normalized_name: normalized) || create!(name: label)
   end
 
+  # このタグの memo_tags をすべて target へ寄せ、自身を削除する。
+  # メモがすでに target を持つ場合は重複行だけ削除する。
+  def merge_into!(target)
+    raise ArgumentError, "target tag is required" if target.nil?
+    raise ArgumentError, "cannot merge a tag into itself" if id == target.id
+
+    self.class.transaction do
+      MemoTag.where(tag_id: id).find_each do |mt|
+        if MemoTag.exists?(memo_id: mt.memo_id, tag_id: target.id)
+          mt.destroy!
+        else
+          mt.update!(tag_id: target.id)
+        end
+      end
+      destroy!
+    end
+    target.reload
+  end
+
   private
 
   def assign_normalized_name
