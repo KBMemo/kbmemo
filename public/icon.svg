@@ -1,3 +1,16 @@
-<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="256" cy="256" r="256" fill="red"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Kbmemo">
+  <rect width="512" height="512" rx="108" fill="#fafafa"/>
+  <rect x="36" y="36" width="440" height="440" rx="92" fill="none" stroke="#71717a" stroke-width="12"/>
+  <!-- Paper -->
+  <rect x="108" y="88" width="296" height="352" rx="24" fill="#ffffff" stroke="#18181b" stroke-width="14"/>
+  <!-- Fold -->
+  <path d="M340 88h88v88" fill="none" stroke="#18181b" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M340 88 L428 88 L428 176 Z" fill="#e4e4e7" stroke="#18181b" stroke-width="14" stroke-linejoin="round"/>
+  <!-- Title bar (AsciiDoc "=" feel) -->
+  <rect x="148" y="144" width="216" height="20" rx="6" fill="#d4d4d8"/>
+  <!-- Lines -->
+  <rect x="148" y="200" width="216" height="14" rx="4" fill="#a1a1aa"/>
+  <rect x="148" y="234" width="216" height="14" rx="4" fill="#a1a1aa"/>
+  <rect x="148" y="268" width="176" height="14" rx="4" fill="#a1a1aa"/>
+  <rect x="148" y="302" width="216" height="14" rx="4" fill="#a1a1aa"/>
 </svg>
