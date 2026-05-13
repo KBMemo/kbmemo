@@ -15,6 +15,11 @@ Rails.application.routes.draw do
     mount LetterOpenerWeb::Engine, at: "/letter_opener"
   end
 
+  namespace :admin do
+    resources :accounts, only: %i[index show edit update]
+    root to: "accounts#index"
+  end
+
   resources :memo_directories, except: [:show]
 
   resources :tags, only: %i[index edit update destroy] do

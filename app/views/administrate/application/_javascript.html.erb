@@ -1,0 +1,7 @@
+<% Administrate::Engine.javascripts.each do |js_path| %>
+  <% href = administrate_asset_href("#{js_path}.js") %>
+  <% if href %>
+    <%= tag.script src: href, defer: true, data: { turbo_track: "reload" } %>
+  <% end %>
+<% end %>
+<%= yield :javascript %>

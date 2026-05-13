@@ -79,3 +79,5 @@ gem "pundit", "~> 2.5"
 gem "sequel-activerecord_connection", "~> 2.0", require: false
 # Used by Rodauth for rendering built-in view and email templates
 gem "tilt", "~> 2.4", require: false
+
+gem "administrate", "~> 1.0"

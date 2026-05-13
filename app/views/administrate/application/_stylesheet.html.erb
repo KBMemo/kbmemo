@@ -1,0 +1,17 @@
+<%#
+  stylesheet_link_tag は manifest がある環境で administrate の CSS がマニフェストに無いと失敗する。
+  load_path 上の Propshaft::Asset から digested URL を直接組み立てる。
+%>
+<% if (href = administrate_asset_href("administrate/application.css")) %>
+  <%= tag.link rel: "stylesheet", href: href %>
+<% else %>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; }
+    .app-container { display: flex; min-height: 100vh; }
+    .main-content { flex: 1; padding: 1rem 1.5rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #e4e4e7; padding: 0.5rem 0.75rem; text-align: left; }
+    .button { display: inline-block; padding: 0.35rem 0.75rem; border-radius: 0.375rem; background: #18181b; color: #fff; text-decoration: none; }
+  </style>
+<% end %>
+<%= yield :stylesheet %>
