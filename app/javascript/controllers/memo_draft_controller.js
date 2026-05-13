@@ -13,9 +13,10 @@ export default class extends Controller {
     "saveSlugManual",
     "saveSlugSyncedFromTitle",
     "saveTagList",
-    "saveProperties"
+    "saveProperties",
+    "saveDirectory"
   ]
-  static targets = ["body", "title", "titleManualFlag", "slug", "slugManualFlag", "tagList", "propertiesYaml"]
+  static targets = ["body", "title", "titleManualFlag", "slug", "slugManualFlag", "tagList", "propertiesYaml", "directory"]
   static values = {
     draftUrl: String,
     createUrl: String,
@@ -252,6 +253,16 @@ export default class extends Controller {
 
   saveProperties() {
     this.saveDraft({ properties_yaml: this._pending.properties_yaml })
+  }
+
+  directoryChange() {
+    if (!this.hasDirectoryTarget) return
+    this._pending.memo_directory_id = this.directoryTarget.value
+    this.saveDirectory()
+  }
+
+  saveDirectory() {
+    this.saveDraft({ memo_directory_id: this._pending.memo_directory_id })
   }
 
   normalizeOutgoingTitle(value) {

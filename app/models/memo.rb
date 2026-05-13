@@ -12,20 +12,29 @@
 #  title_manual      :boolean          default(FALSE), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
+#  memo_directory_id :integer          not null
 #
 # Indexes
 #
-#  index_memos_on_slug  (slug) UNIQUE
+#  index_memos_on_memo_directory_id           (memo_directory_id)
+#  index_memos_on_memo_directory_id_and_slug  (memo_directory_id,slug) UNIQUE
+#
+# Foreign Keys
+#
+#  memo_directory_id  (memo_directory_id => memo_directories.id)
 #
 class Memo < ApplicationRecord
   TITLE_PLACEHOLDER = " - 未入力 - ".freeze
+
+  belongs_to :memo_directory
 
   has_many :memo_tags, dependent: :destroy
   has_many :tags, through: :memo_tags
 
   validates :title, presence: true
-  validates :slug, uniqueness: { allow_blank: true }
+  validates :slug, uniqueness: { scope: :memo_directory_id, allow_blank: true }
 
+  before_validation :assign_default_memo_directory
   before_validation :normalize_unfilled_title_marker
   before_validation :prepare_title_from_body_and_manual
   before_validation :prepare_slug_from_title_and_manual
@@ -115,6 +124,12 @@ class Memo < ApplicationRecord
   end
 
   private
+
+  def assign_default_memo_directory
+    self.memo_directory = MemoDirectory.root if memo_directory_id.blank?
+  rescue ActiveRecord::RecordNotFound
+    # DB 未準備時はスキップ
+  end
 
   def normalize_unfilled_title_marker
     self.title = self.class::TITLE_PLACEHOLDER if self.class.title_unfilled_value?(title)

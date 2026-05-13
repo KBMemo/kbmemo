@@ -1,32 +1,15 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
-# == Schema Information
-#
-# Table name: memos
-#
-#  id                :integer          not null, primary key
-#  body              :text             default(""), not null
-#  file_committed_at :datetime
-#  properties        :json             not null
-#  slug              :string
-#  slug_manual       :boolean          default(FALSE), not null
-#  title             :string           not null
-#  title_manual      :boolean          default(FALSE), not null
-#  created_at        :datetime         not null
-#  updated_at        :datetime         not null
-#
-# Indexes
-#
-#  index_memos_on_slug  (slug) UNIQUE
-#
 one:
   title: First memo
   body: "= Hello"
   properties: {}
   slug: first-memo
+  memo_directory: root
 
 two:
   title: Second memo
   body: "= World"
   properties: {}
   slug: second-memo
+  memo_directory: work

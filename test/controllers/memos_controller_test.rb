@@ -10,7 +10,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     draft = memos(:one)
     committed = memos(:two)
     t = 1.hour.ago.change(usec: 0)
-    committed.update_columns(file_committed_at: t, updated_at: t)
+    committed.update_columns(file_committed_at: t, updated_at: t, memo_directory_id: draft.memo_directory_id)
 
     get memos_url
     assert_response :success
@@ -21,7 +21,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
   test "memo list uses edit link after committed memo is changed by draft" do
     committed = memos(:two)
     t = 1.hour.ago.change(usec: 0)
-    committed.update_columns(file_committed_at: t, updated_at: t)
+    committed.update_columns(file_committed_at: t, updated_at: t, memo_directory_id: memos(:one).memo_directory_id)
 
     patch draft_memo_url(committed), params: { memo: { body: "= Revised\n\nx" } }, as: :json
     assert_response :success
@@ -29,6 +29,14 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
     get memos_url
     assert_includes response.body, %(href="#{edit_memo_path(committed)}")
+  end
+
+  test "draft can change memo directory" do
+    m = memos(:one)
+    work = memo_directories(:work)
+    patch draft_memo_url(m), params: { memo: { memo_directory_id: work.id } }, as: :json
+    assert_response :success
+    assert_equal work.id, m.reload.memo_directory_id
   end
 
   test "edit has memo draft stimulus bindings" do
@@ -124,6 +132,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.media_type, "vnd.turbo-stream.html"
     assert_includes response.body, "memo_title_field"
     assert_includes response.body, "memo_slug_field"
+    assert_includes response.body, "memo_directory_field"
   end
 
   test "draft turbo stream keeps memos_list_panel id so repeated saves refresh sidebar" do

@@ -10,7 +10,15 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_12_045540) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_13_120000) do
+  create_table "memo_directories", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "label", default: "", null: false
+    t.string "path_segment", default: "", null: false
+    t.datetime "updated_at", null: false
+    t.index ["path_segment"], name: "index_memo_directories_on_path_segment", unique: true
+  end
+
   create_table "memo_tags", force: :cascade do |t|
     t.integer "memo_id", null: false
     t.integer "tag_id", null: false
@@ -23,13 +31,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_12_045540) do
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
     t.datetime "file_committed_at"
+    t.integer "memo_directory_id", null: false
     t.json "properties", default: {}, null: false
     t.string "slug"
     t.boolean "slug_manual", default: false, null: false
     t.string "title", null: false
     t.boolean "title_manual", default: false, null: false
     t.datetime "updated_at", null: false
-    t.index ["slug"], name: "index_memos_on_slug", unique: true
+    t.index ["memo_directory_id", "slug"], name: "index_memos_on_memo_directory_id_and_slug", unique: true
+    t.index ["memo_directory_id"], name: "index_memos_on_memo_directory_id"
   end
 
   create_table "tags", force: :cascade do |t|
@@ -42,4 +52,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_12_045540) do
 
   add_foreign_key "memo_tags", "memos"
   add_foreign_key "memo_tags", "tags"
+  add_foreign_key "memos", "memo_directories"
 end

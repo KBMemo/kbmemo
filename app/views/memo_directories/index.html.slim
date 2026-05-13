@@ -1,0 +1,26 @@
+- content_for :title, "ディレクトリ一覧"
+
+- content_for :memos_editor do
+  .max-w-2xl
+    .mb-6.flex.flex-wrap.items-end.justify-between.gap-3
+      h1.text-xl.font-semibold.text-zinc-900 ディレクトリ
+      = link_to "新規ディレクトリ", new_memo_directory_path, class: "rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+    - if @memo_directories.any?
+      table.w-full.border-collapse.text-sm
+        thead.border-b.border-zinc-200.text-left.text-xs.uppercase.text-zinc-500
+          tr
+            th.py-2.pr-3 識別子
+            th.py-2.pr-3 ラベル
+            th.py-2
+        tbody.divide-y.divide-zinc-100
+          - @memo_directories.each do |d|
+            tr
+              td.py-2.pr-3.font-mono.text-zinc-800 = d.root? ? "（ルート）" : d.path_segment
+              td.py-2.pr-3.text-zinc-700 = d.display_name
+              td.py-2.text-right
+                = link_to "編集", edit_memo_directory_path(d), class: "text-zinc-600 hover:text-zinc-900"
+                - unless d.root?
+                  = " · "
+                  = button_to "削除", memo_directory_path(d), method: :delete, form: { data: { turbo_confirm: "「#{d.display_name}」を削除しますか？" } }, class: "text-red-600 hover:text-red-800"
+    - else
+      p.text-sm.text-zinc-500 ディレクトリがありません。

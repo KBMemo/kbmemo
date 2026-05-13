@@ -19,19 +19,19 @@ html
     = vite_javascript_tag "application"
   body.min-h-screen.bg-zinc-50.text-zinc-900.antialiased
     header.border-b.border-zinc-200.bg-white
-      nav.mx-auto.flex.w-full.flex-wrap.items-center.justify-between.gap-3.px-4.py-3 class=(controller.controller_path == "memos" ? "max-w-[1800px]" : "max-w-3xl")
+      nav.mx-auto.flex.w-full.flex-wrap.items-center.justify-between.gap-3.px-4.py-3 class=(memos_wide_layout? ? "max-w-[1800px]" : "max-w-3xl")
         = link_to root_path, class: "text-lg font-semibold tracking-tight text-zinc-900" do
           | Kbmemo
         .flex.items-center.gap-4.text-sm
           = link_to "メモ", memos_path, class: "text-zinc-600 hover:text-zinc-900"
-          = link_to "新規メモ", new_memo_path, class: "rounded-md bg-zinc-900 px-3 py-1.5 font-medium text-white hover:bg-zinc-800"
-    main.mx-auto.w-full.px-4 class=(controller.controller_path == "memos" ? "max-w-[1800px] py-6" : "max-w-3xl py-8")
+          = link_to "新規メモ", new_memo_path_with_current_directory, class: "rounded-md bg-zinc-900 px-3 py-1.5 font-medium text-white hover:bg-zinc-800"
+    main.mx-auto.w-full.px-4 class=(memos_wide_layout? ? "max-w-[1800px] py-6" : "max-w-3xl py-8")
       - flash.each do |level, message|
         - next if message.blank?
         - alert_classes = (level.to_sym == :notice) ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"
         p.mb-4.rounded-md.border.px-3.py-2.text-sm class=alert_classes role="status"
           = message
-      - if controller.controller_path == "memos"
+      - if memos_wide_layout?
         div[class="hidden" aria-hidden="true"]
           = yield
         div[class="flex -mx-4 flex-col border-t border-zinc-200 bg-zinc-50 md:min-h-[calc(100vh-6.75rem)] md:flex-row md:items-stretch"]

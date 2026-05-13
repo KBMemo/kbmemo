@@ -11,6 +11,8 @@ Rails.application.routes.draw do
 
   root "memos#index"
 
+  resources :memo_directories, except: [:show]
+
   resources :memos do
     member do
       patch :draft

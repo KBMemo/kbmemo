@@ -1,6 +1,6 @@
 class MemosController < ApplicationController
-  before_action :set_memo, only: %i[show edit update destroy draft]
-  before_action :load_sidebar_memos
+  prepend_before_action :set_memo, only: %i[show edit update destroy draft]
+  include MemoSidebar
 
   def index
   end
@@ -9,14 +9,14 @@ class MemosController < ApplicationController
   end
 
   def new
-    @memo = Memo.new
+    @memo = Memo.new(memo_directory_id: memo_directory_id_for_new)
   end
 
   def edit
   end
 
   def create
-    @memo = Memo.new
+    @memo = Memo.new(memo_directory_id: memo_directory_id_for_new)
     unless assign_memo_fields(@memo)
       respond_to do |format|
         format.html { render :new, status: :unprocessable_entity }
@@ -47,6 +47,10 @@ class MemosController < ApplicationController
   end
 
   def update
+    repo = MemoRepository.new
+    old_rel = repo.relative_path_for(@memo)
+    old_abs = repo.absolute_path_for(@memo)
+
     unless assign_memo_fields(@memo)
       render :edit, status: :unprocessable_entity
       return
@@ -60,8 +64,13 @@ class MemosController < ApplicationController
       return
     end
 
+    new_rel = repo.relative_path_for(@memo)
+
     begin
-      MemoRepository.new.write_and_commit!(@memo)
+      if old_abs.exist? && old_rel.to_s != new_rel.to_s
+        repo.relocate_file!(from_relative: old_rel, to_relative: new_rel)
+      end
+      repo.write_and_commit!(@memo)
     rescue MemoRepository::Error => e
       flash.now[:alert] = e.message
       render :edit, status: :unprocessable_entity
@@ -69,7 +78,6 @@ class MemosController < ApplicationController
     end
 
     if @memo.save
-      # 最終コミット時点と updated_at を一致させ、直後に再編集ドラフトと誤判定しないようにする
       @memo.update_column(:file_committed_at, @memo.updated_at)
       @memo.broadcast_replace partial: "memos/show_content"
       redirect_to memo_path(@memo), notice: "ファイルへ保存し、Git に記録しました。"
@@ -79,11 +87,16 @@ class MemosController < ApplicationController
   end
 
   def destroy
+    dir_id = @memo.memo_directory_id
     @memo.destroy
-    redirect_to memos_url, notice: "メモを削除しました。", status: :see_other
+    redirect_to memos_url(memo_directory_id: dir_id), notice: "メモを削除しました。", status: :see_other
   end
 
   def draft
+    repo = MemoRepository.new
+    old_rel = repo.relative_path_for(@memo)
+    old_abs = repo.absolute_path_for(@memo)
+
     wrapper = ActionController::Parameters.new(memo: draft_params)
     unless assign_memo_fields(@memo, wrapper)
       render json: { errors: @memo.errors.full_messages }, status: :unprocessable_entity
@@ -92,6 +105,17 @@ class MemosController < ApplicationController
 
     @memo.apply_title_from_body_rules!
     @memo.apply_slug_from_title_rules!
+
+    new_rel = repo.relative_path_for(@memo)
+
+    begin
+      if old_abs.exist? && old_rel.to_s != new_rel.to_s
+        repo.relocate_file!(from_relative: old_rel, to_relative: new_rel)
+      end
+    rescue MemoRepository::Error => e
+      render json: { errors: [ e.message ] }, status: :unprocessable_entity
+      return
+    end
 
     if @memo.save(validate: false)
       @memo.broadcast_replace partial: "memos/show_content"
@@ -106,6 +130,11 @@ class MemosController < ApplicationController
             turbo_stream.replace(
               "memo_slug_field",
               partial: "memos/slug_field",
+              locals: { memo: @memo }
+            ),
+            turbo_stream.replace(
+              "memo_directory_field",
+              partial: "memos/directory_field",
               locals: { memo: @memo }
             ),
             turbo_stream.replace("memos_list_panel", partial: "memos/list_panel")
@@ -130,27 +159,31 @@ class MemosController < ApplicationController
 
   private
 
-  def load_sidebar_memos
-    @memos = Memo.order(updated_at: :desc).includes(:tags)
+  def memo_directory_id_for_new
+    if params[:memo_directory_id].present?
+      MemoDirectory.find_by(id: params[:memo_directory_id])&.id
+    else
+      MemoDirectory.root.id
+    end
   end
 
   def set_memo
-    @memo = Memo.includes(:tags).find(params[:id])
+    @memo = Memo.includes(:tags, :memo_directory).find(params[:id])
   end
 
   def memo_params
-    params.require(:memo).permit(:title, :body, :slug, :title_manual, :slug_manual, :properties_yaml)
+    params.require(:memo).permit(:title, :body, :slug, :title_manual, :slug_manual, :properties_yaml, :memo_directory_id)
   end
 
   def draft_params
-    params.require(:memo).permit(:body, :title, :title_manual, :slug, :slug_manual, :tag_list, :properties_yaml)
+    params.require(:memo).permit(:body, :title, :title_manual, :slug, :slug_manual, :tag_list, :properties_yaml, :memo_directory_id)
   end
 
   # raw_params は通常の request.params か、draft 用に構築した Parameters（キー :memo）
   def assign_memo_fields(memo, raw_params = nil)
     raw_params ||= params
-    src = raw_params.require(:memo).permit(:title, :body, :slug, :title_manual, :slug_manual, :tag_list, :properties_yaml)
-    memo.assign_attributes(src.slice(:title, :body, :slug, :title_manual, :slug_manual))
+    src = raw_params.require(:memo).permit(:title, :body, :slug, :title_manual, :slug_manual, :tag_list, :properties_yaml, :memo_directory_id)
+    memo.assign_attributes(src.slice(:title, :body, :slug, :title_manual, :slug_manual, :memo_directory_id))
     memo.assign_tags_from_list(src[:tag_list]) if src.key?(:tag_list)
 
     if src.key?(:properties_yaml)

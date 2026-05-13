@@ -1,7 +1,14 @@
 #memos_list_panel.flex.min-h-0.flex-1.flex-col.overflow-hidden
   .flex-shrink-0.border-b.border-zinc-200.px-3.py-3
+    p.text-xs.font-medium.uppercase.tracking-wide.text-zinc-500 ディレクトリ
+    ul.mb-2.space-y-0.5
+      - (@memo_directories_for_nav || []).each do |dir|
+        li
+          = link_to memos_path(memo_directory_id: dir.id), class: memo_directory_nav_link_classes(dir) do
+            span.truncate = dir.display_name
+    = link_to "ディレクトリを管理…", memo_directories_path, class: "mb-3 inline-block text-xs text-zinc-500 underline decoration-zinc-300 hover:text-zinc-800"
     p.text-xs.font-medium.uppercase.tracking-wide.text-zinc-500 メモ一覧
-    = link_to new_memo_path, class: memo_sidebar_link_classes(:new) do
+    = link_to new_memo_path_with_current_directory, class: memo_sidebar_link_classes(:new) do
       span.mr-1.text-zinc-500 +
       span 新規メモ
   .min-h-0.flex-1.overflow-y-auto
@@ -28,4 +35,4 @@
                           | …
     - else
       .px-3.py-8.text-center.text-sm.text-zinc-500
-        p まだありません
+        p このディレクトリにはまだありません

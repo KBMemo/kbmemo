@@ -41,6 +41,15 @@ module MemosHelper
     end
   end
 
+  def memo_directory_nav_link_classes(directory)
+    base = "block rounded-md px-2 py-1.5 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+    if defined?(@current_memo_directory) && @current_memo_directory&.id == directory.id
+      "#{base} bg-zinc-200 font-medium text-zinc-900"
+    else
+      "#{base} text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+    end
+  end
+
   def memo_html(body)
     return "".html_safe if body.blank?
 

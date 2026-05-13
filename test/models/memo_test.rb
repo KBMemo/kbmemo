@@ -12,10 +12,16 @@
 #  title_manual      :boolean          default(FALSE), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
+#  memo_directory_id :integer          not null
 #
 # Indexes
 #
-#  index_memos_on_slug  (slug) UNIQUE
+#  index_memos_on_memo_directory_id           (memo_directory_id)
+#  index_memos_on_memo_directory_id_and_slug  (memo_directory_id,slug) UNIQUE
+#
+# Foreign Keys
+#
+#  memo_directory_id  (memo_directory_id => memo_directories.id)
 #
 require "test_helper"
 

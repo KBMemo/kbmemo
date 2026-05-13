@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
 require "open3"
+require "fileutils"
 
 # メモの「コミット後の正」を Git 管理のファイルに書き出す。
-# パス規則: {slug_segment}-{memo_id}.adoc（slug セグメントはファイル名向けに正規化、空なら memo）
+# パス規則: {memo_directory_path_segment}/{slug_segment}-{memo_id}.adoc（ルートはファイル直下）
 #
 # DB はキャッシュ。ドラフトは DB のみ。「更新」で本クラス経由でファイル + git commit し、その後 DB 保存する想定。
 class MemoRepository
@@ -17,7 +18,10 @@ class MemoRepository
 
   # メモの現在の属性（未保存の変更を含む）で相対パスを返す
   def relative_path_for(memo)
-    Pathname.new("#{filename_slug_segment(memo)}-#{memo.id}.adoc")
+    filename = "#{filename_slug_segment(memo)}-#{memo.id}.adoc"
+    return Pathname.new(filename) if memo.memo_directory.root?
+
+    memo.memo_directory.repo_dirname.join(filename)
   end
 
   def absolute_path_for(memo)
@@ -34,6 +38,29 @@ class MemoRepository
     yaml = meta.to_yaml
     yaml = yaml.sub(/\A---\s*\n?/, "")
     "---\n#{yaml.rstrip}\n---\n\n#{memo.body}"
+  end
+
+  # ディレクトリやファイル名変更時に作業ツリー上のファイルを移動（Git 追跡なら git mv）
+  def relocate_file!(from_relative:, to_relative:)
+    from_s = from_relative.to_s
+    to_s = to_relative.to_s
+    return if from_s == to_s
+
+    full_from = @root.join(from_s)
+    full_to = @root.join(to_s)
+    return unless full_from.exist?
+
+    full_to.parent.mkpath
+
+    with_repo_lock do
+      ensure_git_identity!
+      tracked, = Open3.capture2("git", "ls-files", "--", from_s, chdir: @root.to_s)
+      if tracked.to_s.strip.present?
+        git!("mv", "--", from_s, to_s)
+      else
+        FileUtils.mv(full_from.to_s, full_to.to_s)
+      end
+    end
   end
 
   # ファイル書き込み + git add / commit（変更がない場合はコミットをスキップ）
