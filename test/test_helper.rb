@@ -7,7 +7,8 @@ module ActiveSupport
     # Run tests in parallel with specified workers
     parallelize(workers: :number_of_processors)
 
-    # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
+    # Dependent fixtures must use explicit account_id when accounts.yml sets explicit ids
+    # (YAML `account: one` resolves to identify(:one), not the row's primary key).
     fixtures :all
 
     # Add more helper methods to be used by all tests here...

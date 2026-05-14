@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_14_070000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_14_220000) do
   create_table "account_login_change_keys", force: :cascade do |t|
     t.datetime "deadline", null: false
     t.string "key", null: false
@@ -44,10 +44,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_070000) do
 
   create_table "memo_directories", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.string "full_path", null: false
     t.string "label", default: "", null: false
+    t.integer "parent_id"
     t.string "path_segment", default: "", null: false
     t.datetime "updated_at", null: false
-    t.index ["path_segment"], name: "index_memo_directories_on_path_segment", unique: true
+    t.index ["full_path"], name: "index_memo_directories_on_full_path", unique: true
+    t.index ["parent_id"], name: "index_memo_directories_on_parent_id"
   end
 
   create_table "memo_group_memberships", force: :cascade do |t|
@@ -106,6 +109,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_14_070000) do
   add_foreign_key "account_password_reset_keys", "accounts", column: "id"
   add_foreign_key "account_remember_keys", "accounts", column: "id"
   add_foreign_key "account_verification_keys", "accounts", column: "id"
+  add_foreign_key "memo_directories", "memo_directories", column: "parent_id"
   add_foreign_key "memo_group_memberships", "accounts"
   add_foreign_key "memo_group_memberships", "memo_groups"
   add_foreign_key "memo_tags", "memos"

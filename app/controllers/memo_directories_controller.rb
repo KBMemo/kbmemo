@@ -10,7 +10,7 @@ class MemoDirectoriesController < ApplicationController
 
   def index
     authorize MemoDirectory
-    @memo_directories = MemoDirectory.nav_ordered
+    @memo_directories = policy_scope(MemoDirectory).nav_ordered
   end
 
   def new
@@ -20,6 +20,7 @@ class MemoDirectoriesController < ApplicationController
 
   def create
     @memo_directory = MemoDirectory.new(memo_directory_params_create)
+    @memo_directory.parent ||= MemoDirectory::UserSpace.default_home_directory(rodauth.rails_account.id)
     authorize @memo_directory
     if @memo_directory.save
       redirect_to memo_directories_path, notice: "ディレクトリを作成しました。"
@@ -42,9 +43,14 @@ class MemoDirectoriesController < ApplicationController
   end
 
   def destroy
-    authorize @memo_directory
     if @memo_directory.root?
+      skip_authorization
       redirect_to memo_directories_path, alert: "ルートは削除できません。", status: :see_other
+      return
+    end
+    authorize @memo_directory
+    unless @memo_directory.deletable?
+      redirect_to memo_directories_path, alert: "このディレクトリは削除できません。", status: :see_other
       return
     end
     if @memo_directory.memos.exists?
@@ -58,7 +64,7 @@ class MemoDirectoriesController < ApplicationController
   private
 
   def set_memo_directory
-    @memo_directory = MemoDirectory.find(params[:id])
+    @memo_directory = policy_scope(MemoDirectory).find(params[:id])
   end
 
   def memo_directory_params_create

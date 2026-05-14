@@ -1,3 +1,3 @@
 #memo_directory_field.flex.items-start.gap-3
   = label_tag "memo_memo_directory_id", "ディレクトリ", class: "pt-1 text-sm font-medium text-zinc-800 whitespace-nowrap"
-  = select_tag "memo[memo_directory_id]", options_from_collection_for_select(MemoDirectory.nav_ordered, :id, :display_name, memo.memo_directory_id), id: "memo_memo_directory_id", class: memo_form_underline_input("font-sans"), data: { memo_draft_target: "directory", action: "change->memo-draft#directoryChange" }
+  = select_tag "memo[memo_directory_id]", options_from_collection_for_select(memo_directories_for_select, :id, :display_name, memo.memo_directory_id), id: "memo_memo_directory_id", class: memo_form_underline_input("font-sans"), data: { memo_draft_target: "directory", action: "change->memo-draft#directoryChange" }

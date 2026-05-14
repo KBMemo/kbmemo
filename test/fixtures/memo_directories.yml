@@ -1,23 +1,87 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
-
+# Tree: root → home|share|public → u-{id} → …（docs/architecture/memo-directory-layout.adoc 参照）
 # == Schema Information
 #
 # Table name: memo_directories
 #
 #  id           :integer          not null, primary key
+#  full_path    :string           not null
 #  label        :string           default(""), not null
 #  path_segment :string           default(""), not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
+#  parent_id    :integer
 #
 # Indexes
 #
-#  index_memo_directories_on_path_segment  (path_segment) UNIQUE
+#  index_memo_directories_on_full_path  (full_path) UNIQUE
+#  index_memo_directories_on_parent_id  (parent_id)
+#
+# Foreign Keys
+#
+#  parent_id  (parent_id => memo_directories.id)
 #
 root:
   path_segment: ""
+  full_path: ""
   label: ルート
 
+home:
+  parent: root
+  path_segment: home
+  full_path: home
+  label: Home
+
+share:
+  parent: root
+  path_segment: share
+  full_path: share
+  label: Share
+
+public:
+  parent: root
+  path_segment: public
+  full_path: public
+  label: Public
+
+home_u_one:
+  parent: home
+  path_segment: u-1
+  full_path: home/u-1
+  label: User one
+
+share_u_one:
+  parent: share
+  path_segment: u-1
+  full_path: share/u-1
+  label: User one share
+
+public_u_one:
+  parent: public
+  path_segment: u-1
+  full_path: public/u-1
+  label: User one public
+
+home_u_two:
+  parent: home
+  path_segment: u-2
+  full_path: home/u-2
+  label: User two
+
+share_u_two:
+  parent: share
+  path_segment: u-2
+  full_path: share/u-2
+  label: User two share
+
+public_u_two:
+  parent: public
+  path_segment: u-2
+  full_path: public/u-2
+  label: User two public
+
 work:
+  parent: home_u_one
   path_segment: work
+  full_path: home/u-1/work
   label: 仕事

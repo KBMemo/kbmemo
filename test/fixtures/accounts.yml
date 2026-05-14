@@ -14,12 +14,14 @@
 #  index_accounts_on_email  (email) UNIQUE WHERE status IN (1, 2)
 #
 one:
+  id: 1
   email: freddie@queen.com
   password_hash: <%= RodauthApp.rodauth.allocate.password_hash("password") %>
   status: verified
   admin: true
 
 two:
+  id: 2
   email: brian@queen.com
   password_hash: <%= RodauthApp.rodauth.allocate.password_hash("password") %>
   status: verified

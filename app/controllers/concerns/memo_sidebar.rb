@@ -12,7 +12,7 @@ module MemoSidebar
   private
 
   def set_memo_directory_nav_context
-    @memo_directories_for_nav = MemoDirectory.nav_ordered
+    @memo_directories_for_nav = policy_scope(MemoDirectory).nav_ordered
     @tags_for_nav = Tag.order(:name)
     @sidebar_view = params[:sidebar_view] == "tag" ? "tag" : "directory"
 
@@ -20,7 +20,7 @@ module MemoSidebar
       if instance_variable_defined?(:@memo) && @memo&.persisted? && %w[show edit update draft destroy].include?(action_name)
         @memo.memo_directory
       elsif params[:memo_directory_id].present?
-        MemoDirectory.find_by(id: params[:memo_directory_id]) || MemoDirectory.root
+        policy_scope(MemoDirectory).find_by(id: params[:memo_directory_id]) || MemoDirectory.root
       else
         MemoDirectory.root
       end

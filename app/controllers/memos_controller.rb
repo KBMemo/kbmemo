@@ -188,10 +188,12 @@ class MemosController < ApplicationController
 
   def memo_directory_id_for_new
     if params[:memo_directory_id].present?
-      MemoDirectory.find_by(id: params[:memo_directory_id])&.id
+      policy_scope(MemoDirectory).find_by(id: params[:memo_directory_id])&.id
     else
-      MemoDirectory.root.id
+      MemoDirectory::UserSpace.default_home_directory(rodauth.rails_account.id).id
     end
+  rescue ActiveRecord::RecordNotFound
+    MemoDirectory.root.id
   end
 
   def set_memo

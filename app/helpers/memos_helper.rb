@@ -7,6 +7,10 @@ module MemosHelper
     "owner_read_write" => "自分のみ読み書き"
   }.freeze
 
+  def memo_directories_for_select
+    policy_scope(MemoDirectory).nav_ordered
+  end
+
   def memo_visibility_options_for_select
     Memo.visibilities.keys.map { |key| [ MEMO_VISIBILITY_LABELS.fetch(key, key.humanize), key ] }
   end

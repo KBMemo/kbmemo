@@ -29,7 +29,7 @@ ruby:
   - else
     .flex.items-center.gap-3
       = f.label :memo_directory_id, "ディレクトリ", class: "text-sm font-medium text-zinc-800 whitespace-nowrap"
-      = f.collection_select :memo_directory_id, MemoDirectory.nav_ordered, :id, :display_name, {}, class: memo_form_underline_input("font-sans")
+      = f.collection_select :memo_directory_id, memo_directories_for_select, :id, :display_name, {}, class: memo_form_underline_input("font-sans")
 
   div
     = render "visibility_field", memo: memo, f: f

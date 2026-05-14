@@ -4,7 +4,7 @@ require "open3"
 require "fileutils"
 
 # メモの「コミット後の正」を Git 管理のファイルに書き出す。
-# パス規則: {memo_directory_path_segment}/{slug_segment}-{memo_id}.adoc（ルートはファイル直下）
+# パス規則: {memo_directory.full_path}/{slug_segment}-{memo_id}.adoc（ルート直下メモはファイル名のみ）
 #
 # DB はキャッシュ。ドラフトは DB のみ。「更新」で本クラス経由でファイル + git commit し、その後 DB 保存する想定。
 class MemoRepository

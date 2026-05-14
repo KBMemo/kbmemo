@@ -12,7 +12,7 @@
 #  slug_manual       :boolean          default(FALSE), not null
 #  title             :string           not null
 #  title_manual      :boolean          default(FALSE), not null
-#  visibility        :integer          default(0), not null
+#  visibility        :integer          default("public_everyone"), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
 #  account_id        :integer          not null
@@ -38,7 +38,7 @@ one:
   properties: {}
   slug: first-memo
   memo_directory: root
-  account: one
+  account_id: 1
 
 two:
   title: Second memo
@@ -46,4 +46,4 @@ two:
   properties: {}
   slug: second-memo
   memo_directory: work
-  account: one
+  account_id: 1

@@ -19,4 +19,12 @@ class Account < ApplicationRecord
   has_many :memos, dependent: :restrict_with_exception
   has_many :memo_group_memberships, dependent: :destroy
   has_many :memo_groups, through: :memo_group_memberships
+
+  after_create_commit :provision_memo_directory_user_space
+
+  private
+
+  def provision_memo_directory_user_space
+    MemoDirectory::UserSpace.ensure_for_account!(self)
+  end
 end

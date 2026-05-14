@@ -1,12 +1,33 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+# == Schema Information
+#
+# Table name: memo_group_memberships
+#
+#  id            :integer          not null, primary key
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
+#  account_id    :integer          not null
+#  memo_group_id :integer          not null
+#
+# Indexes
+#
+#  index_memo_group_memberships_on_account_id                    (account_id)
+#  index_memo_group_memberships_on_memo_group_id                 (memo_group_id)
+#  index_memo_group_memberships_on_memo_group_id_and_account_id  (memo_group_id,account_id) UNIQUE
+#
+# Foreign Keys
+#
+#  account_id     (account_id => accounts.id)
+#  memo_group_id  (memo_group_id => memo_groups.id)
+#
 one_in_alpha:
   memo_group: alpha
-  account: one
+  account_id: 1
 
 two_in_alpha:
   memo_group: alpha
-  account: two
+  account_id: 2
 
 two_in_beta:
   memo_group: beta
-  account: two
+  account_id: 2

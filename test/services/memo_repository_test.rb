@@ -9,13 +9,13 @@ class MemoRepositoryTest < ActiveSupport::TestCase
     @repo = MemoRepository.new
   end
 
-  test "relative_path_for follows slug-id rule" do
+  test "relative_path_for in root directory is slug-id filename only" do
     assert_equal "repo-slug-#{@memo.id}.adoc", @repo.relative_path_for(@memo).to_s
   end
 
   test "relative_path_for nests under memo directory segment" do
     m = memos(:two)
-    assert_equal "work/second-memo-#{m.id}.adoc", @repo.relative_path_for(m).to_s
+    assert_equal "home/u-1/work/second-memo-#{m.id}.adoc", @repo.relative_path_for(m).to_s
   end
 
   test "relative_path_for uses memo when slug blank" do

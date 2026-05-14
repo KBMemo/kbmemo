@@ -1,0 +1,61 @@
+= メモディレクトリの階層設計（Kbmemo）
+
+このドキュメントは、Git 作業ツリー上のメモファイル配置と `memo_directories` テーブルの対応方針をまとめたものです。
+
+== 目的
+
+* 単一のフラットな「ルート直下ディレクトリ」だけでは、**誰の名前空間か**がパス上で分かりにくい。
+* Linux の ``/home`` に近いイメージで、**ユーザーごとの作業領域**を用意する。
+* **共有（share）** と **外向き整理（public）** を、ディレクトリの第一階層で役割分けする。
+
+== ルート直下の3バケット
+
+アプリのルート（`full_path` が空文字の `MemoDirectory`）の直下に、次の3つだけをシステムとして用意する。
+
+[cols="1,3"]
+|===
+|バケット |役割
+
+|`home`
+|個人用。アカウント作成時に `home/u-{account_id}` を自動生成し、新規メモのデフォルト置き場にする。
+
+|`share`
+|グループ作業などの共有用。**主語はユーザー**（`share/u-{account_id}`）。その下に `groups/g-alpha` のような枝をユーザーが切る想定。
+
+|`public`
+|ユーザー外公開メモの整理用。**主語はユーザー**（`public/u-{account_id}`）。実際に誰でも読めるかはメモの `visibility` などのポリシーで決める。
+|===
+
+`home` / `share` / `public` および ``home/u-{id}`` / ``share/u-{id}`` / ``public/u-{id}`` の行は **削除不可**（システム領域）とする。
+
+== ユーザー識別子 `u-{account_id}`
+
+* パスにメールアドレスやニックネームを使わず、**数値 ID ベースの不変セグメント** `u-42` のようにする。
+* 表示名は `label`（例: メールの省略表示）で補う。
+
+== 論理パス `full_path`
+
+* `memo_directories` は `parent_id` でツリーを表し、**正規化された論理パス**を `full_path` に保持する（例: `home/u-42/projects`）。
+* Git 上の相対パスは ``{full_path}/{slug}-{memo_id}.adoc``（ルート直下メモのみファイル名のみ）とする。
+* `full_path` は **一意**（グローバルユニーク）とし、`path_segment` の一意性は **同一親の子どうし**に限定する。
+
+== アカウント作成時
+
+* `Account` 作成後に `MemoDirectory::UserSpace.ensure_for_account!` を実行し、
+  `home/u-{id}` / `share/u-{id}` / `public/u-{id}` の3行を **存在しなければ作成**する（冪等）。
+
+== 既存データの移行（開発・単一ユーザー想定）
+
+* ルート直下に残っていた従来のフラットディレクトリ（例: `work`）は、**先頭のアカウント**の `home/u-{id}` 配下へ移す（`full_path` は `home/u-1/work` のようになる）。
+
+== 一覧・フォームでのスコープ
+
+* ログインユーザーは、原則として **自分の ``home|share|public`` 配下の ``u-{自分のid}`` 以下**と、ナビ用に **ルートおよび `home` / `share` / `public` バケット行**だけを `MemoDirectoryPolicy::Scope` で参照する。
+* `admin` アカウントは全ディレクトリを参照できる。
+
+== 関連コード
+
+* `app/models/memo_directory.rb` — 親子、`full_path` 算出、`repo_dirname`
+* `app/models/memo_directory/user_space.rb` — バケット作成・ユーザー領域の確保
+* `app/services/memo_repository.rb` — 相対パス（`full_path` ベース）
+* `db/migrate/*_memo_directory_parent_full_path_and_buckets.rb` — スキーマとデータ移行

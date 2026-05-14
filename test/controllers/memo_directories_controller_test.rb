@@ -7,7 +7,7 @@ class MemoDirectoriesControllerTest < ActionDispatch::IntegrationTest
     get memo_directories_url
     assert_response :success
     assert_includes response.body, "ルート"
-    assert_includes response.body, "work"
+    assert_includes response.body, "home/u-1/work"
   end
 
   test "create directory" do
@@ -15,7 +15,7 @@ class MemoDirectoriesControllerTest < ActionDispatch::IntegrationTest
       post memo_directories_url, params: { memo_directory: { path_segment: "ideas", label: "アイデア" } }
     end
     assert_redirected_to memo_directories_url
-    d = MemoDirectory.find_by(path_segment: "ideas")
+    d = MemoDirectory.find_by(full_path: "home/u-1/ideas")
     assert_equal "アイデア", d.label
   end
 

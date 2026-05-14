@@ -10,7 +10,7 @@
 #  slug_manual       :boolean          default(FALSE), not null
 #  title             :string           not null
 #  title_manual      :boolean          default(FALSE), not null
-#  visibility        :integer          default(0), not null
+#  visibility        :integer          default("public_everyone"), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
 #  account_id        :integer          not null
@@ -161,9 +161,13 @@ class Memo < ApplicationRecord
   end
 
   def assign_default_memo_directory
-    self.memo_directory = MemoDirectory.root if memo_directory_id.blank?
+    if memo_directory_id.blank? && account_id.present?
+      self.memo_directory = MemoDirectory::UserSpace.default_home_directory(account_id)
+    elsif memo_directory_id.blank?
+      self.memo_directory = MemoDirectory.root
+    end
   rescue ActiveRecord::RecordNotFound
-    # DB 未準備時はスキップ
+    self.memo_directory = MemoDirectory.root if memo_directory_id.blank?
   end
 
   def normalize_unfilled_title_marker
