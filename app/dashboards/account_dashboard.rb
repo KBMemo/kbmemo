@@ -6,6 +6,7 @@ class AccountDashboard < Administrate::BaseDashboard
   ATTRIBUTE_TYPES = {
     id: Field::Number,
     email: Field::String,
+    nickname: Field::String,
     status: Field::Select.with_options(
       searchable: false,
       collection: ->(_field) { Account.statuses.keys }
@@ -16,6 +17,7 @@ class AccountDashboard < Administrate::BaseDashboard
   COLLECTION_ATTRIBUTES = %i[
     id
     email
+    nickname
     status
     admin
   ].freeze
@@ -23,12 +25,14 @@ class AccountDashboard < Administrate::BaseDashboard
   SHOW_PAGE_ATTRIBUTES = %i[
     id
     email
+    nickname
     status
     admin
   ].freeze
 
   FORM_ATTRIBUTES = %i[
     email
+    nickname
     status
     admin
   ].freeze

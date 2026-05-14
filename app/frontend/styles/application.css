@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
-/* Slim / Rails templates are not part of the JS graph — tell Tailwind where classes live. */
-@source "../../views/**/*.{slim,erb,html}";
-@source "../../views/layouts/**/*.{slim,erb,html}";
+/* app/views は JS の依存グラフに含まれない — Tailwind にコンテンツパスを明示する。
+   `{slim,erb,html}` の brace 展開は環境によって取りこぼしがあるため拡張子を分ける。 */
+@source "../../views/**/*.slim";
+@source "../../views/**/*.erb";
+@source "../../views/**/*.html";
 @source "../../helpers/**/*.rb";
 @source "../../javascript/**/*.js";
 @source "../entrypoints/**/*.js";

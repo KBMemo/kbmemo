@@ -20,6 +20,10 @@ module RodauthIntegrationSignIn
     account = accounts(fixture_key)
     post "/login", params: { email: account.email, password: "password" }
   end
+
+  def sign_out
+    post "/logout"
+  end
 end
 
 class ActionDispatch::IntegrationTest

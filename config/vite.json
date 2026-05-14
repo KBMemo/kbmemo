@@ -2,7 +2,8 @@
   "all": {
     "sourceCodeDir": "app/frontend",
     "watchAdditionalPaths": [
-      "app/javascript/controllers"
+      "app/javascript/controllers",
+      "app/views"
     ]
   },
   "development": {

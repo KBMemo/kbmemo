@@ -5,6 +5,7 @@
 #  id            :integer          not null, primary key
 #  admin         :boolean          default(FALSE), not null
 #  email         :string           not null
+#  nickname      :string
 #  password_hash :string
 #  status        :integer          default("unverified"), not null
 #
@@ -16,13 +17,27 @@ class Account < ApplicationRecord
   include Rodauth::Rails.model
   enum :status, { unverified: 1, verified: 2, closed: 3 }
 
+  validates :nickname, length: { maximum: 40 }, allow_blank: true
+
+  before_validation :normalize_nickname
+
   has_many :memos, dependent: :restrict_with_exception
   has_many :memo_group_memberships, dependent: :destroy
   has_many :memo_groups, through: :memo_group_memberships
 
   after_create_commit :provision_memo_directory_user_space
 
+  # 画面表示用。未設定ならメールアドレスをそのまま使う。
+  def display_name
+    nick = nickname.to_s.strip
+    nick.presence || email.to_s
+  end
+
   private
+
+  def normalize_nickname
+    self.nickname = nickname.to_s.strip.presence
+  end
 
   def provision_memo_directory_user_space
     MemoDirectory::UserSpace.ensure_for_account!(self)

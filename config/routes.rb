@@ -11,6 +11,8 @@ Rails.application.routes.draw do
 
   root "memos#index"
 
+  resource :profile, only: %i[edit update]
+
   if Rails.env.development?
     mount LetterOpenerWeb::Engine, at: "/letter_opener"
   end

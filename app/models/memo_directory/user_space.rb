@@ -28,7 +28,7 @@ class MemoDirectory
           MemoDirectory.create!(
             parent: parent,
             path_segment: seg,
-            label: account.email.to_s.truncate(80)
+            label: account.display_name.to_s.truncate(80)
           )
         end
       end

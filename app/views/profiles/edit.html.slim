@@ -1,0 +1,20 @@
+- content_for :title, "ニックネーム"
+
+h1.text-xl.font-semibold.text-zinc-900 ニックネーム（表示名）
+
+p.mt-2.text-sm.text-zinc-600
+  | ヘッダーやメモディレクトリの表示に使います。空にするとメールアドレスが表示されます。
+
+= form_with model: @account, url: profile_path, method: :patch, class: "mt-6 space-y-4" do |f|
+  - if @account.errors.any?
+    ul.mb-4.list-inside.list-disc.text-sm.text-red-700
+      - @account.errors.full_messages.each do |msg|
+        li = msg
+  div
+    = f.label :nickname, "ニックネーム", class: "block text-sm font-medium text-zinc-800"
+    = f.text_field :nickname, class: "mt-1 block w-full max-w-md rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500", autocomplete: "nickname", maxlength: 40, placeholder: "例: けんせい"
+    p.mt-1.text-xs.text-zinc-500 最大40文字
+
+  .flex.flex-wrap.gap-3
+    = f.submit "保存", class: "rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+    = link_to "メモ一覧へ", memos_path, class: "inline-flex items-center rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"

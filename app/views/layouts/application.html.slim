@@ -28,9 +28,17 @@ html
           - if rodauth.rails_account&.admin?
             = link_to "管理", admin_root_path, class: "text-zinc-600 hover:text-zinc-900"
           - if rodauth.rails_account
-            span.hidden.text-zinc-500.sm:inline = rodauth.rails_account.email
-            = link_to "パスワード変更", rodauth.change_password_path, class: "text-zinc-600 hover:text-zinc-900"
-            = button_to "ログアウト", rodauth.logout_path, method: :post, form: { class: "inline" }, class: "rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 hover:bg-zinc-50"
+            .relative[data-controller="user-menu"]
+              button.inline-flex.max-w-56.items-center.gap-1.rounded-md.border.border-zinc-300.bg-white.py-1.pl-2.pr-1.5.text-left.text-sm.font-medium.text-zinc-800.shadow-sm.hover:bg-zinc-50[type="button" data-user-menu-target="button" data-action="user-menu#toggle" aria-expanded="false" aria-haspopup="true" title=(rodauth.rails_account.email)]
+                span.min-w-0.flex-1.truncate
+                  = rodauth.rails_account.display_name
+                svg.h-4.w-4.flex-shrink-0.text-zinc-500[xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"]
+                  path[stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"]
+              .absolute.right-0.top-full.z-50.mt-1.hidden.min-w-48.rounded-md.border.border-zinc-200.bg-white.py-1.text-sm.shadow-lg[data-user-menu-target="panel" role="menu"]
+                = link_to "ニックネーム", edit_profile_path, class: "block px-3 py-2 text-zinc-800 hover:bg-zinc-50", role: "menuitem"
+                = link_to "パスワード変更", rodauth.change_password_path, class: "block px-3 py-2 text-zinc-800 hover:bg-zinc-50", role: "menuitem"
+                hr.my-1.border-zinc-200
+                = button_to "ログアウト", rodauth.logout_path, method: :post, form: { class: "block w-full" }, class: "w-full rounded-none border-0 bg-transparent px-3 py-2 text-left text-sm font-normal text-zinc-800 hover:bg-zinc-50", role: "menuitem"
           - if Rails.env.development?
             = link_to "送信メール", "/letter_opener", class: "text-zinc-500 hover:text-zinc-800", target: "_blank", rel: "noopener"
           = link_to "新規メモ", new_memo_path_with_current_directory, class: "rounded-md bg-zinc-900 px-3 py-1.5 font-medium text-white hover:bg-zinc-800"
