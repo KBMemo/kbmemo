@@ -1,5 +1,20 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: accounts
+#
+#  id            :integer          not null, primary key
+#  admin         :boolean          default(FALSE), not null
+#  email         :string           not null
+#  nickname      :string
+#  password_hash :string
+#  status        :integer          default("unverified"), not null
+#
+# Indexes
+#
+#  index_accounts_on_email  (email) UNIQUE WHERE status IN (1, 2)
+#
 require "test_helper"
 
 class AccountTest < ActiveSupport::TestCase
