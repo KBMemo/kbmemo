@@ -10,7 +10,7 @@
 #  slug_manual       :boolean          default(FALSE), not null
 #  title             :string           not null
 #  title_manual      :boolean          default(FALSE), not null
-#  visibility        :integer          default("public_everyone"), not null
+#  visibility        :integer          default("owner_read_write"), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
 #  account_id        :integer          not null
@@ -40,12 +40,11 @@ class Memo < ApplicationRecord
   has_many :memo_tags, dependent: :destroy
   has_many :tags, through: :memo_tags
 
-  # 0: 全体（未ログイン含む閲覧可） 1: グループ閲覧のみ 2: 自分のみ閲覧
-  # 3: グループ内読み書き 4: 自分のみ読み書き
+  # 0: 全体（未ログイン含む閲覧可） 1: グループ閲覧のみ 3: グループ内読み書き 4: 自分のみ読み書き
+  # （旧「自分のみ閲覧」はオーナー更新と重複するため廃止。DB の 2 はマイグレーションで 4 に寄せた）
   enum :visibility, {
     public_everyone: 0,
     group_read: 1,
-    owner_read: 2,
     group_read_write: 3,
     owner_read_write: 4
   }

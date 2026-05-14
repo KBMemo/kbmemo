@@ -10,7 +10,7 @@
 #  slug_manual       :boolean          default(FALSE), not null
 #  title             :string           not null
 #  title_manual      :boolean          default(FALSE), not null
-#  visibility        :integer          default("public_everyone"), not null
+#  visibility        :integer          default("owner_read_write"), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
 #  account_id        :integer          not null

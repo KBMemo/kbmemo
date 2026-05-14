@@ -2,7 +2,6 @@ module MemosHelper
   MEMO_VISIBILITY_LABELS = {
     "public_everyone" => "全体（未ログインでも閲覧可）",
     "group_read" => "グループ内のみ閲覧",
-    "owner_read" => "自分のみ閲覧",
     "group_read_write" => "グループ内で読み書き",
     "owner_read_write" => "自分のみ読み書き"
   }.freeze

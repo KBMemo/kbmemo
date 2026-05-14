@@ -7,7 +7,7 @@ class MemoPolicyTest < ActiveSupport::TestCase
     pub = memos(:one)
     other = memos(:two)
     pub.update_columns(visibility: Memo.visibilities[:public_everyone])
-    other.update_columns(visibility: Memo.visibilities[:owner_read])
+    other.update_columns(visibility: Memo.visibilities[:owner_read_write])
 
     scope = MemoPolicy::Scope.new(nil, Memo.all).resolve
     assert_includes scope, pub
@@ -19,13 +19,13 @@ class MemoPolicyTest < ActiveSupport::TestCase
     m.update_columns(visibility: Memo.visibilities[:public_everyone])
     assert MemoPolicy.new(nil, m).show?
 
-    m.update_columns(visibility: Memo.visibilities[:owner_read])
+    m.update_columns(visibility: Memo.visibilities[:owner_read_write])
     assert_not MemoPolicy.new(nil, m).show?
   end
 
-  test "owner sees owner_read memo" do
+  test "owner sees private memo" do
     m = memos(:one)
-    m.update_columns(visibility: Memo.visibilities[:owner_read])
+    m.update_columns(visibility: Memo.visibilities[:owner_read_write])
     assert MemoPolicy.new(accounts(:one), m).show?
     assert_not MemoPolicy.new(accounts(:two), m).show?
   end
@@ -44,6 +44,13 @@ class MemoPolicyTest < ActiveSupport::TestCase
     m.update!(visibility: :group_read)
     assert_not MemoPolicy.new(accounts(:two), m).update?
     assert MemoPolicy.new(accounts(:one), m).update?
+  end
+
+  test "owner can update private memo" do
+    m = memos(:one)
+    m.update_columns(visibility: Memo.visibilities[:owner_read_write])
+    assert MemoPolicy.new(accounts(:one), m).update?
+    assert_not MemoPolicy.new(accounts(:two), m).update?
   end
 
   test "only owner can destroy" do

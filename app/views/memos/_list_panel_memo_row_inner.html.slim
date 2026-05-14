@@ -1,4 +1,6 @@
 .flex.items-start.gap-2
+  .shrink-0.pt-0.5
+    = gravatar_image_tag(memo.account, size: 28, extra_class: "select-none")
   span.inline-flex.shrink-0.pt-0.5.text-zinc-400 title=memo_list_state_icon_title(memo)
     span.sr-only = memo_list_state_icon_title(memo)
     i.h-4.w-4 aria-hidden="true" data-lucide=memo_list_state_lucide_name(memo)

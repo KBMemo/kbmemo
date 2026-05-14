@@ -17,8 +17,14 @@ ruby:
         - memo.errors.full_messages.each do |message|
           li = message
 
+  - if memo.persisted? && memo.account
+    .mb-3.flex.items-center.gap-2.border-b.border-zinc-100.pb-3
+      = gravatar_image_tag(memo.account, size: 28, extra_class: "shrink-0")
+      div.min-w-0
+        p.text-xs.text-zinc-500 作成者
+        p.truncate.text-sm.font-medium.text-zinc-800 = memo.account.display_name
+
   div
-    = render "title_field", memo: memo
 
   div
     = render "slug_field", memo: memo

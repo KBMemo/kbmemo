@@ -234,7 +234,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
   test "guest gets not found for non-public memo" do
     post "/logout"
-    memos(:one).update_columns(visibility: Memo.visibilities[:owner_read])
+    memos(:one).update_columns(visibility: Memo.visibilities[:owner_read_write])
     get memo_url(memos(:one))
     assert_response :not_found
   end

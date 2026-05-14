@@ -34,7 +34,7 @@ module MemoSidebar
   def load_sidebar_memos_list
     return unless %w[memos memo_directories tags].include?(controller_path)
 
-    base = policy_scope(Memo).order(updated_at: :desc).includes(:tags, :memo_directory)
+    base = policy_scope(Memo).order(updated_at: :desc).includes(:tags, :memo_directory, :account)
 
     @memos =
       if @sidebar_view == "tag"
