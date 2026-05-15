@@ -6,6 +6,7 @@ module MemoSidebar
 
   included do
     before_action :set_memo_directory_nav_context
+    before_action :redirect_memo_tag_sidebar_to_memo_tag, only: %i[show edit]
     before_action :load_sidebar_memos_list
   end
 
@@ -21,7 +22,8 @@ module MemoSidebar
   def set_memo_directory_nav_context
     @memo_directories_for_nav = policy_scope(MemoDirectory).nav_ordered
     @tags_for_nav = Tag.order(:name)
-    @sidebar_view = params[:sidebar_view] == "tag" ? "tag" : "directory"
+    @sidebar_view = sidebar_view_from_params
+    @memo_search_query = @sidebar_view == "search" ? params[:q].to_s.strip.presence : nil
 
     @current_memo_directory =
       if instance_variable_defined?(:@memo) && @memo&.persisted? && %w[show edit update draft destroy].include?(action_name)
@@ -33,9 +35,23 @@ module MemoSidebar
       end
 
     @current_tag =
-      if @sidebar_view == "tag" && params[:tag_id].present?
-        Tag.find_by(id: params[:tag_id])
+      if @sidebar_view == "tag"
+        if params[:tag_id].present?
+          Tag.find_by(id: params[:tag_id])
+        elsif @memo&.persisted? && %w[show edit].include?(action_name)
+          @memo.tags.order(:name).first
+        end
       end
+  end
+
+  def redirect_memo_tag_sidebar_to_memo_tag
+    return unless params[:sidebar_view] == "tag"
+    return if params[:tag_id].present?
+
+    tag = @memo.tags.order(:name).first
+    return unless tag
+
+    redirect_to helpers.memo_sidebar_open_memo_path(@memo, sidebar_view: "tag", tag_id: tag.id)
   end
 
   def load_sidebar_memos_list
@@ -44,7 +60,10 @@ module MemoSidebar
     base = policy_scope(Memo).order(updated_at: :desc).includes(:tags, :memo_directory, :account)
 
     @memos =
-      if @sidebar_view == "tag"
+      case @sidebar_view
+      when "search"
+        @memo_search_query.present? ? base.search_text(@memo_search_query) : base.none
+      when "tag"
         if @current_tag
           base.joins(:memo_tags).where(memo_tags: { tag_id: @current_tag.id }).distinct
         else
@@ -53,5 +72,13 @@ module MemoSidebar
       else
         base.where(memo_directory_id: @current_memo_directory.id)
       end
+  end
+
+  def sidebar_view_from_params
+    case params[:sidebar_view].to_s
+    when "tag" then "tag"
+    when "search" then "search"
+    else "directory"
+    end
   end
 end

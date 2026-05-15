@@ -430,6 +430,7 @@ export default class extends Controller {
     url.searchParams.set("memo_directory_id", directoryId)
     url.searchParams.delete("sidebar_view")
     url.searchParams.delete("tag_id")
+    url.searchParams.delete("q")
     history.replaceState({}, "", url)
   }
 

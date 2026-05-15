@@ -6,6 +6,76 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "index search finds memos by title or body across directories" do
+    m = memos(:one)
+    m.update_columns(title: "UniqueSearchToken", body: "body")
+    get memos_url(sidebar_view: "search", q: "UniqueSearchToken")
+    assert_response :success
+    assert_includes response.body, m.title
+    assert_includes response.body, "検索結果"
+  end
+
+  test "index redirects legacy q param to search tab" do
+    get memos_url(q: "hello")
+    assert_redirected_to memos_url(sidebar_view: "search", q: "hello")
+  end
+
+  test "show from search directory tab stays on memo and syncs directory sidebar" do
+    m = memos(:one)
+    dir = m.memo_directory
+    m.update_columns(title: "SidebarSyncSearch", body: "body")
+
+    get edit_memo_url(m, sidebar_view: "search", q: "SidebarSyncSearch")
+    assert_response :success
+    assert_select "a", text: "ディレクトリ" do |links|
+      href = links.first["href"]
+      assert_includes href, "memo_directory_id=#{dir.id}"
+      assert_not_includes href, "sidebar_view=search"
+    end
+
+    get edit_memo_url(m, memo_directory_id: dir.id)
+    assert_response :success
+    assert_select "a[href=?]", edit_memo_path(m, memo_directory_id: dir.id)
+    assert_includes response.body, "bg-zinc-200 font-medium text-zinc-900"
+    assert_includes response.body, m.title
+    assert_not_includes response.body, "検索結果"
+  end
+
+  test "show from search tag tab stays on memo and syncs tag sidebar" do
+    m = memos(:two)
+    tag = tags(:two)
+    m.update_columns(title: "SidebarSyncTagSearch", body: "body")
+
+    get edit_memo_url(m, sidebar_view: "search", q: "SidebarSyncTagSearch")
+    assert_response :success
+    assert_select "a", text: "タグ" do |links|
+      href = links.first["href"]
+      assert_includes href, "sidebar_view=tag"
+      assert_includes href, "tag_id=#{tag.id}"
+    end
+
+    get edit_memo_url(m, sidebar_view: "tag", tag_id: tag.id)
+    assert_response :success
+    assert_includes response.body, tag.name
+    assert_includes response.body, m.title
+    assert_not_includes response.body, "検索結果"
+  end
+
+  test "index search respects policy scope" do
+    other = memos(:two)
+    other.update_columns(
+      title: "Peer private note",
+      body: "PeerOnlySearchKeyword",
+      account_id: accounts(:two).id,
+      visibility: Memo.visibilities[:owner_read_write]
+    )
+    sign_in_as(:one)
+    get memos_url(sidebar_view: "search", q: "PeerOnlySearchKeyword")
+    assert_response :success
+    assert_includes response.body, "該当するメモはありません"
+    assert_not_includes response.body, "Peer private note"
+  end
+
   test "tag sidebar redirects to first tag when tag_id omitted" do
     first = Tag.order(:name).first
     assert first

@@ -40,6 +40,14 @@ class Memo < ApplicationRecord
   has_many :memo_tags, dependent: :destroy
   has_many :tags, through: :memo_tags
 
+  scope :search_text, lambda { |query|
+    q = query.to_s.strip
+    next all if q.blank?
+
+    pattern = "%#{sanitize_sql_like(q)}%"
+    where("LOWER(title) LIKE LOWER(?) OR LOWER(body) LIKE LOWER(?)", pattern, pattern)
+  }
+
   # 0: 全体（未ログイン含む閲覧可） 1: グループ閲覧のみ 3: グループ内読み書き 4: 自分のみ読み書き
   # （旧「自分のみ閲覧」はオーナー更新と重複するため廃止。DB の 2 はマイグレーションで 4 に寄せた）
   enum :visibility, {

@@ -79,6 +79,21 @@ class MemoTest < ActiveSupport::TestCase
     assert_equal Memo::TITLE_PLACEHOLDER, m.title
   end
 
+  test "search_text matches title or body case insensitively" do
+    m1 = memos(:one)
+    m1.update_columns(title: "Alpha Note", body: "zzz")
+    m2 = memos(:two)
+    m2.update_columns(title: "Other", body: "contains beta here")
+
+    ids = Memo.search_text("alpha").pluck(:id)
+    assert_includes ids, m1.id
+    assert_not_includes ids, m2.id
+
+    ids = Memo.search_text("BETA").pluck(:id)
+    assert_includes ids, m2.id
+    assert_not_includes ids, m1.id
+  end
+
   test "rejects memo_directory at top level bucket" do
     m = memos(:one)
     m.memo_directory = memo_directories(:home)

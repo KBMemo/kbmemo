@@ -1,17 +1,20 @@
-- list_panel_root = { class: "flex min-h-0 flex-1 flex-col overflow-hidden" }
-- list_panel_root[:data] = { controller: "memo-directory-dnd" } if @sidebar_view == "directory"
+ruby:
+  list_panel_root = { class: "flex min-h-0 flex-1 flex-col overflow-hidden" }
+  show_memo_dnd = @sidebar_view == "directory"
+  list_panel_root[:data] = { controller: "memo-directory-dnd" } if show_memo_dnd
 #memos_list_panel *list_panel_root
   .flex-shrink-0.border-b.border-zinc-200.px-3.py-3
     .mb-2.flex.rounded-lg.bg-zinc-100.p-0.5
       = link_to "ディレクトリ", memos_sidebar_directory_tab_path, class: memo_sidebar_view_tab_classes("directory"), draggable: "false"
       = link_to "タグ", memos_sidebar_tag_tab_path, class: memo_sidebar_view_tab_classes("tag"), draggable: "false"
+      = link_to "検索", memos_sidebar_search_tab_path, class: memo_sidebar_view_tab_classes("search"), draggable: "false"
     - if @sidebar_view == "directory"
       - nav_dir_children = memo_directory_nav_children_index(@memo_directories_for_nav || [])
       ul.mb-2.space-y-0.5
         - memo_directory_nav_tree_roots(@memo_directories_for_nav || [], nav_dir_children).each do |dir|
           = render "memos/memo_directory_nav_branch", dir: dir, by_parent: nav_dir_children
       = link_to "ディレクトリを管理…", memo_directories_path, class: "mb-3 inline-block text-xs text-zinc-500 underline decoration-zinc-300 hover:text-zinc-800"
-    - else
+    - elsif @sidebar_view == "tag"
       - tags = @tags_for_nav || []
       - if tags.any?
         ul.mb-2.space-y-0.5
@@ -22,8 +25,21 @@
       - else
         p.mb-2.text-xs.text-zinc-500 タグがまだありません。メモの編集画面でタグを付けられます。
       = link_to "タグを管理…", tags_path, class: "mb-2 inline-block text-xs text-zinc-500 underline decoration-zinc-300 hover:text-zinc-800"
+    - else
+      .mb-2 data-controller="memo-search"
+        = form_tag memos_path, method: :get, class: "flex min-w-0 gap-1", data: { memo_search_target: "form", turbo: "false" } do
+          = hidden_field_tag :sidebar_view, "search"
+          = search_field_tag :q, @memo_search_query, placeholder: "タイトル・本文を検索", autocomplete: "off", class: memo_sidebar_search_input, data: { memo_search_target: "input", action: "input->memo-search#submitSearch" }
+          - if @memo_search_query.present?
+            button.shrink-0.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.5.text-xs.text-zinc-600.hover:bg-zinc-50 type="button" data-action="memo-search#clear" クリア
+      p.mb-2.text-xs.text-zinc-500 タイトルと本文を横断して検索します。
     .mb-2.flex.min-w-0.items-center.justify-between.gap-2
-      p.truncate.text-xs.font-medium.uppercase.tracking-wide.text-zinc-500 メモ一覧
+      - if @sidebar_view == "search" && @memo_search_query.present?
+        p.truncate.text-xs.font-medium.uppercase.tracking-wide.text-zinc-500
+          | 検索結果
+          span.ml-1.font-normal.normal-case.text-zinc-400 = "「#{h(@memo_search_query)}」"
+      - else
+        p.truncate.text-xs.font-medium.uppercase.tracking-wide.text-zinc-500 メモ一覧
       - if @sidebar_view == "directory"
         details.relative.shrink-0
           summary.flex.h-5.w-5.cursor-pointer.list-none.items-center.justify-center.rounded.text-zinc-400.hover:bg-zinc-100.hover:text-zinc-600
@@ -40,7 +56,7 @@
         - @memos.each do |memo|
           li.flex.min-h-0.min-w-0
             - nav_q = memo_sidebar_nav_query
-            - if @sidebar_view == "directory"
+            - if show_memo_dnd
               .flex.min-w-0.flex-1 class=memo_sidebar_memo_list_row_classes(memo.id)
                 span.inline-flex.shrink-0.cursor-grab.select-none.self-start.pt-3.pl-1.text-zinc-400.hover:text-zinc-600 role="button" tabindex="0" title="ここをドラッグしてディレクトリへ移動" draggable="true" data-draft-url=draft_memo_path(memo, nav_q) data-memo-directory-id=memo.memo_directory_id data-action="dragstart->memo-directory-dnd#memoDragStart dragend->memo-directory-dnd#memoDragEnd"
                   i.h-4.w-4 aria-hidden="true" data-lucide="grip-vertical"
@@ -51,7 +67,12 @@
                 = render "memos/list_panel_memo_row_inner", memo: memo
     - else
       .px-3.py-8.text-center.text-sm.text-zinc-500
-        - if @sidebar_view == "tag"
+        - if @sidebar_view == "search"
+          - if @memo_search_query.present?
+            p 該当するメモはありません
+          - else
+            p 上の欄にキーワードを入力してください
+        - elsif @sidebar_view == "tag"
           p このタグのメモはまだありません
         - else
           p このディレクトリにはまだありません

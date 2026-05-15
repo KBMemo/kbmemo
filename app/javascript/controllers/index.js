@@ -16,6 +16,9 @@ application.register("memo-directory-parent-picker", MemoDirectoryParentPickerCo
 import MemoDraftController from "./memo_draft_controller"
 application.register("memo-draft", MemoDraftController)
 
+import MemoSearchController from "./memo_search_controller"
+application.register("memo-search", MemoSearchController)
+
 import MemoSidebarController from "./memo_sidebar_controller"
 application.register("memo-sidebar", MemoSidebarController)
 

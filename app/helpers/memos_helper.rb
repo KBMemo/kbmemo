@@ -61,7 +61,10 @@ module MemosHelper
   # ディレクトリ / タグ切り替え後も一覧・編集の文脈を保つクエリ（ハッシュ）
   def memo_sidebar_nav_query
     h = {}
-    if defined?(@sidebar_view) && @sidebar_view == "tag"
+    if defined?(@sidebar_view) && @sidebar_view == "search"
+      h[:sidebar_view] = "search"
+      h[:q] = @memo_search_query if defined?(@memo_search_query) && @memo_search_query.present?
+    elsif defined?(@sidebar_view) && @sidebar_view == "tag"
       h[:sidebar_view] = "tag"
       tid = (@current_tag&.id || params[:tag_id]).presence
       h[:tag_id] = tid if tid
@@ -71,7 +74,30 @@ module MemosHelper
     h
   end
 
+  # show / edit 中はメモを開いたままサイドバー文脈だけ切り替える
+  def memo_sidebar_open_memo
+    return unless defined?(@memo) && @memo&.persisted?
+    return unless %w[show edit].include?(controller.action_name)
+
+    @memo
+  end
+
+  def memo_sidebar_open_memo_path(memo, query = {})
+    if memo.display_as_draft?
+      edit_memo_path(memo, query)
+    else
+      memo_path(memo, query)
+    end
+  end
+
   def memos_sidebar_directory_tab_path
+    if (memo = memo_sidebar_open_memo)
+      q = {}
+      dir = memo.memo_directory
+      q[:memo_directory_id] = dir.id unless dir.nil? || dir.root?
+      return memo_sidebar_open_memo_path(memo, q)
+    end
+
     return memos_path unless defined?(@current_memo_directory) && @current_memo_directory
     return memos_path if @current_memo_directory.root?
 
@@ -79,10 +105,31 @@ module MemosHelper
   end
 
   def memos_sidebar_tag_tab_path
+    if (memo = memo_sidebar_open_memo)
+      q = { sidebar_view: "tag" }
+      tag = memo.tags.order(:name).first
+      q[:tag_id] = tag.id if tag
+      return memo_sidebar_open_memo_path(memo, q)
+    end
+
     first = Tag.order(:name).first
     return memos_path(sidebar_view: "tag") if first.nil?
 
     memos_path(sidebar_view: "tag", tag_id: first.id)
+  end
+
+  def memos_sidebar_search_tab_path
+    if (memo = memo_sidebar_open_memo)
+      q = { sidebar_view: "search" }
+      q[:q] = @memo_search_query if defined?(@memo_search_query) && @memo_search_query.present?
+      return memo_sidebar_open_memo_path(memo, q)
+    end
+
+    if defined?(@memo_search_query) && @memo_search_query.present?
+      memos_path(sidebar_view: "search", q: @memo_search_query)
+    else
+      memos_path(sidebar_view: "search")
+    end
   end
 
   def memo_sidebar_view_tab_classes(mode)
@@ -276,6 +323,13 @@ module MemosHelper
   end
 
   # 編集フォーム用：下線のみのコンパクト入力
+  def memo_sidebar_search_input
+    [
+      "block w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900",
+      "placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-0"
+    ].join(" ")
+  end
+
   def memo_form_underline_input(extra_classes = "")
     [
       "block w-full border-0 border-b border-zinc-300 rounded-none bg-transparent px-0 py-1.5",
