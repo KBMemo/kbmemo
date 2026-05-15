@@ -16,7 +16,19 @@ export default class extends Controller {
     "saveProperties",
     "saveDirectory"
   ]
-  static targets = ["body", "title", "titleManualFlag", "slug", "slugManualFlag", "tagList", "propertiesYaml", "directory"]
+  static targets = [
+    "body",
+    "title",
+    "titleManualFlag",
+    "slug",
+    "slugManualFlag",
+    "tagList",
+    "tagInput",
+    "tagPills",
+    "tagSuggestionsJson",
+    "propertiesYaml",
+    "directory"
+  ]
   static values = {
     draftUrl: String,
     createUrl: String,
@@ -32,6 +44,8 @@ export default class extends Controller {
     queueMicrotask(() => {
       this.syncTitleFromBodyIfBlank()
       this.syncSlugFromTitleIfBlank()
+      this.hydrateTagSuggestionsCatalog()
+      this.renderTagPillsFromHiddenIfPresent()
     })
   }
 
@@ -149,10 +163,153 @@ export default class extends Controller {
     }
   }
 
-  tagListInput(event) {
+  renderTagPillsFromHiddenIfPresent() {
+    if (!this.hasTagPillsTarget || !this.hasTagListTarget || !this.hasTagInputTarget) return
+    this.renderTagPills(this.parseTagList(this.tagListTarget.value))
+  }
+
+  hydrateTagSuggestionsCatalog() {
+    this._allTagSuggestionNames = []
+    if (!this.hasTagSuggestionsJsonTarget) return
+    const raw = this.tagSuggestionsJsonTarget.textContent?.trim()
+    if (!raw) return
+    try {
+      const parsed = JSON.parse(raw)
+      this._allTagSuggestionNames = Array.isArray(parsed) ? parsed.map(String) : []
+    } catch {
+      this._allTagSuggestionNames = []
+    }
+  }
+
+  rebuildTagDatalistOptions() {
+    if (!this.hasTagInputTarget || !this.hasTagListTarget) return
+    const names = this._allTagSuggestionNames
+    if (!Array.isArray(names) || names.length === 0) return
+
+    const input = this.tagInputTarget
+    const dl = input.list
+    if (!dl) return
+
+    const taken = new Set(this.parseTagList(this.tagListTarget.value).map((t) => t.toLowerCase()))
+    dl.replaceChildren()
+    for (const name of names) {
+      if (taken.has(String(name).toLowerCase())) continue
+      const opt = document.createElement("option")
+      opt.value = name
+      dl.appendChild(opt)
+    }
+  }
+
+  tagInputKeydown(event) {
+    if (!this.hasTagInputTarget) return
+    if (event.target !== this.tagInputTarget) return
+    if (event.isComposing) return
+
+    if (event.key === "Enter") {
+      event.preventDefault()
+      event.stopPropagation()
+      this.commitTagInput()
+    } else if (event.key === "Backspace" && this.tagInputTarget.value === "") {
+      event.stopPropagation()
+      this.removeLastTag()
+    }
+  }
+
+  tagInputChange() {
+    if (!this.hasTagInputTarget || !this.hasTagListTarget) return
+    this.commitTagInput()
+  }
+
+  tagInputInput(event) {
     if (ifComposing(event)) return
+    if (event.inputType === "insertReplacementText") {
+      queueMicrotask(() => this.commitTagInput())
+    }
+  }
+
+  commitTagInput() {
+    if (!this.hasTagInputTarget || !this.hasTagListTarget) return
+    const raw = this.tagInputTarget.value.trim()
+    if (!raw) return
+
+    const tags = this.parseTagList(this.tagListTarget.value)
+    if (tags.some((t) => t.toLowerCase() === raw.toLowerCase())) {
+      this.tagInputTarget.value = ""
+      return
+    }
+    tags.push(raw)
+    this.applyTags(tags)
+    this.tagInputTarget.value = ""
+  }
+
+  removeTagFromParam(event) {
+    const index = Number.parseInt(event.params.tagIndex, 10)
+    if (Number.isNaN(index)) return
+    this.removeTagAt(index)
+  }
+
+  removeTagAt(index) {
+    if (!this.hasTagListTarget) return
+    const tags = this.parseTagList(this.tagListTarget.value)
+    tags.splice(index, 1)
+    this.applyTags(tags)
+  }
+
+  removeLastTag() {
+    if (!this.hasTagListTarget) return
+    const tags = this.parseTagList(this.tagListTarget.value)
+    if (tags.length === 0) return
+    tags.pop()
+    this.applyTags(tags)
+  }
+
+  parseTagList(value) {
+    return value
+      .toString()
+      .split(/[,，]/)
+      .map((t) => t.trim())
+      .filter(Boolean)
+  }
+
+  stringifyTagList(tags) {
+    return tags.join(", ")
+  }
+
+  applyTags(tags) {
+    this.tagListTarget.value = this.stringifyTagList(tags)
+    this.renderTagPills(tags)
     this._pending.tag_list = this.tagListTarget.value
     this.saveTagList()
+  }
+
+  renderTagPills(tags) {
+    if (!this.hasTagPillsTarget) return
+    const root = this.tagPillsTarget
+    root.replaceChildren()
+
+    tags.forEach((label, index) => {
+      const pill = document.createElement("span")
+      pill.className =
+        "inline-flex max-w-full items-center gap-1 rounded-full bg-white pl-3 pr-1 py-1 text-sm text-zinc-700 ring-1 ring-zinc-200"
+      const text = document.createElement("span")
+      text.className = "min-w-0 truncate"
+      text.textContent = label
+      pill.appendChild(text)
+
+      const btn = document.createElement("button")
+      btn.type = "button"
+      btn.setAttribute("aria-label", "タグを削除")
+      btn.setAttribute("data-action", "click->memo-draft#removeTagFromParam")
+      btn.setAttribute("data-memo-draft-tag-index-param", String(index))
+      btn.className =
+        "shrink-0 rounded p-0.5 text-base leading-none text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+      btn.textContent = "×"
+      pill.appendChild(btn)
+
+      root.appendChild(pill)
+    })
+
+    this.rebuildTagDatalistOptions()
   }
 
   propertiesInput(event) {

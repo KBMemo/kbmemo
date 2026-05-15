@@ -25,6 +25,7 @@ ruby:
         p.truncate.text-sm.font-medium.text-zinc-800 = memo.account.display_name
 
   div
+    = render "title_field", memo: memo
 
   div
     = render "slug_field", memo: memo
@@ -47,9 +48,7 @@ ruby:
       - if memo.errors[:properties_yaml].any?
         p.mt-1.text-sm.text-red-700 = memo.errors[:properties_yaml].first
 
-  .flex.items-center.gap-3
-    = label_tag "memo_tag_list", "タグ", class: "text-sm font-medium text-zinc-800 whitespace-nowrap"
-    = text_field_tag "memo[tag_list]", memo.tags.map(&:name).join(", "), autocomplete: "off", placeholder: "ideas, work", class: memo_form_underline_input, data: { memo_draft_target: "tagList", action: "input->memo-draft#tagListInput compositionend->memo-draft#tagListInput" }
+  = render "tag_field", memo: memo
 
   div
     = f.label :body, "本文（AsciiDoc）", class: "mb-1 block text-sm font-medium text-zinc-800"

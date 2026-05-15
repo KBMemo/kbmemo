@@ -1,0 +1,18 @@
+ruby:
+  all_tag_names = memo_tag_names_for_datalist
+  taken_lower = memo.tags.map { |t| t.name.downcase }
+  datalist_names = all_tag_names.reject { |n| taken_lower.include?(n.downcase) }
+  list_id = "memo_tag_suggestions_#{memo.persisted? ? memo.id : 'new'}"
+
+.flex.items-start.gap-3
+  = label_tag "memo_tag_input_visible", "タグ", class: "pt-0.5 text-sm font-medium text-zinc-800 whitespace-nowrap"
+  .min-w-0.flex-1
+    = hidden_field_tag "memo[tag_list]", memo.tags.map(&:name).join(", "), data: { memo_draft_target: "tagList" }
+    script type="application/json" data-memo-draft-target="tagSuggestionsJson"
+      == all_tag_names.to_json
+    div class="flex min-h-9 flex-wrap items-center gap-2 border-0 border-b border-zinc-300 pb-1 pt-0.5 focus-within:border-zinc-900"
+      div.flex.flex-wrap.items-center.gap-2 data-memo-draft-target="tagPills"
+      = text_field_tag "memo_tag_input_visible", "", id: "memo_tag_input_visible", autocomplete: "off", placeholder: "タグを入力", list: list_id, class: memo_form_tag_input_inline, data: { memo_draft_target: "tagInput", action: "keydown->memo-draft#tagInputKeydown change->memo-draft#tagInputChange input->memo-draft#tagInputInput" }
+    datalist id=list_id
+      - datalist_names.each do |name|
+        option value=name

@@ -157,6 +157,19 @@ module MemosHelper
     memo.title_unfilled? ? "" : memo.title
   end
 
+  # タグ行のインライン入力（チップの右に伸びる）
+  def memo_form_tag_input_inline
+    [
+      "min-w-[6rem] flex-1 border-0 border-b-0 bg-transparent px-0 py-0.5",
+      "text-sm text-zinc-900 shadow-none placeholder:text-zinc-400",
+      "focus:outline-none focus:ring-0"
+    ].join(" ")
+  end
+
+  def memo_tag_names_for_datalist
+    Tag.order(:name).pluck(:name)
+  end
+
   # 編集フォーム用：下線のみのコンパクト入力
   def memo_form_underline_input(extra_classes = "")
     [

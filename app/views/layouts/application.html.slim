@@ -51,9 +51,15 @@ html
       - if memos_wide_layout?
         div[class="hidden" aria-hidden="true"]
           = yield
-        div[class="flex -mx-4 flex-col border-t border-zinc-200 bg-zinc-50 md:min-h-[calc(100vh-6.75rem)] md:flex-row md:items-stretch"]
-          aside[class="flex max-h-[min(42vh,360px)] w-full flex-shrink-0 flex-col border-b border-zinc-200 bg-white md:max-h-none md:h-full md:w-80 md:max-w-[min(40vw,24rem)] md:flex-shrink-0 md:border-b-0 md:border-r md:border-t-0"]
-            = render "memos/list_panel"
+        div[class="flex -mx-4 flex-col border-t border-zinc-200 bg-zinc-50 md:min-h-[calc(100vh-6.75rem)] md:flex-row md:items-stretch" data-controller="memo-sidebar" data-memo-sidebar-storage-key-value="kbmemo_memo_sidebar_v1"]
+          #memo_sidebar_shell[class="flex max-h-[min(42vh,360px)] max-md:w-full min-h-0 flex-shrink-0 flex-col border-b border-zinc-200 bg-white transition-[width,max-height] duration-200 ease-out md:max-h-none md:h-full md:flex-shrink-0 md:border-b-0 md:border-r md:border-t-0" data-memo-sidebar-target="shell"]
+            button.flex.w-full.shrink-0.items-center.justify-center.gap-2.border-b.border-zinc-200.bg-zinc-50.px-2.py-2.text-left.text-xs.font-medium.text-zinc-700.hover:bg-zinc-100.md:py-1.5[type="button" data-memo-sidebar-target="toggleButton" data-action="memo-sidebar#toggle" aria-expanded="true" aria-controls="memos_list_panel"]
+              span.text-sm.leading-none.tabular-nums[aria-hidden="true" data-memo-sidebar-target="toggleGlyph"] ◀
+              span.sr-only メモ一覧サイドバー
+              span.hidden.md:inline[data-memo-sidebar-target="toggleLabel"] 折りたたむ
+            .flex.min-h-0.flex-1.flex-col.overflow-hidden[data-memo-sidebar-target="body"]
+              = render "memos/list_panel"
+          .hidden.shrink-0.self-stretch.w-2.cursor-col-resize.bg-transparent.transition-colors.hover:bg-zinc-400.active:bg-zinc-500.md:block.z-10[role="separator" aria-orientation="vertical" aria-label="サイドバーの幅を変更" title="ドラッグして幅を変更" tabindex="-1" data-memo-sidebar-target="resizer" data-action="pointerdown->memo-sidebar#resizerPointerDown"]
           section[class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"]
             div[class="flex-1 overflow-y-auto px-4 py-5 md:px-8"]
               = yield :memos_editor

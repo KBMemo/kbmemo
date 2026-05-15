@@ -14,7 +14,6 @@
               draggable: "false",
               data: { drop_directory: true, memo_directory_id: dir.id, action: "dragover->memo-directory-dnd#allowDrop dragenter->memo-directory-dnd#dragEnterDirectory dragleave->memo-directory-dnd#dragLeaveDirectory drop->memo-directory-dnd#dropOnDirectory" } do
               span.truncate = dir.display_name
-      p.mb-2.text-xs.leading-snug.text-zinc-500 左の縞アイコンをドラッグして、上のフォルダ名に置くと移動します。
       = link_to "ディレクトリを管理…", memo_directories_path, class: "mb-3 inline-block text-xs text-zinc-500 underline decoration-zinc-300 hover:text-zinc-800"
     - else
       - tags = @tags_for_nav || []
@@ -27,7 +26,15 @@
       - else
         p.mb-2.text-xs.text-zinc-500 タグがまだありません。メモの編集画面でタグを付けられます。
       = link_to "タグを管理…", tags_path, class: "mb-2 inline-block text-xs text-zinc-500 underline decoration-zinc-300 hover:text-zinc-800"
-    p.text-xs.font-medium.uppercase.tracking-wide.text-zinc-500 メモ一覧
+    .mb-2.flex.min-w-0.items-center.justify-between.gap-2
+      p.truncate.text-xs.font-medium.uppercase.tracking-wide.text-zinc-500 メモ一覧
+      - if @sidebar_view == "directory"
+        details.relative.shrink-0
+          summary.flex.h-5.w-5.cursor-pointer.list-none.items-center.justify-center.rounded.text-zinc-400.hover:bg-zinc-100.hover:text-zinc-600
+            i[data-lucide="circle-help" class="h-4 w-4"]
+            span.sr-only メモを別ディレクトリへ移動する方法
+          .absolute.right-0.top-6.z-30.w-72.rounded-md.border.border-zinc-200.bg-white.p-2.text-xs.leading-relaxed.text-zinc-600.shadow-lg
+            | 左の縞アイコンをドラッグして、上のフォルダ名に置くと移動します。
     = link_to new_memo_path_with_current_directory, class: memo_sidebar_link_classes(:new) do
       span.mr-1.text-zinc-500 +
       span 新規メモ
