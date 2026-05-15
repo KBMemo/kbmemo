@@ -18,3 +18,11 @@ html.memo-directory-dnd-dragging * {
 html.memo-directory-dnd-dragging a[data-drop-directory] {
   cursor: move !important;
 }
+
+/* サイドバー: ディレクトリ <details> の三角マーカーを消してツリー用 chevron のみ表示 */
+.memo-directory-nav-summary::-webkit-details-marker {
+  display: none;
+}
+.memo-directory-nav-summary {
+  list-style: none;
+}

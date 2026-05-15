@@ -33,6 +33,7 @@ class MemoDirectory < ApplicationRecord
   validate :path_segment_rules
   validate :path_segment_immutable, on: :update
   validate :parent_and_root_rules
+  validate :parent_not_self_or_descendant, if: -> { will_save_change_to_parent_id? }
 
   before_validation :normalize_path_segment
   before_validation :compose_full_path
@@ -67,7 +68,41 @@ class MemoDirectory < ApplicationRecord
     true
   end
 
+  # 親の変更（ディレクトリの移動）が許されるか。保護パスは deletable? と同じ。
+  def reparentable?
+    deletable?
+  end
+
+  # 自分と配下ディレクトリの id（親候補から除外する用）
+  def subtree_directory_ids
+    return [id] unless persisted?
+
+    [id] + children.flat_map(&:subtree_directory_ids)
+  end
+
+  # 親と full_path を更新した直後に、子孫の full_path を再計算して保存する
+  # （古い full_path の昇順で処理し、常に親より先に子が来ないようにする）
+  def cascade_path_refresh!
+    self.class.where(id: subtree_directory_ids - [id]).order(:full_path).find_each do |node|
+      node.save!
+    end
+  end
+
   private
+
+  def parent_not_self_or_descendant
+    return if parent_id.blank?
+    return unless persisted?
+
+    if parent_id == id
+      errors.add(:parent_id, "自分自身にはできません")
+      return
+    end
+
+    if subtree_directory_ids.include?(parent_id)
+      errors.add(:parent_id, "配下のディレクトリへは移せません")
+    end
+  end
 
   def user_space_root_regex
     @user_space_root_regex ||= /\A(?:#{PROTECTED_BUCKET_PATHS.join('|')})\/u-\d+\z/

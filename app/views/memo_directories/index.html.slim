@@ -18,6 +18,8 @@
               td.py-2.pr-3.font-mono.text-xs.text-zinc-800 = d.root? ? "（ルート）" : d.full_path
               td.py-2.pr-3.text-zinc-700 = d.display_name
               td.py-2.text-right
+                = link_to "子を追加", new_memo_directory_path(parent_id: d.id), class: "text-zinc-600 hover:text-zinc-900"
+                = " · "
                 = link_to "編集", edit_memo_directory_path(d), class: "text-zinc-600 hover:text-zinc-900"
                 - unless d.root?
                   = " · "

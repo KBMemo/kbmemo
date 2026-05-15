@@ -108,6 +108,51 @@ module MemosHelper
     end
   end
 
+  # サイドバー用: policy_scope 内のディレクトリを parent_id でグルーピング（ルート行は除外）
+  def memo_directory_nav_children_index(directories)
+    all = Array(directories)
+    root = all.find(&:root?)
+    dirs = all.reject(&:root?)
+    ids = all.map(&:id).to_set
+    h = Hash.new { |hh, k| hh[k] = [] }
+    dirs.each do |d|
+      pid = if d.parent_id.present? && ids.include?(d.parent_id)
+              d.parent_id
+            else
+              root&.id
+            end
+      h[pid] << d
+    end
+    h.transform_values! { |a| a.sort_by(&:full_path) }
+    h
+  end
+
+  def memo_directory_nav_tree_roots(directories, by_parent = nil)
+    by = by_parent || memo_directory_nav_children_index(directories)
+    root = Array(directories).find(&:root?)
+    list = root ? (by[root.id] || []) : (by[nil] || [])
+    list.sort_by(&:full_path)
+  end
+
+  # 現在選択ディレクトリが配下にあれば details を開く
+  def memo_directory_nav_details_open?(directory)
+    return true unless defined?(@current_memo_directory) && @current_memo_directory
+    return false if @current_memo_directory.root?
+
+    cur_path = @current_memo_directory.full_path
+    dp = directory.full_path
+    return true if cur_path == dp
+    return false if dp.blank?
+
+    cur_path.start_with?("#{dp}/")
+  end
+
+  def memo_directory_nav_details_attrs(directory)
+    attrs = { class: "memo-directory-nav-details group w-full min-w-0" }
+    attrs[:open] = true if memo_directory_nav_details_open?(directory)
+    attrs
+  end
+
   def memo_directory_nav_link_classes(directory)
     base = "block rounded-md px-2 py-1.5 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
     active = defined?(@sidebar_view) && @sidebar_view == "directory" &&

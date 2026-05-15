@@ -6,14 +6,10 @@
       = link_to "ディレクトリ", memos_sidebar_directory_tab_path, class: memo_sidebar_view_tab_classes("directory"), draggable: "false"
       = link_to "タグ", memos_sidebar_tag_tab_path, class: memo_sidebar_view_tab_classes("tag"), draggable: "false"
     - if @sidebar_view == "directory"
+      - nav_dir_children = memo_directory_nav_children_index(@memo_directories_for_nav || [])
       ul.mb-2.space-y-0.5
-        - (@memo_directories_for_nav || []).each do |dir|
-          li
-            = link_to memos_path(memo_directory_id: dir.id),
-              class: memo_directory_nav_link_classes(dir),
-              draggable: "false",
-              data: { drop_directory: true, memo_directory_id: dir.id, action: "dragover->memo-directory-dnd#allowDrop dragenter->memo-directory-dnd#dragEnterDirectory dragleave->memo-directory-dnd#dragLeaveDirectory drop->memo-directory-dnd#dropOnDirectory" } do
-              span.truncate = dir.display_name
+        - memo_directory_nav_tree_roots(@memo_directories_for_nav || [], nav_dir_children).each do |dir|
+          = render "memos/memo_directory_nav_branch", dir: dir, by_parent: nav_dir_children
       = link_to "ディレクトリを管理…", memo_directories_path, class: "mb-3 inline-block text-xs text-zinc-500 underline decoration-zinc-300 hover:text-zinc-800"
     - else
       - tags = @tags_for_nav || []

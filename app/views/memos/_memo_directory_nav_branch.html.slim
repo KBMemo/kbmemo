@@ -1,0 +1,22 @@
+ruby:
+  children = (by_parent[dir.id] || [])
+  has_children = children.any?
+  drop_data = {
+    drop_directory: true,
+    memo_directory_id: dir.id,
+    action: "dragover->memo-directory-dnd#allowDrop dragenter->memo-directory-dnd#dragEnterDirectory dragleave->memo-directory-dnd#dragLeaveDirectory drop->memo-directory-dnd#dropOnDirectory"
+  }
+
+li.mb-0.5.min-w-0
+  - if has_children
+    = tag.details(**memo_directory_nav_details_attrs(dir)) do
+      summary.flex.min-w-0.cursor-pointer.list-none.items-center.gap-1.rounded-md.px-1.py-0.text-zinc-500.hover:bg-zinc-50.memo-directory-nav-summary
+        span aria-hidden="true" class="shrink-0 text-[10px] leading-none text-zinc-400 transition-transform select-none group-open:rotate-90" ▶
+        = link_to memos_path(memo_directory_id: dir.id), class: "#{memo_directory_nav_link_classes(dir)} min-w-0 flex-1 truncate", draggable: "false", data: drop_data do
+          span.truncate = dir.display_name
+      ul.mt-0.5.space-y-0.5.border-l.border-zinc-200.pl-2.ml-2
+        - children.each do |child|
+          = render "memos/memo_directory_nav_branch", dir: child, by_parent: by_parent
+  - else
+    = link_to memos_path(memo_directory_id: dir.id), class: memo_directory_nav_link_classes(dir), draggable: "false", data: drop_data do
+      span.truncate = dir.display_name

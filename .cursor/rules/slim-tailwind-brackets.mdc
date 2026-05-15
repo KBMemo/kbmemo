@@ -1,0 +1,41 @@
+---
+description: Slim と Tailwind の任意値・角括弧の衝突を防ぐ
+globs: "**/*.slim"
+alwaysApply: false
+---
+
+# Slim と Tailwind（`[` / `]`）
+
+Slim のドット記法 `tag.foo.bar` では、クラス名に **`[` が含まれると属性ブロックの開始**と解釈され、以降のクラス名が **本文テキストとして出力**されることがある。
+
+## 必須
+
+次をドット記法で書かない（角括弧・紛らわしいコロンを含むクラスは必ず `class` にまとめる）。
+
+- 任意値: `text-[10px]`、`max-w-[1800px]`、`min-h-[min(50vh,...)]` など
+- 角括弧を含むユーティリティ全般
+
+## 推奨パターン
+
+- 1 要素にまとめる: `span class="shrink-0 text-[10px] leading-none ..."`
+- 既存のドット記法と混ぜる場合は、**角括弧を含む部分だけ** `class=(...)` で渡すより、**該当要素のクラスはすべて `class="..."` に寄せる**と安全。
+
+## 悪い例 / 良い例
+
+```slim
+/ BAD — `[` 以降が壊れ、クラス名が画面上に出る
+span.shrink-0.text-[10px].leading-none.text-zinc-400 ▶
+
+/ GOOD
+span class="shrink-0 text-[10px] leading-none text-zinc-400" ▶
+```
+
+```slim
+/ BAD（同様）
+div.max-w-[1800px].mx-auto
+
+/ GOOD
+div class="max-w-[1800px] mx-auto"
+```
+
+`div[class="..."]` 形式でも可（レイアウト内の長いクラス列向け）。
