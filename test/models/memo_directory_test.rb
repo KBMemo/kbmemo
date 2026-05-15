@@ -18,6 +18,20 @@ class MemoDirectoryTest < ActiveSupport::TestCase
     assert_equal "share/u-1/work/nest", nested.full_path
   end
 
+  test "assigns root as parent when parent_id is nil" do
+    d = MemoDirectory.new(path_segment: "misc", label: "Misc")
+    assert d.valid?
+    assert_equal MemoDirectory.root.id, d.parent_id
+    assert_equal "misc", d.full_path
+  end
+
+  test "rejects parent that is top level bucket" do
+    work = memo_directories(:work)
+    work.parent = memo_directories(:home)
+    assert_not work.valid?
+    assert_includes work.errors[:parent_id].join, "Home"
+  end
+
   test "rejects parent that is descendant of self" do
     work = memo_directories(:work)
     nested = MemoDirectory.create!(parent: work, path_segment: "nest", label: "Nest")

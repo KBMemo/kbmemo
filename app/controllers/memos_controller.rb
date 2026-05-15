@@ -114,6 +114,7 @@ class MemosController < ApplicationController
     old_abs = repo.absolute_path_for(@memo)
 
     wrapper = ActionController::Parameters.new(memo: draft_params)
+    directory_changing = draft_params.key?(:memo_directory_id)
     unless assign_memo_fields(@memo, wrapper)
       render json: { errors: @memo.errors.full_messages }, status: :unprocessable_entity
       return
@@ -134,6 +135,10 @@ class MemosController < ApplicationController
     end
 
     if @memo.save(validate: false)
+      if directory_changing
+        @memo.reload
+        refresh_memo_sidebar_directory_context!
+      end
       @memo.broadcast_replace partial: "memos/show_content"
       respond_to do |format|
         format.turbo_stream do
@@ -223,6 +228,14 @@ class MemosController < ApplicationController
       src.slice(:title, :body, :slug, :title_manual, :slug_manual, :memo_directory_id, :visibility, :memo_group_id)
     )
     memo.assign_tags_from_list(src[:tag_list]) if src.key?(:tag_list)
+
+    if src.key?(:memo_directory_id)
+      dir = memo.memo_directory
+      if dir.nil? || dir.root? || dir.top_level_bucket?
+        memo.errors.add(:memo_directory, "Home / Share / Public の直下には保存できません")
+        return false
+      end
+    end
 
     if src.key?(:properties_yaml)
       memo.properties = parse_properties_yaml(src[:properties_yaml])

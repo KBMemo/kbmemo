@@ -37,7 +37,7 @@ one:
   body: "= Hello"
   properties: {}
   slug: first-memo
-  memo_directory: root
+  memo_directory: work
   account_id: 1
 
 two:

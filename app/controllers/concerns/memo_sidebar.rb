@@ -9,6 +9,13 @@ module MemoSidebar
     before_action :load_sidebar_memos_list
   end
 
+  # ドラフトで memo_directory_id が変わったあと、一覧サイドバーをメモの保存先に合わせ直す
+  def refresh_memo_sidebar_directory_context!
+    @sidebar_view = "directory"
+    @current_memo_directory = @memo.memo_directory
+    load_sidebar_memos_list
+  end
+
   private
 
   def set_memo_directory_nav_context

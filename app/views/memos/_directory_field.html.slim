@@ -1,7 +1,10 @@
 #memo_directory_field.flex.items-start.gap-3
-  = label_tag "memo_memo_directory_id", "ディレクトリ", class: "pt-1 text-sm font-medium text-zinc-800 whitespace-nowrap"
-  - dir_pairs = memo_directory_tree_select_option_pairs(memo_directories_for_select, exclude_root: true)
-  - dir_select_selected = memo.memo_directory.root? ? nil : memo.memo_directory_id
-  - dir_select_opts = { id: "memo_memo_directory_id", class: memo_form_underline_input("font-sans w-full min-w-0"), data: { memo_draft_target: "directory", action: "change->memo-draft#directoryChange" } }
-  - dir_select_opts[:include_blank] = "保存先フォルダを選んでください" if memo.memo_directory.root?
-  = select_tag "memo[memo_directory_id]", options_for_select(dir_pairs, dir_select_selected), dir_select_opts
+  - selected_dir = memo.memo_directory&.root? ? nil : memo.memo_directory
+  = render "shared/directory_tree_picker",
+    label_text: "ディレクトリ",
+    field_name: "memo[memo_directory_id]",
+    field_id: "memo_memo_directory_id",
+    selected_directory: selected_dir,
+    directory_options: memo_directories_for_select,
+    placeholder_text: "保存先フォルダを選んでください",
+    hidden_field_data: { memo_draft_target: "directory", action: "change->memo-draft#directoryChange" }

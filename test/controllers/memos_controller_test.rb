@@ -29,10 +29,11 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     t = 1.hour.ago.change(usec: 0)
     committed.update_columns(file_committed_at: t, updated_at: t, memo_directory_id: draft.memo_directory_id)
 
-    get memos_url
+    dir = draft.memo_directory
+    get memos_url(memo_directory_id: dir.id)
     assert_response :success
-    assert_includes response.body, %(href="#{edit_memo_path(draft)}")
-    assert_includes response.body, %(href="#{memo_path(committed)}")
+    assert_includes response.body, edit_memo_path(draft)
+    assert_includes response.body, memo_path(committed)
   end
 
   test "memo list uses edit link after committed memo is changed by draft" do
@@ -44,8 +45,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert committed.reload.display_as_draft?
 
-    get memos_url
-    assert_includes response.body, %(href="#{edit_memo_path(committed)}")
+    get memos_url(memo_directory_id: committed.memo_directory_id)
+    assert_includes response.body, edit_memo_path(committed)
   end
 
   test "draft can change memo directory" do
@@ -54,6 +55,26 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     patch draft_memo_url(m), params: { memo: { memo_directory_id: work.id } }, as: :json
     assert_response :success
     assert_equal work.id, m.reload.memo_directory_id
+  end
+
+  test "draft directory change turbo stream refreshes sidebar selection" do
+    m = memos(:one)
+    share_u1 = MemoDirectory.find_by!(full_path: "share/u-1")
+    patch draft_memo_url(m),
+      params: { memo: { memo_directory_id: share_u1.id } },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    assert_response :success
+    assert_includes response.media_type, "turbo-stream"
+    assert_includes response.body, %(memo_directory_id=#{share_u1.id})
+    assert_includes response.body, "bg-zinc-200 font-medium text-zinc-900"
+  end
+
+  test "draft rejects top level bucket as memo directory" do
+    m = memos(:one)
+    home = memo_directories(:home)
+    patch draft_memo_url(m), params: { memo: { memo_directory_id: home.id } }, as: :json
+    assert_response :unprocessable_entity
+    assert_not_equal home.id, m.reload.memo_directory_id
   end
 
   test "edit has memo draft stimulus bindings" do

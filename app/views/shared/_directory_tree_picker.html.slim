@@ -1,0 +1,22 @@
+ruby:
+  directory_options = Array(directory_options)
+  by_parent = memo_directory_nav_children_index(directory_options)
+  picker_roots = memo_directory_nav_tree_roots(directory_options, by_parent)
+  unselected = selected_directory.nil? || selected_directory.root?
+  initial_path = unselected && placeholder_text.present? ? placeholder_text : memo_directory_path_from_root_label(selected_directory)
+  field_value = unselected ? "" : selected_directory.id
+  hidden_data = { memo_directory_parent_picker_target: "hiddenInput" }.merge(hidden_field_data || {})
+
+.relative.min-w-0.flex-1 data-controller="memo-directory-parent-picker"
+  .flex.min-w-0.flex-wrap.items-baseline.gap-x-1.text-sm
+    span.shrink-0.font-medium.text-zinc-800 = "#{label_text}："
+    span.min-w-0.truncate.text-zinc-700 data-memo-directory-parent-picker-target="pathLabel" = initial_path
+    button.shrink-0.rounded.px-1.py-0.5.text-zinc-500.hover:bg-zinc-100.hover:text-zinc-800.focus:outline-none.focus-visible:ring-2.focus-visible:ring-zinc-400 type="button" data-memo-directory-parent-picker-target="toggleButton" data-action="memo-directory-parent-picker#toggle" aria-expanded="false" aria-haspopup="listbox" aria-label="#{label_text}を選択" ▼
+  - if local_assigns[:form_builder]
+    = form_builder.hidden_field field_method, value: field_value, data: hidden_data
+  - else
+    = hidden_field_tag field_name, field_value, id: field_id, data: hidden_data
+  div[class="absolute left-0 top-full z-30 mt-1 hidden max-h-72 w-full min-w-[16rem] max-w-md overflow-y-auto rounded-md border border-zinc-200 bg-white py-2 shadow-lg" data-memo-directory-parent-picker-target="panel" role="listbox"]
+    ul.px-2
+      - picker_roots.each do |dir|
+        = render "shared/directory_tree_picker_branch", dir: dir, by_parent: by_parent, selected_directory: (unselected ? nil : selected_directory)

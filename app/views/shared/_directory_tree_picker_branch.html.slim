@@ -1,0 +1,29 @@
+ruby:
+  children = (by_parent[dir.id] || [])
+  has_children = children.any?
+  row_label = memo_directory_path_from_root_label(dir)
+  directory_path = row_label
+  selectable = dir.directory_picker_selectable?
+  selected = selectable && selected_directory&.id == dir.id
+  picker_btn_class = memo_directory_parent_picker_button_classes(selected: selected)
+  header_class = "block w-full min-w-0 truncate rounded-md px-2 py-1.5 text-left text-sm text-zinc-500"
+  details_open = memo_directory_picker_details_open?(dir, selected_directory)
+  details_attrs = { class: "group w-full min-w-0" }
+  details_attrs[:open] = true if details_open
+
+li.min-w-0
+  - if has_children
+    = tag.details(**details_attrs) do
+      summary.flex.min-w-0.cursor-pointer.list-none.items-center.gap-1.rounded-md.px-1.py-0.memo-directory-nav-summary
+        span aria-hidden="true" class="shrink-0 text-[10px] leading-none text-zinc-400 transition-transform select-none group-open:rotate-90" ▶
+        - if selectable
+          button type="button" class=picker_btn_class data-directory-id=dir.id data-directory-path=directory_path data-action="click->memo-directory-parent-picker#select" data-memo-directory-parent-picker-target="option" aria-selected=(selected ? "true" : "false") role="option" = row_label
+        - else
+          span class=header_class = row_label
+      ul.mt-0.5.space-y-0.5.border-l.border-zinc-200.pl-2.ml-2
+        - children.each do |child|
+          = render "shared/directory_tree_picker_branch", dir: child, by_parent: by_parent, selected_directory: selected_directory
+  - elsif selectable
+    button type="button" class=picker_btn_class data-directory-id=dir.id data-directory-path=directory_path data-action="click->memo-directory-parent-picker#select" data-memo-directory-parent-picker-target="option" aria-selected=(selected ? "true" : "false") role="option" = row_label
+  - else
+    span class=header_class = row_label

@@ -134,23 +134,46 @@ module MemosHelper
     list.sort_by(&:full_path)
   end
 
+  # 選択中のディレクトリが node の配下にあれば details を開く
+  def memo_directory_tree_details_open?(directory, selected_directory)
+    return false unless selected_directory
+    return true if selected_directory.id == directory.id
+    return false if directory.root? || directory.full_path.blank?
+
+    selected_directory.full_path.start_with?("#{directory.full_path}/")
+  end
+
   # 現在選択ディレクトリが配下にあれば details を開く
   def memo_directory_nav_details_open?(directory)
     return true unless defined?(@current_memo_directory) && @current_memo_directory
-    return false if @current_memo_directory.root?
 
-    cur_path = @current_memo_directory.full_path
-    dp = directory.full_path
-    return true if cur_path == dp
-    return false if dp.blank?
+    memo_directory_tree_details_open?(directory, @current_memo_directory)
+  end
 
-    cur_path.start_with?("#{dp}/")
+  def memo_directory_picker_details_open?(directory, selected_parent)
+    memo_directory_tree_details_open?(directory, selected_parent)
+  end
+
+  def memo_directory_parent_picker_button_classes(selected:)
+    base = "w-full min-w-0 truncate rounded-md px-2 py-1.5 text-left text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+    if selected
+      "#{base} bg-zinc-200 font-medium text-zinc-900"
+    else
+      "#{base} text-zinc-700 hover:bg-zinc-100"
+    end
   end
 
   def memo_directory_nav_details_attrs(directory)
     attrs = { class: "memo-directory-nav-details group w-full min-w-0" }
     attrs[:open] = true if memo_directory_nav_details_open?(directory)
     attrs
+  end
+
+  # ルートからのラベルパス表示（例: /Home/kensei）。ルート自身は /。
+  def memo_directory_path_from_root_label(directory)
+    return "/" if directory.nil?
+
+    directory.labeled_path_from_root
   end
 
   # <select> 用: DFS で [ラベル, id]。字下げは NBSP（<option> 内の通常スペースはブラウザで潰れるため）。

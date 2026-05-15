@@ -53,6 +53,7 @@ class Memo < ApplicationRecord
   validates :slug, uniqueness: { scope: :memo_directory_id, allow_blank: true }
   validates :memo_group_id, presence: true, if: -> { group_read? || group_read_write? }
   validate :memo_group_must_include_owner, if: -> { group_read? || group_read_write? }
+  validate :memo_directory_must_be_assignable_location
 
   before_validation :assign_default_memo_directory
   before_validation :clear_memo_group_when_not_group_visibility
@@ -157,6 +158,17 @@ class Memo < ApplicationRecord
     return if MemoGroupMembership.exists?(memo_group_id: memo_group_id, account_id: account_id)
 
     errors.add(:memo_group_id, "はオーナーが参加しているグループを選んでください")
+  end
+
+  def memo_directory_must_be_assignable_location
+    return if memo_directory.nil?
+    return if memo_directory.directory_picker_selectable?
+
+    if memo_directory.root?
+      errors.add(:memo_directory, "ルートには保存できません")
+    else
+      errors.add(:memo_directory, "Home / Share / Public の直下には保存できません")
+    end
   end
 
   def assign_default_memo_directory

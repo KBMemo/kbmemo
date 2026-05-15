@@ -27,6 +27,14 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes pairs.map(&:last), memo_directories(:home).id
   end
 
+  test "memo_directory_path_from_root_label joins segment labels from root" do
+    home_u_one = memo_directories(:home_u_one)
+    work = memo_directories(:work)
+    assert_equal "/Home/User one", memo_directory_path_from_root_label(home_u_one)
+    assert_equal "/Home/User one/仕事", memo_directory_path_from_root_label(work)
+    assert_equal "/", memo_directory_path_from_root_label(memo_directories(:root))
+  end
+
   test "memo_directory_tree_select_option_pairs can label root row for parent picker" do
     dirs = [memo_directories(:root), memo_directories(:home)]
     pairs = memo_directory_tree_select_option_pairs(dirs, exclude_root: false, root_option_label: "（最上位）")

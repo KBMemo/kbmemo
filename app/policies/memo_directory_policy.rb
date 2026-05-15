@@ -10,11 +10,26 @@ class MemoDirectoryPolicy < ApplicationPolicy
   end
 
   def update?
-    user.present?
+    return false unless user
+    return false if record.directory_list_readonly?
+
+    return true if user.admin?
+
+    user_editable_directory_path?
   end
 
   def destroy?
     user.present? && record.deletable?
+  end
+
+  private
+
+  def user_editable_directory_path?
+    uid = user.id
+    MemoDirectory::PROTECTED_BUCKET_PATHS.any? do |bucket|
+      base = "#{bucket}/u-#{uid}"
+      record.full_path == base || record.full_path.start_with?("#{base}/")
+    end
   end
 
   class Scope < ApplicationPolicy::Scope

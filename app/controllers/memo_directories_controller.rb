@@ -37,8 +37,6 @@ class MemoDirectoriesController < ApplicationController
         return
       end
       @memo_directory.parent = parent
-    else
-      @memo_directory.parent ||= MemoDirectory::UserSpace.default_home_directory(rodauth.rails_account.id)
     end
     authorize @memo_directory
     if @memo_directory.save
@@ -59,10 +57,10 @@ class MemoDirectoriesController < ApplicationController
     attrs = memo_directory_params_update
     attrs = attrs.to_h if attrs.respond_to?(:to_h)
     attrs.delete("parent_id") if @memo_directory.root?
+    attrs = normalize_parent_id_param(attrs) if attrs.key?("parent_id")
 
     parent_changing = !@memo_directory.root? &&
       attrs.key?("parent_id") &&
-      attrs["parent_id"].present? &&
       attrs["parent_id"].to_i != @memo_directory.parent_id
 
     if parent_changing && !@memo_directory.reparentable?
@@ -155,5 +153,12 @@ class MemoDirectoriesController < ApplicationController
 
   def memo_directory_params_update
     params.require(:memo_directory).permit(:label, :parent_id)
+  end
+
+  # 空の parent_id は最上位（ルート）直下を意味する
+  def normalize_parent_id_param(attrs)
+    attrs = attrs.dup
+    attrs["parent_id"] = attrs["parent_id"].presence || MemoDirectory.root.id
+    attrs
   end
 end

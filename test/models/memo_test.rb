@@ -47,7 +47,7 @@ class MemoTest < ActiveSupport::TestCase
       title: "Custom",
       title_manual: false,
       account: accounts(:one),
-      memo_directory: memo_directories(:root)
+      memo_directory: memo_directories(:work)
     )
     m.valid?
     assert m.title_manual?
@@ -59,7 +59,7 @@ class MemoTest < ActiveSupport::TestCase
       body: "= Doc title\n\nx",
       title_manual: false,
       account: accounts(:one),
-      memo_directory: memo_directories(:root)
+      memo_directory: memo_directories(:work)
     )
     m.valid?
     assert_not m.title_manual?
@@ -72,11 +72,18 @@ class MemoTest < ActiveSupport::TestCase
       title: Memo::TITLE_PLACEHOLDER,
       title_manual: true,
       account: accounts(:one),
-      memo_directory: memo_directories(:root)
+      memo_directory: memo_directories(:work)
     )
     m.valid?
     assert m.title_unfilled?
     assert_equal Memo::TITLE_PLACEHOLDER, m.title
+  end
+
+  test "rejects memo_directory at top level bucket" do
+    m = memos(:one)
+    m.memo_directory = memo_directories(:home)
+    assert_not m.valid?
+    assert_includes m.errors[:memo_directory].join, "Home"
   end
 
   test "derived_slug_from_title parameterizes title" do
@@ -119,7 +126,7 @@ class MemoTest < ActiveSupport::TestCase
       slug_manual: false,
       file_committed_at: nil,
       account: accounts(:one),
-      memo_directory: memo_directories(:root)
+      memo_directory: memo_directories(:work)
     )
     m.valid?
     assert_not m.slug_manual?
@@ -134,7 +141,7 @@ class MemoTest < ActiveSupport::TestCase
       slug_manual: false,
       file_committed_at: Time.current,
       account: accounts(:one),
-      memo_directory: memo_directories(:root)
+      memo_directory: memo_directories(:work)
     )
     m.valid?
     assert_equal "kept-slug", m.slug

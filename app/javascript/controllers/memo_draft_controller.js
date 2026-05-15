@@ -419,7 +419,18 @@ export default class extends Controller {
   }
 
   saveDirectory() {
-    this.saveDraft({ memo_directory_id: this._pending.memo_directory_id })
+    const id = this._pending.memo_directory_id
+    this.patchDraft({ memo_directory_id: id }, { turboOnly: true }).then((ok) => {
+      if (ok && id) this.syncSidebarDirectoryQueryParam(id)
+    })
+  }
+
+  syncSidebarDirectoryQueryParam(directoryId) {
+    const url = new URL(window.location.href)
+    url.searchParams.set("memo_directory_id", directoryId)
+    url.searchParams.delete("sidebar_view")
+    url.searchParams.delete("tag_id")
+    history.replaceState({}, "", url)
   }
 
   normalizeOutgoingTitle(value) {
@@ -453,31 +464,39 @@ export default class extends Controller {
     }
   }
 
-  async patchDraft(changes) {
+  async patchDraft(changes, options = {}) {
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content")
+    const accept = options.turboOnly
+      ? "text/vnd.turbo-stream.html"
+      : "text/vnd.turbo-stream.html, application/json"
     try {
       const res = await fetch(this.draftUrlValue, {
         method: "PATCH",
         headers: {
           "X-CSRF-Token": token,
           "Content-Type": "application/json",
-          Accept: "text/vnd.turbo-stream.html, application/json"
+          Accept: accept
         },
         body: JSON.stringify(this.memoPayload(changes))
       })
-      if (!res.ok) return
+      if (!res.ok) return false
       const ct = (res.headers.get("Content-Type") || "").toLowerCase()
       if (ct.includes("vnd.turbo-stream")) {
         const stream = await res.text()
         if (window.Turbo?.renderStreamMessage) {
           window.Turbo.renderStreamMessage(stream)
         }
-      } else if (ct.includes("application/json")) {
+        return true
+      }
+      if (ct.includes("application/json")) {
         const data = await res.json()
         this.applyDraftServerPayload(data)
+        return true
       }
+      return false
     } catch (e) {
       console.error(e)
+      return false
     }
   }
 

@@ -13,12 +13,15 @@
 
   - if @memo_directory.persisted? && @memo_directory.root?
     / ルートの親は変更不可
-  - else
+  - elsif @memo_directory.parent_selectable?
     div
-      = f.label :parent_id, "親ディレクトリ", class: "mb-1 block text-sm font-medium text-zinc-800"
-      - parent_pairs = memo_directory_tree_select_option_pairs(@memo_directory_parent_options, root_option_label: "（最上位）")
-      = f.select :parent_id, options_for_select(parent_pairs, @memo_directory.parent_id), {}, class: memo_form_underline_input("font-sans w-full max-w-xl")
-      p.mt-1.text-xs.text-zinc-500 一覧・Git 上の階層が変わります。字下げは階層の目安です。移動できないフォルダはポリシーで制限されます。
+      = render "parent_picker", f: f
+      p.mt-1.text-xs.text-zinc-500 一覧・Git 上の階層が変わります。Home / Share / Public の直下には移動できません。
+  - elsif @memo_directory.parent
+    .text-sm.text-zinc-700
+      span.font-medium.text-zinc-800 親ディレクトリ：
+      = memo_directory_path_from_root_label(@memo_directory.parent)
+      p.mt-1.text-xs.text-zinc-500 最上位直下のフォルダは親を変更できません。
 
   div
     = f.label :label, "ラベル（一覧表示名）", class: "mb-1 block text-sm font-medium text-zinc-800"

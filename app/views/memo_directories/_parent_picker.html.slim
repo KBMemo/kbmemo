@@ -1,0 +1,7 @@
+= render "shared/directory_tree_picker",
+  label_text: "親ディレクトリ",
+  form_builder: f,
+  field_method: :parent_id,
+  selected_directory: @memo_directory.parent,
+  directory_options: @memo_directory_parent_options,
+  hidden_field_data: {}

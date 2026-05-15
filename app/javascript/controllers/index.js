@@ -10,6 +10,9 @@ application.register("hello", HelloController)
 import MemoDirectoryDndController from "./memo_directory_dnd_controller"
 application.register("memo-directory-dnd", MemoDirectoryDndController)
 
+import MemoDirectoryParentPickerController from "./memo_directory_parent_picker_controller"
+application.register("memo-directory-parent-picker", MemoDirectoryParentPickerController)
+
 import MemoDraftController from "./memo_draft_controller"
 application.register("memo-draft", MemoDraftController)
 
