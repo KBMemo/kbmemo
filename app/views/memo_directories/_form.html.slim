@@ -16,8 +16,9 @@
   - else
     div
       = f.label :parent_id, "親ディレクトリ", class: "mb-1 block text-sm font-medium text-zinc-800"
-      = f.collection_select :parent_id, @memo_directory_parent_options, :id, ->(d) { d.root? ? "（ルート）" : d.full_path }, {}, class: memo_form_underline_input("font-sans max-w-xl")
-      p.mt-1.text-xs.text-zinc-500 一覧・Git 上の階層が変わります。移動できないフォルダはポリシーで制限されます。
+      - parent_pairs = memo_directory_tree_select_option_pairs(@memo_directory_parent_options, root_option_label: "（最上位）")
+      = f.select :parent_id, options_for_select(parent_pairs, @memo_directory.parent_id), {}, class: memo_form_underline_input("font-sans w-full max-w-xl")
+      p.mt-1.text-xs.text-zinc-500 一覧・Git 上の階層が変わります。字下げは階層の目安です。移動できないフォルダはポリシーで制限されます。
 
   div
     = f.label :label, "ラベル（一覧表示名）", class: "mb-1 block text-sm font-medium text-zinc-800"

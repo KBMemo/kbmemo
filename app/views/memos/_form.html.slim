@@ -34,9 +34,13 @@ ruby:
     div
       = render "directory_field", memo: memo
   - else
-    .flex.items-center.gap-3
-      = f.label :memo_directory_id, "ディレクトリ", class: "text-sm font-medium text-zinc-800 whitespace-nowrap"
-      = f.collection_select :memo_directory_id, memo_directories_for_select, :id, :display_name, {}, class: memo_form_underline_input("font-sans")
+    .flex.min-w-0.flex-1.items-center.gap-3
+      = f.label :memo_directory_id, "ディレクトリ", class: "shrink-0 text-sm font-medium text-zinc-800 whitespace-nowrap"
+      - dir_pairs = memo_directory_tree_select_option_pairs(memo_directories_for_select, exclude_root: true)
+      - dir_sel_opts = {}
+      - dir_sel_opts[:include_blank] = "保存先フォルダを選んでください" if memo.memo_directory.root?
+      - dir_sel_selected = memo.memo_directory.root? ? nil : memo.memo_directory_id
+      = f.select :memo_directory_id, options_for_select(dir_pairs, dir_sel_selected), dir_sel_opts, class: memo_form_underline_input("font-sans w-full min-w-0")
 
   div
     = render "visibility_field", memo: memo, f: f

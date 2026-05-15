@@ -153,6 +153,43 @@ module MemosHelper
     attrs
   end
 
+  # <select> 用: DFS で [ラベル, id]。字下げは NBSP（<option> 内の通常スペースはブラウザで潰れるため）。
+  # exclude_root: true のときルート行は出さず、ルート直下のフォルダから並べる（メモの保存先用）。
+  # root_option_label: exclude_root が false でルート行を出すときの表示名（親ディレクトリ用）。
+  def memo_directory_tree_select_option_pairs(directories, exclude_root: false, root_option_label: nil)
+    dirs = Array(directories)
+    root = dirs.find(&:root?)
+    by_parent = memo_directory_nav_children_index(dirs)
+    indent_units = "\u00a0\u00a0" # non-breaking spaces per depth level
+
+    label_for = lambda do |node|
+      if node.root?
+        root_option_label.presence || node.display_name
+      else
+        node.display_name
+      end
+    end
+
+    pairs = []
+    visit = lambda do |node, depth|
+      text = "#{indent_units * depth}#{label_for.call(node)}"
+      pairs << [text, node.id]
+      (by_parent[node.id] || []).sort_by(&:full_path).each { |ch| visit.call(ch, depth + 1) }
+    end
+
+    if exclude_root && root
+      (by_parent[root.id] || []).sort_by(&:full_path).each { |ch| visit.call(ch, 0) }
+    elsif root
+      visit.call(root, 0)
+    else
+      dirs.sort_by(&:full_path).each do |d|
+        pairs << [label_for.call(d), d.id]
+      end
+    end
+
+    pairs
+  end
+
   def memo_directory_nav_link_classes(directory)
     base = "block rounded-md px-2 py-1.5 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
     active = defined?(@sidebar_view) && @sidebar_view == "directory" &&
@@ -242,4 +279,5 @@ module MemosHelper
       "focus:border-zinc-900 focus:outline-none focus:ring-0"
     ].join(" ")
   end
+
 end
