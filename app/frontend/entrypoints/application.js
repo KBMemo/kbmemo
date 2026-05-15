@@ -2,13 +2,14 @@ import "../styles/application.css"
 
 import "@hotwired/turbo-rails"
 import "../../javascript/controllers"
-import { createIcons, BookOpen, CircleHelp, Eye, GripVertical } from "lucide"
+import { createIcons, BookOpen, CircleHelp, Copy, Eye, GripVertical } from "lucide"
 
 const renderLucideIcons = () => {
   createIcons({
     icons: {
       BookOpen,
       CircleHelp,
+      Copy,
       Eye,
       GripVertical
     }

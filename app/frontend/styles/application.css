@@ -26,3 +26,8 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 .memo-directory-nav-summary {
   list-style: none;
 }
+
+/* MemoWikiLinks が Asciidoctor 経由で出力（views に文字列が無いため @apply で明示定義） */
+.memo-body .memo-wiki-broken {
+  @apply text-red-600 underline decoration-dotted;
+}

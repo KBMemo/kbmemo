@@ -24,12 +24,16 @@ export default class extends Controller {
     const button = event.currentTarget
     const directoryId = button.dataset.directoryId
     const directoryPath = button.dataset.directoryPath
+    const directoryFullPath = button.dataset.directoryFullPath ?? ""
     if (directoryId == null || directoryPath == null) return
 
     this.hiddenInputTarget.value = directoryId
     this.pathLabelTarget.textContent = directoryPath
     this.markSelected(button)
     this.hiddenInputTarget.dispatchEvent(new Event("change", { bubbles: true }))
+    this.dispatch("directory-selected", {
+      detail: { fullPath: directoryFullPath, labeledPath: directoryPath, directoryId }
+    })
     this.hide()
   }
 

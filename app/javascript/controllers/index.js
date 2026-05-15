@@ -19,6 +19,12 @@ application.register("memo-draft", MemoDraftController)
 import MemoSearchController from "./memo_search_controller"
 application.register("memo-search", MemoSearchController)
 
+import MemoWikiLinkCopyController from "./memo_wiki_link_copy_controller"
+application.register("memo-wiki-link-copy", MemoWikiLinkCopyController)
+
+import FlashNoticeController from "./flash_notice_controller"
+application.register("flash-notice", FlashNoticeController)
+
 import MemoSidebarController from "./memo_sidebar_controller"
 application.register("memo-sidebar", MemoSidebarController)
 

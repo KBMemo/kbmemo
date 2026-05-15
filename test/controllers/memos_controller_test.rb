@@ -316,6 +316,44 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "edit shows wiki link copy button on directory field" do
+    get edit_memo_url(memos(:one))
+    assert_response :success
+    assert_select "#memo_directory_field button[aria-label='Wiki リンクをコピー']"
+    assert_includes response.body, "memo-wiki-link-copy"
+  end
+
+  test "show renders wiki link to another memo in body" do
+    source = memos(:one)
+    target = memos(:two)
+    source.update_columns(
+      file_committed_at: 1.hour.ago,
+      body: "= Linked\n\nSee [[#{target.title}]] for more."
+    )
+    get memo_url(source)
+    assert_response :success
+    assert_includes response.body, %(href="/memos/#{target.id}")
+    assert_includes response.body, target.title
+  end
+
+  test "show does not link to memo outside policy scope" do
+    source = memos(:one)
+    private_memo = memos(:two)
+    private_memo.update_columns(
+      title: "Secret sibling",
+      account_id: accounts(:two).id,
+      visibility: Memo.visibilities[:owner_read_write]
+    )
+    source.update_columns(
+      file_committed_at: 1.hour.ago,
+      body: "= Linked\n\n[[Secret sibling]]"
+    )
+    get memo_url(source)
+    assert_response :success
+    assert_includes response.body, "memo-wiki-broken"
+    assert_not_includes response.body, %(href="/memos/#{private_memo.id}")
+  end
+
   test "guest can show public memo without signing in" do
     memos(:one).update_columns(visibility: Memo.visibilities[:public_everyone])
     post "/logout"

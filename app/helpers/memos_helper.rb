@@ -282,11 +282,37 @@ module MemosHelper
     end
   end
 
-  def memo_html(body)
+  # Wiki リンク [[full_path/slug]] の path 部分（slug のみのときは slug だけ）
+  def memo_wiki_link_path(full_path, slug)
+    seg = Memo.normalize_slug_fragment(slug)
+    return nil if seg.blank?
+
+    dir = full_path.to_s.strip.sub(/\A\/+/, "").sub(/\/+\z/, "")
+    dir.present? ? "#{dir}/#{seg}" : seg
+  end
+
+  def memo_wiki_link_reference(full_path, slug)
+    path = memo_wiki_link_path(full_path, slug)
+    path ? "[[#{path}]]" : nil
+  end
+
+  def memo_wiki_link_reference_for(memo)
+    dir = memo.memo_directory
+    return nil if dir.nil? || dir.root?
+
+    memo_wiki_link_reference(dir.full_path, memo.slug)
+  end
+
+  def memo_html(body, source_memo: nil)
     return "".html_safe if body.blank?
 
+    processed = MemoWikiLinks.new(
+      scope: policy_scope(Memo),
+      source_memo: source_memo
+    ).substitute(body.to_s)
+
     Asciidoctor.convert(
-      body.to_s,
+      processed,
       safe: :safe,
       standalone: false
     ).html_safe

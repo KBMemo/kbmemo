@@ -4,6 +4,48 @@ require "test_helper"
 
 class MemosHelperTest < ActionView::TestCase
   include MemosHelper
+  include Pundit::Authorization
+
+  def pundit_user
+    accounts(:one)
+  end
+
+  def policy_scope(scope)
+    MemoPolicy::Scope.new(pundit_user, scope).resolve
+  end
+
+  test "memo_wiki_link_reference builds full_path and slug" do
+    memo = memos(:two)
+    work = memo_directories(:work)
+    memo.update_columns(memo_directory_id: work.id, slug: "second-memo")
+    assert_equal "[[#{work.full_path}/second-memo]]", memo_wiki_link_reference_for(memo)
+  end
+
+  test "memo_wiki_link_reference_for returns nil without directory" do
+    memo = memos(:one)
+    memo.update_columns(memo_directory_id: memo_directories(:root).id, slug: "x")
+    assert_nil memo_wiki_link_reference_for(memo)
+  end
+
+  test "memo_html converts wiki link to memo href" do
+    html = memo_html("See [[Second memo]].", source_memo: memos(:one))
+    assert_includes html, %(href="/memos/#{memos(:two).id}")
+    assert_includes html, "Second memo"
+  end
+
+  test "memo_html renders broken wiki link with styled span" do
+    html = memo_html("[[no-such-memo]]", source_memo: memos(:one))
+    assert_includes html, 'class="memo-wiki-broken"'
+    assert_includes html, "no-such-memo"
+    assert_not_includes html, "&lt;span"
+  end
+
+  test "memo_html leaves wiki syntax inside fenced code" do
+    body = "```\n[[Second memo]]\n```\n\n[[Second memo]]"
+    html = memo_html(body, source_memo: memos(:one))
+    assert_includes html, "[[Second memo]]"
+    assert_includes html, %(href="/memos/#{memos(:two).id}")
+  end
 
   test "memo_directory_tree_select_option_pairs uses NBSP indent when excluding root" do
     dirs = [

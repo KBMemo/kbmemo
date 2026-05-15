@@ -59,6 +59,21 @@ ruby:
 
   div
     = f.label :body, "本文（AsciiDoc）", class: "mb-1 block text-sm font-medium text-zinc-800"
+    p.mb-1.text-xs.text-zinc-500
+      | メモへの Wiki リンク:
+      code class="text-zinc-600"
+        | [[相手メモのタイトル]]
+      | 、
+      code class="text-zinc-600"
+        | [[タイトル|表示名]]
+      | 、
+      code class="text-zinc-600"
+        | [[home/u-1/work/slug]]
+      | （ルートからのディレクトリ full_path + スラッグ。スラッグ指定時の表示はタイトル。
+      | 同じディレクトリでは
+      code class="text-zinc-600"
+        | [[slug]]
+      | のみでも可）
     = f.text_area :body, rows: 14, class: memo_form_underline_body, data: { memo_draft_target: "body", action: "input->memo-draft#bodyInput compositionend->memo-draft#bodyInput blur->memo-draft#bodyInput" }
 
   - if memo.persisted?
