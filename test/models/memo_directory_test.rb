@@ -1,5 +1,26 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: memo_directories
+#
+#  id           :integer          not null, primary key
+#  full_path    :string           not null
+#  label        :string           default(""), not null
+#  path_segment :string           default(""), not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#  parent_id    :integer
+#
+# Indexes
+#
+#  index_memo_directories_on_full_path  (full_path) UNIQUE
+#  index_memo_directories_on_parent_id  (parent_id)
+#
+# Foreign Keys
+#
+#  parent_id  (parent_id => memo_directories.id)
+#
 require "test_helper"
 
 class MemoDirectoryTest < ActiveSupport::TestCase

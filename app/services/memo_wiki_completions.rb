@@ -37,26 +37,9 @@ class MemoWikiCompletions
       { label: memo.title, insert: memo.title, detail: "タイトル" }
     ]
     slug = memo.slug.to_s
-    return list if slug.blank?
-
-    if @source_memo&.memo_directory_id == memo.memo_directory_id
-      list << { label: slug, insert: slug, detail: "slug（同じディレクトリ）" }
+    if slug.present?
+      list << { label: slug, insert: slug, detail: "スラッグ（全体で一意）" }
     end
-
-    path = wiki_link_path_for(memo)
-    list << { label: path, insert: path, detail: "フルパス" } if path.present?
-
     list
-  end
-
-  def wiki_link_path_for(memo)
-    dir = memo.memo_directory
-    return nil if dir.nil? || dir.root?
-
-    seg = Memo.normalize_slug_fragment(memo.slug)
-    return nil if seg.blank?
-
-    dir_path = dir.full_path.to_s.strip.sub(/\A\/+/, "").sub(/\/+\z/, "")
-    dir_path.present? ? "#{dir_path}/#{seg}" : seg
   end
 end

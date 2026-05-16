@@ -11,7 +11,17 @@ module ActiveSupport
     # (YAML `account: one` resolves to identify(:one), not the row's primary key).
     fixtures :all
 
-    # Add more helper methods to be used by all tests here...
+    setup { normalize_memo_slug_fixtures! }
+
+    # フィクスチャの slug は stem のみ。テスト DB では global_slug（-{id} 付き）に揃える。
+    def normalize_memo_slug_fixtures!
+      Memo.find_each do |memo|
+        next if memo.slug.blank?
+
+        target = Memo.global_slug_for(Memo.slug_stem(memo.slug, memo_id: memo.id), memo.id)
+        memo.update_column(:slug, target) if memo.slug != target
+      end
+    end
   end
 end
 

@@ -136,6 +136,7 @@ class MemosController < ApplicationController
 
     @memo.apply_title_from_body_rules!
     @memo.apply_slug_from_title_rules!
+    @memo.apply_storage_slug!
 
     new_rel = repo.relative_path_for(@memo)
 

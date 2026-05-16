@@ -14,16 +14,14 @@ class MemosHelperTest < ActionView::TestCase
     MemoPolicy::Scope.new(pundit_user, scope).resolve
   end
 
-  test "memo_wiki_link_reference builds full_path and slug" do
+  test "memo_wiki_link_reference uses global slug only" do
     memo = memos(:two)
-    work = memo_directories(:work)
-    memo.update_columns(memo_directory_id: work.id, slug: "second-memo")
-    assert_equal "[[#{work.full_path}/second-memo]]", memo_wiki_link_reference_for(memo)
+    assert_equal "[[#{memo.slug}]]", memo_wiki_link_reference_for(memo)
   end
 
-  test "memo_wiki_link_reference_for returns nil without directory" do
+  test "memo_wiki_link_reference_for returns nil when slug blank" do
     memo = memos(:one)
-    memo.update_columns(memo_directory_id: memo_directories(:root).id, slug: "x")
+    memo.update_columns(slug: "")
     assert_nil memo_wiki_link_reference_for(memo)
   end
 

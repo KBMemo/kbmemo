@@ -19,10 +19,10 @@
 #
 # Indexes
 #
-#  index_memos_on_account_id                  (account_id)
-#  index_memos_on_memo_directory_id           (memo_directory_id)
-#  index_memos_on_memo_directory_id_and_slug  (memo_directory_id,slug) UNIQUE
-#  index_memos_on_memo_group_id               (memo_group_id)
+#  index_memos_on_account_id         (account_id)
+#  index_memos_on_memo_directory_id  (memo_directory_id)
+#  index_memos_on_memo_group_id      (memo_group_id)
+#  index_memos_on_slug               (slug) UNIQUE
 #
 # Foreign Keys
 #
@@ -113,7 +113,7 @@ class MemoTest < ActiveSupport::TestCase
     if MemoMecabRomaji.romaji_slug_from("はじめに").present?
       assert_equal "hajime-ni", slug
     else
-      assert_equal "memo-#{m.id}", slug
+      assert_equal "memo", slug
     end
   end
 
@@ -124,8 +124,13 @@ class MemoTest < ActiveSupport::TestCase
     if MemoMecabRomaji.romaji_slug_from(title).present?
       assert_equal "note-memo", slug
     else
-      assert_equal "memo-#{m.id}", slug
+      assert_equal "memo", slug
     end
+  end
+
+  test "global_slug_for appends memo id" do
+    assert_equal "hello-42", Memo.global_slug_for("hello", 42)
+    assert_equal "hello-42", Memo.global_slug_for("hello-42", 42)
   end
 
   test "normalize_slug_fragment matches storage rules" do
@@ -143,9 +148,9 @@ class MemoTest < ActiveSupport::TestCase
       account: accounts(:one),
       memo_directory: memo_directories(:work)
     )
-    m.valid?
+    m.save!
     assert_not m.slug_manual?
-    assert_equal "hi", m.slug
+    assert_equal "hi-#{m.id}", m.slug
   end
 
   test "slug does not auto sync from title after file commit" do
@@ -158,8 +163,8 @@ class MemoTest < ActiveSupport::TestCase
       account: accounts(:one),
       memo_directory: memo_directories(:work)
     )
-    m.valid?
-    assert_equal "kept-slug", m.slug
+    m.save!
+    assert_equal "kept-slug-#{m.id}", m.slug
   end
 
   test "display_as_draft? when never file-committed" do

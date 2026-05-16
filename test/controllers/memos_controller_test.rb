@@ -152,7 +152,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     body = JSON.parse(response.body)
     assert body.is_a?(Array)
-    assert body.any? { |e| e["insert"] == "second-memo" || e["label"] == "Second memo" }
+    assert body.any? { |e| e["insert"] == memos(:two).slug || e["label"] == "Second memo" }
   end
 
   test "guest cannot access wiki completions" do
@@ -208,7 +208,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     memo.reload
     assert_equal "= Draft title\n\nBody.", memo.body
     assert_equal "Draft title", memo.title
-    assert_equal "draft-title", memo.slug
+    assert_equal "draft-title-#{memo.id}", memo.slug
     assert_equal({ "k" => 1 }, memo.properties)
     assert_includes memo.tags.map(&:name), "draft-tag"
     assert_not memo.title_manual
@@ -236,7 +236,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
           title: "Git integration title",
           body: "= Git integration\n\nParagraph.",
           slug: "git-integration-slug",
-          title_manual: "1"
+          title_manual: "1",
+          slug_manual: "1"
         }
       }
     assert_redirected_to memo_path(memo)
@@ -280,9 +281,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
       as: :json
     assert_response :success
     memo.reload
-    assert_equal "weird-slug", memo.slug
+    assert_equal "weird-slug-#{memo.id}", memo.slug
     body = JSON.parse(response.body)
-    assert_equal "weird-slug", body["slug"]
+    assert_equal "weird-slug-#{memo.id}", body["slug"]
   end
 
   test "draft broadcasts show content replace to memo turbo stream" do
@@ -313,8 +314,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     json = JSON.parse(response.body)
     assert json["edit_path"].present?
     assert json["draft_url"].present?
-    assert_equal "from-json", json["slug"]
     m = Memo.order(:id).last
+    assert_equal "from-json-#{m.id}", json["slug"]
     assert_equal "From Json", m.title
     assert_includes m.tags.map(&:name), "json-tag"
   end

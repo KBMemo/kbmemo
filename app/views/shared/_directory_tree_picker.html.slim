@@ -16,7 +16,7 @@ ruby:
     span.min-w-0.truncate.text-zinc-700 data-memo-directory-parent-picker-target="pathLabel" = initial_path
     button type="button" class="shrink-0 rounded px-1 py-0.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400" data-memo-directory-parent-picker-target="toggleButton" data-action="memo-directory-parent-picker#toggle" aria-expanded="false" aria-haspopup="listbox" aria-label="#{label_text}を選択" ▼
     - if wiki_link_copy
-      button type="button" class="shrink-0 ml-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400" title="Wiki リンク（full_path/slug 形式）をコピー" data-memo-wiki-link-copy-target="button" data-action="click->memo-wiki-link-copy#copy" aria-label="Wiki リンクをコピー"
+      button type="button" class="shrink-0 ml-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400" title="Wiki リンク（[[slug-メモID]]）をコピー" data-memo-wiki-link-copy-target="button" data-action="click->memo-wiki-link-copy#copy" aria-label="Wiki リンクをコピー"
         i.h-4.w-4 aria-hidden="true" data-lucide="copy"
   - if local_assigns[:form_builder]
     = form_builder.hidden_field field_method, value: field_value, data: hidden_data

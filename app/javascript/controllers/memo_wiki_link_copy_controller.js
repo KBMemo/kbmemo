@@ -1,42 +1,21 @@
 import { Controller } from "@hotwired/stimulus"
 
-// メモ編集: [[full_path/slug]] 形式の Wiki リンク文字列をクリップボードへコピー
+// メモ編集: [[slug-{memo_id}]] 形式の Wiki リンク文字列をクリップボードへコピー
 export default class extends Controller {
   static targets = ["button"]
   static values = {
-    fullPath: { type: String, default: "" },
     slugInput: { type: String, default: "#memo_slug" }
   }
 
   connect() {
-    this._onDirectorySelected = (event) => {
-      this.fullPathValue = event.detail?.fullPath ?? ""
-    }
-    this.element.addEventListener(
-      "memo-directory-parent-picker:directory-selected",
-      this._onDirectorySelected
-    )
     this._slugInputEl = document.querySelector(this.slugInputValue)
     this._onSlugInput = () => this.updateButtonState()
     this._slugInputEl?.addEventListener("input", this._onSlugInput)
-
-    if (!this.fullPathValue && this.element.dataset.memoWikiLinkCopyFullPathValue != null) {
-      this.fullPathValue = this.element.dataset.memoWikiLinkCopyFullPathValue
-    }
-
     this.updateButtonState()
   }
 
   disconnect() {
-    this.element.removeEventListener(
-      "memo-directory-parent-picker:directory-selected",
-      this._onDirectorySelected
-    )
     this._slugInputEl?.removeEventListener("input", this._onSlugInput)
-  }
-
-  fullPathValueChanged() {
-    this.updateButtonState()
   }
 
   copy(event) {
@@ -45,7 +24,7 @@ export default class extends Controller {
 
     const reference = this.buildReference()
     if (!reference) {
-      this.showNotice("コピーできません。ディレクトリとスラッグを確認してください。")
+      this.showNotice("コピーできません。スラッグを確認してください。")
       return
     }
 
@@ -80,14 +59,7 @@ export default class extends Controller {
     const slug = this.slugInput()?.value?.trim()
     if (!slug) return null
 
-    const dir = this.resolvedFullPath().replace(/^\/+|\/+$/g, "")
-    if (!dir) return null
-
-    return `[[${dir}/${slug}]]`
-  }
-
-  resolvedFullPath() {
-    return (this.fullPathValue || this.element.dataset.memoWikiLinkCopyFullPathValue || "").trim()
+    return `[[${slug}]]`
   }
 
   slugInput() {
@@ -97,8 +69,7 @@ export default class extends Controller {
   updateButtonState() {
     if (!this.hasButtonTarget) return
 
-    const slug = this.slugInput()?.value?.trim()
-    const enabled = Boolean(this.resolvedFullPath() && slug)
+    const enabled = Boolean(this.slugInput()?.value?.trim())
     this.buttonTarget.disabled = !enabled
     this.buttonTarget.classList.toggle("opacity-40", !enabled)
     this.buttonTarget.classList.toggle("cursor-not-allowed", !enabled)

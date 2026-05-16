@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_15_233400) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_16_120000) do
   create_table "account_login_change_keys", force: :cascade do |t|
     t.datetime "deadline", null: false
     t.string "key", null: false
@@ -93,9 +93,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_233400) do
     t.datetime "updated_at", null: false
     t.integer "visibility", default: 4, null: false
     t.index ["account_id"], name: "index_memos_on_account_id"
-    t.index ["memo_directory_id", "slug"], name: "index_memos_on_memo_directory_id_and_slug", unique: true
     t.index ["memo_directory_id"], name: "index_memos_on_memo_directory_id"
     t.index ["memo_group_id"], name: "index_memos_on_memo_group_id"
+    t.index ["slug"], name: "index_memos_on_slug", unique: true
   end
 
   create_table "tags", force: :cascade do |t|

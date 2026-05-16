@@ -19,10 +19,10 @@
 #
 # Indexes
 #
-#  index_memos_on_account_id                  (account_id)
-#  index_memos_on_memo_directory_id           (memo_directory_id)
-#  index_memos_on_memo_directory_id_and_slug  (memo_directory_id,slug) UNIQUE
-#  index_memos_on_memo_group_id               (memo_group_id)
+#  index_memos_on_account_id         (account_id)
+#  index_memos_on_memo_directory_id  (memo_directory_id)
+#  index_memos_on_memo_group_id      (memo_group_id)
+#  index_memos_on_slug               (slug) UNIQUE
 #
 # Foreign Keys
 #
@@ -58,7 +58,7 @@ class Memo < ApplicationRecord
   }
 
   validates :title, presence: true
-  validates :slug, uniqueness: { scope: :memo_directory_id, allow_blank: true }
+  validates :slug, uniqueness: { allow_blank: true }
   validates :memo_group_id, presence: true, if: -> { group_read? || group_read_write? }
   validate :memo_group_must_include_owner, if: -> { group_read? || group_read_write? }
   validate :memo_directory_must_be_assignable_location
@@ -68,12 +68,28 @@ class Memo < ApplicationRecord
   before_validation :normalize_unfilled_title_marker
   before_validation :prepare_title_from_body_and_manual
   before_validation :prepare_slug_from_title_and_manual
-  before_save :normalize_slug_for_storage
+  before_validation :normalize_slug_for_storage
+  after_create :ensure_global_slug_suffix_after_create
 
   # 保存時のスラッグ（パス用）。空は nil。MemoRepository のファイル名と揃える。
   def self.normalize_slug_fragment(value)
     raw = value.to_s.strip.gsub(%r{[/\\]}, "")
     raw.parameterize(separator: "-").presence
+  end
+
+  # 末尾の -{id} を除いたスラッグ本体（Wiki リンクのレガシー表記との互換用）。
+  def self.slug_stem(value, memo_id: nil)
+    frag = normalize_slug_fragment(value)
+    return nil if frag.blank?
+
+    stem = frag.sub(/-\d+\z/, "")
+    stem = stem.sub(/-#{memo_id}\z/, "") if memo_id.present?
+    stem.presence || "memo"
+  end
+
+  # アプリ全体で一意なスラッグ（Wiki リンク・検索用）。例: first-memo-42
+  def self.global_slug_for(stem, memo_id)
+    "#{slug_stem(stem, memo_id: memo_id)}-#{memo_id}"
   end
 
   # 本文1行目から一覧用タイトルを派生（行頭の連続する "=" と続く空白を除く）。title_manual が true のときは同期しない。
@@ -119,6 +135,11 @@ class Memo < ApplicationRecord
     prepare_slug_from_title_and_manual
   end
 
+  # save(validate: false) のドラフト保存でも slug の正規化・ID 付与を行う
+  def apply_storage_slug!
+    normalize_slug_for_storage
+  end
+
   # ファイルにコミットする前はタイトルから派生。file_committed_at があればスラッグは手動同期ルールへ（一度コミットしたら維持）。
   # file_committed_at は最終コミット時の updated_at と揃え、一覧の「再編集ドラフト」表示に使う。
   # 日本語など parameterize が空のときは memo-{id} にフォールバック（一意・ファイル名用）。
@@ -132,9 +153,7 @@ class Memo < ApplicationRecord
       seg = normalize_slug_fragment(romaji) if romaji.present?
       return seg if seg.present?
 
-      return "memo-#{memo.id}" if memo&.persisted?
-
-      return nil
+      return "memo"
     end
 
     seg = t.parameterize(separator: "-").presence
@@ -144,9 +163,7 @@ class Memo < ApplicationRecord
     seg = normalize_slug_fragment(romaji) if romaji.present?
     return seg if seg.present?
 
-    return "memo-#{memo.id}" if memo&.persisted?
-
-    nil
+    "memo"
   end
 
   def self.title_includes_japanese_script?(text)
@@ -212,11 +229,23 @@ class Memo < ApplicationRecord
 
     # 初回コミット前かつ自動モードでは常にタイトルから決める（クライアントの slug 単体 PATCH とサーバー側タイトルのずれで slug_manual が誤って true になるのを防ぐ）
     unless slug_manual?
-      self.slug = self.class.derived_slug_from_title(title, self)&.presence
+      base = self.class.derived_slug_from_title(title, self)
+      self.slug = base.presence
     end
   end
 
   def normalize_slug_for_storage
-    self.slug = self.class.normalize_slug_fragment(slug)
+    frag = self.class.normalize_slug_fragment(slug)
+    self.slug = frag
+    return if slug.blank? || id.blank?
+
+    self.slug = self.class.global_slug_for(slug, id)
+  end
+
+  def ensure_global_slug_suffix_after_create
+    return if slug.blank?
+
+    target = self.class.global_slug_for(self.class.slug_stem(slug, memo_id: id), id)
+    update_column(:slug, target) if slug != target
   end
 end

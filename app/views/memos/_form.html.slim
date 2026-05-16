@@ -68,12 +68,15 @@ ruby:
         | [[タイトル|表示名]]
       | 、
       code class="text-zinc-600"
-        | [[home/u-1/work/slug]]
-      | （ルートからのディレクトリ full_path + スラッグ。スラッグ指定時の表示はタイトル。
-      | 同じディレクトリでは
+        | [[slug-123]]
+      | （スラッグはメモ ID 付きで全体一意。ディレクトリを移してもリンクは有効。
+      | 旧形式の
       code class="text-zinc-600"
         | [[slug]]
-      | のみでも可）
+      | や
+      code class="text-zinc-600"
+        | [[home/u-1/work/slug-123]]
+      | も解決できる場合があります）
     div.memo-body-editor.block.w-full.border-0.rounded-none.bg-transparent class="border-b border-zinc-300 min-h-[18rem]" data-controller="memo-body-editor" data-memo-body-editor-label-id-value="memo-body-label" data-memo-body-editor-wiki-completions-url-value=wiki_completions_memos_path(format: :json) data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "")
       = f.text_area :body,
         rows: 1,

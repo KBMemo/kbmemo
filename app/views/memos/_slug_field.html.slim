@@ -9,5 +9,5 @@ div id="memo_slug_field" class="flex items-center gap-3"
         - if memo.file_committed_at.present?
           | ファイル保存後は手動変更のみです。
         - else
-          | 初回のファイル保存まではタイトルと同期し、手動変更で同期停止、空入力で再同期します。
+          | 初回のファイル保存まではタイトルと同期し、手動変更で同期停止、空入力で再同期します。保存時は末尾にメモ ID が付き、Wiki リンク用に全体で一意になります。
   = text_field_tag "memo[slug]", memo.slug.to_s, id: "memo_slug", autocomplete: "off", placeholder: "example-slug", class: memo_form_underline_input("font-mono text-sm"), data: { memo_draft_target: "slug", action: "focus->memo-draft#slugFocus input->memo-draft#slugInput compositionend->memo-draft#slugInput" }

@@ -61,20 +61,38 @@ export default class extends Controller {
       ".cm-content": {
         caretColor: "#18181b",
         paddingBlock: "0.5rem",
-        paddingInline: "0",
+        paddingLeft: "0.375rem",
+        paddingRight: "0",
         color: "#18181b",
         cursor: "text"
+      },
+      ".cm-cursor, .cm-dropCursor": {
+        borderLeftWidth: "2px",
+        borderLeftColor: "#18181b"
       },
       ".cm-selectionBackground": { background: "#bbf7d066" },
       ".cm-focused .cm-selectionBackground": { background: "#86efacb3" },
       ".cm-placeholder": { color: "#a1a1aa" },
       ".cm-activeLine": { background: "transparent" },
-      ".cm-scroller": { overflow: "auto", fontFamily: "inherit", lineHeight: "inherit" },
+      ".cm-scroller": {
+        overflow: "auto",
+        fontFamily: "inherit",
+        lineHeight: "inherit"
+      },
       ".cm-gutters": {
-        borderRightWidth: "0",
-        paddingRight: "0.375rem",
-        backgroundColor: "transparent",
+        flexShrink: "0",
+        borderRight: "1px solid #e4e4e7",
+        backgroundColor: "#fafafa",
         color: "#71717a"
+      },
+      ".cm-gutters.cm-lineNumbers": {
+        minWidth: "2.75rem",
+        paddingRight: "0.5rem"
+      },
+      ".cm-lineNumbers .cm-gutterElement": {
+        minWidth: "2ch",
+        padding: "0 0.25rem 0 0",
+        textAlign: "right"
       },
       ".cm-tooltip-autocomplete": {
         fontSize: "12px",

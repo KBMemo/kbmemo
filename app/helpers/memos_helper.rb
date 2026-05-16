@@ -297,10 +297,10 @@ module MemosHelper
   end
 
   def memo_wiki_link_reference_for(memo)
-    dir = memo.memo_directory
-    return nil if dir.nil? || dir.root?
+    seg = Memo.normalize_slug_fragment(memo.slug)
+    return nil if seg.blank?
 
-    memo_wiki_link_reference(dir.full_path, memo.slug)
+    "[[#{seg}]]"
   end
 
   def memo_html(body, source_memo: nil)

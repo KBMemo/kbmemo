@@ -133,6 +133,13 @@ Qiita 記事の「離れたらプレビュー風／入ったら raw」を AsciiD
 
 記事が示す設計哲学（**ソース不変・カーソル駆動の raw 復帰**）を保ったまま、AsciiDoc 向けに段階的に寄せる。
 
+== Wiki リンク用スラッグ（全体一意）
+
+* DB の `memos.slug` は `{stem}-{memo_id}` 形式（例: `first-memo-42`）。**アプリ全体で一意**。
+* Wiki リンクの推奨表記: `[[first-memo-42]]`（ディレクトリ移動の影響を受けない）。
+* レガシー: `[[stem]]`（stem が scope 内で一意のとき）、`[[full_path/slug-{id}]]`。
+* Git ファイル名は `{global_slug}.adoc`（`MemoRepository`）。旧 `{slug}-{id}.adoc` から移行済み。
+
 == 関連コード
 
 * `app/javascript/controllers/memo_body_editor_controller.js` — CM マウント・textarea 同期

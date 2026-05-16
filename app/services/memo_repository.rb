@@ -4,7 +4,8 @@ require "open3"
 require "fileutils"
 
 # メモの「コミット後の正」を Git 管理のファイルに書き出す。
-# パス規則: {memo_directory.full_path}/{slug_segment}-{memo_id}.adoc（ルート直下メモはファイル名のみ）
+# パス規則: {memo_directory.full_path}/{global_slug}.adoc（ルート直下メモはファイル名のみ）
+# global_slug は DB の slug（{stem}-{memo_id}）と同一。
 #
 # DB はキャッシュ。ドラフトは DB のみ。「更新」で本クラス経由でファイル + git commit し、その後 DB 保存する想定。
 class MemoRepository
@@ -18,7 +19,7 @@ class MemoRepository
 
   # メモの現在の属性（未保存の変更を含む）で相対パスを返す
   def relative_path_for(memo)
-    filename = "#{filename_slug_segment(memo)}-#{memo.id}.adoc"
+    filename = "#{filename_slug_segment(memo)}.adoc"
     return Pathname.new(filename) if memo.memo_directory.root?
 
     memo.memo_directory.repo_dirname.join(filename)
@@ -86,7 +87,7 @@ class MemoRepository
   private
 
   def filename_slug_segment(memo)
-    Memo.normalize_slug_fragment(memo.slug).presence || "memo"
+    Memo.normalize_slug_fragment(memo.slug).presence || "memo-#{memo.id}"
   end
 
   def default_commit_message(memo)

@@ -15,13 +15,14 @@ class MemoWikiCompletionsTest < ActiveSupport::TestCase
     inserts = entries.map { |e| e[:insert] }
     assert_includes inserts, @target.title
     assert_includes inserts, @target.slug
-    assert_includes inserts, "home/u-1/work/#{@target.slug}"
+    assert_includes inserts, @target.slug
   end
 
-  test "empty query still suggests slug in same directory" do
+  test "empty query still suggests global slug" do
     entries = completions.call("")
     inserts = entries.map { |e| e[:insert] }
     assert_includes inserts, @target.slug
+    assert entries.any? { |e| e[:detail]&.include?("全体で一意") }
   end
 
   test "excludes source memo from results" do
