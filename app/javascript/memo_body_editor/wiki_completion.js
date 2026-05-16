@@ -1,6 +1,5 @@
-import { autocompletion } from "@codemirror/autocomplete"
-
-const WIKI_OPEN = /\[\[([^\]|]*)$/
+import { autocompletion, startCompletion } from "@codemirror/autocomplete"
+import { EditorView } from "@codemirror/view"
 
 // basicSetup の closeBrackets で [[ 入力時に ]] が先に入るため、補完時は既存の閉じ括弧を置換範囲に含める。
 function wikiLinkReplaceEnd(state, pos) {
@@ -9,17 +8,47 @@ function wikiLinkReplaceEnd(state, pos) {
   return pos
 }
 
+/**
+ * [[query または [[query]] の「query」部分を編集中（カーソルが ]] の直前）ならコンテキストを返す。
+ */
 export function wikiLinkContext(state, pos) {
   const line = state.doc.lineAt(pos)
-  const before = line.text.slice(0, pos - line.from)
-  const match = before.match(WIKI_OPEN)
-  if (!match) return null
+  const lineStart = line.from
+  const offset = pos - lineStart
+  const before = line.text.slice(0, offset)
+  const after = line.text.slice(offset)
+
+  const openTail = before.match(/\[\[([^\]|]*)$/)
+  if (openTail) {
+    const query = openTail[1]
+    return {
+      query,
+      from: pos - query.length,
+      to: pos
+    }
+  }
+
+  const openIdx = before.lastIndexOf("[[")
+  if (openIdx === -1) return null
+
+  const query = before.slice(openIdx + 2)
+  if (query.includes("|") || query.includes("]]")) return null
+  if (!after.startsWith("]]")) return null
 
   return {
-    query: match[1],
-    from: pos - match[1].length,
+    query,
+    from: lineStart + openIdx + 2,
     to: pos
   }
+}
+
+function wikiCompletionInsert(state, from, to, itemInsert) {
+  const replaced = state.doc.sliceString(from, to)
+  if (replaced === "]]") return itemInsert + "]]"
+  if (replaced.endsWith("]]") && replaced.length > 2) {
+    return itemInsert + "]]"
+  }
+  return `${itemInsert}]]`
 }
 
 let fetchSeq = 0
@@ -65,7 +94,7 @@ export function wikiCompletionSource(getConfig) {
         label: item.label ?? item.insert,
         detail: item.detail,
         apply: (view, _completion, from, end) => {
-          const insert = `${item.insert}]]`
+          const insert = wikiCompletionInsert(view.state, from, end, item.insert)
           view.dispatch({
             changes: { from, to: end, insert },
             selection: { anchor: from + insert.length }
@@ -76,11 +105,25 @@ export function wikiCompletionSource(getConfig) {
   }
 }
 
-export function wikiAutocompletion(getConfig) {
-  return autocompletion({
-    override: [wikiCompletionSource(getConfig)],
-    activateOnTyping: true,
-    maxRenderedOptions: 12,
-    icons: false
+/** 削除やカーソル移動で [[|]] になったときも候補を開く */
+export function wikiCompletionActivationListener() {
+  return EditorView.updateListener.of((update) => {
+    if (!update.docChanged && !update.selectionSet) return
+    const main = update.state.selection.main
+    if (!main.empty) return
+    if (!wikiLinkContext(update.state, main.head)) return
+    startCompletion(update.view)
   })
+}
+
+export function wikiAutocompletion(getConfig) {
+  return [
+    autocompletion({
+      override: [wikiCompletionSource(getConfig)],
+      activateOnTyping: true,
+      maxRenderedOptions: 12,
+      icons: false
+    }),
+    wikiCompletionActivationListener()
+  ]
 }

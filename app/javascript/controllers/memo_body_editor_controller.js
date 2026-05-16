@@ -112,7 +112,7 @@ export default class extends Controller {
         basicSetup,
         EditorView.lineWrapping,
         ...asciidocExtensions(),
-        wikiAutocompletion(getWikiConfig),
+        ...wikiAutocompletion(getWikiConfig),
         updateListener,
         a11y,
         theme,
