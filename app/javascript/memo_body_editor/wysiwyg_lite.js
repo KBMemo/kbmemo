@@ -5,6 +5,10 @@ const HEADING_LINE = /^(={2,6})(\s+)(.+)$/
 const DOC_TITLE_LINE = /^=(?!=)(\s*)(.*)$/
 const BOLD_INLINE = /\*([^*\s][^*]*?)\*/g
 const ITALIC_INLINE = /_([^_\s][^_]*?)_/g
+const MONO_DBL_BACKTICK = /``([^`\s][^`]*?)``/g
+const MONO_BACKTICK = /`([^`\s][^`]*?)`/g
+const MONO_DBL_PLUS = /\+\+([^+\s][^+]*?)\+\+/g
+const MONO_PLUS = /\+([^+\s][^+]*?)\+/g
 const WIKI_LINK = /\[\[[^\]]+\]\]/g
 const FENCE_LINE = /^```/
 
@@ -105,6 +109,10 @@ function decorateInline(specs, atomicRanges, line, text, lineFrom, state, editin
     }
   }
 
+  apply(MONO_DBL_BACKTICK, "cm-wysiwyg-monospace", 2)
+  apply(MONO_DBL_PLUS, "cm-wysiwyg-monospace", 2)
+  apply(MONO_BACKTICK, "cm-wysiwyg-monospace", 1)
+  apply(MONO_PLUS, "cm-wysiwyg-monospace", 1)
   apply(BOLD_INLINE, "cm-wysiwyg-bold", 1)
   apply(ITALIC_INLINE, "cm-wysiwyg-italic", 1)
 }
@@ -172,7 +180,8 @@ function buildWysiwygDecorations(view) {
 /**
  * Phase 4: フォーカス時、カーソル行の見出しのみ生 AsciiDoc。インラインは選択範囲内のみ生表示。
  * 非フォーカス時は全文プレビュー風。
- * 対象: 1行目ドキュメントタイトル（= Title / プレーン1行目）、見出し（==…）、*bold*、_italic_
+ * 対象: 1行目ドキュメントタイトル（= Title / プレーン1行目）、見出し（==…）、
+ * *bold*、_italic_、`` ` `` / `` + `` モノスペース
  */
 export function wysiwygLiteExtension() {
   const plugin = ViewPlugin.fromClass(

@@ -100,3 +100,10 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 .memo-body-editor .cm-wysiwyg-italic {
   font-style: italic;
 }
+
+.memo-body-editor .cm-wysiwyg-monospace {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.92em;
+  background-color: #f4f4f5;
+  border-radius: 0.125rem;
+}
