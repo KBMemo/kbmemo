@@ -1,0 +1,144 @@
+= メモ本文エディタ（CodeMirror + AsciiDoc）ロードマップ
+
+このドキュメントは、メモ本文編集を CodeMirror 6 で置き換え、段階的に AsciiDoc 向けの編集体験（ハイライト・補完・WYSIWYG ライト）を足していく際の**作成指針**をまとめたものです。
+
+参考にした設計思想は、Markdown 向け WYSIWYG エディタの解説記事（Decoration + WidgetType で見た目だけプレビューに寄せ、カーソル位置では raw に戻す）です。
+
+* link:https://qiita.com/engchina/items/5246eacbd29daeee7dc2[Qiita: No.1 Markdown Editor の WYSIWYG（engchina）]
+
+kbmemo では **Stimulus**（`MemoBodyEditorController`）+ **Vite** で同様の契約を AsciiDoc に横展開します。CodeMirror 6 自体はフレームワーク非依存のため、React 記事の構成をそのまま流用できます。
+
+== 方針の固定（すべてのフェーズ共通）
+
+[cols="1,3"]
+|===
+|項目 |内容
+
+|正（ソース・オブ・トゥルース）
+|DB / フォームに渡す **AsciiDoc のプレーン文字列**。サーバー側の変換・表示の正は引き続き **Asciidoctor**（`MemoWikiLinks` 等）。
+
+|CodeMirror の役割
+|編集体験のみ。ハイライト・補完・WYSIWYG はすべて CM 側の「見せ方」。
+
+|WYSIWYG の型
+|ProseMirror 的な「別木構造」にしない。記事どおり **Decoration + Widget + フォーカスで raw に戻す**。
+
+|カーソル契約
+|ブロック／インラインからカーソルが**離れている**ときだけ装飾・マーカー非表示。カーソルを**入れたら生ソース**に戻す（ユーザーがソースを信頼できること）。
+
+|デバウンス・保存
+|既存の `memo-draft`（Stimulus）との **単一ソース同期**。CM と textarea（および PATCH ペイロード）の二重状態を増やさない。ドラフトは統合 PATCH・直列キュー方針を維持する。
+
+|Turbo
+|Stream / partial 差し替え時は `disconnect` で CM を破棄し、textarea 経由で再接続する。
+|===
+
+=== AsciiDoc とパーサ戦略
+
+AsciiDoc は Markdown ほど公式な CodeMirror 6 用文法（Lezer 等）が揃っていない。フェーズ進行では次を前提とする。
+
+* 当面は **StreamLanguage / 正規ベース / 最小 HighlightStyle** を段階的に厚くする（`codemirror-asciidoc` 等の利用も可）。
+* 将来的に **Lezer grammar / Tree-sitter** を検討する場合は工数を別途見積もる。
+* CM 側は**軽量パーズ**、厳密さが必要な確認はサーバー（Asciidoctor）に寄せる**二段**もあり得る。
+
+== フェーズ一覧
+
+各フェーズ末尾の **ゲート** を満たしてから次へ進む。
+
+=== Phase 1 — CodeMirror で textarea を置換（機能パリティ）
+
+* Vite に `@codemirror/state`, `@codemirror/view`, `codemirror`（`basicSetup`）など最小セットを追加。
+* `MemoBodyEditorController` で textarea を送信専用（非表示）にし、CM をマウント。
+* `EditorView.updateListener` で `textarea.value` と `memo-draft` が読む入力を一致させる。
+* Turbo で partial が差し替わったら `disconnect` で破棄・再接続。
+* アクセシビリティ: `aria-labelledby` / ラベル連携、エラー時フォーカス。
+
+*ゲート:* 既存ドラフト PATCH・コミットの挙動が導入前と同じ。
+
+*現状（2026-05）:* 実装済み。
+
+=== Phase 2 — AsciiDoc 向け「軽い」言語サポート
+
+* `codemirror-asciidoc`（StreamLanguage）または自前ルールでシンタックス相当を提供。
+* 優先順位例: 見出し（`=`）→ リスト → コメント → 強調など。
+* Wiki リンク `[[…]]` を **HighlightStyle / Decoration** で見やすく（未解決リンク用 Decoration とも相性がよい）。
+* 将来の WYSIWYG と重なっても競合しないよう、Decoration の **レイヤ・マーク prefix** を設計で決めておく。
+
+*ゲート:* 長文でのパフォーマンス、Decoration レイヤ方針の文書化。
+
+*現状（2026-05）:* ハイライト + 完成済み `[[…]]` のマーク装飾まで実装済み。レイヤ prefix の明示設計は Phase 4 前に見直す。
+
+=== Phase 3 — Wiki リンク入力支援
+
+* `@codemirror/autocomplete`: `[[` でタイトル検索 API にデバウンスし候補表示。
+* 確定時は `insertCompletionText` に任せず、**明示トランザクション**で `[[full_path/slug]]` 等を挿入（`closeBrackets` による `]]` 自動挿入との二重を避ける）。
+* 候補は `policy_scope` と同義の JSON API（`MemoWikiCompletions` / `GET /memos/wiki_completions`）。
+* 候補形式: タイトル、同一ディレクトリの slug、フルパス（`MemoWikiLinks` と整合）。
+
+*ゲート:* 線形テキスト上で壊れた `[[` が減り、ユーザーがソースを理解しやすい。
+
+*現状（2026-05）:* 実装済み。括弧自動補完と補完適用の整合は `wikiLinkReplaceEnd` で吸収。
+
+=== Phase 4 —「WYSIWYG ライト」モード（記事の核心）
+
+Qiita 記事の「離れたらプレビュー風／入ったら raw」を AsciiDoc 用に**狭い構文サブセット**から実装する。AsciiDoc 全体を一度に WYSIWYG にしない。
+
+* *ブロック:* 見出し行のみマーカー（`=`）非表示 + タイポグラフィ装飾（Markdown の `#` と同型だが AsciiDoc は `=`）。
+* *インライン:* `*bold*` / `_italic_` 等、ごく限定した構文から開始。
+* *WidgetType:* タスクリストや簡単な admonition など、製品で許す AsciiDoc 構文に相当するものがあれば同様に検討。
+* UX 契約（ソースは信頼できる・カーソル位置で見え方が変わる）をテストまたはこのドキュメントで維持。
+
+*ゲート:* 上記契約を満たすデモ可能な構文範囲が決まっていること。
+
+=== Phase 5 — 複合ブロック（コスト・難易度が跳ねるゾーン）
+
+* Fenced listing / ソースコード: 別パネルハイライト、折りたたみ、ブロック単位の最小エディタ widget。
+* テーブル: セル単位 widget は設計・同期が最重。AsciiDoc の表記バリエーションを**製品でどこまで許すか**先に決める。
+* Mermaid / 数式など: 「プレビュー専用」か「ソースと二重実行」か方針を分離。
+
+*ゲート:* 複雑 widget は lazy 読み込み、巨大メモでの描画コスト計測。
+
+=== Phase 6 — Turbo・マルチタブ・将来拡張
+
+* Turbo Stream で本文 partial が差し替わるときの状態マージ（選択範囲・undo 履歴）戦略。
+* 「ソース / WYSIWYG-lite」トグルがあるなら `Compartment` で拡張パックをオンオフ。
+* E2E（Playwright 等）は任意。補完と装飾の結合ポイントだけ自動テストすると安全。
+
+== リスクと意思決定（早めに固定）
+
+[cols="2,3"]
+|===
+|論点 |推奨
+
+|AsciiDoc 全体を一度に WYSIWYG にするか
+|**しない**。Phase 4 は構文サブセットを決めて増やす。
+
+|CM 側パーサの厳密さ
+|編集用は軽量でよい。公開プレビュー・コミット後表示は Asciidoctor を正とする。
+
+|React 記事との差
+|kbmemo は Stimulus。CM API はそのまま利用可能。
+
+|DnD 等からのドラフト
+|サイドバー更新が必要なら `Accept: text/vnd.turbo-stream.html` を `memo-draft` と揃える（任意・未着手の場合あり）。
+|===
+
+== 推奨マイルストーン順（まとめ）
+
+. CM で textarea と同等保存（Phase 1）
+. 軽ハイライト + Wiki Completion（Phase 2–3）
+. Decoration ベースの WYSIWYG-lite（見出し → インライン → widget）（Phase 4）
+. 表・コード・外部図など重いブロック（Phase 5）
+. Turbo / マルチタブ / Compartment 切替（Phase 6）
+
+記事が示す設計哲学（**ソース不変・カーソル駆動の raw 復帰**）を保ったまま、AsciiDoc 向けに段階的に寄せる。
+
+== 関連コード
+
+* `app/javascript/controllers/memo_body_editor_controller.js` — CM マウント・textarea 同期
+* `app/javascript/memo_body_editor/asciidoc_extensions.js` — 言語ハイライト・`[[…]]` 装飾
+* `app/javascript/memo_body_editor/wiki_completion.js` — Wiki オートコンプリート
+* `app/javascript/controllers/memo_draft_controller.js` — ドラフト保存（正の同期先）
+* `app/services/memo_wiki_completions.rb` — 補完候補 API
+* `app/services/memo_wiki_links.rb` — 表示時の Wiki リンク解決
+* `app/controllers/memos_controller.rb` — `wiki_completions`, `draft`
