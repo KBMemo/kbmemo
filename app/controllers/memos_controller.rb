@@ -5,6 +5,16 @@ class MemosController < ApplicationController
 
   after_action :verify_authorized
 
+  def wiki_completions
+    authorize Memo, :wiki_completions?
+    source =
+      if params[:memo_id].present?
+        policy_scope(Memo).find_by(id: params[:memo_id])
+      end
+    entries = MemoWikiCompletions.new(scope: policy_scope(Memo), source_memo: source).call(params[:q])
+    render json: entries
+  end
+
   def index
     authorize Memo
     if params[:q].present? && params[:sidebar_view] != "search"

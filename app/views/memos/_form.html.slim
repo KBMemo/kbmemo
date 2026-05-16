@@ -74,7 +74,7 @@ ruby:
       code class="text-zinc-600"
         | [[slug]]
       | のみでも可）
-    div.memo-body-editor.block.w-full.border-0.rounded-none.bg-transparent class="border-b border-zinc-300 min-h-[18rem]" data-controller="memo-body-editor" data-memo-body-editor-label-id-value="memo-body-label"
+    div.memo-body-editor.block.w-full.border-0.rounded-none.bg-transparent class="border-b border-zinc-300 min-h-[18rem]" data-controller="memo-body-editor" data-memo-body-editor-label-id-value="memo-body-label" data-memo-body-editor-wiki-completions-url-value=wiki_completions_memos_path(format: :json) data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "")
       = f.text_area :body,
         rows: 1,
         class: "sr-only",

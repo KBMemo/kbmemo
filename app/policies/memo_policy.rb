@@ -6,6 +6,8 @@ class MemoPolicy < ApplicationPolicy
     user.present?
   end
 
+  alias wiki_completions? index?
+
   def show?
     return true if record.public_everyone?
     return false unless user

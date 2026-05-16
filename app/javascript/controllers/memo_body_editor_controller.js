@@ -1,10 +1,16 @@
 import { Controller } from "@hotwired/stimulus"
+import { asciidocExtensions } from "../memo_body_editor/asciidoc_extensions"
+import { wikiAutocompletion } from "../memo_body_editor/wiki_completion"
 
 // 本文 textarea（送信・memo-draft の参照用）と CodeMirror を同期する。
 // CodeMirror は動的 import で初回のみ別チャンク読み込み。
 export default class extends Controller {
   static targets = ["field", "host"]
-  static values = { labelId: String }
+  static values = {
+    labelId: String,
+    wikiCompletionsUrl: String,
+    memoId: String
+  }
 
   async connect() {
     const [{ EditorView, basicSetup }, { EditorState }] = await Promise.all([
@@ -13,6 +19,10 @@ export default class extends Controller {
     ])
 
     const textarea = this.fieldTarget
+    const getWikiConfig = () => ({
+      url: this.wikiCompletionsUrlValue,
+      memoId: this.memoIdValue || null
+    })
 
     const updateListener = EditorView.updateListener.of((vu) => {
       if (!vu.docChanged) return
@@ -65,7 +75,15 @@ export default class extends Controller {
         paddingRight: "0.375rem",
         backgroundColor: "transparent",
         color: "#71717a"
-      }
+      },
+      ".cm-tooltip-autocomplete": {
+        fontSize: "12px",
+        borderRadius: "0.375rem",
+        border: "1px solid #e4e4e7",
+        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)"
+      },
+      ".cm-completionLabel": { fontFamily: "inherit" },
+      ".cm-completionDetail": { color: "#71717a", fontStyle: "normal" }
     })
 
     const startDoc = textarea.value
@@ -75,6 +93,8 @@ export default class extends Controller {
       extensions: [
         basicSetup,
         EditorView.lineWrapping,
+        ...asciidocExtensions(),
+        wikiAutocompletion(getWikiConfig),
         updateListener,
         a11y,
         theme,

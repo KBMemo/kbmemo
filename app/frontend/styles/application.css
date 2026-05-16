@@ -31,3 +31,10 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 .memo-body .memo-wiki-broken {
   @apply text-red-600 underline decoration-dotted;
 }
+
+/* 本文 CodeMirror: 完成した Wiki リンク [[...]] */
+.memo-body-editor .cm-memo-wiki-link {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

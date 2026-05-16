@@ -32,6 +32,10 @@ Rails.application.routes.draw do
   end
 
   resources :memos do
+    collection do
+      get :wiki_completions
+    end
+
     member do
       patch :draft
     end

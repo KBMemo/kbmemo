@@ -147,10 +147,26 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_not_equal home.id, m.reload.memo_directory_id
   end
 
+  test "wiki_completions returns link targets as json" do
+    get wiki_completions_memos_url, params: { memo_id: memos(:one).id, q: "Second" }, as: :json
+    assert_response :success
+    body = JSON.parse(response.body)
+    assert body.is_a?(Array)
+    assert body.any? { |e| e["insert"] == "second-memo" || e["label"] == "Second memo" }
+  end
+
+  test "guest cannot access wiki completions" do
+    post "/logout"
+    get wiki_completions_memos_url, as: :json
+    assert_response :redirect
+  end
+
   test "edit has memo draft stimulus bindings" do
     get edit_memo_url(memos(:one))
     assert_response :success
     assert_includes response.body, 'data-controller="memo-draft"'
+    assert_includes response.body, "memo-body-editor"
+    assert_includes response.body, wiki_completions_memos_path(format: :json)
     assert_includes response.body, 'data-controller="memo-directory-dnd"'
     assert_includes response.body, "memo-draft#preventSubmit"
     assert_includes response.body, "memo-draft#suppressEnterSubmit"
