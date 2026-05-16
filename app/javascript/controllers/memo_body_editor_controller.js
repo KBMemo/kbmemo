@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { asciidocExtensions } from "../memo_body_editor/asciidoc_extensions"
 import { wikiAutocompletion } from "../memo_body_editor/wiki_completion"
 import { wysiwygLiteExtension } from "../memo_body_editor/wysiwyg_lite"
+import { wikiLinkWysiwygExtension } from "../memo_body_editor/wiki_link_wysiwyg"
 
 // 本文 textarea（送信・memo-draft の参照用）と CodeMirror を同期する。
 // CodeMirror は動的 import で初回のみ別チャンク読み込み。
@@ -10,6 +11,7 @@ export default class extends Controller {
   static values = {
     labelId: String,
     wikiCompletionsUrl: String,
+    wikiLinkLabelsUrl: String,
     memoId: String
   }
 
@@ -22,6 +24,10 @@ export default class extends Controller {
     const textarea = this.fieldTarget
     const getWikiConfig = () => ({
       url: this.wikiCompletionsUrlValue,
+      memoId: this.memoIdValue || null
+    })
+    const getWikiLabelsConfig = () => ({
+      url: this.wikiLinkLabelsUrlValue,
       memoId: this.memoIdValue || null
     })
 
@@ -114,6 +120,7 @@ export default class extends Controller {
         EditorView.lineWrapping,
         ...asciidocExtensions(),
         wysiwygLiteExtension(),
+        ...wikiLinkWysiwygExtension(getWikiLabelsConfig),
         ...wikiAutocompletion(getWikiConfig),
         updateListener,
         a11y,

@@ -15,6 +15,17 @@ class MemosController < ApplicationController
     render json: entries
   end
 
+  def wiki_link_labels
+    authorize Memo, :wiki_completions?
+    source =
+      if params[:memo_id].present?
+        policy_scope(Memo).find_by(id: params[:memo_id])
+      end
+    targets = Array(params[:targets])
+    labels = MemoWikiLinkLabels.new(scope: policy_scope(Memo), source_memo: source).call(targets)
+    render json: labels
+  end
+
   def index
     authorize Memo
     if params[:q].present? && params[:sidebar_view] != "search"

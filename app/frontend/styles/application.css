@@ -60,6 +60,20 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   text-underline-offset: 2px;
 }
 
+.memo-body-editor .cm-memo-wiki-link--broken {
+  color: #dc2626;
+  text-decoration: underline;
+  text-decoration-style: dashed;
+}
+
+.memo-body-editor a.cm-memo-wiki-link--open {
+  cursor: pointer;
+}
+
+.memo-body-editor a.cm-memo-wiki-link--open:hover {
+  color: #1d4ed8;
+}
+
 /* Phase 4 WYSIWYG ライト（カーソル外のみマーカー非表示） */
 .memo-body-editor .cm-wysiwyg-heading {
   font-family: ui-sans-serif, system-ui, sans-serif;

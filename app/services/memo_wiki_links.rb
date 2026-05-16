@@ -18,6 +18,14 @@ class MemoWikiLinks
     @source_memo = source_memo
   end
 
+  # エディタ WYSIWYG 用。policy_scope 内で target を解決する。
+  def resolve_target(target)
+    key = target.to_s.strip
+    return nil if key.blank?
+
+    resolve(key)
+  end
+
   def substitute(text)
     return text if text.blank?
 
