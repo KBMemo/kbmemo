@@ -9,7 +9,9 @@
     "vite-plugin-ruby": "^5.2.1"
   },
   "dependencies": {
+    "@codemirror/state": "^6.6.0",
     "@hotwired/turbo-rails": "^8.0.23",
+    "codemirror": "^6.0.2",
     "lucide": "^1.14.0",
     "stimulus-use": "^0.52.3"
   }

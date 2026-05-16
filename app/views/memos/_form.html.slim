@@ -58,7 +58,7 @@ ruby:
   = render "tag_field", memo: memo
 
   div
-    = f.label :body, "本文（AsciiDoc）", class: "mb-1 block text-sm font-medium text-zinc-800"
+    = f.label :body, "本文（AsciiDoc）", id: "memo-body-label", class: "mb-1 block text-sm font-medium text-zinc-800"
     p.mb-1.text-xs.text-zinc-500
       | メモへの Wiki リンク:
       code class="text-zinc-600"
@@ -74,7 +74,14 @@ ruby:
       code class="text-zinc-600"
         | [[slug]]
       | のみでも可）
-    = f.text_area :body, rows: 14, class: memo_form_underline_body, data: { memo_draft_target: "body", action: "input->memo-draft#bodyInput compositionend->memo-draft#bodyInput blur->memo-draft#bodyInput" }
+    div.memo-body-editor.block.w-full.border-0.rounded-none.bg-transparent class="border-b border-zinc-300 min-h-[18rem]" data-controller="memo-body-editor" data-memo-body-editor-label-id-value="memo-body-label"
+      = f.text_area :body,
+        rows: 1,
+        class: "sr-only",
+        tabindex: -1,
+        autocomplete: "off",
+        data: { memo_draft_target: "body", memo_body_editor_target: "field", action: "input->memo-draft#bodyInput compositionend->memo-draft#bodyInput blur->memo-draft#bodyInput" }
+      div.memo-body-editor__host.relative class="min-h-[inherit]" data-memo-body-editor-target="host"
 
   - if memo.persisted?
     .mt-4.flex.justify-end.gap-2

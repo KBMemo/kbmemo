@@ -97,7 +97,7 @@ class MemosController < ApplicationController
 
     if @memo.save
       @memo.update_column(:file_committed_at, @memo.updated_at)
-      @memo.broadcast_replace partial: "memos/show_content"
+      broadcast_updated_show_content
       redirect_to memo_path(@memo), notice: "ファイルへ保存し、Git に記録しました。"
     else
       render :edit, status: :unprocessable_entity
@@ -142,8 +142,10 @@ class MemosController < ApplicationController
       if directory_changing
         @memo.reload
         refresh_memo_sidebar_directory_context!
+      else
+        load_sidebar_memos_list
       end
-      @memo.broadcast_replace partial: "memos/show_content"
+      broadcast_updated_show_content
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: [
@@ -183,6 +185,12 @@ class MemosController < ApplicationController
   end
 
   private
+
+  # Turbo の broadcast が ApplicationController.render 経由だと rodauth が無く memo_html が失敗するので、同一リクエストで HTML を組み立ててから送る。
+  def broadcast_updated_show_content
+    html = render_to_string(partial: "memos/show_content", locals: { memo: @memo }, formats: [ :html ])
+    @memo.broadcast_replace(html: html)
+  end
 
   # show は set_memo・authorize のあと未ログインでも全体公開のみ閲覧可。それ以外の action は通常どおり require_account。
   def require_authentication

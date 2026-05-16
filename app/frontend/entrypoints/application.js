@@ -34,8 +34,11 @@ document.addEventListener("turbo:before-stream-render", (event) => {
   const orig = event.detail?.render
   if (typeof orig !== "function") return
 
-  event.detail.render = async (streamElement) => {
-    await orig(streamElement)
-    scheduleLucideIconsAfterStream()
+  event.detail.render = (streamElement) => {
+    const result = orig(streamElement)
+    Promise.resolve(result).finally(() => {
+      queueMicrotask(() => scheduleLucideIconsAfterStream())
+    })
+    return result
   }
 })

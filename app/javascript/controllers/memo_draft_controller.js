@@ -3,19 +3,10 @@ import { useDebounce } from "stimulus-use"
 
 const TITLE_PLACEHOLDER = " - 未入力 - "
 
-// フィールド単位でデバウンス保存。新規は初回 POST → 編集へ遷移。
+// ドラフトは常にフォームの現在値をまとめて PATCH/POST する（分割 PATCH の競合でサイドバーが古いままになるのを防ぐ）。
+// 入力は debounce、ディレクトリ変更は即時送信。
 export default class extends Controller {
-  static debounces = [
-    "saveBody",
-    "saveTitle",
-    "saveTitleManual",
-    "saveSlug",
-    "saveSlugManual",
-    "saveSlugSyncedFromTitle",
-    "saveTagList",
-    "saveProperties",
-    "saveDirectory"
-  ]
+  static debounces = ["autosaveDraft"]
   static targets = [
     "body",
     "title",
@@ -39,7 +30,7 @@ export default class extends Controller {
   connect() {
     useDebounce(this, { wait: this.debounceValue })
     this._creating = false
-    this._pending = {}
+    this._persistChain = Promise.resolve()
     this._slugTouched = false
     queueMicrotask(() => {
       this.syncTitleFromBodyIfBlank()
@@ -50,12 +41,10 @@ export default class extends Controller {
   }
 
   preventSubmit(event) {
-    // コミットボタン（明示クリック／そのボタンにフォーカスして Enter）以外はフル送信しない
     if (event.submitter?.dataset?.memoCommit === "true") return
     event.preventDefault()
   }
 
-  // 単一行入力で Enter したときの暗黙のフォーム送信を抑止（コミット以外で画面遷移しない）
   suppressEnterSubmit(event) {
     if (event.key !== "Enter" || event.defaultPrevented) return
     if (event.isComposing) return
@@ -93,40 +82,28 @@ export default class extends Controller {
       if (this.hasBodyTarget) {
         this.titleTarget.value = this.derivedTitle(this.bodyTarget.value)
       }
-      this._pending.title = this.titleTarget.value
-      this._pending.title_manual = false
-    } else {
-      if (this.hasTitleManualFlagTarget) {
-        this.titleManualFlagTarget.value = "1"
-      }
-      this._pending.title = this.titleTarget.value
-      this._pending.title_manual = true
+    } else if (this.hasTitleManualFlagTarget) {
+      this.titleManualFlagTarget.value = "1"
     }
-    this.saveTitle()
-    this.saveTitleManual()
+    this.autosaveDraft()
     this.maybeSyncSlugFromTitle()
   }
 
   bodyInput(event) {
     if (ifComposing(event)) return
     if (this.hasBodyTarget && this.hasTitleTarget) {
-      const manual = this.hasTitleManualFlagTarget && this.titleManualFlagTarget.value === "1"
+      const manual =
+        this.hasTitleManualFlagTarget && this.titleManualFlagTarget.value === "1"
       const titleTrimmed = this.titleTarget.value.trim()
-      const titleBlank =
-        titleTrimmed === "" || titleTrimmed === TITLE_PLACEHOLDER
+      const titleBlank = titleTrimmed === "" || titleTrimmed === TITLE_PLACEHOLDER
       if (!manual || titleBlank) {
         if (this.hasTitleManualFlagTarget && titleBlank) {
           this.titleManualFlagTarget.value = "0"
         }
         this.titleTarget.value = this.derivedTitle(this.bodyTarget.value)
-        this._pending.title = this.titleTarget.value
-        this._pending.title_manual = false
-        this.saveTitle()
-        this.saveTitleManual()
       }
     }
-    this._pending.body = this.bodyTarget.value
-    this.saveBody()
+    this.autosaveDraft()
     this.maybeSyncSlugFromTitle()
   }
 
@@ -138,8 +115,7 @@ export default class extends Controller {
   slugInput(event) {
     if (ifComposing(event)) return
     if (this.fileCommittedValue) {
-      this._pending.slug = this.slugTarget.value
-      this.saveSlug()
+      this.autosaveDraft()
       return
     }
     const trimmed = this.slugTarget.value.trim()
@@ -148,19 +124,13 @@ export default class extends Controller {
       if (this.hasSlugManualFlagTarget) {
         this.slugManualFlagTarget.value = "0"
       }
-      this._pending.slug_manual = false
-      // クライアントで memo-{id} を出さず、サーバー決定 + Turbo で欄を更新
-      this.saveSlugSyncedFromTitle()
     } else {
       this._slugTouched = true
       if (this.hasSlugManualFlagTarget) {
         this.slugManualFlagTarget.value = "1"
       }
-      this._pending.slug = this.slugTarget.value
-      this._pending.slug_manual = true
-      this.saveSlug()
-      this.saveSlugManual()
     }
+    this.autosaveDraft()
   }
 
   renderTagPillsFromHiddenIfPresent() {
@@ -278,8 +248,7 @@ export default class extends Controller {
   applyTags(tags) {
     this.tagListTarget.value = this.stringifyTagList(tags)
     this.renderTagPills(tags)
-    this._pending.tag_list = this.tagListTarget.value
-    this.saveTagList()
+    this.autosaveDraft()
   }
 
   renderTagPills(tags) {
@@ -314,8 +283,7 @@ export default class extends Controller {
 
   propertiesInput(event) {
     if (ifComposing(event)) return
-    this._pending.properties_yaml = this.propertiesYamlTarget.value
-    this.saveProperties()
+    this.autosaveDraft()
   }
 
   derivedTitle(text) {
@@ -332,20 +300,9 @@ export default class extends Controller {
     if (this.hasSlugManualFlagTarget) {
       this.slugManualFlagTarget.value = "0"
     }
-    this._pending.slug_manual = false
-    // スラッグはサーバー（MeCab 等）で決め、Turbo で欄を更新。タイトルも同梱してずれを防ぐ。
-    this.saveSlugSyncedFromTitle()
+    this.autosaveDraft()
   }
 
-  saveSlugSyncedFromTitle() {
-    this.saveDraft({
-      slug_manual: false,
-      title: this.normalizeOutgoingTitle(this.titleTarget.value),
-      title_manual: !!(this.hasTitleManualFlagTarget && this.titleManualFlagTarget.value === "1")
-    })
-  }
-
-  // スラッグ欄が空のときタイトルから埋める（初回ファイル保存前のみ）
   syncSlugFromTitleIfBlank() {
     if (this.fileCommittedValue) return
     if (this._slugTouched) return
@@ -356,11 +313,9 @@ export default class extends Controller {
     if (this.hasSlugManualFlagTarget) {
       this.slugManualFlagTarget.value = "0"
     }
-    this._pending.slug_manual = false
-    this.saveSlugSyncedFromTitle()
+    this.autosaveDraft()
   }
 
-  // タイトル欄が空のときは本文1行目と同期（編集画面初回表示・ドラフト後の追従用）
   syncTitleFromBodyIfBlank() {
     if (!this.hasTitleTarget || !this.hasBodyTarget) return
     if (!(this.hasDraftUrlValue && this.draftUrlValue)) return
@@ -377,52 +332,20 @@ export default class extends Controller {
     if (this.hasTitleManualFlagTarget) {
       this.titleManualFlagTarget.value = "0"
     }
-    this._pending.title = derived
-    this._pending.title_manual = false
-    this.saveTitle()
-    this.saveTitleManual()
-    this.maybeSyncSlugFromTitle()
+    this.autosaveDraft()
+    void this.maybeSyncSlugFromTitle()
   }
 
-  saveBody() {
-    this.saveDraft({ body: this._pending.body })
+  // 入力由来の自動保存（デバウンス）
+  autosaveDraft() {
+    void this.persistDraftMerged()
   }
 
-  saveTitle() {
-    this.saveDraft({ title: this._pending.title })
-  }
-
-  saveTitleManual() {
-    this.saveDraft({ title_manual: this._pending.title_manual })
-  }
-
-  saveSlug() {
-    this.saveDraft({ slug: this._pending.slug })
-  }
-
-  saveSlugManual() {
-    this.saveDraft({ slug_manual: this._pending.slug_manual })
-  }
-
-  saveTagList() {
-    this.saveDraft({ tag_list: this._pending.tag_list })
-  }
-
-  saveProperties() {
-    this.saveDraft({ properties_yaml: this._pending.properties_yaml })
-  }
-
-  directoryChange() {
+  async directoryChange() {
     if (!this.hasDirectoryTarget) return
-    this._pending.memo_directory_id = this.directoryTarget.value
-    this.saveDirectory()
-  }
-
-  saveDirectory() {
-    const id = this._pending.memo_directory_id
-    this.patchDraft({ memo_directory_id: id }, { turboOnly: true }).then((ok) => {
-      if (ok && id) this.syncSidebarDirectoryQueryParam(id)
-    })
+    const id = this.directoryTarget.value
+    const ok = await this.persistDraftMerged({ memo_directory_id: id })
+    if (ok && id) this.syncSidebarDirectoryQueryParam(id)
   }
 
   syncSidebarDirectoryQueryParam(directoryId) {
@@ -438,67 +361,131 @@ export default class extends Controller {
     return value?.trim() ? value : TITLE_PLACEHOLDER
   }
 
-  memoPayload(changes) {
-    const merged = { ...changes }
+  memoPayload(memoAttrs) {
+    const merged = { ...memoAttrs }
     if (Object.prototype.hasOwnProperty.call(merged, "title")) {
       merged.title = this.normalizeOutgoingTitle(merged.title)
     }
     if (Object.prototype.hasOwnProperty.call(merged, "slug_manual")) {
       merged.slug_manual = !!merged.slug_manual
     }
-    return {
-      memo: merged
-    }
+    return { memo: merged }
   }
 
-  async saveDraft(changes) {
-    if (this._creating) return
-    const canSave =
+  buildMemoSnapshotOverrides(overrides = {}) {
+    const memo = {}
+    if (this.hasBodyTarget) memo.body = this.bodyTarget.value
+    if (this.hasTitleTarget) memo.title = this.titleTarget.value
+    memo.title_manual = !!(
+      this.hasTitleManualFlagTarget && this.titleManualFlagTarget.value === "1"
+    )
+    if (this.hasSlugTarget) memo.slug = this.slugTarget.value
+    memo.slug_manual = !!(
+      this.hasSlugManualFlagTarget && this.slugManualFlagTarget.value === "1"
+    )
+    if (this.hasPropertiesYamlTarget) {
+      memo.properties_yaml = this.propertiesYamlTarget.value
+    }
+    if (this.hasTagListTarget) memo.tag_list = this.tagListTarget.value
+    if (this.hasDirectoryTarget) memo.memo_directory_id = this.directoryTarget.value
+    return { ...memo, ...overrides }
+  }
+
+  /**
+   * 連続 PATCH を直列にしつつキュー送信（autosave と directory が混ざっても競合しない）
+   */
+  persistDraftMerged(overrides = {}) {
+    this._persistChain = this._persistChain.catch(() => {}).then(() =>
+      this.performDraftAutosaveFetch(overrides)
+    )
+    return this._persistChain
+  }
+
+  async performDraftAutosaveFetch(overrides = {}) {
+    if (this._creating) return false
+    const canPersist =
       (this.hasDraftUrlValue && this.draftUrlValue) ||
       (this.hasCreateUrlValue && this.createUrlValue)
-    if (!canSave) return
+    if (!canPersist) return false
+
+    const snapshot = this.buildMemoSnapshotOverrides(overrides)
+    const wrapped = this.memoPayload(snapshot)
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content")
+    const accept =
+      typeof window !== "undefined" &&
+      typeof window.Turbo?.renderStreamMessage === "function"
+        ? "text/vnd.turbo-stream.html"
+        : "application/json"
 
     if (this.hasDraftUrlValue && this.draftUrlValue) {
-      await this.patchDraft(changes)
-    } else if (this.hasCreateUrlValue && this.createUrlValue) {
-      await this.createMemo(changes)
+      try {
+        const res = await fetch(this.draftUrlValue, {
+          method: "PATCH",
+          headers: {
+            "X-CSRF-Token": token,
+            "Content-Type": "application/json",
+            Accept: accept
+          },
+          body: JSON.stringify(wrapped)
+        })
+        if (!res.ok) return false
+        const ct = (res.headers.get("Content-Type") || "").toLowerCase()
+        if (ct.includes("vnd.turbo-stream")) {
+          const stream = await res.text()
+          if (window.Turbo?.renderStreamMessage) {
+            window.Turbo.renderStreamMessage(stream)
+          }
+          return true
+        }
+        if (ct.includes("application/json")) {
+          const data = await res.json()
+          this.applyDraftServerPayload(data)
+          return true
+        }
+        return false
+      } catch (e) {
+        console.error(e)
+        return false
+      }
     }
+
+    if (this.hasCreateUrlValue && this.createUrlValue) {
+      return this.performCreateMemoFetch(wrapped, token)
+    }
+
+    return false
   }
 
-  async patchDraft(changes, options = {}) {
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content")
-    const accept = options.turboOnly
-      ? "text/vnd.turbo-stream.html"
-      : "text/vnd.turbo-stream.html, application/json"
+  async performCreateMemoFetch(wrapped, token) {
+    this._creating = true
+    let created = false
     try {
-      const res = await fetch(this.draftUrlValue, {
-        method: "PATCH",
+      const res = await fetch(this.createUrlValue, {
+        method: "POST",
         headers: {
           "X-CSRF-Token": token,
           "Content-Type": "application/json",
-          Accept: accept
+          Accept: "application/json"
         },
-        body: JSON.stringify(this.memoPayload(changes))
+        body: JSON.stringify(wrapped)
       })
-      if (!res.ok) return false
-      const ct = (res.headers.get("Content-Type") || "").toLowerCase()
-      if (ct.includes("vnd.turbo-stream")) {
-        const stream = await res.text()
-        if (window.Turbo?.renderStreamMessage) {
-          window.Turbo.renderStreamMessage(stream)
-        }
-        return true
-      }
-      if (ct.includes("application/json")) {
+      if (res.status === 201) {
         const data = await res.json()
-        this.applyDraftServerPayload(data)
+        created = true
+        const navigate = window.Turbo?.visit ?? ((url) => window.location.assign(url))
+        navigate(data.edit_path)
         return true
       }
-      return false
+      if (res.status === 422) {
+        const err = await res.json()
+        console.error("メモを作成できませんでした:", err.errors)
+      }
     } catch (e) {
       console.error(e)
-      return false
+    } finally {
+      if (!created) this._creating = false
     }
+    return false
   }
 
   applyDraftServerPayload(data) {
@@ -512,40 +499,6 @@ export default class extends Controller {
       this.fileCommittedValue = data.file_committed
     }
   }
-
-  async createMemo(changes) {
-    if (this._creating) return
-    this._creating = true
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content")
-    let created = false
-    try {
-      const res = await fetch(this.createUrlValue, {
-        method: "POST",
-        headers: {
-          "X-CSRF-Token": token,
-          "Content-Type": "application/json",
-          Accept: "application/json"
-        },
-        body: JSON.stringify(this.memoPayload(changes))
-      })
-      if (res.status === 201) {
-        const data = await res.json()
-        created = true
-        const navigate = window.Turbo?.visit ?? ((url) => { window.location.assign(url) })
-        navigate(data.edit_path)
-        return
-      }
-      if (res.status === 422) {
-        const err = await res.json()
-        console.error("メモを作成できませんでした:", err.errors)
-      }
-    } catch (e) {
-      console.error(e)
-    } finally {
-      if (!created) this._creating = false
-    }
-  }
-
 }
 
 function ifComposing(event) {

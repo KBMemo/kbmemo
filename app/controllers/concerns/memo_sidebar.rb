@@ -6,7 +6,7 @@ module MemoSidebar
 
   included do
     before_action :set_memo_directory_nav_context
-    before_action :redirect_memo_tag_sidebar_to_memo_tag, only: %i[show edit]
+    before_action :redirect_memo_tag_sidebar_to_memo_tag, if: :memo_show_or_edit_action?
     before_action :load_sidebar_memos_list
   end
 
@@ -18,6 +18,10 @@ module MemoSidebar
   end
 
   private
+
+  def memo_show_or_edit_action?
+    %w[show edit].include?(action_name)
+  end
 
   def set_memo_directory_nav_context
     @memo_directories_for_nav = policy_scope(MemoDirectory).nav_ordered
