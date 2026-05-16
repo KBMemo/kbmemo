@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { asciidocExtensions } from "../memo_body_editor/asciidoc_extensions"
 import { wikiAutocompletion } from "../memo_body_editor/wiki_completion"
+import { wysiwygLiteExtension } from "../memo_body_editor/wysiwyg_lite"
 
 // 本文 textarea（送信・memo-draft の参照用）と CodeMirror を同期する。
 // CodeMirror は動的 import で初回のみ別チャンク読み込み。
@@ -112,6 +113,7 @@ export default class extends Controller {
         basicSetup,
         EditorView.lineWrapping,
         ...asciidocExtensions(),
+        wysiwygLiteExtension(),
         ...wikiAutocompletion(getWikiConfig),
         updateListener,
         a11y,

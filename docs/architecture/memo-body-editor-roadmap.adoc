@@ -90,6 +90,15 @@ Qiita 記事の「離れたらプレビュー風／入ったら raw」を AsciiD
 
 *ゲート:* 上記契約を満たすデモ可能な構文範囲が決まっていること。
 
+*現状（2026-05）:* `memo_body_editor/wysiwyg_lite.js` で初期サブセットを実装済み。
+
+* 見出し: 行頭 `=`〜`======`（1〜6 段）。カーソルが行外のとき `=` マーカーを非表示し、見出し用タイポグラフィを適用。
+* インライン: `*bold*` / `_italic_`（カーソルが範囲内のときはマーカー表示）。
+* 除外: フェンスコードブロック（` ``` ` 行）、`[[Wiki リンク]]` 内。
+* `EditorView.atomicRanges` で非表示マーカー上のカーソル挙動を安定化。
+
+*未実装（Phase 4 以降の拡張）:* モノスペース `` ` `` / `+`、リスト行、admonition、WidgetType。
+
 === Phase 5 — 複合ブロック（コスト・難易度が跳ねるゾーン）
 
 * Fenced listing / ソースコード: 別パネルハイライト、折りたたみ、ブロック単位の最小エディタ widget。
@@ -145,6 +154,7 @@ Qiita 記事の「離れたらプレビュー風／入ったら raw」を AsciiD
 * `app/javascript/controllers/memo_body_editor_controller.js` — CM マウント・textarea 同期
 * `app/javascript/memo_body_editor/asciidoc_extensions.js` — 言語ハイライト・`[[…]]` 装飾
 * `app/javascript/memo_body_editor/wiki_completion.js` — Wiki オートコンプリート
+* `app/javascript/memo_body_editor/wysiwyg_lite.js` — WYSIWYG ライト（Decoration）
 * `app/javascript/controllers/memo_draft_controller.js` — ドラフト保存（正の同期先）
 * `app/services/memo_wiki_completions.rb` — 補完候補 API
 * `app/services/memo_wiki_links.rb` — 表示時の Wiki リンク解決
