@@ -2,6 +2,8 @@ import { RangeSet, RangeSetBuilder } from "@codemirror/state"
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view"
 import { admonitionBlockByLine, scanAdmonitionBlocks } from "./admonition_syntax"
 import { applyAdmonitionWysiwyg, cursorInAdmonitionBlock } from "./admonition_wysiwyg"
+import { codeBlockByLine, isFenceDelimiterLine, scanCodeBlocks } from "./code_block_syntax"
+import { applyCodeBlockWysiwyg, cursorInCodeBlock } from "./code_block_wysiwyg"
 import { linkExclusionRanges } from "./wiki_link_wysiwyg"
 import { orderedListIndex, parseListLine } from "./list_syntax"
 
@@ -13,8 +15,6 @@ const MONO_DBL_BACKTICK = /``([^`\s][^`]*?)``/g
 const MONO_BACKTICK = /`([^`\s][^`]*?)`/g
 const MONO_DBL_PLUS = /\+\+([^+\s][^+]*?)\+\+/g
 const MONO_PLUS = /\+([^+\s][^+]*?)\+/g
-
-const FENCE_LINE = /^```/
 
 const KIND_ORDER = { line: 0, replace: 1, mark: 2 }
 
@@ -33,7 +33,7 @@ function cursorOnLine(state, line) {
 
 /** 1行目の AsciiDoc ドキュメントタイトル（= Title）またはプレーン1行目 */
 function parseDocumentTitleLine(lineNo, text) {
-  if (lineNo !== 1 || !text.trim() || FENCE_LINE.test(text)) return null
+  if (lineNo !== 1 || !text.trim() || isFenceDelimiterLine(text)) return null
 
   const marked = text.match(DOC_TITLE_LINE)
   if (marked) {
@@ -212,19 +212,23 @@ function buildWysiwygDecorations(view) {
   const atomicRanges = []
   const { state } = view
   const editingActive = view.hasFocus
-  const admonitionBlocks = scanAdmonitionBlocks(state.doc)
+  const codeBlocks = scanCodeBlocks(state.doc)
+  const codeByLine = codeBlockByLine(codeBlocks)
+  const admonitionBlocks = scanAdmonitionBlocks(state.doc, codeByLine)
   const admonitionByLine = admonitionBlockByLine(admonitionBlocks)
-  let inFenced = false
 
   for (let lineNo = 1; lineNo <= state.doc.lines; lineNo++) {
     const line = state.doc.line(lineNo)
     const text = line.text
 
-    if (FENCE_LINE.test(text)) {
-      inFenced = !inFenced
+    const codeBlock = codeByLine.get(lineNo)
+    const editingCode = codeBlock && editingActive && cursorInCodeBlock(state, codeBlock)
+
+    if (codeBlock && !editingCode) {
+      applyCodeBlockWysiwyg(specs, atomicRanges, line, text, lineNo, codeBlock)
       continue
     }
-    if (inFenced) continue
+    if (codeBlock) continue
 
     const onLine = editingActive && cursorOnLine(state, line)
     const admonition = admonitionByLine.get(lineNo)
@@ -284,7 +288,8 @@ function buildWysiwygDecorations(view) {
  * Phase 4: フォーカス時、カーソル行の見出しのみ生 AsciiDoc。インラインは選択範囲内のみ生表示。
  * 非フォーカス時は全文プレビュー風。
  * 対象: 1行目ドキュメントタイトル（= Title / プレーン1行目）、見出し（==…）、
- * リスト行（Phase 5a）、admonition（Phase 5b）、*bold*、_italic_、`` ` `` / `` + `` モノスペース
+ * リスト行（Phase 5a）、admonition（Phase 5b）、コードブロック（Phase 5c）、
+ * *bold*、_italic_、`` ` `` / `` + `` モノスペース
  */
 export function wysiwygLiteExtension() {
   const plugin = ViewPlugin.fromClass(

@@ -38,6 +38,27 @@ class MemosHelperTest < ActionView::TestCase
     assert_not_includes html, "&lt;span"
   end
 
+  test "memo_html renders fenced code as listingblock" do
+    html = memo_html("```ruby\nx = 1\n```", source_memo: memos(:one))
+    assert_includes html, 'class="listingblock"'
+    assert_includes html, 'data-lang="ruby"'
+  end
+
+  test "memo_html renders asciidoc source block with title and language" do
+    body = <<~ADOC
+      .Some Ruby code
+      [source,ruby]
+      ----
+      require 'sinatra'
+      ----
+    ADOC
+    html = memo_html(body, source_memo: memos(:one))
+    assert_includes html, 'class="listingblock"'
+    assert_includes html, "Some Ruby code"
+    assert_includes html, 'data-lang="ruby"'
+    assert_includes html, "require 'sinatra'"
+  end
+
   test "memo_html renders admonition with font icon" do
     html = memo_html("NOTE: Remember this.", source_memo: memos(:one))
     assert_includes html, 'class="admonitionblock note"'

@@ -1,18 +1,13 @@
 import { Prec } from "@codemirror/state"
 import { keymap } from "@codemirror/view"
+import { codeBlockByLine, scanCodeBlocks } from "./code_block_syntax"
 import {
   listContinuationMarker,
   parseListLine
 } from "./list_syntax"
 
-const FENCE_LINE = /^```/
-
-function inFencedBlock(doc, lineNo) {
-  let inFenced = false
-  for (let n = 1; n <= lineNo; n++) {
-    if (FENCE_LINE.test(doc.line(n).text)) inFenced = !inFenced
-  }
-  return inFenced
+function inCodeBlock(doc, lineNo) {
+  return codeBlockByLine(scanCodeBlocks(doc)).has(lineNo)
 }
 
 function continueListOnEnter(view) {
@@ -22,7 +17,7 @@ function continueListOnEnter(view) {
 
   const head = main.head
   const line = state.doc.lineAt(head)
-  if (inFencedBlock(state.doc, line.number)) return false
+  if (inCodeBlock(state.doc, line.number)) return false
 
   const trimmedEnd = line.from + line.text.trimEnd().length
   if (head < trimmedEnd) return false

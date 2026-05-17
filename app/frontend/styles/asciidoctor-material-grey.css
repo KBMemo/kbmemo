@@ -363,3 +363,137 @@
 .memo-body-editor .cm-wysiwyg-admonition-caution .cm-wysiwyg-admonition-icon {
   background-color: var(--mg-caution);
 }
+
+/* --- Phase 5c コードブロック（エディタ WYSIWYG） --- */
+
+.memo-body-editor .cm-wysiwyg-code-block {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.90625em;
+  line-height: 1.45;
+  color: var(--mg-text);
+  background-color: #f7f7f8;
+  padding: 0 0.5rem;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-code-block-first {
+  border-top: 1px solid var(--mg-divider);
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-code-block-last {
+  border-bottom: 1px solid var(--mg-divider);
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-code-block-title-line {
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.25;
+  padding-top: 0;
+  padding-bottom: 0.1rem;
+  background: transparent;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-code-block-attr-line {
+  line-height: 0.35rem;
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-code-block-open-line {
+  position: relative;
+  line-height: 1.1;
+  min-height: 0;
+  padding-top: 0.05rem;
+  padding-bottom: 0.05rem;
+}
+
+.memo-body-editor .cm-wysiwyg-code-block-title {
+  display: inline;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--mg-primary);
+  user-select: none;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-code-block-open-line .cm-wysiwyg-code-block-lang {
+  position: absolute;
+  right: 0.5rem;
+  top: 0;
+  margin: 0;
+  padding: 0;
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.1;
+  color: var(--mg-primary);
+  background: transparent;
+  border-radius: 0;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* --- Phase 5c コードブロック（メモ表示） --- */
+
+.memo-body .listingblock,
+.memo-body .literalblock {
+  margin: 0.25em 0 1em;
+}
+
+.memo-body .listingblock > .title {
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--mg-primary);
+  margin: 0 0 0.15em;
+  padding: 0;
+  line-height: 1.25;
+}
+
+.memo-body .listingblock > .content,
+.memo-body .literalblock > .content {
+  position: relative;
+  background-color: #f7f7f8;
+  border: 1px solid var(--mg-divider);
+  border-radius: 4px;
+  padding: 0.15rem 0.75rem 0.4rem;
+}
+
+.memo-body .listingblock pre,
+.memo-body .literalblock pre,
+.memo-body .listingblock pre.highlight {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.90625em;
+  line-height: 1.5;
+  color: var(--mg-text);
+  background: transparent;
+  overflow-x: auto;
+}
+
+.memo-body .listingblock > .content pre.highlight code[data-lang]::before,
+.memo-body .listingblock > .content code[data-lang]::before {
+  position: absolute;
+  top: 0.12rem;
+  right: 0.65rem;
+  display: block;
+  content: attr(data-lang);
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1;
+  text-align: right;
+  color: var(--mg-primary);
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+}
+
+.memo-body .listingblock > .content pre.highlight,
+.memo-body .listingblock > .content > pre {
+  padding-top: 0;
+}
