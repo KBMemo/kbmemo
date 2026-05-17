@@ -77,14 +77,32 @@ ruby:
       code class="text-zinc-600"
         | [[home/u-1/work/slug-123]]
       | も解決できる場合があります）
-    div.memo-body-editor.block.w-full.border-0.rounded-none.bg-transparent class="border-b border-zinc-300 min-h-[18rem]" data-controller="memo-body-editor" data-memo-body-editor-label-id-value="memo-body-label" data-memo-body-editor-wiki-completions-url-value=wiki_completions_memos_path(format: :json) data-memo-body-editor-wiki-link-labels-url-value=wiki_link_labels_memos_path(format: :json) data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "")
+    div.memo-body-editor[
+      class="block w-full border-0 rounded-none bg-transparent border-b border-zinc-300 min-h-[18rem]"
+      data-controller="memo-body-editor"
+      data-memo-body-editor-label-id-value="memo-body-label"
+      data-memo-body-editor-wiki-completions-url-value=wiki_completions_memos_path(format: :json)
+      data-memo-body-editor-wiki-link-labels-url-value=wiki_link_labels_memos_path(format: :json)
+      data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "")
+      data-memo-body-editor-upload-url-value=(memo.persisted? ? assets_memo_path(memo) : "")
+    ]
+      - if memo.persisted?
+        .mb-1.flex.flex-wrap.items-center.gap-2.border-b.border-zinc-100.pb-2
+          label.cursor-pointer.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50
+            | 画像を挿入
+            input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp" data-memo-body-editor-target="imageInput" data-action="change->memo-body-editor#uploadImage"
+          span.hidden.text-xs.text-red-600 data-memo-body-editor-target="uploadError"
+          p.text-xs.text-zinc-500
+            | 画像は
+            code.text-zinc-600 image::filename[]
+            | 形式で保存されます（コミット時に Git へ記録）。
       = f.text_area :body,
         rows: 1,
         class: "sr-only",
         tabindex: -1,
         autocomplete: "off",
         data: { memo_draft_target: "body", memo_body_editor_target: "field", action: "input->memo-draft#bodyInput compositionend->memo-draft#bodyInput blur->memo-draft#bodyInput" }
-      div.memo-body-editor__host.relative class="min-h-[inherit]" data-memo-body-editor-target="host"
+      div.memo-body-editor__host.relative[data-memo-body-editor-target="host" style="min-height: inherit"]
 
   - if memo.persisted?
     .mt-4.flex.justify-end.gap-2

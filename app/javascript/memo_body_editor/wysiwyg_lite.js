@@ -4,6 +4,7 @@ import { admonitionBlockByLine, scanAdmonitionBlocks } from "./admonition_syntax
 import { applyAdmonitionWysiwyg, cursorInAdmonitionBlock } from "./admonition_wysiwyg"
 import { codeBlockByLine, isFenceDelimiterLine, scanCodeBlocks } from "./code_block_syntax"
 import { applyCodeBlockWysiwyg, cursorInCodeBlock } from "./code_block_wysiwyg"
+import { imageExclusionRanges } from "./image_syntax"
 import { linkExclusionRanges } from "./wiki_link_wysiwyg"
 import { orderedListIndex, parseListLine } from "./list_syntax"
 import { scanTableBlocks, tableBlockByLine } from "./table_syntax"
@@ -151,8 +152,8 @@ function applyListWysiwyg(specs, atomicRanges, line, text, doc) {
   return true
 }
 
-function overlapsLinkRange(pos, end, linkRanges) {
-  return linkRanges.some(([from, to]) => pos < to && end > from)
+function overlapsExcludedRange(pos, end, ranges) {
+  return ranges.some(([from, to]) => pos < to && end > from)
 }
 
 function pushSpec(specs, from, to, deco, kind) {
@@ -161,6 +162,8 @@ function pushSpec(specs, from, to, deco, kind) {
 
 function decorateInline(specs, atomicRanges, line, text, lineFrom, state, editingActive) {
   const linkRanges = linkExclusionRanges(text, lineFrom)
+  const imageRanges = imageExclusionRanges(text, lineFrom)
+  const excludeRanges = linkRanges.concat(imageRanges)
   const occupied = []
 
   const overlapsOccupied = (from, to) =>
@@ -178,7 +181,7 @@ function decorateInline(specs, atomicRanges, line, text, lineFrom, state, editin
       const contentTo = fullTo - delimLen
 
       if (contentFrom >= contentTo) continue
-      if (overlapsLinkRange(fullFrom, fullTo, linkRanges)) continue
+      if (overlapsExcludedRange(fullFrom, fullTo, excludeRanges)) continue
       if (overlapsOccupied(fullFrom, fullTo)) continue
       if (editingActive && selectionTouches(state, fullFrom, fullTo)) continue
 

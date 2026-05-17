@@ -39,6 +39,9 @@ Rails.application.routes.draw do
 
     member do
       patch :draft
+      post "assets", to: "memo_assets#create", as: :assets
+      get "assets/:filename", to: "memo_assets#show", as: :asset,
+        constraints: { filename: /[^\/]+/ }
     end
   end
 end

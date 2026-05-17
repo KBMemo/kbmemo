@@ -75,6 +75,16 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, ">1<"
   end
 
+  test "memo_html renders image with memo asset url" do
+    memo = memos(:one)
+    repo = MemoRepository.new
+    repo.write_asset!(memo, filename: "shot.png", io: StringIO.new("PNG"))
+
+    html = memo_html("image::shot.png[]", source_memo: memo)
+    assert_includes html, %(src="/memos/#{memo.id}/assets/shot.png")
+    assert_includes html, "<img"
+  end
+
   test "memo_html renders admonition with font icon" do
     html = memo_html("NOTE: Remember this.", source_memo: memos(:one))
     assert_includes html, 'class="admonitionblock note"'

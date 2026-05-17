@@ -29,6 +29,34 @@ class MemoRepository
     @root.join(relative_path_for(memo))
   end
 
+  # メモ .adoc と同階層の {slug}.assets/（Git 作業ツリー上の相対パス）
+  def assets_dir_basename(memo)
+    "#{filename_slug_segment(memo)}.assets"
+  end
+
+  def assets_dir_relative_for(memo)
+    relative_path_for(memo).dirname.join(assets_dir_basename(memo))
+  end
+
+  def assets_dir_absolute_for(memo)
+    @root.join(assets_dir_relative_for(memo))
+  end
+
+  def absolute_asset_path_for(memo, filename)
+    assets_dir_absolute_for(memo).join(filename.to_s)
+  end
+
+  # ドラフト中も作業ツリーへ保存（コミットは write_and_commit! 時）
+  def write_asset!(memo, filename:, io:)
+    ensure_repo!
+    dir = assets_dir_absolute_for(memo)
+    dir.mkpath
+    dest = dir.join(filename.to_s)
+    io.rewind if io.respond_to?(:rewind)
+    File.open(dest, "wb") { |f| f.write(io.read) }
+    dest
+  end
+
   # YAML フロントマター + AsciiDoc 本文
   def file_contents_for(memo)
     meta = {
@@ -41,8 +69,8 @@ class MemoRepository
     "---\n#{yaml.rstrip}\n---\n\n#{memo.body}"
   end
 
-  # ディレクトリやファイル名変更時に作業ツリー上のファイルを移動（Git 追跡なら git mv）
-  def relocate_file!(from_relative:, to_relative:)
+  # ディレクトリやファイル名変更時に作業ツリー上のパスを移動（Git 追跡なら git mv）
+  def relocate_path!(from_relative:, to_relative:)
     from_s = from_relative.to_s
     to_s = to_relative.to_s
     return if from_s == to_s
@@ -55,14 +83,15 @@ class MemoRepository
 
     with_repo_lock do
       ensure_git_identity!
-      tracked, = Open3.capture2("git", "ls-files", "--", from_s, chdir: @root.to_s)
-      if tracked.to_s.strip.present?
-        git!("mv", "--", from_s, to_s)
+      if full_from.directory?
+        relocate_tree_in_git_or_fs!(from_s, to_s, full_from, full_to)
       else
-        FileUtils.mv(full_from.to_s, full_to.to_s)
+        relocate_file_in_git_or_fs!(from_s, to_s, full_from, full_to)
       end
     end
   end
+
+  alias relocate_file! relocate_path!
 
   # ファイル書き込み + git add / commit（変更がない場合はコミットをスキップ）
   def write_and_commit!(memo, message: nil)
@@ -74,17 +103,52 @@ class MemoRepository
     content = file_contents_for(memo)
     File.write(full, content, encoding: "UTF-8")
 
+    paths = commit_paths_for(memo, relative)
+
     with_repo_lock do
       ensure_git_identity!
-      git!("add", "--", relative)
-      if git_index_dirty_for?(relative)
+      git!("add", "--", *paths)
+      if git_index_dirty?
         msg = message || default_commit_message(memo)
-        git!("commit", "-m", msg, "--", relative)
+        git!("commit", "-m", msg)
       end
     end
   end
 
   private
+
+  def commit_paths_for(memo, adoc_relative)
+    paths = [ adoc_relative.to_s ]
+    assets_rel = assets_dir_relative_for(memo).to_s
+    assets_abs = @root.join(assets_rel)
+    return paths unless assets_abs.directory?
+
+    Dir.children(assets_abs).each do |name|
+      child = assets_abs.join(name)
+      next unless child.file?
+
+      paths << "#{assets_rel}/#{name}"
+    end
+    paths
+  end
+
+  def relocate_file_in_git_or_fs!(from_s, to_s, full_from, full_to)
+    tracked, = Open3.capture2("git", "ls-files", "--", from_s, chdir: @root.to_s)
+    if tracked.to_s.strip.present?
+      git!("mv", "--", from_s, to_s)
+    else
+      FileUtils.mv(full_from.to_s, full_to.to_s)
+    end
+  end
+
+  def relocate_tree_in_git_or_fs!(from_s, to_s, full_from, full_to)
+    tracked, = Open3.capture2("git", "ls-files", "--", from_s, chdir: @root.to_s)
+    if tracked.to_s.strip.present?
+      git!("mv", "--", from_s, to_s)
+    else
+      FileUtils.mv(full_from.to_s, full_to.to_s)
+    end
+  end
 
   def filename_slug_segment(memo)
     Memo.normalize_slug_fragment(memo.slug).presence || "memo-#{memo.id}"
@@ -122,11 +186,11 @@ class MemoRepository
     end
   end
 
-  def git_index_dirty_for?(relative_path)
-    out, err, st = Open3.capture3("git", "diff", "--cached", "--name-only", "--", relative_path, chdir: @root.to_s)
-    raise Error, (err.presence || out).to_s.strip unless st.success?
+  def git_index_dirty?
+    _out, err, st = Open3.capture3("git", "diff", "--cached", "--quiet", chdir: @root.to_s)
+    raise Error, err.to_s.strip unless st.success? || st.exitstatus == 1
 
-    out.strip.present?
+    st.exitstatus == 1
   end
 
   def git!(*args)

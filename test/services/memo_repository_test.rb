@@ -47,6 +47,29 @@ class MemoRepositoryTest < ActiveSupport::TestCase
     assert_includes log, "Update memo"
   end
 
+  test "assets_dir_relative_for is sibling of adoc file" do
+    @memo.memo_directory = MemoDirectory.root
+    @memo.slug = "repo-slug-#{@memo.id}"
+    assert_equal "repo-slug-#{@memo.id}.assets", @repo.assets_dir_relative_for(@memo).to_s
+  end
+
+  test "write_and_commit! includes assets in git commit" do
+    @memo.memo_directory = MemoDirectory.root
+    @memo.slug = "repo-slug-#{@memo.id}"
+    @repo.write_asset!(@memo, filename: "fig.png", io: StringIO.new("PNG"))
+    @repo.write_and_commit!(@memo)
+
+    asset_path = @repo.absolute_asset_path_for(@memo, "fig.png")
+    assert asset_path.exist?
+
+    tracked, err, st = Open3.capture3(
+      "git", "ls-files", "--", asset_path.relative_path_from(@repo.root).to_s,
+      chdir: @repo.root.to_s
+    )
+    assert st.success?, err
+    assert_includes tracked, "fig.png"
+  end
+
   test "write_and_commit! is idempotent when content unchanged" do
     @repo.write_and_commit!(@memo)
     root = @repo.root

@@ -636,3 +636,40 @@
   min-height: 0.25rem;
   line-height: 0.35rem;
 }
+
+/* Phase 5f — 画像インラインプレビュー */
+.memo-body-editor .cm-wysiwyg-image--block {
+  display: block;
+  margin: 0.35rem 0;
+  max-width: 100%;
+}
+
+.memo-body-editor .cm-wysiwyg-image--inline {
+  display: inline;
+  vertical-align: middle;
+}
+
+.memo-body-editor .cm-wysiwyg-image-preview {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.25rem;
+  border: 1px solid #e4e4e7;
+  background: #fafafa;
+}
+
+.memo-body-editor .cm-wysiwyg-image--block .cm-wysiwyg-image-preview {
+  display: block;
+  max-height: 24rem;
+}
+
+.memo-body-editor .cm-wysiwyg-image--inline .cm-wysiwyg-image-preview {
+  display: inline-block;
+  max-height: 6rem;
+  vertical-align: middle;
+}
+
+.memo-body-editor .cm-wysiwyg-image-missing {
+  font-size: 0.75rem;
+  color: #71717a;
+  font-style: italic;
+}

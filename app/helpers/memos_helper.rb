@@ -311,11 +311,16 @@ module MemosHelper
       source_memo: source_memo
     ).substitute(body.to_s)
 
+    attrs = { "icons" => "font" }
+    if source_memo&.persisted?
+      attrs["imagesdir"] = "#{memo_path(source_memo)}/assets/"
+    end
+
     Asciidoctor.convert(
       processed,
       safe: :safe,
       standalone: false,
-      attributes: { "icons" => "font" }
+      attributes: attrs
     ).html_safe
   end
 

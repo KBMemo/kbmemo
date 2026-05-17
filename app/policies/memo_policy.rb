@@ -36,6 +36,14 @@ class MemoPolicy < ApplicationPolicy
   # member route `draft` → verify_authorized は draft? を参照する
   alias draft? update?
 
+  def upload_asset?
+    update?
+  end
+
+  def show_asset?
+    show?
+  end
+
   def destroy?
     user.present? && record.account_id == user.id
   end

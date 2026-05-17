@@ -89,6 +89,7 @@ class MemosController < ApplicationController
     repo = MemoRepository.new
     old_rel = repo.relative_path_for(@memo)
     old_abs = repo.absolute_path_for(@memo)
+    old_assets_rel = repo.assets_dir_relative_for(@memo)
 
     unless assign_memo_fields(@memo)
       render :edit, status: :unprocessable_entity
@@ -104,10 +105,14 @@ class MemosController < ApplicationController
     end
 
     new_rel = repo.relative_path_for(@memo)
+    new_assets_rel = repo.assets_dir_relative_for(@memo)
 
     begin
       if old_abs.exist? && old_rel.to_s != new_rel.to_s
-        repo.relocate_file!(from_relative: old_rel, to_relative: new_rel)
+        repo.relocate_path!(from_relative: old_rel, to_relative: new_rel)
+      end
+      if old_assets_rel.to_s != new_assets_rel.to_s && repo.root.join(old_assets_rel).directory?
+        repo.relocate_path!(from_relative: old_assets_rel, to_relative: new_assets_rel)
       end
       repo.write_and_commit!(@memo)
     rescue MemoRepository::Error => e
