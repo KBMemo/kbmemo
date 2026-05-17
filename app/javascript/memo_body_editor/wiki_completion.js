@@ -1,52 +1,62 @@
 import { autocompletion, startCompletion } from "@codemirror/autocomplete"
 import { EditorView } from "@codemirror/view"
 
-// basicSetup の closeBrackets で [[ 入力時に ]] が先に入るため、補完時は既存の閉じ括弧を置換範囲に含める。
-function wikiLinkReplaceEnd(state, pos) {
-  const ahead = state.doc.sliceString(pos, Math.min(pos + 2, state.doc.length))
-  if (ahead === "]]") return pos + 2
-  return pos
-}
-
 /**
- * [[query または [[query]] の「query」部分を編集中（カーソルが ]] の直前）ならコンテキストを返す。
+ * [[query または [[既存リンク]] 内を編集中ならコンテキストを返す。
+ * 既存リンクのときは [[ ... ]] 全体（閉じ括弧まで）を置換範囲にする。
  */
 export function wikiLinkContext(state, pos) {
   const line = state.doc.lineAt(pos)
   const lineStart = line.from
+  const text = line.text
   const offset = pos - lineStart
-  const before = line.text.slice(0, offset)
-  const after = line.text.slice(offset)
 
-  const openTail = before.match(/\[\[([^\]|]*)$/)
-  if (openTail) {
-    const query = openTail[1]
-    return {
-      query,
-      from: pos - query.length,
-      to: pos
-    }
-  }
-
+  const before = text.slice(0, offset)
   const openIdx = before.lastIndexOf("[[")
   if (openIdx === -1) return null
 
-  const query = before.slice(openIdx + 2)
-  if (query.includes("|") || query.includes("]]")) return null
-  if (!after.startsWith("]]")) return null
+  const innerStart = openIdx + 2
+  const closeIdx = text.indexOf("]]", innerStart)
+
+  if (closeIdx === -1) {
+    const query = before.slice(innerStart)
+    if (query.includes("|")) return null
+    return {
+      query,
+      from: lineStart + innerStart,
+      to: pos,
+      replaceClosing: false
+    }
+  }
+
+  const linkEnd = closeIdx + 2
+  if (pos > lineStart + linkEnd) return null
+
+  const inner = text.slice(innerStart, closeIdx)
+  const pipeAt = inner.indexOf("|")
+  const targetEndOffset = pipeAt === -1 ? closeIdx : innerStart + pipeAt
+  if (offset > targetEndOffset) return null
+
+  const query = text.slice(innerStart, Math.min(offset, targetEndOffset))
+  if (query.includes("|")) return null
 
   return {
     query,
-    from: lineStart + openIdx + 2,
-    to: pos
+    from: lineStart + innerStart,
+    to: lineStart + closeIdx,
+    replaceClosing: true
   }
 }
 
-function wikiCompletionInsert(state, from, to, itemInsert) {
+function wikiCompletionInsert(state, from, to, itemInsert, replaceClosing) {
+  if (replaceClosing) return itemInsert
+
+  const ahead = state.doc.sliceString(to, Math.min(to + 2, state.doc.length))
+  if (ahead === "]]") return itemInsert
+
   const replaced = state.doc.sliceString(from, to)
-  if (replaced === "]]") return itemInsert + "]]"
   if (replaced.endsWith("]]") && replaced.length > 2) {
-    return itemInsert + "]]"
+    return itemInsert
   }
   return `${itemInsert}]]`
 }
@@ -84,17 +94,24 @@ export function wikiCompletionSource(getConfig) {
     const items = await fetchWikiCompletions(url, memoId, link.query)
     if (items.length === 0 && !link.query && !context.explicit) return null
 
-    const to = wikiLinkReplaceEnd(context.state, link.to)
-
     return {
       from: link.from,
-      to,
+      to: link.to,
       filter: false,
       options: items.map((item) => ({
         label: item.label ?? item.insert,
         detail: item.detail,
         apply: (view, _completion, from, end) => {
-          const insert = wikiCompletionInsert(view.state, from, end, item.insert)
+          const replaceClosing =
+            view.state.doc.sliceString(end, end + 2) === "]]" ||
+            view.state.doc.sliceString(end - 2, end) === "]]"
+          const insert = wikiCompletionInsert(
+            view.state,
+            from,
+            end,
+            item.insert,
+            replaceClosing
+          )
           view.dispatch({
             changes: { from, to: end, insert },
             selection: { anchor: from + insert.length }

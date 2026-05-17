@@ -152,7 +152,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     body = JSON.parse(response.body)
     assert body.is_a?(Array)
-    assert body.any? { |e| e["insert"] == memos(:two).slug || e["label"] == "Second memo" }
+    entry = body.find { |e| e["label"] == "Second memo" }
+    assert entry
+    assert_equal memos(:two).slug, entry["insert"]
   end
 
   test "guest cannot access wiki completions" do

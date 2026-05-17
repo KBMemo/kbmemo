@@ -2,7 +2,24 @@ import { RangeSet, RangeSetBuilder, StateEffect, StateField } from "@codemirror/
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view"
 
 const WIKI_LINK = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g
+const LINK_LABEL = /((?:[^\\\]]|\\.)*)/
+const ASCIIDOC_MEMO_LINK = new RegExp(
+  String.raw`link:(?:/memos/(\d+)|memos/(\d+))\[` + LINK_LABEL.source + String.raw`\]`,
+  "gi"
+)
+const ASCIIDOC_URL_LINK =
+  /((?:https?:\/\/|ftp:\/\/|file:\/\/|mailto:|callto:)[^\s\[]+)\[((?:[^\\\]]|\\.)*)\]/gi
+const ASCIIDOC_LINK = /link:([^\s\[]+)\[((?:[^\\\]]|\\.)*)\]/gi
+const ASCIIDOC_XREF = /<<([^>,\]]+?)(?:,((?:[^\\\]]|\\.)*))?>>/g
 const FENCE_LINE = /^```/
+
+const LINK_SCANNERS = [
+  WIKI_LINK,
+  ASCIIDOC_MEMO_LINK,
+  ASCIIDOC_URL_LINK,
+  ASCIIDOC_LINK,
+  ASCIIDOC_XREF
+]
 
 const KIND_ORDER = { line: 0, replace: 1, mark: 2 }
 
@@ -48,31 +65,66 @@ function sortSpecs(specs) {
   })
 }
 
+function unescapeLinkLabel(text) {
+  return text.replace(/\\\]/g, "]")
+}
+
 function memoHref(memoId) {
   return `/memos/${memoId}`
 }
 
-class WikiLinkLabelWidget extends WidgetType {
-  constructor(label, { broken = false, memoId = null } = {}) {
+function isUrlHref(href) {
+  return /^(https?:|ftp:|mailto:|callto:|file:)/i.test(href)
+}
+
+function memoIdFromHref(href) {
+  const m = href.match(/^\/?memos\/(\d+)$/i)
+  return m ? Number(m[1]) : null
+}
+
+/** wysiwyg_lite のインライン装飾から除外するリンク範囲 */
+export function linkExclusionRanges(text, lineFrom) {
+  const ranges = []
+  for (const re of LINK_SCANNERS) {
+    const flags = re.flags.includes("g") ? re.flags : `${re.flags}g`
+    const scanner = new RegExp(re.source, flags)
+    for (const match of text.matchAll(scanner)) {
+      ranges.push([lineFrom + match.index, lineFrom + match.index + match[0].length])
+    }
+  }
+  return ranges
+}
+
+class LinkLabelWidget extends WidgetType {
+  constructor(label, { broken = false, memoId = null, href = null, external = false } = {}) {
     super()
     this.label = label
     this.broken = broken
     this.memoId = memoId
+    this.href = href
+    this.external = external
   }
 
   eq(other) {
     return (
       other.label === this.label &&
       other.broken === this.broken &&
-      other.memoId === this.memoId
+      other.memoId === this.memoId &&
+      other.href === this.href &&
+      other.external === this.external
     )
   }
 
   toDOM() {
-    if (this.memoId && !this.broken) {
+    const navigable = !this.broken && (this.memoId != null || this.href)
+    if (navigable) {
       const a = document.createElement("a")
-      a.href = memoHref(this.memoId)
+      a.href = this.memoId != null ? memoHref(this.memoId) : this.href
       a.className = "cm-memo-wiki-link cm-memo-wiki-link--open"
+      if (this.external) {
+        a.target = "_blank"
+        a.rel = "noopener noreferrer"
+      }
       a.textContent = this.label
       return a
     }
@@ -86,24 +138,44 @@ class WikiLinkLabelWidget extends WidgetType {
   }
 
   ignoreEvent(event) {
-    if (!this.memoId || this.broken) return false
+    if (this.broken || (this.memoId == null && !this.href)) return false
     return event.type === "mousedown" || event.type === "click"
   }
 }
 
-function wikiLinkWidget(label, entry) {
-  if (!entry) {
-    return new WikiLinkLabelWidget(label, { broken: false })
+function linkWidget(label, entry, { href = null, external = false, memoId = null } = {}) {
+  if (memoId != null) {
+    return new LinkLabelWidget(label, { memoId, broken: false })
   }
-  return new WikiLinkLabelWidget(label, {
+  if (href) {
+    return new LinkLabelWidget(label, { href, external, broken: false })
+  }
+  if (!entry) {
+    return new LinkLabelWidget(label, { broken: false })
+  }
+  return new LinkLabelWidget(label, {
     broken: !entry.resolved,
     memoId: entry.resolved ? entry.memo_id : null
   })
 }
 
-function collectWikiTargets(doc) {
+function applyLinkPreview(specs, atomicRanges, hiddenBefore, innerFrom, innerTo, hiddenAfter, widget) {
+  for (const [from, to] of hiddenBefore) {
+    pushSpec(specs, from, to, Decoration.replace({}), "replace")
+    atomicRanges.push({ from, to })
+  }
+  pushSpec(specs, innerFrom, innerTo, Decoration.replace({ widget }), "replace")
+  atomicRanges.push({ from: innerFrom, to: innerTo })
+  for (const [from, to] of hiddenAfter) {
+    pushSpec(specs, from, to, Decoration.replace({}), "replace")
+    atomicRanges.push({ from, to })
+  }
+}
+
+function collectResolveTargets(doc) {
   const targets = new Set()
   let inFenced = false
+
   for (let lineNo = 1; lineNo <= doc.lines; lineNo++) {
     const text = doc.line(lineNo).text
     if (FENCE_LINE.test(text)) {
@@ -116,7 +188,19 @@ function collectWikiTargets(doc) {
       const target = match[1].trim()
       if (target) targets.add(target)
     }
+
+    for (const match of text.matchAll(ASCIIDOC_LINK)) {
+      const href = match[1].trim()
+      if (!href || isUrlHref(href) || memoIdFromHref(href)) continue
+      targets.add(href)
+    }
+
+    for (const match of text.matchAll(ASCIIDOC_XREF)) {
+      const target = match[1].trim()
+      if (target) targets.add(target)
+    }
   }
+
   return targets
 }
 
@@ -141,19 +225,154 @@ async function fetchWikiLabels(url, memoId, targets) {
   return Object.entries(data)
 }
 
-function hideBrackets(specs, atomicRanges, fullFrom, fullTo) {
-  pushSpec(specs, fullFrom, fullFrom + 2, Decoration.replace({}), "replace")
-  pushSpec(specs, fullTo - 2, fullTo, Decoration.replace({}), "replace")
-  atomicRanges.push({ from: fullFrom, to: fullFrom + 2 }, { from: fullTo - 2, to: fullTo })
+function decorateWikiLink(specs, atomicRanges, match, lineFrom, labels) {
+  const fullFrom = lineFrom + match.index
+  const fullTo = fullFrom + match[0].length
+  const target = match[1].trim()
+  const custom = match[2]?.trim()
+  const entry = labels.get(target)
+
+  if (custom) {
+    if (!entry) return false
+    applyLinkPreview(
+      specs,
+      atomicRanges,
+      [[fullFrom, fullFrom + 2]],
+      fullFrom + 2,
+      fullTo - 2,
+      [[fullTo - 2, fullTo]],
+      linkWidget(unescapeLinkLabel(custom), entry)
+    )
+    return true
+  }
+
+  if (!entry) return false
+
+  const display =
+    entry.slug && entry.resolved ? entry.display : entry.display ?? target
+  applyLinkPreview(
+    specs,
+    atomicRanges,
+    [[fullFrom, fullFrom + 2]],
+    fullFrom + 2,
+    fullTo - 2,
+    [[fullTo - 2, fullTo]],
+    linkWidget(display, entry)
+  )
+  return true
 }
 
-function applyWikiLinkWysiwyg(specs, atomicRanges, fullFrom, fullTo, innerFrom, innerTo, widget) {
-  hideBrackets(specs, atomicRanges, fullFrom, fullTo)
-  pushSpec(specs, innerFrom, innerTo, Decoration.replace({ widget }), "replace")
-  atomicRanges.push({ from: innerFrom, to: innerTo })
+function decorateAsciiDocMemoLink(specs, atomicRanges, match, lineFrom) {
+  const fullFrom = lineFrom + match.index
+  const fullTo = fullFrom + match[0].length
+  const memoId = Number(match[1] || match[2])
+  const label = unescapeLinkLabel(match[3])
+  const bracketOpen = match[0].indexOf("[")
+  const innerFrom = fullFrom + bracketOpen + 1
+  const innerTo = fullTo - 1
+
+  applyLinkPreview(
+    specs,
+    atomicRanges,
+    [[fullFrom, innerFrom]],
+    innerFrom,
+    innerTo,
+    [[innerTo, fullTo]],
+    linkWidget(label, null, { memoId })
+  )
+  return true
 }
 
-function buildWikiLinkDecorations(view, labels) {
+function decorateAsciiDocUrlLink(specs, atomicRanges, match, lineFrom) {
+  const fullFrom = lineFrom + match.index
+  const fullTo = fullFrom + match[0].length
+  const href = match[1]
+  const label = unescapeLinkLabel(match[2])
+  const bracketOpen = match[0].indexOf("[")
+  const innerFrom = fullFrom + bracketOpen + 1
+  const innerTo = fullTo - 1
+
+  applyLinkPreview(
+    specs,
+    atomicRanges,
+    [[fullFrom, innerFrom]],
+    innerFrom,
+    innerTo,
+    [[innerTo, fullTo]],
+    linkWidget(label || href, null, { href, external: true })
+  )
+  return true
+}
+
+function decorateAsciiDocLink(specs, atomicRanges, match, lineFrom, labels) {
+  const href = match[1].trim()
+  if (isUrlHref(href) || memoIdFromHref(href)) return false
+
+  const fullFrom = lineFrom + match.index
+  const fullTo = fullFrom + match[0].length
+  const label = unescapeLinkLabel(match[2])
+  const entry = labels.get(href)
+  if (!entry) return false
+
+  const bracketOpen = match[0].indexOf("[")
+  const innerFrom = fullFrom + bracketOpen + 1
+  const innerTo = fullTo - 1
+  const display =
+    entry.slug && entry.resolved && !label ? entry.display : label || entry.display || href
+
+  applyLinkPreview(
+    specs,
+    atomicRanges,
+    [[fullFrom, innerFrom]],
+    innerFrom,
+    innerTo,
+    [[innerTo, fullTo]],
+    linkWidget(display, entry)
+  )
+  return true
+}
+
+function decorateAsciiDocXref(specs, atomicRanges, match, lineFrom, labels) {
+  const fullFrom = lineFrom + match.index
+  const fullTo = fullFrom + match[0].length
+  const target = match[1].trim()
+  const custom = match[2]
+  const entry = labels.get(target)
+
+  if (custom != null) {
+    if (!entry) return false
+    const commaAt = fullFrom + 2 + target.length
+    applyLinkPreview(
+      specs,
+      atomicRanges,
+      [
+        [fullFrom, fullFrom + 2],
+        [commaAt, commaAt + 1]
+      ],
+      commaAt + 1,
+      fullTo - 2,
+      [[fullTo - 2, fullTo]],
+      linkWidget(unescapeLinkLabel(custom), entry)
+    )
+    return true
+  }
+
+  if (!entry) return false
+
+  const display = entry.slug && entry.resolved ? entry.display : entry.display ?? target
+  applyLinkPreview(
+    specs,
+    atomicRanges,
+    [[fullFrom, fullFrom + 2]],
+    fullFrom + 2,
+    fullTo - 2,
+    [[fullTo - 2, fullTo]],
+    linkWidget(display, entry)
+  )
+  return true
+}
+
+function buildLinkDecorations(view, labels) {
   const specs = []
   const atomicRanges = []
   const { state } = view
@@ -170,44 +389,50 @@ function buildWikiLinkDecorations(view, labels) {
     }
     if (inFenced) continue
 
+    const occupied = []
+
+    const overlaps = (from, to) => occupied.some((span) => from < span.to && to > span.from)
+
+    const markRange = (from, to) => {
+      occupied.push({ from, to })
+    }
+
+    const tryDecorate = (from, to, decorate) => {
+      if (overlaps(from, to)) return
+      if (editingActive && selectionTouches(state, from, to)) return
+      if (decorate()) markRange(from, to)
+    }
+
     for (const match of text.matchAll(WIKI_LINK)) {
-      const fullFrom = line.from + match.index
-      const fullTo = fullFrom + match[0].length
-      if (editingActive && selectionTouches(state, fullFrom, fullTo)) continue
+      const from = line.from + match.index
+      const to = from + match[0].length
+      tryDecorate(from, to, () => decorateWikiLink(specs, atomicRanges, match, line.from, labels))
+    }
 
-      const target = match[1].trim()
-      const custom = match[2]?.trim()
-      const innerFrom = fullFrom + 2
-      const innerTo = fullTo - 2
-      const entry = labels.get(target)
+    for (const match of text.matchAll(ASCIIDOC_MEMO_LINK)) {
+      const from = line.from + match.index
+      const to = from + match[0].length
+      tryDecorate(from, to, () => decorateAsciiDocMemoLink(specs, atomicRanges, match, line.from))
+    }
 
-      if (custom) {
-        if (!entry) continue
-        applyWikiLinkWysiwyg(
-          specs,
-          atomicRanges,
-          fullFrom,
-          fullTo,
-          innerFrom,
-          innerTo,
-          wikiLinkWidget(custom, entry)
-        )
-        continue
-      }
+    for (const match of text.matchAll(ASCIIDOC_URL_LINK)) {
+      const from = line.from + match.index
+      const to = from + match[0].length
+      tryDecorate(from, to, () => decorateAsciiDocUrlLink(specs, atomicRanges, match, line.from))
+    }
 
-      if (!entry) continue
-
-      const display =
-        entry.slug && entry.resolved ? entry.display : entry.display ?? target
-      applyWikiLinkWysiwyg(
-        specs,
-        atomicRanges,
-        fullFrom,
-        fullTo,
-        innerFrom,
-        innerTo,
-        wikiLinkWidget(display, entry)
+    for (const match of text.matchAll(ASCIIDOC_LINK)) {
+      const from = line.from + match.index
+      const to = from + match[0].length
+      tryDecorate(from, to, () =>
+        decorateAsciiDocLink(specs, atomicRanges, match, line.from, labels)
       )
+    }
+
+    for (const match of text.matchAll(ASCIIDOC_XREF)) {
+      const from = line.from + match.index
+      const to = from + match[0].length
+      tryDecorate(from, to, () => decorateAsciiDocXref(specs, atomicRanges, match, line.from, labels))
     }
   }
 
@@ -229,7 +454,7 @@ function buildWikiLinkDecorations(view, labels) {
 }
 
 /**
- * [[slug]] を WYSIWYG 時にタイトル表示。解決済みはクリックでメモを開く。
+ * [[wiki]] / AsciiDoc link / xref の WYSIWYG。スラッグ解決時はタイトル表示、解決済みはクリックで開く。
  */
 export function wikiLinkWysiwygExtension(getConfig) {
   const plugin = ViewPlugin.fromClass(
@@ -245,7 +470,7 @@ export function wikiLinkWysiwygExtension(getConfig) {
 
       rebuild(view) {
         const { labels } = view.state.field(wikiLabelsField)
-        const built = buildWikiLinkDecorations(view, labels)
+        const built = buildLinkDecorations(view, labels)
         this.decorations = built.decorations
         this.atomicRanges = built.atomicRanges
       }
@@ -253,7 +478,7 @@ export function wikiLinkWysiwygExtension(getConfig) {
       scheduleFetch(view) {
         const { url, memoId } = getConfig()
         const { labels } = view.state.field(wikiLabelsField)
-        const missing = [...collectWikiTargets(view.state.doc)].filter((t) => !labels.has(t))
+        const missing = [...collectResolveTargets(view.state.doc)].filter((t) => !labels.has(t))
         if (missing.length === 0) return
 
         const seq = ++fetchSeq

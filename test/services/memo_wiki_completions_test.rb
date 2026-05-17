@@ -10,19 +10,19 @@ class MemoWikiCompletionsTest < ActiveSupport::TestCase
     @target = memos(:two)
   end
 
-  test "includes title slug and full path for searchable memo" do
+  test "suggests title label with slug insert for searchable memo" do
     entries = completions.call("Second")
-    inserts = entries.map { |e| e[:insert] }
-    assert_includes inserts, @target.title
-    assert_includes inserts, @target.slug
-    assert_includes inserts, @target.slug
+    entry = entries.find { |e| e[:label] == @target.title }
+    assert entry
+    assert_equal @target.slug, entry[:insert]
+    assert_not entries.any? { |e| e[:label] == @target.slug }
   end
 
-  test "empty query still suggests global slug" do
+  test "empty query suggests title label with slug insert" do
     entries = completions.call("")
-    inserts = entries.map { |e| e[:insert] }
-    assert_includes inserts, @target.slug
-    assert entries.any? { |e| e[:detail]&.include?("全体で一意") }
+    entry = entries.find { |e| e[:label] == @target.title }
+    assert entry
+    assert_equal @target.slug, entry[:insert]
   end
 
   test "excludes source memo from results" do

@@ -12,7 +12,7 @@ class MemoWikiCompletions
   def call(query)
     q = query.to_s.strip
     memos = ranked_memos(q).first(MAX)
-    memos.flat_map { |memo| entries_for(memo) }.uniq { |e| e[:insert] }
+    memos.filter_map { |memo| entry_for(memo) }
   end
 
   private
@@ -32,14 +32,11 @@ class MemoWikiCompletions
     (same_dir + other).first(MAX * 3)
   end
 
-  def entries_for(memo)
-    list = [
-      { label: memo.title, insert: memo.title, detail: "タイトル" }
-    ]
-    slug = memo.slug.to_s
-    if slug.present?
-      list << { label: slug, insert: slug, detail: "スラッグ（全体で一意）" }
-    end
-    list
+  # 候補表示はタイトル、確定時の挿入はグローバルスラッグ（[[slug-id]]）。
+  def entry_for(memo)
+    insert = memo.slug.to_s.presence
+    return nil if insert.blank?
+
+    { label: memo.title, insert: insert }
   end
 end

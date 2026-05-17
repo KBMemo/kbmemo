@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# 本文エディタの [[target]] WYSIWYG 表示用ラベル（スラッグ解決時はタイトルを返す）。
+# 本文エディタの [[target]] / link:target / <<target>> 等の WYSIWYG 用ラベル（スラッグ解決時はタイトル）。
 class MemoWikiLinkLabels
   MAX_TARGETS = 100
 

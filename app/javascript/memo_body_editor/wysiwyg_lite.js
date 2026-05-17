@@ -9,7 +9,8 @@ const MONO_DBL_BACKTICK = /``([^`\s][^`]*?)``/g
 const MONO_BACKTICK = /`([^`\s][^`]*?)`/g
 const MONO_DBL_PLUS = /\+\+([^+\s][^+]*?)\+\+/g
 const MONO_PLUS = /\+([^+\s][^+]*?)\+/g
-const WIKI_LINK = /\[\[[^\]]+\]\]/g
+import { linkExclusionRanges } from "./wiki_link_wysiwyg"
+
 const FENCE_LINE = /^```/
 
 const KIND_ORDER = { line: 0, replace: 1, mark: 2 }
@@ -54,16 +55,8 @@ function applyHeadingWysiwyg(specs, atomicRanges, line, markerEnd, lineClass) {
   }
 }
 
-function wikiLinkRanges(text, lineFrom) {
-  const ranges = []
-  for (const match of text.matchAll(WIKI_LINK)) {
-    ranges.push([lineFrom + match.index, lineFrom + match.index + match[0].length])
-  }
-  return ranges
-}
-
-function overlapsWiki(pos, end, wikiRanges) {
-  return wikiRanges.some(([from, to]) => pos < to && end > from)
+function overlapsLinkRange(pos, end, linkRanges) {
+  return linkRanges.some(([from, to]) => pos < to && end > from)
 }
 
 function pushSpec(specs, from, to, deco, kind) {
@@ -79,7 +72,7 @@ function sortSpecs(specs) {
 }
 
 function decorateInline(specs, atomicRanges, line, text, lineFrom, state, editingActive) {
-  const wikiRanges = wikiLinkRanges(text, lineFrom)
+  const linkRanges = linkExclusionRanges(text, lineFrom)
   const occupied = []
 
   const overlapsOccupied = (from, to) =>
@@ -97,7 +90,7 @@ function decorateInline(specs, atomicRanges, line, text, lineFrom, state, editin
       const contentTo = fullTo - delimLen
 
       if (contentFrom >= contentTo) continue
-      if (overlapsWiki(fullFrom, fullTo, wikiRanges)) continue
+      if (overlapsLinkRange(fullFrom, fullTo, linkRanges)) continue
       if (overlapsOccupied(fullFrom, fullTo)) continue
       if (editingActive && selectionTouches(state, fullFrom, fullTo)) continue
 
