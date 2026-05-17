@@ -117,6 +117,7 @@ class MemoRepository
 
   private
 
+  # TODO: 本文未参照のアセットは現状削除しない（roadmap Phase 5f TODO 参照）
   def commit_paths_for(memo, adoc_relative)
     paths = [ adoc_relative.to_s ]
     assets_rel = assets_dir_relative_for(memo).to_s
