@@ -38,6 +38,12 @@ class MemosHelperTest < ActionView::TestCase
     assert_not_includes html, "&lt;span"
   end
 
+  test "memo_html renders admonition with font icon" do
+    html = memo_html("NOTE: Remember this.", source_memo: memos(:one))
+    assert_includes html, 'class="admonitionblock note"'
+    assert_includes html, 'class="fa icon-note"'
+  end
+
   test "memo_html leaves wiki syntax inside fenced code" do
     body = "```\n[[Second memo]]\n```\n\n[[Second memo]]"
     html = memo_html(body, source_memo: memos(:one))

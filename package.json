@@ -16,6 +16,7 @@
     "@hotwired/turbo-rails": "^8.0.23",
     "codemirror": "^6.0.2",
     "codemirror-asciidoc": "^2.0.1",
+    "font-awesome": "^4.7.0",
     "lucide": "^1.14.0",
     "stimulus-use": "^0.52.3"
   }

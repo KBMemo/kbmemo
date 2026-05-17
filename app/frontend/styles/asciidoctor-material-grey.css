@@ -1,0 +1,365 @@
+/* Asciidoctor material-grey スキン（メモ本文・エディタ WYSIWYG 向けスコープ）
+ * https://github.com/darshandsoni/asciidoctor-skins/blob/gh-pages/css/material-grey.css
+ * + asciidoctor-default admonition アイコン（Font Awesome 4） */
+
+@import "font-awesome/css/font-awesome.min.css";
+
+.memo-body,
+.memo-body-editor {
+  --mg-primary: #9e9e9e;
+  --mg-secondary: #ba3925;
+  --mg-tertiary: #186d7a;
+  --mg-text: #212121;
+  --mg-surface: #ffffff;
+  --mg-border: #bdbdbd;
+  --mg-divider: #e0e0e0;
+  --mg-warning: #bf6900;
+  --mg-caution: #f44336;
+}
+
+/* --- メモ表示 (.memo-body) --- */
+
+.memo-body {
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  color: var(--mg-text);
+  line-height: 1.6;
+  font-size: 1.0625rem;
+}
+
+.memo-body p {
+  margin-bottom: 1.25rem;
+}
+
+.memo-body a {
+  text-decoration: none;
+  color: var(--mg-text);
+}
+
+.memo-body a:hover {
+  color: var(--mg-primary);
+}
+
+.memo-body h1,
+.memo-body h2,
+.memo-body h3 {
+  background-color: var(--mg-primary);
+  color: #ffffff !important;
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-weight: normal;
+  text-decoration: none;
+  padding: 10px;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.memo-body h4,
+.memo-body h5,
+.memo-body h6 {
+  color: var(--mg-primary);
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+}
+
+.memo-body .sect1 {
+  border-bottom: 1px solid grey;
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+}
+
+.memo-body .quoteblock blockquote::before {
+  color: var(--mg-primary);
+}
+
+.memo-body table.tableblock > thead > tr > th,
+.memo-body table thead th {
+  background-color: #eeeeee;
+  color: var(--mg-text);
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* リスト */
+.memo-body .ulist > ul,
+.memo-body .olist > ol,
+.memo-body .hdlist > table {
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  color: var(--mg-text);
+  line-height: 1.6;
+  margin: 0 0 1.25em;
+}
+
+.memo-body .ulist > ul,
+.memo-body .olist > ol {
+  padding-left: 1.625em;
+  list-style-position: outside;
+}
+
+.memo-body .ulist > ul {
+  list-style-type: disc;
+}
+
+.memo-body .ulist > ul ul {
+  list-style-type: circle;
+}
+
+.memo-body .ulist > ul ul ul {
+  list-style-type: square;
+}
+
+.memo-body .olist > ol {
+  list-style-type: decimal;
+}
+
+.memo-body .ulist > ul > li::marker,
+.memo-body .olist > ol > li::marker {
+  color: var(--mg-primary);
+}
+
+.memo-body .ulist > ul > li > p,
+.memo-body .olist > ol > li > p {
+  margin: 0 0 0.625em;
+}
+
+/* Admonition（テーブル + Font Awesome アイコン） */
+.memo-body .admonitionblock {
+  margin: 0 0 1.25em;
+  border: 1px solid var(--mg-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--mg-surface);
+}
+
+.memo-body .admonitionblock > table {
+  border-collapse: collapse;
+  border: 0;
+  width: 100%;
+  margin: 0;
+  background: none;
+}
+
+.memo-body .admonitionblock > table td.icon {
+  width: 5.5rem;
+  min-width: 5.5rem;
+  vertical-align: top;
+  text-align: center;
+  padding: 0.75rem 0.5rem;
+  background-color: var(--mg-primary);
+}
+
+.memo-body .admonitionblock > table td.icon .title {
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: #ffffff;
+  margin: 0;
+}
+
+/* Asciidoctor default の FA グリフ（asciidoctor-default.css より） */
+.memo-body .admonitionblock > table td.icon [class^="fa icon-"] {
+  font-size: 2.5em;
+  cursor: default;
+  text-shadow: none;
+}
+
+.memo-body .admonitionblock > table td.icon .icon-note::before {
+  content: "\f05a";
+  color: #ffffff;
+}
+
+.memo-body .admonitionblock > table td.icon .icon-tip::before {
+  content: "\f0eb";
+  color: #ffffff;
+  text-shadow: none;
+}
+
+.memo-body .admonitionblock > table td.icon .icon-warning::before {
+  content: "\f071";
+  color: #ffffff;
+}
+
+.memo-body .admonitionblock > table td.icon .icon-caution::before {
+  content: "\f06d";
+  color: #ffffff;
+}
+
+.memo-body .admonitionblock > table td.icon .icon-important::before {
+  content: "\f06a";
+  color: #ffffff;
+}
+
+.memo-body .admonitionblock > table td.content {
+  padding: 0.75rem 1rem;
+  border-left: 1px solid var(--mg-divider);
+  color: var(--mg-text);
+  background-color: var(--mg-surface);
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.6;
+  word-wrap: anywhere;
+}
+
+.memo-body .admonitionblock > table td.content > :last-child > :last-child {
+  margin-bottom: 0;
+}
+
+.memo-body .admonitionblock.note > table td.icon {
+  background-color: var(--mg-tertiary);
+}
+
+.memo-body .admonitionblock.tip > table td.icon {
+  background-color: var(--mg-primary);
+}
+
+.memo-body .admonitionblock.important > table td.icon {
+  background-color: var(--mg-secondary);
+}
+
+.memo-body .admonitionblock.warning > table td.icon {
+  background-color: var(--mg-warning);
+}
+
+.memo-body .admonitionblock.caution > table td.icon {
+  background-color: var(--mg-caution);
+}
+
+/* --- エディタ WYSIWYG（リスト） --- */
+
+.memo-body-editor .cm-wysiwyg-list {
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  color: var(--mg-text);
+  line-height: 1.6;
+}
+
+.memo-body-editor .cm-wysiwyg-list-marker {
+  display: inline-block;
+  min-width: 1.35em;
+  margin-right: 0.35em;
+  color: var(--mg-primary);
+  font-weight: 400;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  vertical-align: baseline;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-list-level-2 {
+  padding-left: 1.25rem;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-list-level-3 {
+  padding-left: 2.5rem;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-list-level-4 {
+  padding-left: 3.75rem;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-list-level-5 {
+  padding-left: 5rem;
+}
+
+/* --- エディタ WYSIWYG（admonition + FA アイコン） --- */
+
+.memo-body-editor .cm-wysiwyg-admonition {
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--mg-text);
+  background-color: var(--mg-surface);
+  border-top: 1px solid var(--mg-divider);
+  border-bottom: 1px solid var(--mg-divider);
+  padding: 0.35rem 0.75rem 0.35rem 0.625rem;
+  border-left-width: 4px;
+  border-left-style: solid;
+  border-left-color: var(--mg-primary);
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-label-line {
+  padding-top: 0.5rem;
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-body-line {
+  padding-bottom: 0.5rem;
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-icon {
+  display: inline-block;
+  width: 2.25rem;
+  margin-right: 0.5em;
+  text-align: center;
+  font-size: 1.35em;
+  line-height: 1;
+  vertical-align: middle;
+  color: #ffffff;
+  background-color: var(--mg-primary);
+  border-radius: 2px;
+  padding: 0.15em 0;
+  user-select: none;
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-icon.icon-note::before {
+  content: "\f05a";
+  text-shadow: none;
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-icon.icon-tip::before {
+  content: "\f0eb";
+  text-shadow: none;
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-icon.icon-warning::before {
+  content: "\f071";
+  text-shadow: none;
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-icon.icon-caution::before {
+  content: "\f06d";
+  text-shadow: none;
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-icon.icon-important::before {
+  content: "\f06a";
+  text-shadow: none;
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-note {
+  border-left-color: var(--mg-tertiary);
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-note .cm-wysiwyg-admonition-icon {
+  background-color: var(--mg-tertiary);
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-tip {
+  border-left-color: var(--mg-primary);
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-tip .cm-wysiwyg-admonition-icon {
+  background-color: var(--mg-primary);
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-important {
+  border-left-color: var(--mg-secondary);
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-important .cm-wysiwyg-admonition-icon {
+  background-color: var(--mg-secondary);
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-warning {
+  border-left-color: var(--mg-warning);
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-warning .cm-wysiwyg-admonition-icon {
+  background-color: var(--mg-warning);
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-caution {
+  border-left-color: var(--mg-caution);
+}
+
+.memo-body-editor .cm-wysiwyg-admonition-caution .cm-wysiwyg-admonition-icon {
+  background-color: var(--mg-caution);
+}

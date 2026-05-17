@@ -314,7 +314,8 @@ module MemosHelper
     Asciidoctor.convert(
       processed,
       safe: :safe,
-      standalone: false
+      standalone: false,
+      attributes: { "icons" => "font" }
     ).html_safe
   end
 

@@ -1,5 +1,7 @@
 import { RangeSet, RangeSetBuilder } from "@codemirror/state"
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view"
+import { admonitionBlockByLine, scanAdmonitionBlocks } from "./admonition_syntax"
+import { applyAdmonitionWysiwyg, cursorInAdmonitionBlock } from "./admonition_wysiwyg"
 import { linkExclusionRanges } from "./wiki_link_wysiwyg"
 import { orderedListIndex, parseListLine } from "./list_syntax"
 
@@ -210,6 +212,8 @@ function buildWysiwygDecorations(view) {
   const atomicRanges = []
   const { state } = view
   const editingActive = view.hasFocus
+  const admonitionBlocks = scanAdmonitionBlocks(state.doc)
+  const admonitionByLine = admonitionBlockByLine(admonitionBlocks)
   let inFenced = false
 
   for (let lineNo = 1; lineNo <= state.doc.lines; lineNo++) {
@@ -223,8 +227,11 @@ function buildWysiwygDecorations(view) {
     if (inFenced) continue
 
     const onLine = editingActive && cursorOnLine(state, line)
+    const admonition = admonitionByLine.get(lineNo)
+    const editingAdmonition =
+      admonition && editingActive && cursorInAdmonitionBlock(state, admonition)
 
-    if (!onLine) {
+    if (!onLine && !editingAdmonition) {
       const docTitle = parseDocumentTitleLine(lineNo, text)
       if (docTitle) {
         const markerEnd =
@@ -243,6 +250,10 @@ function buildWysiwygDecorations(view) {
 
       if (applyListWysiwyg(specs, atomicRanges, line, text, state.doc)) {
         continue
+      }
+
+      if (admonition) {
+        applyAdmonitionWysiwyg(specs, atomicRanges, line, text, lineNo, admonition)
       }
     }
 
@@ -273,7 +284,7 @@ function buildWysiwygDecorations(view) {
  * Phase 4: フォーカス時、カーソル行の見出しのみ生 AsciiDoc。インラインは選択範囲内のみ生表示。
  * 非フォーカス時は全文プレビュー風。
  * 対象: 1行目ドキュメントタイトル（= Title / プレーン1行目）、見出し（==…）、
- * リスト行（Phase 5a）、*bold*、_italic_、`` ` `` / `` + `` モノスペース
+ * リスト行（Phase 5a）、admonition（Phase 5b）、*bold*、_italic_、`` ` `` / `` + `` モノスペース
  */
 export function wysiwygLiteExtension() {
   const plugin = ViewPlugin.fromClass(
