@@ -1,5 +1,6 @@
 import { RangeSet, RangeSetBuilder } from "@codemirror/state"
-import { Decoration, EditorView, ViewPlugin } from "@codemirror/view"
+import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view"
+import { linkExclusionRanges } from "./wiki_link_wysiwyg"
 
 const HEADING_LINE = /^(={2,6})(\s+)(.+)$/
 const DOC_TITLE_LINE = /^=(?!=)(\s*)(.*)$/
@@ -9,7 +10,9 @@ const MONO_DBL_BACKTICK = /``([^`\s][^`]*?)``/g
 const MONO_BACKTICK = /`([^`\s][^`]*?)`/g
 const MONO_DBL_PLUS = /\+\+([^+\s][^+]*?)\+\+/g
 const MONO_PLUS = /\+([^+\s][^+]*?)\+/g
-import { linkExclusionRanges } from "./wiki_link_wysiwyg"
+// codemirror-asciidoc listStart と同型（行頭マーカー + 空白）
+const LIST_LINE =
+  /^(\s*)((?:\d+\.|[a-zA-Z]\.|[ixvmIXVM]+\)|\*{1,5}|-|\.{1,5}))(\s+)(.*)$/
 
 const FENCE_LINE = /^```/
 
@@ -53,6 +56,147 @@ function applyHeadingWysiwyg(specs, atomicRanges, line, markerEnd, lineClass) {
     pushSpec(specs, line.from, markerEnd, Decoration.replace({}), "replace")
     atomicRanges.push({ from: line.from, to: markerEnd })
   }
+}
+
+function listKind(marker) {
+  if (/^\*+$/.test(marker) || marker === "-") return "bullet"
+  // `.` / `..` / `1.` 等は有序リスト（番号省略の `. ` 含む）
+  return "ordered"
+}
+
+function listLevel(indent, marker) {
+  const indentCols = indent.replace(/\t/g, "  ").length
+  const indentLevel = Math.floor(indentCols / 2)
+  if (/^\*+$/.test(marker)) return Math.min(5, indentLevel + marker.length)
+  if (/^\.+$/.test(marker)) return Math.min(5, indentLevel + marker.length)
+  return Math.min(5, indentLevel + 1)
+}
+
+function parseListLine(text) {
+  const match = text.match(LIST_LINE)
+  if (!match) return null
+
+  const indent = match[1]
+  const marker = match[2]
+  const space = match[3]
+  const markerEndInLine = indent.length + marker.length + space.length
+  const kind = listKind(marker)
+  const level = listLevel(indent, marker)
+
+  return {
+    indentLength: indent.length,
+    markerEndInLine,
+    kind,
+    marker,
+    level,
+    lineClass: `cm-wysiwyg-list cm-wysiwyg-list-${kind} cm-wysiwyg-list-level-${level}`
+  }
+}
+
+const LOWER_ROMAN = ["", "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii"]
+
+/** 同じインデント・同じマーカー形式の連続有序行の序数（1 始まり） */
+function orderedListIndex(doc, lineNo, indentLength, marker) {
+  let index = 1
+  for (let n = lineNo - 1; n >= 1; n--) {
+    const prev = parseListLine(doc.line(n).text)
+    if (!prev || prev.kind !== "ordered" || prev.indentLength !== indentLength) break
+    if (prev.marker !== marker) break
+    index++
+  }
+  return index
+}
+
+function lowerAlphaMarker(index) {
+  if (index < 1 || index > 26) return `${index}.`
+  return `${String.fromCharCode(96 + index)}.`
+}
+
+function upperAlphaMarker(index) {
+  if (index < 1 || index > 26) return `${index}.`
+  return `${String.fromCharCode(64 + index)}.`
+}
+
+function romanMarker(index, upper = false) {
+  const base = index > 0 && index < LOWER_ROMAN.length ? LOWER_ROMAN[index] : String(index)
+  return upper ? base.toUpperCase() : base
+}
+
+/** `.` → 1.、`..` → a.、`...` → i. …（Asciidoctor の dot 省略記法） */
+function implicitOrderedMarkerLabel(index, marker) {
+  const dots = marker.length
+  if (dots === 1) return `${index}.`
+  if (dots === 2) return lowerAlphaMarker(index)
+  if (dots === 3) return `${romanMarker(index)}.`
+  if (dots === 4) return upperAlphaMarker(index)
+  return `${romanMarker(index, true)}.`
+}
+
+function listMarkerDisplay(doc, lineNo, parsed) {
+  const { kind, marker, indentLength } = parsed
+  if (kind === "ordered") {
+    if (/^\d+\.$/.test(marker) || /^\.+$/.test(marker)) {
+      const index = orderedListIndex(doc, lineNo, indentLength, marker)
+      if (/^\.+$/.test(marker)) return implicitOrderedMarkerLabel(index, marker)
+      return `${index}.`
+    }
+    return marker
+  }
+  if (marker === "-") return "•"
+  if (marker.length <= 1) return "•"
+  if (marker.length === 2) return "◦"
+  return "▪"
+}
+
+class ListMarkerWidget extends WidgetType {
+  constructor(label, kind, level) {
+    super()
+    this.label = label
+    this.kind = kind
+    this.level = level
+  }
+
+  eq(other) {
+    return (
+      other.label === this.label && other.kind === this.kind && other.level === this.level
+    )
+  }
+
+  toDOM() {
+    const span = document.createElement("span")
+    span.className = `cm-wysiwyg-list-marker cm-wysiwyg-list-marker--${this.kind} cm-wysiwyg-list-marker--level-${this.level}`
+    span.setAttribute("aria-hidden", "true")
+    span.textContent = this.label
+    return span
+  }
+
+  ignoreEvent() {
+    return true
+  }
+}
+
+function applyListWysiwyg(specs, atomicRanges, line, text, doc) {
+  const parsed = parseListLine(text)
+  if (!parsed) return false
+
+  const hideStart = line.from + parsed.indentLength
+  const hideEnd = line.from + parsed.markerEndInLine
+  const markerLabel = listMarkerDisplay(doc, line.number, parsed)
+
+  pushSpec(specs, line.from, line.from, Decoration.line({ class: parsed.lineClass }), "line")
+  if (hideEnd > hideStart) {
+    pushSpec(
+      specs,
+      hideStart,
+      hideEnd,
+      Decoration.replace({
+        widget: new ListMarkerWidget(markerLabel, parsed.kind, parsed.level)
+      }),
+      "replace"
+    )
+    atomicRanges.push({ from: hideStart, to: hideEnd })
+  }
+  return true
 }
 
 function overlapsLinkRange(pos, end, linkRanges) {
@@ -145,6 +289,10 @@ function buildWysiwygDecorations(view) {
         applyHeadingWysiwyg(specs, atomicRanges, line, markerEnd, lineClass)
         continue
       }
+
+      if (applyListWysiwyg(specs, atomicRanges, line, text, state.doc)) {
+        continue
+      }
     }
 
     decorateInline(specs, atomicRanges, line, text, line.from, state, editingActive)
@@ -174,7 +322,7 @@ function buildWysiwygDecorations(view) {
  * Phase 4: フォーカス時、カーソル行の見出しのみ生 AsciiDoc。インラインは選択範囲内のみ生表示。
  * 非フォーカス時は全文プレビュー風。
  * 対象: 1行目ドキュメントタイトル（= Title / プレーン1行目）、見出し（==…）、
- * *bold*、_italic_、`` ` `` / `` + `` モノスペース
+ * リスト行（Phase 5a）、*bold*、_italic_、`` ` `` / `` + `` モノスペース
  */
 export function wysiwygLiteExtension() {
   const plugin = ViewPlugin.fromClass(

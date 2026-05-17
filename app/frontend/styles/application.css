@@ -121,3 +121,81 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   background-color: #f4f4f5;
   border-radius: 0.125rem;
 }
+
+/* Phase 5a リスト行 WYSIWYG — Asciidoctor material-grey スキン準拠
+ * https://github.com/darshandsoni/asciidoctor-skins/blob/gh-pages/css/material-grey.css */
+.memo-body-editor .cm-wysiwyg-list {
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  color: #212121;
+  line-height: 1.6;
+}
+
+.memo-body-editor .cm-wysiwyg-list-marker {
+  display: inline-block;
+  min-width: 1.35em;
+  margin-right: 0.35em;
+  color: #9e9e9e;
+  font-weight: 400;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  vertical-align: baseline;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-list-level-2 {
+  padding-left: 1.25rem;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-list-level-3 {
+  padding-left: 2.5rem;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-list-level-4 {
+  padding-left: 3.75rem;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-list-level-5 {
+  padding-left: 5rem;
+}
+
+/* メモ表示（Asciidoctor HTML）— material-grey リスト */
+.memo-body .ulist > ul,
+.memo-body .olist > ol,
+.memo-body .hdlist > table {
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  color: #212121;
+  line-height: 1.6;
+  margin: 0 0 1.25em;
+}
+
+.memo-body .ulist > ul,
+.memo-body .olist > ol {
+  padding-left: 1.625em;
+  list-style-position: outside;
+}
+
+.memo-body .ulist > ul {
+  list-style-type: disc;
+}
+
+.memo-body .ulist > ul ul {
+  list-style-type: circle;
+}
+
+.memo-body .ulist > ul ul ul {
+  list-style-type: square;
+}
+
+.memo-body .olist > ol {
+  list-style-type: decimal;
+}
+
+.memo-body .ulist > ul > li::marker,
+.memo-body .olist > ol > li::marker {
+  color: #9e9e9e;
+}
+
+.memo-body .ulist > ul > li > p,
+.memo-body .olist > ol > li > p {
+  margin: 0 0 0.625em;
+}
