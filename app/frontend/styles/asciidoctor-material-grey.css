@@ -438,7 +438,7 @@
 
 .memo-body .listingblock,
 .memo-body .literalblock {
-  margin: 0.25em 0 1em;
+  margin: 0.65em 0;
 }
 
 .memo-body .listingblock > .title {
@@ -458,13 +458,14 @@
   background-color: #f7f7f8;
   border: 1px solid var(--mg-divider);
   border-radius: 4px;
-  padding: 0.15rem 0.75rem 0.4rem;
+  padding: 0.35rem 0.75rem;
 }
 
 .memo-body .listingblock pre,
 .memo-body .literalblock pre,
 .memo-body .listingblock pre.highlight {
   margin: 0;
+  padding-bottom: 0;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 0.90625em;
   line-height: 1.5;
@@ -496,4 +497,5 @@
 .memo-body .listingblock > .content pre.highlight,
 .memo-body .listingblock > .content > pre {
   padding-top: 0;
+  padding-bottom: 0;
 }
