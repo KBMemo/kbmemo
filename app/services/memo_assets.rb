@@ -22,6 +22,9 @@ class MemoAssets
 
   def upload(memo, file)
     raise InvalidFile, "ファイルがありません" if file.blank?
+    unless memo.image_assets_uploadable?
+      raise InvalidFile, "メモを Git にコミットしてから画像をアップロードしてください"
+    end
 
     validate!(file)
     filename = unique_filename(memo, sanitize_filename(original_filename_for(file)))

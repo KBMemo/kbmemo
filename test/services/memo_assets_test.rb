@@ -5,8 +5,17 @@ require "test_helper"
 class MemoAssetsTest < ActiveSupport::TestCase
   setup do
     @memo = memos(:one)
-    @memo.update_columns(slug: "first-memo-#{@memo.id}")
+    @memo.update_columns(slug: "first-memo-#{@memo.id}", file_committed_at: Time.current)
     @repo = MemoRepository.new
+  end
+
+  test "upload rejects memo not committed to git" do
+    @memo.update_column(:file_committed_at, nil)
+    file = uploaded_file("diagram.png", "image/png", "PNG")
+    error = assert_raises(MemoAssets::InvalidFile) do
+      MemoAssets.upload(@memo, file: file, repo: @repo)
+    end
+    assert_includes error.message, "コミット"
   end
 
   test "upload writes file under assets dir and returns asciidoc" do

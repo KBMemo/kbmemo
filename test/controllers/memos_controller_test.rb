@@ -195,6 +195,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-memo-body-editor-wiki-completions-url-value]"
     assert_select "[data-memo-body-editor-upload-url-value=?]", assets_memo_path(memos(:one))
     assert_select "input[data-memo-body-editor-target='imageInput'][multiple][data-action*='uploadImage']"
+    assert_includes response.body, "ドラッグ＆ドロップ"
     assert_select '[data-controller*="memo-body-editor"] [data-memo-body-editor-target="host"]'
     assert_select '[data-controller*="memo-body-editor"] [data-memo-body-editor-target="field"]'
   end
@@ -329,6 +330,18 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "仕事"
     assert_select "input[name='memo[memo_directory_id]'][value='#{work.id}']"
     assert_includes response.body, 'data-memo-draft-target="directory"'
+    assert_select "button[disabled][title*='コミット']", text: "画像を挿入"
+    assert_select "input[data-memo-body-editor-target='imageInput']", count: 0
+  end
+
+  test "edit disables image insert when memo not committed to git" do
+    memo = memos(:one)
+    memo.update_column(:file_committed_at, nil)
+    get edit_memo_url(memo)
+    assert_response :success
+    assert_select "button[disabled][title*='コミット']", text: "画像を挿入"
+    assert_select "input[data-memo-body-editor-target='imageInput']", count: 0
+    assert_not_includes response.body, assets_memo_path(memo)
   end
 
   test "create via json saves memo_directory_id from form body" do

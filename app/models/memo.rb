@@ -113,11 +113,18 @@ class Memo < ApplicationRecord
   end
 
   # 一覧・プレビュー文言など UI 用。未コミット、またはファイル保存後に DB が更新されている＝再編集ドラフト。
-  # スラッグ自動同期の可否は file_committed_at? のまま（一度コミットしたメモは別）。
+  # スラッグ自動同期の可否は file_committed_at? のまま（一度コミットしたら維持）。
   def display_as_draft?
     return true if file_committed_at.blank?
 
     updated_at > file_committed_at
+  end
+
+  # 画像アセットのアップロード可否（Git へ初回コミット済みか）。
+  # persisted? だけではドラフト自動保存済み・未コミットも true になるため file_committed_at を見る。
+  # 再編集ドラフト（display_as_draft? かつ file_committed_at あり）は true のまま。
+  def image_assets_uploadable?
+    persisted? && file_committed_at.present?
   end
 
   # Comma-separated labels; assigns tags before or after save via association.

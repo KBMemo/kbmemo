@@ -7,6 +7,19 @@ import { imageWysiwygExtension } from "../memo_body_editor/image_wysiwyg"
 import { wysiwygLiteExtension } from "../memo_body_editor/wysiwyg_lite"
 import { wikiLinkWysiwygExtension } from "../memo_body_editor/wiki_link_wysiwyg"
 
+const ACCEPTED_IMAGE_TYPE = /^image\/(png|jpeg|gif|webp)$/i
+const ACCEPTED_IMAGE_EXT = /\.(png|jpe?g|gif|webp)$/i
+
+function imageFilesFrom(fileList) {
+  return Array.from(fileList ?? []).filter(
+    (file) => ACCEPTED_IMAGE_TYPE.test(file.type) || ACCEPTED_IMAGE_EXT.test(file.name)
+  )
+}
+
+function dataTransferHasFiles(dataTransfer) {
+  return dataTransfer?.types?.includes("Files")
+}
+
 // 本文 textarea（送信・memo-draft の参照用）と CodeMirror を同期する。
 // CodeMirror は動的 import で初回のみ別チャンク読み込み。
 export default class extends Controller {
@@ -151,9 +164,14 @@ export default class extends Controller {
     queueMicrotask(() => {
       this.view?.requestMeasure()
     })
+
+    if (this.hasUploadUrlValue && this.uploadUrlValue) {
+      this._bindDragDrop()
+    }
   }
 
   disconnect() {
+    this._unbindDragDrop()
     if (this.fieldTarget && this._onTextareaExternalChange) {
       this.fieldTarget.removeEventListener("change", this._onTextareaExternalChange)
     }
@@ -161,6 +179,82 @@ export default class extends Controller {
       this.view.destroy()
       this.view = null
     }
+  }
+
+  _bindDragDrop() {
+    if (this._dragDropBound) return
+    this._dragDepth = 0
+    const opts = { capture: true }
+    this.element.addEventListener("dragenter", this._onDragEnter, opts)
+    this.element.addEventListener("dragover", this._onDragOver, opts)
+    this.element.addEventListener("dragleave", this._onDragLeave, opts)
+    this.element.addEventListener("drop", this._onDrop, opts)
+    this._dragDropBound = true
+  }
+
+  _unbindDragDrop() {
+    if (!this._dragDropBound) return
+    const opts = { capture: true }
+    this.element.removeEventListener("dragenter", this._onDragEnter, opts)
+    this.element.removeEventListener("dragover", this._onDragOver, opts)
+    this.element.removeEventListener("dragleave", this._onDragLeave, opts)
+    this.element.removeEventListener("drop", this._onDrop, opts)
+    this._dragDropBound = false
+    this._dragDepth = 0
+    this.element.classList.remove("memo-body-editor--drag-over")
+  }
+
+  _onDragEnter = (event) => {
+    if (!dataTransferHasFiles(event.dataTransfer)) return
+    event.preventDefault()
+    this._dragDepth += 1
+    this.element.classList.add("memo-body-editor--drag-over")
+  }
+
+  _onDragOver = (event) => {
+    if (!dataTransferHasFiles(event.dataTransfer)) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = "copy"
+    this.element.classList.add("memo-body-editor--drag-over")
+  }
+
+  _onDragLeave = (event) => {
+    if (!dataTransferHasFiles(event.dataTransfer)) return
+    this._dragDepth = Math.max(0, this._dragDepth - 1)
+    if (this._dragDepth === 0) {
+      this.element.classList.remove("memo-body-editor--drag-over")
+    }
+  }
+
+  _onDrop = async (event) => {
+    if (!dataTransferHasFiles(event.dataTransfer)) return
+    event.preventDefault()
+    event.stopPropagation()
+    this._dragDepth = 0
+    this.element.classList.remove("memo-body-editor--drag-over")
+
+    const all = Array.from(event.dataTransfer.files ?? [])
+    const files = imageFilesFrom(event.dataTransfer.files)
+    if (files.length === 0) {
+      if (all.length > 0) {
+        this.showUploadError("PNG / JPEG / GIF / WebP のみドロップできます")
+      }
+      return
+    }
+
+    this.placeSelectionAtDrop(event)
+    await this.uploadFiles(files)
+  }
+
+  placeSelectionAtDrop(event) {
+    if (!this.view) return
+    const pos = this.view.posAtCoords({ x: event.clientX, y: event.clientY })
+    if (pos == null) return
+    this.view.focus()
+    this.view.dispatch({
+      selection: { anchor: pos, head: pos },
+      scrollIntoView: true
+    })
   }
 
   notifyBodyBlur() {
@@ -178,8 +272,15 @@ export default class extends Controller {
     const input = event?.currentTarget ?? (this.hasImageInputTarget ? this.imageInputTarget : null)
     if (!input) return
 
-    const files = Array.from(input.files ?? [])
+    const files = imageFilesFrom(input.files)
     if (files.length === 0) return
+
+    await this.uploadFiles(files)
+    input.value = ""
+  }
+
+  async uploadFiles(files) {
+    if (!files?.length) return
 
     if (!this.hasUploadUrlValue || !this.uploadUrlValue) {
       this.showUploadError("画像のアップロード URL が未設定です。ページを再読み込みしてください。")
@@ -225,8 +326,6 @@ export default class extends Controller {
         break
       }
     }
-
-    input.value = ""
 
     if (inserted.length > 0) {
       await this.insertAtCursor(inserted.join("\n\n"))

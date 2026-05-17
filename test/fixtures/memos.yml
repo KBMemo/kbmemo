@@ -39,6 +39,7 @@ one:
   slug: first-memo
   memo_directory: work
   account_id: 1
+  file_committed_at: <%= Time.utc(2026, 1, 1, 12, 0, 0) %>
 
 two:
   title: Second memo
@@ -47,3 +48,4 @@ two:
   slug: second-memo
   memo_directory: work
   account_id: 1
+  file_committed_at: <%= Time.utc(2026, 1, 1, 12, 0, 0) %>

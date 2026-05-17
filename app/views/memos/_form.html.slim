@@ -84,18 +84,24 @@ ruby:
       data-memo-body-editor-wiki-completions-url-value=wiki_completions_memos_path(format: :json)
       data-memo-body-editor-wiki-link-labels-url-value=wiki_link_labels_memos_path(format: :json)
       data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "")
-      data-memo-body-editor-upload-url-value=(memo.persisted? ? assets_memo_path(memo) : "")
+      data-memo-body-editor-upload-url-value=(memo.image_assets_uploadable? ? assets_memo_path(memo) : "")
     ]
-      - if memo.persisted?
-        .mb-1.flex.flex-wrap.items-center.gap-2.border-b.border-zinc-100.pb-2
+      .mb-1.flex.flex-wrap.items-center.gap-2.border-b.border-zinc-100.pb-2
+        - if memo.image_assets_uploadable?
           label.cursor-pointer.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50
             | 画像を挿入
             input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple=true data-memo-body-editor-target="imageInput" data-action="change->memo-body-editor#uploadImage"
-          span.hidden.text-xs.text-red-600 data-memo-body-editor-target="uploadError"
-          p.text-xs.text-zinc-500
+        - else
+          button.rounded-md.border.border-zinc-200.bg-zinc-100.px-2.py-1.text-xs.font-medium.text-zinc-400.cursor-not-allowed type="button" disabled=true title="メモを Git にコミットしてから画像を挿入できます"
+            | 画像を挿入
+        span.hidden.text-xs.text-red-600 data-memo-body-editor-target="uploadError"
+        p.text-xs.text-zinc-500
+          - if memo.image_assets_uploadable?
             | 画像は
             code.text-zinc-600 image::filename[]
-            | 形式で保存されます（コミット時に Git へ記録）。
+            | 形式で保存されます（コミット時に Git へ記録）。エディタへドラッグ＆ドロップでも挿入できます。
+          - else
+            | 画像の挿入はメモを Git にコミットした後に利用できます（新規作成時・未コミットのドラフトでは利用できません）。
       = f.text_area :body,
         rows: 1,
         class: "sr-only",
