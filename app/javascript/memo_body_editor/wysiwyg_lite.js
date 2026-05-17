@@ -6,6 +6,8 @@ import { codeBlockByLine, isFenceDelimiterLine, scanCodeBlocks } from "./code_bl
 import { applyCodeBlockWysiwyg, cursorInCodeBlock } from "./code_block_wysiwyg"
 import { linkExclusionRanges } from "./wiki_link_wysiwyg"
 import { orderedListIndex, parseListLine } from "./list_syntax"
+import { scanTableBlocks, tableBlockByLine } from "./table_syntax"
+import { applyTableWysiwyg, cursorInTableBlock } from "./table_wysiwyg"
 
 const HEADING_LINE = /^(={2,6})(\s+)(.+)$/
 const DOC_TITLE_LINE = /^=(?!=)(\s*)(.*)$/
@@ -214,7 +216,10 @@ function buildWysiwygDecorations(view) {
   const editingActive = view.hasFocus
   const codeBlocks = scanCodeBlocks(state.doc)
   const codeByLine = codeBlockByLine(codeBlocks)
-  const admonitionBlocks = scanAdmonitionBlocks(state.doc, codeByLine)
+  const tableBlocks = scanTableBlocks(state.doc, (n) => codeByLine.has(n))
+  const tableByLine = tableBlockByLine(tableBlocks)
+  const skipBlockLine = (n) => codeByLine.has(n) || tableByLine.has(n)
+  const admonitionBlocks = scanAdmonitionBlocks(state.doc, skipBlockLine)
   const admonitionByLine = admonitionBlockByLine(admonitionBlocks)
 
   for (let lineNo = 1; lineNo <= state.doc.lines; lineNo++) {
@@ -229,6 +234,15 @@ function buildWysiwygDecorations(view) {
       continue
     }
     if (codeBlock) continue
+
+    const tableBlock = tableByLine.get(lineNo)
+    const editingTable = tableBlock && editingActive && cursorInTableBlock(state, tableBlock)
+
+    if (tableBlock && !editingTable) {
+      applyTableWysiwyg(specs, atomicRanges, line, text, lineNo, tableBlock)
+      continue
+    }
+    if (tableBlock) continue
 
     const onLine = editingActive && cursorOnLine(state, line)
     const admonition = admonitionByLine.get(lineNo)
@@ -289,6 +303,7 @@ function buildWysiwygDecorations(view) {
  * 非フォーカス時は全文プレビュー風。
  * 対象: 1行目ドキュメントタイトル（= Title / プレーン1行目）、見出し（==…）、
  * リスト行（Phase 5a）、admonition（Phase 5b）、コードブロック（Phase 5c）、
+ * テーブル（Phase 5d、|=== pipe 表）、
  * *bold*、_italic_、`` ` `` / `` + `` モノスペース
  */
 export function wysiwygLiteExtension() {

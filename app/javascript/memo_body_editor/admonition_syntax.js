@@ -3,6 +3,7 @@ export const ADMONITION_LABEL =
   /^(NOTE|TIP|IMPORTANT|WARNING|CAUTION):(\s*)(.*)$/
 
 import { isFenceDelimiterLine, LISTING_DELIM, LITERAL_DELIM } from "./code_block_syntax"
+import { TABLE_DELIM } from "./table_syntax"
 
 const HEADING_LINE = /^={1,6}\s/
 
@@ -13,6 +14,7 @@ export function isAdmonitionBlockEnd(text) {
   if (HEADING_LINE.test(text)) return true
   if (isFenceDelimiterLine(text)) return true
   if (LISTING_DELIM.test(text.trim()) || LITERAL_DELIM.test(text.trim())) return true
+  if (TABLE_DELIM.test(text.trim())) return true
   if (/^(-{4,}|\.{4,}|\*{4,}|_{4,}|={4,})$/.test(text.trim())) return true
   return false
 }
@@ -30,12 +32,13 @@ export function parseAdmonitionLabelLine(text) {
  * フェンス外の admonition ブロック一覧。
  * @returns {{ kind: string, startLine: number, endLine: number, labelLength: number }[]}
  */
-export function scanAdmonitionBlocks(doc, codeByLine = null) {
+export function scanAdmonitionBlocks(doc, skipLine = () => false) {
+  const skip = typeof skipLine === "function" ? skipLine : (n) => skipLine?.has(n) ?? false
   const blocks = []
   let lineNo = 1
 
   while (lineNo <= doc.lines) {
-    if (codeByLine?.has(lineNo)) {
+    if (skip(lineNo)) {
       lineNo++
       continue
     }
@@ -53,7 +56,7 @@ export function scanAdmonitionBlocks(doc, codeByLine = null) {
     lineNo++
 
     while (lineNo <= doc.lines) {
-      if (codeByLine?.has(lineNo)) break
+      if (skip(lineNo)) break
       const nextText = doc.line(lineNo).text
       if (isAdmonitionBlockEnd(nextText)) break
       block.endLine = lineNo

@@ -70,11 +70,51 @@
   color: var(--mg-primary);
 }
 
+/* --- Phase 5d テーブル（メモ表示） --- */
+
+.memo-body .tableblock {
+  margin: 0.65em 0;
+}
+
+.memo-body .tableblock > .title {
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--mg-primary);
+  margin: 0 0 0.35em;
+  padding: 0;
+  line-height: 1.25;
+}
+
+.memo-body table.tableblock {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  color: var(--mg-text);
+  line-height: 1.5;
+}
+
 .memo-body table.tableblock > thead > tr > th,
-.memo-body table thead th {
+.memo-body table.tableblock > tbody > tr > th,
+.memo-body table.tableblock th.tableblock {
   background-color: #eeeeee;
   color: var(--mg-text);
-  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  text-align: left;
+  border: 1px solid var(--mg-divider);
+  padding: 0.4rem 0.55rem;
+}
+
+.memo-body table.tableblock > tbody > tr > td,
+.memo-body table.tableblock td.tableblock {
+  border: 1px solid var(--mg-divider);
+  padding: 0.35rem 0.55rem;
+  vertical-align: top;
+}
+
+.memo-body table.tableblock > tbody > tr:nth-child(even) > td {
+  background-color: #fafafa;
 }
 
 /* リスト */
@@ -498,4 +538,68 @@
 .memo-body .listingblock > .content > pre {
   padding-top: 0;
   padding-bottom: 0;
+}
+
+/* --- Phase 5d テーブル（エディタ WYSIWYG） --- */
+
+.memo-body-editor .cm-wysiwyg-table {
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--mg-text);
+  background-color: var(--mg-surface);
+  padding: 0 0.5rem;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-table-first {
+  border-top: 1px solid var(--mg-divider);
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-table-last {
+  border-bottom: 1px solid var(--mg-divider);
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-table-title-line {
+  font-size: 0.875rem;
+  line-height: 1.25;
+  padding-top: 0;
+  padding-bottom: 0.1rem;
+  background: transparent;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-table-attr-line {
+  line-height: 0.35rem;
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.memo-body-editor .cm-wysiwyg-table-caption {
+  display: inline;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--mg-primary);
+  user-select: none;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-table-open-line {
+  line-height: 1.1;
+  min-height: 0;
+  padding-top: 0.05rem;
+  padding-bottom: 0.05rem;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-table-row {
+  border-left: 1px solid var(--mg-divider);
+  border-right: 1px solid var(--mg-divider);
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-table-row-header {
+  background-color: #eeeeee;
+  font-weight: 600;
+}
+
+.memo-body-editor .cm-line.cm-wysiwyg-table-gap {
+  min-height: 0.25rem;
+  line-height: 0.35rem;
 }

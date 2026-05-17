@@ -59,6 +59,22 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, "require 'sinatra'"
   end
 
+  test "memo_html renders pipe table with title and columns" do
+    body = <<~ADOC
+      .Table 1
+      [cols="2,3"]
+      |===
+      |A |B
+      |1 |2
+      |===
+    ADOC
+    html = memo_html(body, source_memo: memos(:one))
+    assert_includes html, 'class="tableblock"'
+    assert_includes html, "Table 1"
+    assert_includes html, ">A<"
+    assert_includes html, ">1<"
+  end
+
   test "memo_html renders admonition with font icon" do
     html = memo_html("NOTE: Remember this.", source_memo: memos(:one))
     assert_includes html, 'class="admonitionblock note"'
