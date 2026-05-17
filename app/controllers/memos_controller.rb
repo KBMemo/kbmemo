@@ -226,8 +226,9 @@ class MemosController < ApplicationController
   end
 
   def memo_directory_id_for_new
-    if params[:memo_directory_id].present?
-      policy_scope(MemoDirectory).find_by(id: params[:memo_directory_id])&.id
+    dir_id = params.dig(:memo, :memo_directory_id).presence || params[:memo_directory_id].presence
+    if dir_id.present?
+      policy_scope(MemoDirectory).find_by(id: dir_id)&.id
     else
       MemoDirectory::UserSpace.default_home_directory(rodauth.rails_account.id).id
     end

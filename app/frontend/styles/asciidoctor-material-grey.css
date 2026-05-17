@@ -590,13 +590,46 @@
 }
 
 .memo-body-editor .cm-line.cm-wysiwyg-table-row {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.memo-body-editor .cm-wysiwyg-table-grid-row {
+  display: grid;
+  box-sizing: border-box;
+  width: 100%;
+  gap: 0;
   border-left: 1px solid var(--mg-divider);
   border-right: 1px solid var(--mg-divider);
+  vertical-align: top;
+}
+
+/* ViewPlugin では block 装飾不可のため、インライン replace 内でブロック幅に広げる */
+.memo-body-editor .cm-line.cm-wysiwyg-table-row .cm-widgetBuffer,
+.memo-body-editor .cm-line.cm-wysiwyg-table-row .cm-wysiwyg-table-grid-row {
+  display: block;
+  width: 100%;
+}
+
+.memo-body-editor .cm-wysiwyg-table-grid-row--header .cm-wysiwyg-table-grid-cell {
+  background-color: #eeeeee;
+  font-weight: 600;
+}
+
+.memo-body-editor .cm-wysiwyg-table-grid-cell {
+  min-width: 0;
+  padding: 0.35rem 0.55rem;
+  border-right: 1px solid var(--mg-divider);
+  border-bottom: 1px solid var(--mg-divider);
+  overflow-wrap: anywhere;
+}
+
+.memo-body-editor .cm-wysiwyg-table-grid-cell:last-child {
+  border-right: 0;
 }
 
 .memo-body-editor .cm-line.cm-wysiwyg-table-row-header {
-  background-color: #eeeeee;
-  font-weight: 600;
+  background: transparent;
 }
 
 .memo-body-editor .cm-line.cm-wysiwyg-table-gap {

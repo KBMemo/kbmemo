@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { asciidocExtensions } from "../memo_body_editor/asciidoc_extensions"
 import { wikiAutocompletion } from "../memo_body_editor/wiki_completion"
 import { listContinuationExtension } from "../memo_body_editor/list_continuation"
+import { tableWysiwygFieldExtension } from "../memo_body_editor/table_wysiwyg_field"
 import { wysiwygLiteExtension } from "../memo_body_editor/wysiwyg_lite"
 import { wikiLinkWysiwygExtension } from "../memo_body_editor/wiki_link_wysiwyg"
 
@@ -121,6 +122,7 @@ export default class extends Controller {
         EditorView.lineWrapping,
         ...asciidocExtensions(),
         wysiwygLiteExtension(),
+        ...tableWysiwygFieldExtension(),
         listContinuationExtension(),
         ...wikiLinkWysiwygExtension(getWikiLabelsConfig),
         ...wikiAutocompletion(getWikiConfig),

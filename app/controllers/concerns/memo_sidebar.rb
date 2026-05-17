@@ -34,6 +34,8 @@ module MemoSidebar
         @memo.memo_directory
       elsif params[:memo_directory_id].present?
         policy_scope(MemoDirectory).find_by(id: params[:memo_directory_id]) || MemoDirectory.root
+      elsif %w[new create].include?(action_name) && instance_variable_defined?(:@memo) && @memo&.memo_directory && !@memo.memo_directory.root?
+        @memo.memo_directory
       else
         MemoDirectory.root
       end

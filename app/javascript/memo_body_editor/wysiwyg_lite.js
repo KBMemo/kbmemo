@@ -1,4 +1,4 @@
-import { RangeSet, RangeSetBuilder } from "@codemirror/state"
+import { RangeSet } from "@codemirror/state"
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view"
 import { admonitionBlockByLine, scanAdmonitionBlocks } from "./admonition_syntax"
 import { applyAdmonitionWysiwyg, cursorInAdmonitionBlock } from "./admonition_wysiwyg"
@@ -7,7 +7,6 @@ import { applyCodeBlockWysiwyg, cursorInCodeBlock } from "./code_block_wysiwyg"
 import { linkExclusionRanges } from "./wiki_link_wysiwyg"
 import { orderedListIndex, parseListLine } from "./list_syntax"
 import { scanTableBlocks, tableBlockByLine } from "./table_syntax"
-import { applyTableWysiwyg, cursorInTableBlock } from "./table_wysiwyg"
 
 const HEADING_LINE = /^(={2,6})(\s+)(.+)$/
 const DOC_TITLE_LINE = /^=(?!=)(\s*)(.*)$/
@@ -17,8 +16,6 @@ const MONO_DBL_BACKTICK = /``([^`\s][^`]*?)``/g
 const MONO_BACKTICK = /`([^`\s][^`]*?)`/g
 const MONO_DBL_PLUS = /\+\+([^+\s][^+]*?)\+\+/g
 const MONO_PLUS = /\+([^+\s][^+]*?)\+/g
-
-const KIND_ORDER = { line: 0, replace: 1, mark: 2 }
 
 /** 選択範囲が [from, to) と重なるか */
 function selectionTouches(state, from, to) {
@@ -162,14 +159,6 @@ function pushSpec(specs, from, to, deco, kind) {
   specs.push({ from, to, deco, kind })
 }
 
-function sortSpecs(specs) {
-  specs.sort((a, b) => {
-    if (a.from !== b.from) return a.from - b.from
-    if (a.to !== b.to) return a.to - b.to
-    return KIND_ORDER[a.kind] - KIND_ORDER[b.kind]
-  })
-}
-
 function decorateInline(specs, atomicRanges, line, text, lineFrom, state, editingActive) {
   const linkRanges = linkExclusionRanges(text, lineFrom)
   const occupied = []
@@ -235,14 +224,7 @@ function buildWysiwygDecorations(view) {
     }
     if (codeBlock) continue
 
-    const tableBlock = tableByLine.get(lineNo)
-    const editingTable = tableBlock && editingActive && cursorInTableBlock(state, tableBlock)
-
-    if (tableBlock && !editingTable) {
-      applyTableWysiwyg(specs, atomicRanges, line, text, lineNo, tableBlock)
-      continue
-    }
-    if (tableBlock) continue
+    if (tableByLine.has(lineNo)) continue
 
     const onLine = editingActive && cursorOnLine(state, line)
     const admonition = admonitionByLine.get(lineNo)
@@ -278,24 +260,20 @@ function buildWysiwygDecorations(view) {
     decorateInline(specs, atomicRanges, line, text, line.from, state, editingActive)
   }
 
-  sortSpecs(specs)
-
-  const builder = new RangeSetBuilder()
-  for (const spec of specs) {
-    builder.add(spec.from, spec.to, spec.deco)
-  }
-
-  atomicRanges.sort((a, b) => a.from - b.from || a.to - b.to)
+  const decorations = Decoration.set(
+    specs.map((spec) => spec.deco.range(spec.from, spec.to)),
+    true
+  )
 
   const atomic =
     atomicRanges.length > 0
-      ? RangeSet.of(atomicRanges.map((r) => Decoration.replace({}).range(r.from, r.to)))
+      ? RangeSet.of(
+          atomicRanges.map((r) => Decoration.replace({}).range(r.from, r.to)),
+          true
+        )
       : RangeSet.empty
 
-  return {
-    decorations: builder.finish(),
-    atomicRanges: atomic
-  }
+  return { decorations, atomicRanges: atomic }
 }
 
 /**
@@ -303,7 +281,7 @@ function buildWysiwygDecorations(view) {
  * 非フォーカス時は全文プレビュー風。
  * 対象: 1行目ドキュメントタイトル（= Title / プレーン1行目）、見出し（==…）、
  * リスト行（Phase 5a）、admonition（Phase 5b）、コードブロック（Phase 5c）、
- * テーブル（Phase 5d、|=== pipe 表）、
+ * テーブル（Phase 5d は table_wysiwyg_field）、
  * *bold*、_italic_、`` ` `` / `` + `` モノスペース
  */
 export function wysiwygLiteExtension() {

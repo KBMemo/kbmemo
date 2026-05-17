@@ -316,6 +316,38 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "new memo form uses sidebar directory from query param" do
+    work = memo_directories(:work)
+    get new_memo_url(memo_directory_id: work.id)
+    assert_response :success
+    assert_includes response.body, "仕事"
+    assert_select "input[name='memo[memo_directory_id]'][value='#{work.id}']"
+    assert_includes response.body, 'data-memo-draft-target="directory"'
+  end
+
+  test "create via json saves memo_directory_id from form body" do
+    work = memo_directories(:work)
+    home_u_one = memo_directories(:home_u_one)
+    assert_difference("Memo.count", 1) do
+      post memos_url,
+        params: {
+          memo: {
+            body: "= In work dir\n",
+            title_manual: false,
+            slug: "",
+            memo_directory_id: work.id,
+            tag_list: "",
+            properties_yaml: "{}"
+          }
+        },
+        as: :json
+    end
+    assert_response :created
+    m = Memo.order(:id).last
+    assert_equal work.id, m.memo_directory_id
+    assert_not_equal home_u_one.id, m.memo_directory_id
+  end
+
   test "create via json returns edit path for autosave bootstrap" do
     assert_difference("Memo.count", 1) do
       post memos_url,
