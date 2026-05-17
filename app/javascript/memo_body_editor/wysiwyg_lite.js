@@ -1,6 +1,7 @@
 import { RangeSet, RangeSetBuilder } from "@codemirror/state"
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view"
 import { linkExclusionRanges } from "./wiki_link_wysiwyg"
+import { orderedListIndex, parseListLine } from "./list_syntax"
 
 const HEADING_LINE = /^(={2,6})(\s+)(.+)$/
 const DOC_TITLE_LINE = /^=(?!=)(\s*)(.*)$/
@@ -10,9 +11,6 @@ const MONO_DBL_BACKTICK = /``([^`\s][^`]*?)``/g
 const MONO_BACKTICK = /`([^`\s][^`]*?)`/g
 const MONO_DBL_PLUS = /\+\+([^+\s][^+]*?)\+\+/g
 const MONO_PLUS = /\+([^+\s][^+]*?)\+/g
-// codemirror-asciidoc listStart と同型（行頭マーカー + 空白）
-const LIST_LINE =
-  /^(\s*)((?:\d+\.|[a-zA-Z]\.|[ixvmIXVM]+\)|\*{1,5}|-|\.{1,5}))(\s+)(.*)$/
 
 const FENCE_LINE = /^```/
 
@@ -58,54 +56,7 @@ function applyHeadingWysiwyg(specs, atomicRanges, line, markerEnd, lineClass) {
   }
 }
 
-function listKind(marker) {
-  if (/^\*+$/.test(marker) || marker === "-") return "bullet"
-  // `.` / `..` / `1.` 等は有序リスト（番号省略の `. ` 含む）
-  return "ordered"
-}
-
-function listLevel(indent, marker) {
-  const indentCols = indent.replace(/\t/g, "  ").length
-  const indentLevel = Math.floor(indentCols / 2)
-  if (/^\*+$/.test(marker)) return Math.min(5, indentLevel + marker.length)
-  if (/^\.+$/.test(marker)) return Math.min(5, indentLevel + marker.length)
-  return Math.min(5, indentLevel + 1)
-}
-
-function parseListLine(text) {
-  const match = text.match(LIST_LINE)
-  if (!match) return null
-
-  const indent = match[1]
-  const marker = match[2]
-  const space = match[3]
-  const markerEndInLine = indent.length + marker.length + space.length
-  const kind = listKind(marker)
-  const level = listLevel(indent, marker)
-
-  return {
-    indentLength: indent.length,
-    markerEndInLine,
-    kind,
-    marker,
-    level,
-    lineClass: `cm-wysiwyg-list cm-wysiwyg-list-${kind} cm-wysiwyg-list-level-${level}`
-  }
-}
-
 const LOWER_ROMAN = ["", "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii"]
-
-/** 同じインデント・同じマーカー形式の連続有序行の序数（1 始まり） */
-function orderedListIndex(doc, lineNo, indentLength, marker) {
-  let index = 1
-  for (let n = lineNo - 1; n >= 1; n--) {
-    const prev = parseListLine(doc.line(n).text)
-    if (!prev || prev.kind !== "ordered" || prev.indentLength !== indentLength) break
-    if (prev.marker !== marker) break
-    index++
-  }
-  return index
-}
 
 function lowerAlphaMarker(index) {
   if (index < 1 || index > 26) return `${index}.`
