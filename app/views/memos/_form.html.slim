@@ -90,7 +90,7 @@ ruby:
         .mb-1.flex.flex-wrap.items-center.gap-2.border-b.border-zinc-100.pb-2
           label.cursor-pointer.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50
             | 画像を挿入
-            input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp" data-memo-body-editor-target="imageInput" data-action="change->memo-body-editor#uploadImage"
+            input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple=true data-memo-body-editor-target="imageInput" data-action="change->memo-body-editor#uploadImage"
           span.hidden.text-xs.text-red-600 data-memo-body-editor-target="uploadError"
           p.text-xs.text-zinc-500
             | 画像は

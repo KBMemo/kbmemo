@@ -178,8 +178,8 @@ export default class extends Controller {
     const input = event?.currentTarget ?? (this.hasImageInputTarget ? this.imageInputTarget : null)
     if (!input) return
 
-    const file = input.files?.[0]
-    if (!file) return
+    const files = Array.from(input.files ?? [])
+    if (files.length === 0) return
 
     if (!this.hasUploadUrlValue || !this.uploadUrlValue) {
       this.showUploadError("画像のアップロード URL が未設定です。ページを再読み込みしてください。")
@@ -189,36 +189,53 @@ export default class extends Controller {
     this.clearUploadError()
 
     const token = document.querySelector('meta[name="csrf-token"]')?.content
-    const form = new FormData()
-    form.append("file", file)
+    const inserted = []
+    let failed = null
 
-    try {
-      const res = await fetch(this.uploadUrlValue, {
-        method: "POST",
-        body: form,
-        headers: {
-          Accept: "application/json",
-          ...(token ? { "X-CSRF-Token": token } : {})
-        },
-        credentials: "same-origin"
-      })
+    for (const file of files) {
+      const form = new FormData()
+      form.append("file", file)
 
-      let data = {}
       try {
-        data = await res.json()
+        const res = await fetch(this.uploadUrlValue, {
+          method: "POST",
+          body: form,
+          headers: {
+            Accept: "application/json",
+            ...(token ? { "X-CSRF-Token": token } : {})
+          },
+          credentials: "same-origin"
+        })
+
+        let data = {}
+        try {
+          data = await res.json()
+        } catch {
+          data = {}
+        }
+
+        if (!res.ok) {
+          failed = data.error || `${file.name}: アップロードに失敗しました`
+          break
+        }
+
+        inserted.push(data.asciidoc || `image::${data.filename}[]`)
       } catch {
-        data = {}
+        failed = `${file.name}: アップロードに失敗しました`
+        break
       }
+    }
 
-      if (!res.ok) {
-        this.showUploadError(data.error || "アップロードに失敗しました")
-        return
-      }
+    input.value = ""
 
-      input.value = ""
-      await this.insertAtCursor(data.asciidoc || `image::${data.filename}[]`)
-    } catch {
-      this.showUploadError("アップロードに失敗しました")
+    if (inserted.length > 0) {
+      await this.insertAtCursor(inserted.join("\n\n"))
+    }
+
+    if (failed) {
+      const suffix =
+        inserted.length > 0 ? `（${inserted.length} 件は挿入済み）` : ""
+      this.showUploadError(`${failed}${suffix}`)
     }
   }
 
