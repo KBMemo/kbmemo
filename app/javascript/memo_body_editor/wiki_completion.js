@@ -1,8 +1,18 @@
 import { autocompletion, startCompletion } from "@codemirror/autocomplete"
 import { EditorView } from "@codemirror/view"
 
+/** [[ と ]]（または | より前）に挟まれたスラッグ文字列全体 */
+function wikiSlugSpan(text, innerStart, closeIdx) {
+  const raw = closeIdx === -1 ? text.slice(innerStart) : text.slice(innerStart, closeIdx)
+  const pipeAt = raw.indexOf("|")
+  const query = pipeAt === -1 ? raw : raw.slice(0, pipeAt)
+  const slugEndOffset = innerStart + (pipeAt === -1 ? raw.length : pipeAt)
+  return { query, slugEndOffset }
+}
+
 /**
  * [[query または [[既存リンク]] 内を編集中ならコンテキストを返す。
+ * 検索クエリはカーソル左ではなく [[ … ]] 内のスラッグ全体。
  * 既存リンクのときは [[ ... ]] 全体（閉じ括弧まで）を置換範囲にする。
  */
 export function wikiLinkContext(state, pos) {
@@ -17,28 +27,21 @@ export function wikiLinkContext(state, pos) {
 
   const innerStart = openIdx + 2
   const closeIdx = text.indexOf("]]", innerStart)
+  const { query, slugEndOffset } = wikiSlugSpan(text, innerStart, closeIdx)
 
   if (closeIdx === -1) {
-    const query = before.slice(innerStart)
-    if (query.includes("|")) return null
+    if (offset < innerStart || offset > slugEndOffset) return null
     return {
       query,
       from: lineStart + innerStart,
-      to: pos,
+      to: lineStart + slugEndOffset,
       replaceClosing: false
     }
   }
 
   const linkEnd = closeIdx + 2
   if (pos > lineStart + linkEnd) return null
-
-  const inner = text.slice(innerStart, closeIdx)
-  const pipeAt = inner.indexOf("|")
-  const targetEndOffset = pipeAt === -1 ? closeIdx : innerStart + pipeAt
-  if (offset > targetEndOffset) return null
-
-  const query = text.slice(innerStart, Math.min(offset, targetEndOffset))
-  if (query.includes("|")) return null
+  if (offset < innerStart || offset > slugEndOffset) return null
 
   return {
     query,
