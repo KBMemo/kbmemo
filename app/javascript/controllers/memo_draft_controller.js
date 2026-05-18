@@ -27,7 +27,8 @@ export default class extends Controller {
     createUrl: String,
     debounce: { type: Number, default: 800 },
     fileCommitted: { type: Boolean, default: false },
-    memoId: Number
+    memoId: Number,
+    tagCatalog: { type: Array, default: [] }
   }
 
   connect() {
@@ -225,9 +226,35 @@ export default class extends Controller {
   }
 
   removeTagFromParam(event) {
+    event.stopPropagation()
     const index = Number.parseInt(event.params.tagIndex, 10)
     if (Number.isNaN(index)) return
     this.removeTagAt(index)
+  }
+
+  openTagInSidebarKeydown(event) {
+    if (event.key !== "Enter" && event.key !== " ") return
+    event.preventDefault()
+    this.openTagInSidebar(event)
+  }
+
+  openTagInSidebar(event) {
+    if (event.target.closest("button")) return
+    const label = event.currentTarget.querySelector(":scope > span")?.textContent?.trim()
+    if (!label || !this.hasMemoIdValue) return
+
+    const tag = this.tagCatalogValue.find(
+      (entry) => String(entry.name).toLowerCase() === label.toLowerCase()
+    )
+    if (!tag?.id) return
+
+    const url = new URL(window.location.href)
+    url.pathname = `/memos/${this.memoIdValue}/edit`
+    url.searchParams.set("sidebar_view", "tag")
+    url.searchParams.set("tag_id", String(tag.id))
+    url.searchParams.delete("memo_directory_id")
+    url.searchParams.delete("q")
+    window.location.assign(url.toString())
   }
 
   removeTagAt(index) {
@@ -270,10 +297,26 @@ export default class extends Controller {
 
     tags.forEach((label, index) => {
       const pill = document.createElement("span")
-      pill.className =
-        "inline-flex max-w-full items-center gap-1 rounded-full bg-white pl-3 pr-1 py-1 text-sm text-zinc-700 ring-1 ring-zinc-200"
+      const tagEntry = this.tagCatalogValue.find(
+        (entry) => String(entry.name).toLowerCase() === label.toLowerCase()
+      )
+      const navigable = Boolean(tagEntry?.id && this.hasMemoIdValue)
+      pill.className = [
+        "inline-flex max-w-full items-center gap-1 rounded-full bg-white pl-3 pr-1 py-1 text-sm text-zinc-700 ring-1 ring-zinc-200",
+        navigable ? "cursor-pointer hover:bg-zinc-50" : ""
+      ]
+        .filter(Boolean)
+        .join(" ")
+      if (navigable) {
+        pill.setAttribute("role", "button")
+        pill.setAttribute("tabindex", "0")
+        pill.setAttribute("title", "サイドバーでこのタグを表示")
+        pill.setAttribute("data-action", "click->memo-draft#openTagInSidebar keydown->memo-draft#openTagInSidebarKeydown")
+      }
       const text = document.createElement("span")
-      text.className = "min-w-0 truncate"
+      text.className = navigable
+        ? "min-w-0 truncate underline decoration-zinc-300"
+        : "min-w-0 truncate"
       text.textContent = label
       pill.appendChild(text)
 
@@ -356,17 +399,7 @@ export default class extends Controller {
   async directoryChange() {
     if (!this.hasDirectoryTarget) return
     const id = this.directoryTarget.value
-    const ok = await this.persistDraftMerged({ memo_directory_id: id })
-    if (ok && id) this.syncSidebarDirectoryQueryParam(id)
-  }
-
-  syncSidebarDirectoryQueryParam(directoryId) {
-    const url = new URL(window.location.href)
-    url.searchParams.set("memo_directory_id", directoryId)
-    url.searchParams.delete("sidebar_view")
-    url.searchParams.delete("tag_id")
-    url.searchParams.delete("q")
-    history.replaceState({}, "", url)
+    await this.persistDraftMerged({ memo_directory_id: id })
   }
 
   normalizeOutgoingTitle(value) {

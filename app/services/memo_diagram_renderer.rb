@@ -24,10 +24,11 @@ class MemoDiagramRenderer
   def render(engine:, source:)
     kroki_type = MemoDiagram.kroki_type(engine)
     uri = URI.parse("#{@base_url}/#{kroki_type}/svg")
-    response = post_svg(uri, source.to_s)
-    raise Error, "Kroki が空の SVG を返しました" if response.body.blank?
+    response = post_svg(uri, Utf8Bytes.coerce(source))
+    svg_body = Utf8Bytes.coerce(response.body)
+    raise Error, "Kroki が空の SVG を返しました" if svg_body.blank?
 
-    MemoSvgSanitizer.sanitize!(response.body)
+    MemoSvgSanitizer.sanitize!(svg_body)
   rescue MemoAssets::InvalidFile => e
     raise Error, e.message
   rescue SocketError, Errno::ECONNREFUSED, Net::OpenTimeout, Net::ReadTimeout => e
@@ -37,16 +38,27 @@ class MemoDiagramRenderer
   private
 
   def kroki_failure_message(response)
-    body = response.body.to_s
+    body = Utf8Bytes.coerce(response.body)
     if body.include?("127.0.0.1:8002") || body.include?(":8002")
       return "Mermaid 用の Kroki コンパニオン (kroki-mermaid) が起動していません。" \
              " `docker compose -f docker-compose.kroki.yml up -d` を実行してください。"
     end
 
-    text = body[/>([^<]+Connection refused[^<]+)</, 1] ||
-           body[/>([^<]+Error \d+:[^<]+)</, 1]
-    detail = text&.strip.presence || body.strip.presence || response.message
+    detail = extract_kroki_error_detail(body) ||
+             body[/>([^<]+Connection refused[^<]+)</, 1]&.strip.presence ||
+             body[/>([^<]+Error \d+:[^<]+)</, 1]&.strip.presence ||
+             body.strip.presence ||
+             response.message
     "Kroki エラー (#{response.code}): #{detail}"
+  end
+
+  def extract_kroki_error_detail(body)
+    return nil unless body.include?("<svg")
+
+    lines = body.scan(/<tspan[^>]*>([^<]*)<\/tspan>/).flatten.map { |s| CGI.unescapeHTML(s.strip) }.reject(&:blank?)
+    return nil if lines.empty?
+
+    lines.find { |line| line.match?(/\AError \d+:/i) } || lines.first
   end
 
   def post_svg(uri, body)
@@ -54,7 +66,7 @@ class MemoDiagramRenderer
       request = Net::HTTP::Post.new(uri)
       request["Content-Type"] = "text/plain"
       request["Accept"] = "image/svg+xml"
-      request.body = body
+      request.body = Utf8Bytes.coerce(body)
       response = http.request(request)
       unless response.is_a?(Net::HTTPSuccess)
         raise Error, kroki_failure_message(response)

@@ -4,10 +4,11 @@ ruby:
     action: "submit->memo-draft#preventSubmit keydown->memo-draft#suppressEnterSubmit",
     turbo: "false"
   }
-  form_data[:memo_draft_draft_url_value] = draft_memo_path(memo) if memo.persisted?
+  form_data[:memo_draft_draft_url_value] = draft_memo_path(memo, memo_sidebar_nav_query) if memo.persisted?
   form_data[:memo_draft_create_url_value] = memos_path unless memo.persisted?
   form_data[:memo_draft_file_committed_value] = memo.file_committed_at.present?
   form_data[:memo_draft_memo_id_value] = memo.id if memo.persisted?
+  form_data[:memo_draft_tag_catalog_value] = memo_tag_catalog_for_pills.to_json
 
 = form_with model: memo, class: "space-y-3", data: form_data do |f|
   = hidden_field_tag "memo[title_manual]", memo.title_manual ? "1" : "0", data: { memo_draft_target: "titleManualFlag" }

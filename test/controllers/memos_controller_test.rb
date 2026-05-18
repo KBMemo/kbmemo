@@ -20,7 +20,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to memos_url(sidebar_view: "search", q: "hello")
   end
 
-  test "show from search directory tab stays on memo and syncs directory sidebar" do
+  test "show from search keeps memo open without syncing directory sidebar" do
     m = memos(:one)
     dir = m.memo_directory
     m.update_columns(title: "SidebarSyncSearch", body: "body")
@@ -29,7 +29,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "a", text: "ディレクトリ" do |links|
       href = links.first["href"]
-      assert_includes href, "memo_directory_id=#{dir.id}"
+      assert_match %r{/memos/#{m.id}/edit}, href
+      assert_not_includes href, "memo_directory_id=#{dir.id}"
       assert_not_includes href, "sidebar_view=search"
     end
 
@@ -127,16 +128,26 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_equal work.id, m.reload.memo_directory_id
   end
 
-  test "draft directory change turbo stream refreshes sidebar selection" do
+  test "draft directory change does not refresh sidebar directory selection" do
     m = memos(:one)
+    work = m.memo_directory
     share_u1 = MemoDirectory.find_by!(full_path: "share/u-1")
-    patch draft_memo_url(m),
+
+    get edit_memo_url(m, memo_directory_id: work.id)
+    assert_response :success
+
+    patch draft_memo_url(m, memo_directory_id: work.id),
       params: { memo: { memo_directory_id: share_u1.id } },
       headers: { "Accept" => "text/vnd.turbo-stream.html" }
     assert_response :success
     assert_includes response.media_type, "turbo-stream"
-    assert_includes response.body, %(memo_directory_id=#{share_u1.id})
-    assert_includes response.body, "bg-zinc-200 font-medium text-zinc-900"
+    assert_equal share_u1.id, m.reload.memo_directory_id
+
+    list_panel = response.body[/target="memos_list_panel"><template>(.*)<\/template>/m, 1]
+    assert list_panel, "expected memos_list_panel turbo stream"
+    assert_includes list_panel, %(href="/memos?memo_directory_id=#{work.id}"><span class="truncate">仕事</span></a>)
+    assert_includes list_panel, "bg-zinc-200 font-medium text-zinc-900"
+    assert_not_includes list_panel, %(href="/memos?memo_directory_id=#{share_u1.id}" class="block rounded-md px-2 py-1.5 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 bg-zinc-200)
   end
 
   test "draft rejects top level bucket as memo directory" do
@@ -191,6 +202,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "memo-draft#preventSubmit"
     assert_includes response.body, "memo-draft#suppressEnterSubmit"
     assert_includes response.body, "memo_slug_field"
+    assert_match(/data-memo-draft-tag-catalog-value=.*Ideas/, response.body)
     assert_select '[data-controller*="memo-body-editor"]'
     assert_select "[data-memo-body-editor-wiki-completions-url-value]"
     assert_select "[data-memo-body-editor-upload-url-value=?]", assets_memo_path(memos(:one))
@@ -435,6 +447,27 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, %(href="/memos/#{target.id}")
     assert_includes response.body, target.title
+  end
+
+  test "show displays memo directory path in metadata" do
+    memo = memos(:one)
+    memo.update_columns(file_committed_at: 1.hour.ago)
+    get memo_url(memo)
+    assert_response :success
+    assert_includes response.body, memo.memo_directory.labeled_path_from_root
+    assert_includes response.body, memo.slug
+    assert_select "a[href=?]", memo_path(memo, memo_directory_id: memo.memo_directory_id),
+      text: memo.memo_directory.labeled_path_from_root
+  end
+
+  test "show tag links open sidebar tag tab" do
+    memo = memos(:one)
+    tag = memo.tags.first!
+    t = 1.hour.ago.change(usec: 0)
+    memo.update_columns(file_committed_at: t, updated_at: t)
+    get memo_url(memo)
+    assert_response :success
+    assert_select "a[href=?]", memo_path(memo, sidebar_view: "tag", tag_id: tag.id), text: tag.name
   end
 
   test "show does not link to memo outside policy scope" do

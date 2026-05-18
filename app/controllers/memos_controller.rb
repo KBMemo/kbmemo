@@ -144,7 +144,6 @@ class MemosController < ApplicationController
     old_abs = repo.absolute_path_for(@memo)
 
     wrapper = ActionController::Parameters.new(memo: draft_params)
-    directory_changing = draft_params.key?(:memo_directory_id)
     unless assign_memo_fields(@memo, wrapper)
       render json: { errors: @memo.errors.full_messages }, status: :unprocessable_entity
       return
@@ -166,12 +165,7 @@ class MemosController < ApplicationController
     end
 
     if @memo.save(validate: false)
-      if directory_changing
-        @memo.reload
-        refresh_memo_sidebar_directory_context!
-      else
-        load_sidebar_memos_list
-      end
+      load_sidebar_memos_list
       broadcast_updated_show_content
       respond_to do |format|
         format.turbo_stream do

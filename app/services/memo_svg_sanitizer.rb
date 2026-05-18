@@ -25,7 +25,7 @@ class MemoSvgSanitizer
   end
 
   def sanitize!(input)
-    doc = Nokogiri::XML(input.to_s.b) { |cfg| cfg.strict.nonet.noblanks }
+    doc = Nokogiri::XML(Utf8Bytes.coerce(input)) { |cfg| cfg.strict.nonet.noblanks }
     root = doc.root
     raise MemoAssets::InvalidFile, "SVG のルート要素が不正です" unless root&.name == "svg"
 
@@ -47,7 +47,7 @@ class MemoSvgSanitizer
       scrub_attributes(node)
     end
 
-    doc.to_xml(save_with: Nokogiri::XML::Node::SaveOptions::AS_XML)
+    Utf8Bytes.coerce(doc.to_xml(save_with: Nokogiri::XML::Node::SaveOptions::AS_XML))
   rescue Nokogiri::XML::SyntaxError
     raise MemoAssets::InvalidFile, "SVG の形式が不正です"
   end

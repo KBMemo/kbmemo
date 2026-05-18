@@ -54,6 +54,22 @@ class MemoSvgSanitizerTest < ActiveSupport::TestCase
     assert_not_includes out, "<script"
   end
 
+  test "sanitizes mermaid svg with japanese labels from binary http body" do
+    raw = <<~SVG
+      <svg xmlns="http://www.w3.org/2000/svg">
+        <foreignObject width="80" height="24">
+          <div xmlns="http://www.w3.org/1999/xhtml">
+            <span class="nodeLabel"><p>開始ノード</p></span>
+          </div>
+        </foreignObject>
+      </svg>
+    SVG
+
+    out = MemoSvgSanitizer.sanitize!(raw.b)
+    assert_match(/開始ノード|&#x958B;&#x59CB;&#x30CE;&#x30FC;&#x30C9;/, out)
+    assert_equal Encoding::UTF_8, out.encoding
+  end
+
   test "strips dangerous css in style element" do
     raw = <<~SVG
       <svg xmlns="http://www.w3.org/2000/svg">

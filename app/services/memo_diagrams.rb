@@ -47,9 +47,10 @@ class MemoDiagrams
     source_rel = source_relative.to_s
     engine = MemoDiagram.engine_for_filename(source_rel)
     svg_rel = svg_relative_for(source_rel)
+    normalized = MemoDiagram.normalize_source(engine, source)
 
-    @repo.write_asset!(memo, filename: source_rel, io: StringIO.new(source.to_s))
-    svg_body = MemoDiagramRenderer.render(engine: engine, source: source)
+    @repo.write_asset!(memo, filename: source_rel, io: StringIO.new(normalized))
+    svg_body = MemoDiagramRenderer.render(engine: engine, source: normalized)
     @repo.write_asset!(memo, filename: svg_rel, io: StringIO.new(svg_body))
 
     {

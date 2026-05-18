@@ -55,6 +55,36 @@ class MemoDiagram
     "diagram::#{source_relative_path.sub(%r{\Adiagrams/}, '')}[]"
   end
 
+  # Kroki へ送る前に Markdown のコードフェンス等を除去する。
+  def self.normalize_source(engine, source)
+    text = Utf8Bytes.coerce(source)
+    case engine
+    when :mermaid then normalize_mermaid_source(text)
+    when :plantuml then normalize_plantuml_source(text)
+    else text.strip
+    end
+  end
+
+  def self.normalize_mermaid_source(text)
+    stripped = text.strip
+    if (match = stripped.match(/\A```(?:mermaid)?\s*\r?\n([\s\S]*?)\r?\n```\s*\z/i))
+      return match[1].strip
+    end
+
+    stripped.sub(/\A```(?:mermaid)?\s*\r?\n/i, "").sub(/\r?\n```\s*\z/, "").strip
+  end
+  private_class_method :normalize_mermaid_source
+
+  def self.normalize_plantuml_source(text)
+    stripped = text.strip
+    if (match = stripped.match(/\A```(?:plantuml|puml)?\s*\r?\n([\s\S]*?)\r?\n```\s*\z/i))
+      return match[1].strip
+    end
+
+    stripped.sub(/\A```(?:plantuml|puml)?\s*\r?\n/i, "").sub(/\r?\n```\s*\z/, "").strip
+  end
+  private_class_method :normalize_plantuml_source
+
   def self.empty_template(engine)
     case engine
     when :mermaid

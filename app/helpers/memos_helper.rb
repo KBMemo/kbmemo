@@ -93,8 +93,9 @@ module MemosHelper
   def memos_sidebar_directory_tab_path
     if (memo = memo_sidebar_open_memo)
       q = {}
-      dir = memo.memo_directory
-      q[:memo_directory_id] = dir.id unless dir.nil? || dir.root?
+      if defined?(@current_memo_directory) && @current_memo_directory && !@current_memo_directory.root?
+        q[:memo_directory_id] = @current_memo_directory.id
+      end
       return memo_sidebar_open_memo_path(memo, q)
     end
 
@@ -303,12 +304,6 @@ module MemosHelper
     "[[#{seg}]]"
   end
 
-  def memo_diagram_entries(memo)
-    return [] unless memo.persisted?
-
-    MemoDiagrams.list(memo)
-  end
-
   def memo_attachment_entries(memo, body: nil)
     return [] unless memo.persisted?
 
@@ -381,6 +376,10 @@ module MemosHelper
 
   def memo_tag_names_for_datalist
     Tag.order(:name).pluck(:name)
+  end
+
+  def memo_tag_catalog_for_pills
+    Tag.order(:name).pluck(:id, :name).map { |id, name| { id: id, name: name } }
   end
 
   # 編集フォーム用：下線のみのコンパクト入力

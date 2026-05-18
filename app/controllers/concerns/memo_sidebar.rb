@@ -10,13 +10,6 @@ module MemoSidebar
     before_action :load_sidebar_memos_list
   end
 
-  # ドラフトで memo_directory_id が変わったあと、一覧サイドバーをメモの保存先に合わせ直す
-  def refresh_memo_sidebar_directory_context!
-    @sidebar_view = "directory"
-    @current_memo_directory = @memo.memo_directory
-    load_sidebar_memos_list
-  end
-
   private
 
   def memo_show_or_edit_action?
@@ -30,9 +23,7 @@ module MemoSidebar
     @memo_search_query = @sidebar_view == "search" ? params[:q].to_s.strip.presence : nil
 
     @current_memo_directory =
-      if instance_variable_defined?(:@memo) && @memo&.persisted? && %w[show edit update draft destroy].include?(action_name)
-        @memo.memo_directory
-      elsif params[:memo_directory_id].present?
+      if params[:memo_directory_id].present?
         policy_scope(MemoDirectory).find_by(id: params[:memo_directory_id]) || MemoDirectory.root
       elsif %w[new create].include?(action_name) && instance_variable_defined?(:@memo) && @memo&.memo_directory && !@memo.memo_directory.root?
         @memo.memo_directory

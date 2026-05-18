@@ -21,4 +21,32 @@ class MemoDiagramTest < ActiveSupport::TestCase
   test "asciidoc_for omits diagrams prefix in macro" do
     assert_equal "diagram::flow.mmd[]", MemoDiagram.asciidoc_for("diagrams/flow.mmd")
   end
+
+  test "normalize_source strips mermaid markdown fences" do
+    fenced = <<~SRC
+      ```mermaid
+      sequenceDiagram
+        participant ユーザー
+      ```
+    SRC
+    out = MemoDiagram.normalize_source(:mermaid, fenced)
+    assert_equal <<~SRC.strip, out
+      sequenceDiagram
+        participant ユーザー
+    SRC
+    assert_not_includes out, "```"
+  end
+
+  test "normalize_source strips plantuml markdown fences" do
+    fenced = <<~SRC
+      ```plantuml
+      @startuml
+      Alice -> Bob
+      @enduml
+      ```
+    SRC
+    out = MemoDiagram.normalize_source(:plantuml, fenced)
+    assert_includes out, "@startuml"
+    assert_not_includes out, "```"
+  end
 end
