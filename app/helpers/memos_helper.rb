@@ -316,6 +316,8 @@ module MemosHelper
       attrs["imagesdir"] = "#{memo_path(source_memo)}/assets/"
     end
 
+    # safe モード: SVG は既定で <img src="...">（インライン SVG は jail で無効）。
+    # image::x.svg[opts=interactive] は <object> になるため、アップロード時サニタイズに依存する。
     Asciidoctor.convert(
       processed,
       safe: :safe,

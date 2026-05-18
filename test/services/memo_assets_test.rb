@@ -31,6 +31,32 @@ class MemoAssetsTest < ActiveSupport::TestCase
     assert_equal "PNG", path.read
   end
 
+  test "upload sanitizes svg and stores without script" do
+    raw = <<~SVG
+      <svg xmlns="http://www.w3.org/2000/svg">
+        <script>alert(1)</script>
+        <circle cx="5" cy="5" r="4"/>
+      </svg>
+    SVG
+    file = uploaded_file("diagram.svg", "image/svg+xml", raw)
+    result = MemoAssets.upload(@memo, file: file, repo: @repo)
+
+    assert_equal "diagram.svg", result[:filename]
+    path = @repo.absolute_asset_path_for(@memo, "diagram.svg")
+    stored = path.read
+    assert_not_includes stored, "<script"
+    assert_includes stored, "<circle"
+  end
+
+  test "upload preserves japanese filename" do
+    file = uploaded_file("スクリーンショット.png", "image/png", "PNG")
+    result = MemoAssets.upload(@memo, file: file, repo: @repo)
+
+    assert_equal "スクリーンショット.png", result[:filename]
+    assert_equal "image::スクリーンショット.png[]", result[:asciidoc]
+    assert @repo.absolute_asset_path_for(@memo, "スクリーンショット.png").file?
+  end
+
   test "upload rejects unsupported content type" do
     file = uploaded_file("evil.txt", "text/plain", "text")
     assert_raises(MemoAssets::InvalidFile) do

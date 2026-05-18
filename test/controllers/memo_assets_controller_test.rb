@@ -37,6 +37,16 @@ class MemoAssetsControllerTest < ActionDispatch::IntegrationTest
     assert_includes json["url"], "/memos/#{@memo.id}/assets/chart.png"
   end
 
+  test "show sets csp headers for svg" do
+    repo = MemoRepository.new
+    repo.write_asset!(@memo, filename: "icon.svg", io: StringIO.new('<svg xmlns="http://www.w3.org/2000/svg"></svg>'))
+
+    get asset_memo_path(@memo, "icon.svg")
+    assert_response :success
+    assert_equal "nosniff", response.headers["X-Content-Type-Options"]
+    assert_includes response.headers["Content-Security-Policy"], "script-src 'none'"
+  end
+
   test "show serves uploaded image" do
     repo = MemoRepository.new
     repo.write_asset!(@memo, filename: "show.png", io: StringIO.new("PNGDATA"))

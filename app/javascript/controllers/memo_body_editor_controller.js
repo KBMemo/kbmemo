@@ -7,8 +7,8 @@ import { imageWysiwygExtension } from "../memo_body_editor/image_wysiwyg"
 import { wysiwygLiteExtension } from "../memo_body_editor/wysiwyg_lite"
 import { wikiLinkWysiwygExtension } from "../memo_body_editor/wiki_link_wysiwyg"
 
-const ACCEPTED_IMAGE_TYPE = /^image\/(png|jpeg|gif|webp)$/i
-const ACCEPTED_IMAGE_EXT = /\.(png|jpe?g|gif|webp)$/i
+const ACCEPTED_IMAGE_TYPE = /^image\/(png|jpeg|gif|webp|svg\+xml)$/i
+const ACCEPTED_IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i
 
 function imageFilesFrom(fileList) {
   return Array.from(fileList ?? []).filter(
@@ -16,8 +16,27 @@ function imageFilesFrom(fileList) {
   )
 }
 
+function imageFilesFromDataTransfer(dataTransfer) {
+  const fromFiles = imageFilesFrom(dataTransfer?.files)
+  if (fromFiles.length > 0) return fromFiles
+
+  const picked = []
+  for (const item of dataTransfer?.items ?? []) {
+    if (item.kind !== "file") continue
+    const file = item.getAsFile()
+    if (!file) continue
+    if (ACCEPTED_IMAGE_TYPE.test(file.type) || ACCEPTED_IMAGE_EXT.test(file.name)) {
+      picked.push(file)
+    }
+  }
+  return picked
+}
+
 function dataTransferHasFiles(dataTransfer) {
-  return dataTransfer?.types?.includes("Files")
+  if (!dataTransfer) return false
+  if (dataTransfer.files?.length > 0) return true
+  const types = dataTransfer.types ? Array.from(dataTransfer.types) : []
+  return types.includes("Files") || types.includes("application/x-moz-file")
 }
 
 // 本文 textarea（送信・memo-draft の参照用）と CodeMirror を同期する。
@@ -132,6 +151,7 @@ export default class extends Controller {
     })
 
     const startDoc = textarea.value
+    const editorHost = this
 
     const state = EditorState.create({
       doc: startDoc,
@@ -149,7 +169,13 @@ export default class extends Controller {
         a11y,
         theme,
         EditorView.domEventHandlers({
-          blur: () => this.notifyBodyBlur()
+          blur: () => this.notifyBodyBlur(),
+          dragover(event) {
+            return editorHost.handleImageDragOver(event)
+          },
+          drop(event) {
+            return editorHost.handleImageDrop(event)
+          }
         })
       ]
     })
@@ -165,9 +191,11 @@ export default class extends Controller {
       this.view?.requestMeasure()
     })
 
-    if (this.hasUploadUrlValue && this.uploadUrlValue) {
-      this._bindDragDrop()
-    }
+    this._bindDragDrop()
+  }
+
+  canUploadImages() {
+    return this.hasUploadUrlValue && this.uploadUrlValue
   }
 
   disconnect() {
@@ -186,7 +214,7 @@ export default class extends Controller {
     this._dragDepth = 0
     const opts = { capture: true }
     this.element.addEventListener("dragenter", this._onDragEnter, opts)
-    this.element.addEventListener("dragover", this._onDragOver, opts)
+    this.element.addEventListener("dragover", this._onElementDragOver, opts)
     this.element.addEventListener("dragleave", this._onDragLeave, opts)
     this.element.addEventListener("drop", this._onDrop, opts)
     this._dragDropBound = true
@@ -196,7 +224,7 @@ export default class extends Controller {
     if (!this._dragDropBound) return
     const opts = { capture: true }
     this.element.removeEventListener("dragenter", this._onDragEnter, opts)
-    this.element.removeEventListener("dragover", this._onDragOver, opts)
+    this.element.removeEventListener("dragover", this._onElementDragOver, opts)
     this.element.removeEventListener("dragleave", this._onDragLeave, opts)
     this.element.removeEventListener("drop", this._onDrop, opts)
     this._dragDropBound = false
@@ -208,14 +236,11 @@ export default class extends Controller {
     if (!dataTransferHasFiles(event.dataTransfer)) return
     event.preventDefault()
     this._dragDepth += 1
-    this.element.classList.add("memo-body-editor--drag-over")
+    if (this.canUploadImages()) this.element.classList.add("memo-body-editor--drag-over")
   }
 
-  _onDragOver = (event) => {
-    if (!dataTransferHasFiles(event.dataTransfer)) return
-    event.preventDefault()
-    event.dataTransfer.dropEffect = "copy"
-    this.element.classList.add("memo-body-editor--drag-over")
+  _onElementDragOver = (event) => {
+    this.handleImageDragOver(event)
   }
 
   _onDragLeave = (event) => {
@@ -226,24 +251,57 @@ export default class extends Controller {
     }
   }
 
-  _onDrop = async (event) => {
-    if (!dataTransferHasFiles(event.dataTransfer)) return
+  /** CodeMirror 上の dragover（テキストへのファイルパス挿入を抑止） */
+  handleImageDragOver(event) {
+    if (!dataTransferHasFiles(event.dataTransfer)) return false
+    event.preventDefault()
+    event.dataTransfer.dropEffect = this.canUploadImages() ? "copy" : "none"
+    if (this.canUploadImages()) {
+      this.element.classList.add("memo-body-editor--drag-over")
+    }
+    return true
+  }
+
+  /** エディタ／ツールバーへの drop */
+  async handleImageDrop(event) {
+    if (!dataTransferHasFiles(event.dataTransfer)) return false
+    if (this._imageDropHandled) return true
+
     event.preventDefault()
     event.stopPropagation()
+    this._imageDropHandled = true
     this._dragDepth = 0
     this.element.classList.remove("memo-body-editor--drag-over")
 
-    const all = Array.from(event.dataTransfer.files ?? [])
-    const files = imageFilesFrom(event.dataTransfer.files)
-    if (files.length === 0) {
-      if (all.length > 0) {
-        this.showUploadError("PNG / JPEG / GIF / WebP のみドロップできます")
+    try {
+      if (!this.canUploadImages()) {
+        this.showUploadError("メモを Git にコミットしてから画像を挿入できます")
+        return true
       }
-      return
-    }
 
-    this.placeSelectionAtDrop(event)
-    await this.uploadFiles(files)
+      const all = imageFilesFromDataTransfer(event.dataTransfer)
+      const rejected =
+        (event.dataTransfer.files?.length ?? 0) > 0 && all.length === 0
+
+      if (all.length === 0) {
+        if (rejected) {
+          this.showUploadError("PNG / JPEG / GIF / WebP / SVG のみドロップできます")
+        }
+        return true
+      }
+
+      this.placeSelectionAtDrop(event)
+      await this.uploadFiles(all)
+      return true
+    } finally {
+      queueMicrotask(() => {
+        this._imageDropHandled = false
+      })
+    }
+  }
+
+  _onDrop = (event) => {
+    void this.handleImageDrop(event)
   }
 
   placeSelectionAtDrop(event) {

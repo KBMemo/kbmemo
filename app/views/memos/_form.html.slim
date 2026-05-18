@@ -90,7 +90,7 @@ ruby:
         - if memo.image_assets_uploadable?
           label.cursor-pointer.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50
             | 画像を挿入
-            input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple=true data-memo-body-editor-target="imageInput" data-action="change->memo-body-editor#uploadImage"
+            input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple=true data-memo-body-editor-target="imageInput" data-action="change->memo-body-editor#uploadImage"
         - else
           button.rounded-md.border.border-zinc-200.bg-zinc-100.px-2.py-1.text-xs.font-medium.text-zinc-400.cursor-not-allowed type="button" disabled=true title="メモを Git にコミットしてから画像を挿入できます"
             | 画像を挿入

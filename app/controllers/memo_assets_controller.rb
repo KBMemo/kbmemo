@@ -16,7 +16,8 @@ class MemoAssetsController < ApplicationController
   def show
     authorize @memo, :show_asset?
     path = MemoAssets.resolve_path!(@memo, params[:filename])
-    send_file path, disposition: :inline
+    apply_svg_asset_headers(path)
+    send_file path, disposition: :inline, type: Marcel::MimeType.for(path)
   rescue MemoAssets::InvalidFile
     head :not_found
   end
@@ -25,5 +26,13 @@ class MemoAssetsController < ApplicationController
 
   def set_memo
     @memo = policy_scope(Memo).find(params[:id])
+  end
+
+  def apply_svg_asset_headers(path)
+    return unless path.extname.downcase == MemoAssets::SVG_EXTENSION
+
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Content-Security-Policy"] =
+      "default-src 'none'; script-src 'none'; object-src 'none'; frame-src 'none'; style-src 'unsafe-inline'"
   end
 end

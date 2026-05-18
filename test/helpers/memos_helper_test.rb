@@ -75,6 +75,20 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, ">1<"
   end
 
+  test "memo_html renders svg image as img in safe mode" do
+    memo = memos(:one)
+    repo = MemoRepository.new
+    svg = <<~SVG
+      <svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>
+    SVG
+    repo.write_asset!(memo, filename: "icon.svg", io: StringIO.new(svg))
+
+    html = memo_html("image::icon.svg[]", source_memo: memo)
+    assert_includes html, %(src="/memos/#{memo.id}/assets/icon.svg")
+    assert_includes html, "<img"
+    assert_not_includes html, "<svg"
+  end
+
   test "memo_html renders image with memo asset url" do
     memo = memos(:one)
     repo = MemoRepository.new

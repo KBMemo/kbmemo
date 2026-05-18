@@ -5,7 +5,8 @@ class MemoAssets
   class Error < StandardError; end
   class InvalidFile < Error; end
 
-  ALLOWED_CONTENT_TYPES = %w[image/png image/jpeg image/gif image/webp].freeze
+  ALLOWED_CONTENT_TYPES = %w[image/png image/jpeg image/gif image/webp image/svg+xml].freeze
+  SVG_EXTENSION = ".svg"
   MAX_BYTES = 10 * 1024 * 1024
 
   def self.upload(memo, file:, repo: MemoRepository.new)
@@ -28,7 +29,9 @@ class MemoAssets
 
     validate!(file)
     filename = unique_filename(memo, sanitize_filename(original_filename_for(file)))
-    @repo.write_asset!(memo, filename: filename, io: io_for(file))
+    io = io_for(file)
+    io = StringIO.new(MemoSvgSanitizer.sanitize!(io.read)) if svg_upload?(file, filename)
+    @repo.write_asset!(memo, filename: filename, io: io)
 
     {
       filename: filename,
@@ -52,11 +55,20 @@ class MemoAssets
     size = file.respond_to?(:size) ? file.size : io.size
     raise InvalidFile, "10MB 以下の画像にしてください" if size.to_i > MAX_BYTES
 
-    type = file.content_type.to_s.downcase.presence if file.respond_to?(:content_type)
-    type = Marcel::MimeType.for(name: original_filename_for(file)) if type.blank?
+    type = content_type_for(file)
     return if type.present? && ALLOWED_CONTENT_TYPES.include?(type)
 
-    raise InvalidFile, "PNG / JPEG / GIF / WebP のみアップロードできます"
+    raise InvalidFile, "PNG / JPEG / GIF / WebP / SVG のみアップロードできます"
+  end
+
+  def svg_upload?(file, filename)
+    type = content_type_for(file)
+    type == "image/svg+xml" || filename.to_s.downcase.end_with?(SVG_EXTENSION)
+  end
+
+  def content_type_for(file)
+    type = file.content_type.to_s.downcase.presence if file.respond_to?(:content_type)
+    type.presence || Marcel::MimeType.for(name: original_filename_for(file)).to_s.downcase
   end
 
   def io_for(file)
@@ -74,10 +86,7 @@ class MemoAssets
   end
 
   def sanitize_filename(name)
-    base = File.basename(name.to_s)
-    base = base.gsub(/[^\w.\-]+/, "_")
-    base = "image.png" if base.blank? || base == "." || base == ".."
-    base
+    MemoAssetFilename.sanitize(name)
   end
 
   def unique_filename(memo, name)
