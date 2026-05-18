@@ -1,0 +1,20 @@
+.diagram-svg-viewer__stage {
+  touch-action: none;
+}
+
+.diagram-svg-viewer__stage.can-pan {
+  cursor: grab;
+}
+
+.diagram-svg-viewer__stage.is-panning {
+  cursor: grabbing;
+}
+
+.diagram-svg-viewer__stage.can-pan .diagram-svg-viewer__image,
+.diagram-svg-viewer__stage.is-panning .diagram-svg-viewer__image {
+  cursor: inherit;
+}
+
+.diagram-svg-viewer__image {
+  transform-origin: center center;
+}

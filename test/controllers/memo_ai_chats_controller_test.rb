@@ -59,6 +59,7 @@ class MemoAiChatsControllerTest < ActionDispatch::IntegrationTest
     get edit_memo_url(memos(:one))
     assert_response :success
     assert_includes response.body, "memo-ai-panel"
+    assert_includes response.body, "memo-ai-sidebar"
     assert_includes response.body, "AI アシスタント"
   end
 end

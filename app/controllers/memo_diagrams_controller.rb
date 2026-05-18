@@ -2,7 +2,7 @@
 
 class MemoDiagramsController < ApplicationController
   before_action :set_memo
-  before_action :set_source_relative, only: %i[edit update preview]
+  before_action :set_source_relative, only: %i[edit update preview view]
 
   after_action :verify_authorized
 
@@ -22,6 +22,23 @@ class MemoDiagramsController < ApplicationController
   rescue MemoDiagrams::Error, MemoDiagram::InvalidPath => e
     flash.now[:alert] = e.message
     render :new, status: :unprocessable_entity
+  end
+
+  def view
+    authorize @memo, :show_diagram?
+    @svg_relative = MemoDiagram.svg_relative_path(params[:diagram_key])
+    path = MemoAssets.resolve_path!(@memo, @svg_relative)
+    unless path.file?
+      redirect_to edit_memo_diagram_path(@memo, params[:diagram_key]),
+        alert: "SVG がまだありません。ダイアグラムを編集して保存してください。"
+      return
+    end
+
+    @svg_asset_url = asset_memo_path(@memo, @svg_relative)
+    render layout: "diagram_viewer"
+  rescue MemoAssets::InvalidFile
+    redirect_to edit_memo_diagram_path(@memo, params[:diagram_key]),
+      alert: "SVG がまだありません。ダイアグラムを編集して保存してください。"
   end
 
   def edit

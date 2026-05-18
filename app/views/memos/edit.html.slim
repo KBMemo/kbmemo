@@ -2,3 +2,7 @@
 
 - content_for :memos_editor do
   = render "form", memo: @memo
+
+- if @memo.persisted?
+  - content_for :memo_ai_sidebar do
+    = render "memos/ai_panel", memo: @memo

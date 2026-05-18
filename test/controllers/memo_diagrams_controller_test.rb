@@ -54,6 +54,26 @@ class MemoDiagramsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @repo.absolute_asset_path_for(@memo, "diagrams/flow.mmd").read, "X-->Y"
   end
 
+  test "view shows svg viewer when svg exists" do
+    @repo.write_asset!(@memo, filename: "diagrams/flow.mmd", io: StringIO.new("graph TD\nA-->B"))
+    @repo.write_asset!(@memo, filename: "diagrams/flow.svg", io: StringIO.new('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50"/>'))
+
+    get view_memo_diagram_path(@memo, "flow.mmd")
+    assert_response :success
+    assert_includes response.body, 'data-controller="diagram-svg-viewer"'
+    assert_includes response.body, "/memos/#{@memo.id}/assets/diagrams/flow.svg"
+    assert_includes response.body, "diagram-svg-viewer#zoomIn"
+  end
+
+  test "view redirects when svg missing" do
+    key = "pending-#{SecureRandom.hex(4)}.mmd"
+    @repo.write_asset!(@memo, filename: "diagrams/#{key}", io: StringIO.new("graph TD\nA-->B"))
+
+    get view_memo_diagram_path(@memo, key)
+    assert_redirected_to edit_memo_diagram_path(@memo, key)
+    assert_equal "SVG がまだありません。ダイアグラムを編集して保存してください。", flash[:alert]
+  end
+
   test "preview returns svg without saving source" do
     @repo.write_asset!(@memo, filename: "diagrams/flow.mmd", io: StringIO.new("graph TD\nA-->B"))
 

@@ -1,15 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = [
-    "panel",
-    "messages",
-    "input",
-    "sendButton",
-    "error",
-    "openButton",
-    "includeSelection"
-  ]
+  static targets = ["messages", "input", "sendButton", "error", "includeSelection"]
 
   static values = {
     chatUrl: String,
@@ -22,18 +14,6 @@ export default class extends Controller {
     this.sending = false
     this.renderMessages()
     this.updateSendState()
-  }
-
-  togglePanel() {
-    if (!this.hasPanelTarget) return
-    this.panelTarget.classList.toggle("hidden")
-    const open = !this.panelTarget.classList.contains("hidden")
-    if (this.hasOpenButtonTarget) {
-      this.openButtonTarget.setAttribute("aria-expanded", open ? "true" : "false")
-    }
-    if (open && this.hasInputTarget) {
-      this.inputTarget.focus()
-    }
   }
 
   async send(event) {
@@ -132,7 +112,9 @@ export default class extends Controller {
   }
 
   bodyEditorController() {
-    const el = this.element.querySelector('[data-controller~="memo-body-editor"]')
+    const el = document.querySelector(
+      "#memos_editor_scroll [data-controller~=\"memo-body-editor\"]"
+    )
     if (!el) return null
     return this.application.getControllerForElementAndIdentifier(el, "memo-body-editor")
   }

@@ -66,23 +66,10 @@ ruby:
 
   = render "tag_field", memo: memo
 
-  - body_wrap_controllers = memo.persisted? ? "expandable-hint memo-ai-panel" : "expandable-hint"
-  - ai_account = rodauth.rails_account if memo.persisted?
-  div[
-    data-controller=body_wrap_controllers
-    data-expandable-hint-expanded-value="false"
-    data-expandable-hint-expand-label-value="Wiki リンクの説明を表示"
-    data-expandable-hint-collapse-label-value="Wiki リンクの説明を閉じる"
-    data-memo-ai-panel-chat-url-value=(memo.persisted? ? ai_chat_memo_path(memo, format: :json) : nil)
-    data-memo-ai-panel-profile-url-value=(memo.persisted? ? edit_profile_path : nil)
-    data-memo-ai-panel-has-api-key-value=(memo.persisted? ? ai_account.openai_api_key_configured? : false)
-  ]
+  div data-controller="expandable-hint" data-expandable-hint-expanded-value="false" data-expandable-hint-expand-label-value="Wiki リンクの説明を表示" data-expandable-hint-collapse-label-value="Wiki リンクの説明を閉じる"
     .mb-1.flex.w-full.items-center.gap-1
       = f.label :body, "本文（AsciiDoc）", id: "memo-body-label", class: "mb-0 block shrink-0 text-sm font-medium text-zinc-800"
-      - if memo.persisted?
-        button.ml-auto.rounded.border.border-zinc-300.bg-white.px-2.py-0.5.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50.lg:hidden type="button" data-memo-ai-panel-target="openButton" data-action="memo-ai-panel#togglePanel" aria-expanded="false" title="AI パネルを開く"
-          | AI
-      button.inline-flex.h-6.w-6.shrink-0.items-center.justify-center.rounded.border.border-zinc-300.bg-white.text-zinc-600.hover:bg-zinc-50 class=(memo.persisted? ? "" : "ml-auto") type="button" data-action="expandable-hint#toggle" aria-expanded="false" aria-controls="memo-wiki-link-hint" title="Wiki リンクの説明を表示"
+      button.ml-auto.inline-flex.h-6.w-6.shrink-0.items-center.justify-center.rounded.border.border-zinc-300.bg-white.text-zinc-600.hover:bg-zinc-50 type="button" data-action="expandable-hint#toggle" aria-expanded="false" aria-controls="memo-wiki-link-hint" title="Wiki リンクの説明を表示"
         span.leading-none data-expandable-hint-target="toggleIcon" aria-hidden="true"
           | ▼
     p#memo-wiki-link-hint.hidden.mb-1.text-xs.text-zinc-500 data-expandable-hint-target="panel"
@@ -103,17 +90,21 @@ ruby:
       code class="text-zinc-600"
         | [[home/u-1/work/slug-123]]
       | も解決できる場合があります）
-    .flex.min-h-0.w-full.flex-col.lg:flex-row.lg:items-stretch
-      div.memo-body-editor.flex.min-w-0.flex-1.flex-col class="block w-full border-0 rounded-none bg-transparent border-b border-zinc-300 min-h-[18rem]" data-controller="memo-body-editor" data-memo-body-editor-label-id-value="memo-body-label" data-memo-body-editor-wiki-completions-url-value=wiki_completions_memos_path(format: :json) data-memo-body-editor-wiki-link-labels-url-value=wiki_link_labels_memos_path(format: :json) data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "") data-memo-body-editor-upload-url-value=(memo.image_assets_uploadable? ? assets_memo_path(memo) : "")
+    div[
+      class="memo-body-editor block w-full border-0 rounded-none bg-transparent border-b border-zinc-300 min-h-[18rem]"
+      data-controller="memo-body-editor"
+      data-memo-body-editor-label-id-value="memo-body-label"
+      data-memo-body-editor-wiki-completions-url-value=wiki_completions_memos_path(format: :json)
+      data-memo-body-editor-wiki-link-labels-url-value=wiki_link_labels_memos_path(format: :json)
+      data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "")
+      data-memo-body-editor-upload-url-value=(memo.image_assets_uploadable? ? assets_memo_path(memo) : "")
+    ]
         .mb-1.space-y-1.border-b.border-zinc-100.pb-2
           - if memo.image_assets_uploadable?
             div data-controller="memo-attachments" data-memo-attachments-expanded-value="false"
               .flex.flex-wrap.items-center.gap-2
                 button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50 type="button" data-memo-body-editor-target="wysiwygToggle" data-action="memo-body-editor#toggleWysiwyg" aria-pressed="true" title="マーカーを表示する（WYSIWYG オフ）"
                   | ソース表示
-                - if memo.persisted?
-                  button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50.hidden.lg:inline-flex type="button" data-action="memo-ai-panel#togglePanel" title="AI パネルを開閉"
-                    | AI
                 = link_to "ダイアグラムを作成", new_memo_diagram_path(memo), class: "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50", target: "_blank", rel: "noopener"
                 label.cursor-pointer.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50
                   | 画像を挿入
@@ -128,9 +119,6 @@ ruby:
             .flex.flex-wrap.items-center.gap-2
               button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50 type="button" data-memo-body-editor-target="wysiwygToggle" data-action="memo-body-editor#toggleWysiwyg" aria-pressed="true" title="マーカーを表示する（WYSIWYG オフ）"
                 | ソース表示
-              - if memo.persisted?
-                button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50.hidden.lg:inline-flex type="button" data-action="memo-ai-panel#togglePanel" title="AI パネルを開閉"
-                  | AI
               button.rounded-md.border.border-zinc-200.bg-zinc-100.px-2.py-1.text-xs.font-medium.text-zinc-400.cursor-not-allowed type="button" disabled=true title="メモを Git にコミットしてから画像を挿入できます"
                 | 画像を挿入
               span.hidden.text-xs.text-red-600 data-memo-body-editor-target="uploadError"
@@ -141,8 +129,6 @@ ruby:
           autocomplete: "off",
           data: { memo_draft_target: "body", memo_body_editor_target: "field", action: "input->memo-draft#bodyInput compositionend->memo-draft#bodyInput blur->memo-draft#bodyInput" }
         div.memo-body-editor__host.relative[data-memo-body-editor-target="host" style="min-height: inherit"]
-      - if memo.persisted?
-        = render "memos/ai_panel"
 
   - if memo.persisted?
     .mt-4.flex.justify-end.gap-2

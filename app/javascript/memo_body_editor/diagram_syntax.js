@@ -1,5 +1,7 @@
 /** AsciiDoc `diagram::` マクロ（MemoDiagram / MemoDiagramMacro と同じ規則） */
 
+import { memoAssetSrc } from "./image_syntax"
+
 const BLOCK_DIAGRAM_LINE = /^(\s*)diagram::([^\[\]]+?)(\[[^\]]*\])?\s*$/
 const DIAGRAM_MACRO_RE = /diagram::([^\[\]]+?)(\[[^\]]*\])?/g
 
@@ -34,11 +36,36 @@ export function diagramSvgRelativePath(macroPath) {
   return path.replace(new RegExp(`${extMatch[1].replace(".", "\\.")}$`, "i"), ".svg")
 }
 
+/** diagram::flow.mmd[] → diagrams/flow.mmd */
+export function diagramSourceRelativePath(macroPath) {
+  let path = macroPath.trim()
+  if (!path) return null
+  if (!path.startsWith("diagrams/")) path = `diagrams/${path}`
+  return path
+}
+
 /** 編集ページ URL の diagram_key（diagrams/ なし） */
+export function diagramDiagramKey(macroPath) {
+  if (!macroPath?.trim()) return null
+  return macroPath.trim().replace(/^diagrams\//, "")
+}
+
 export function diagramEditUrl(memoId, macroPath) {
-  if (!memoId || !macroPath?.trim()) return null
-  const key = macroPath.trim().replace(/^diagrams\//, "")
+  const key = diagramDiagramKey(macroPath)
+  if (!memoId || !key) return null
   return `/memos/${encodeURIComponent(String(memoId))}/diagrams/${encodeURIComponent(key)}/edit`
+}
+
+export function diagramSourceUrl(memoId, macroPath) {
+  const rel = diagramSourceRelativePath(macroPath)
+  return rel ? memoAssetSrc(memoId, rel) : null
+}
+
+/** SVG を拡大縮小できる別ウィンドウ用ビューア */
+export function diagramViewUrl(memoId, macroPath) {
+  const key = diagramDiagramKey(macroPath)
+  if (!memoId || !key) return null
+  return `/memos/${encodeURIComponent(String(memoId))}/diagrams/${encodeURIComponent(key)}/view`
 }
 
 export function diagramExclusionRanges(text, lineFrom) {

@@ -22,6 +22,16 @@ class MemoAssetsController < ApplicationController
     head :not_found
   end
 
+  def view
+    authorize @memo, :show_asset?
+    @asset_relative = asset_filename_from_params
+    path = MemoAssets.resolve_path!(@memo, @asset_relative)
+    @asset_url = asset_memo_path(@memo, @asset_relative)
+    render layout: "diagram_viewer"
+  rescue MemoAssets::InvalidFile
+    head :not_found
+  end
+
   def destroy
     authorize @memo, :upload_asset?
     MemoAssets.delete!(@memo, relative_path: asset_filename_from_params)

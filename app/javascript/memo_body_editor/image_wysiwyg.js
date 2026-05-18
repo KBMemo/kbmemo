@@ -3,6 +3,7 @@ import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view
 import { codeBlockByLine, scanCodeBlocks } from "./code_block_syntax"
 import {
   memoAssetSrc,
+  memoAssetViewUrl,
   parseBlockImageLine,
   scanImageMacrosOnLine
 } from "./image_syntax"
@@ -26,15 +27,21 @@ function pushSpec(specs, from, to, deco) {
 }
 
 class ImagePreviewWidget extends WidgetType {
-  constructor({ src, alt, block }) {
+  constructor({ src, viewUrl, alt, block }) {
     super()
     this.src = src
+    this.viewUrl = viewUrl
     this.alt = alt
     this.block = block
   }
 
   eq(other) {
-    return other.src === this.src && other.alt === this.alt && other.block === this.block
+    return (
+      other.src === this.src &&
+      other.viewUrl === this.viewUrl &&
+      other.alt === this.alt &&
+      other.block === this.block
+    )
   }
 
   toDOM() {
@@ -67,11 +74,22 @@ class ImagePreviewWidget extends WidgetType {
       }
     }
     wrap.appendChild(img)
+
+    if (this.viewUrl) {
+      const link = document.createElement("a")
+      link.href = this.viewUrl
+      link.target = "_blank"
+      link.rel = "noopener noreferrer"
+      link.className = "cm-wysiwyg-image-view"
+      link.textContent = "ビューアで開く"
+      wrap.appendChild(link)
+    }
+
     return wrap
   }
 
-  ignoreEvent() {
-    return true
+  ignoreEvent(event) {
+    return event.target?.closest?.("a.cm-wysiwyg-image-view") != null
   }
 
   get estimatedHeight() {
@@ -101,14 +119,20 @@ function buildImageDecorations(view, getMemoId) {
 
     const blockImage = parseBlockImageLine(text)
     if (blockImage && !onLine) {
-      const src = memoAssetSrc(memoId, blockImage.filename)
+      const filename = blockImage.filename
+      const src = memoAssetSrc(memoId, filename)
       // block replace は ViewPlugin 不可（表と同様 StateField が必要）。行全体 replace で十分。
       pushSpec(
         specs,
         line.from,
         line.to,
         Decoration.replace({
-          widget: new ImagePreviewWidget({ src, alt: blockImage.filename, block: true })
+          widget: new ImagePreviewWidget({
+            src,
+            viewUrl: memoAssetViewUrl(memoId, filename),
+            alt: filename,
+            block: true
+          })
         })
       )
       atomicRanges.push({ from: line.from, to: line.to })
@@ -121,7 +145,8 @@ function buildImageDecorations(view, getMemoId) {
       if (macro.block && macro.from === line.from && macro.to === line.to) continue
       if (editingActive && selectionTouches(state, macro.from, macro.to)) continue
 
-      const src = memoAssetSrc(memoId, macro.filename)
+      const filename = macro.filename
+      const src = memoAssetSrc(memoId, filename)
       pushSpec(
         specs,
         macro.from,
@@ -129,7 +154,8 @@ function buildImageDecorations(view, getMemoId) {
         Decoration.replace({
           widget: new ImagePreviewWidget({
             src,
-            alt: macro.filename,
+            viewUrl: memoAssetViewUrl(memoId, filename),
+            alt: filename,
             block: macro.block
           })
         })

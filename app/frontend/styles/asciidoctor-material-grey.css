@@ -663,7 +663,10 @@
 
 /* Phase 5f — 画像インラインプレビュー */
 .memo-body-editor .cm-wysiwyg-image--block {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
   margin: 0.35rem 0;
   max-width: 100%;
 }
@@ -704,6 +707,16 @@
   font-style: italic;
 }
 
+.memo-body-editor .cm-wysiwyg-image-view {
+  font-size: 0.75rem;
+  color: #3f3f46;
+  text-decoration: underline;
+}
+
+.memo-body-editor .cm-wysiwyg-image-view:hover {
+  color: #18181b;
+}
+
 /* ダイアグラム（diagram:: → SVG object） */
 .memo-body-editor .cm-wysiwyg-diagram {
   display: flex;
@@ -741,13 +754,19 @@
   font-style: italic;
 }
 
-.memo-body-editor .cm-wysiwyg-diagram-edit {
+.memo-body-editor .cm-wysiwyg-diagram-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+
+.memo-body-editor .cm-wysiwyg-diagram-action {
   font-size: 0.75rem;
   color: #3f3f46;
   text-decoration: underline;
 }
 
-.memo-body-editor .cm-wysiwyg-diagram-edit:hover {
+.memo-body-editor .cm-wysiwyg-diagram-action:hover {
   color: #18181b;
 }
 

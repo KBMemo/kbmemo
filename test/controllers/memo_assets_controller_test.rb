@@ -61,6 +61,23 @@ class MemoAssetsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "view shows image viewer" do
+    repo = MemoRepository.new
+    repo.write_asset!(@memo, filename: "viewer.png", io: StringIO.new("PNGDATA"))
+
+    get asset_view_memo_path(@memo, "viewer.png")
+    assert_response :success
+    assert_includes response.body, 'data-controller="diagram-svg-viewer"'
+    assert_includes response.body, "/memos/#{@memo.id}/assets/viewer.png"
+    assert_includes response.body, "画面に合わせる"
+    assert_includes response.body, "diagram-svg-viewer#zoomIn"
+  end
+
+  test "view returns not found for missing file" do
+    get asset_view_memo_path(@memo, "missing.png")
+    assert_response :not_found
+  end
+
   test "destroy removes asset file" do
     repo = MemoRepository.new
     repo.write_asset!(@memo, filename: "remove-me.png", io: StringIO.new("PNG"))

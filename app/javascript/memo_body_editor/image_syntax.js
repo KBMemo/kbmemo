@@ -15,6 +15,12 @@ export function memoAssetSrc(memoId, filename) {
   return `/memos/${encodeURIComponent(String(memoId))}/assets/${path}`
 }
 
+/** 拡大縮小ビューア（/assets/.../view） */
+export function memoAssetViewUrl(memoId, filename) {
+  const src = memoAssetSrc(memoId, filename)
+  return src ? `${src}/view` : null
+}
+
 /** 行全体がブロック画像マクロのみのとき */
 export function parseBlockImageLine(text) {
   const match = text.match(BLOCK_IMAGE_LINE)

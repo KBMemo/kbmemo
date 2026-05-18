@@ -13,11 +13,17 @@ application.register("hello", HelloController)
 import MemoAiPanelController from "./memo_ai_panel_controller"
 application.register("memo-ai-panel", MemoAiPanelController)
 
+import MemoAiSidebarController from "./memo_ai_sidebar_controller"
+application.register("memo-ai-sidebar", MemoAiSidebarController)
+
 import MemoAttachmentsController from "./memo_attachments_controller"
 application.register("memo-attachments", MemoAttachmentsController)
 
 import MemoBodyEditorController from "./memo_body_editor_controller"
 application.register("memo-body-editor", MemoBodyEditorController)
+
+import DiagramSvgViewerController from "./diagram_svg_viewer_controller"
+application.register("diagram-svg-viewer", DiagramSvgViewerController)
 
 import MemoDiagramEditorController from "./memo_diagram_editor_controller"
 application.register("memo-diagram-editor", MemoDiagramEditorController)

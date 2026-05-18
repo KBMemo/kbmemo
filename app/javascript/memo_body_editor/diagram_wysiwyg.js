@@ -3,7 +3,9 @@ import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view
 import { codeBlockByLine, scanCodeBlocks } from "./code_block_syntax"
 import {
   diagramEditUrl,
+  diagramSourceUrl,
   diagramSvgRelativePath,
+  diagramViewUrl,
   parseBlockDiagramLine,
   scanDiagramMacrosOnLine
 } from "./diagram_syntax"
@@ -98,12 +100,25 @@ function sizeDiagramObject(obj, { block }) {
   if (obj.contentDocument?.documentElement) apply()
 }
 
+function appendDiagramAction(actions, { href, label }) {
+  if (!href) return
+  const link = document.createElement("a")
+  link.href = href
+  link.target = "_blank"
+  link.rel = "noopener noreferrer"
+  link.className = "cm-wysiwyg-diagram-action"
+  link.textContent = label
+  actions.appendChild(link)
+}
+
 class DiagramPreviewWidget extends WidgetType {
-  constructor({ src, label, editUrl, block }) {
+  constructor({ src, label, editUrl, sourceUrl, viewUrl, block }) {
     super()
     this.src = src
     this.label = label
     this.editUrl = editUrl
+    this.sourceUrl = sourceUrl
+    this.viewUrl = viewUrl
     this.block = block
   }
 
@@ -112,6 +127,8 @@ class DiagramPreviewWidget extends WidgetType {
       other.src === this.src &&
       other.label === this.label &&
       other.editUrl === this.editUrl &&
+      other.sourceUrl === this.sourceUrl &&
+      other.viewUrl === this.viewUrl &&
       other.block === this.block
     )
   }
@@ -137,21 +154,18 @@ class DiagramPreviewWidget extends WidgetType {
       fig.appendChild(missing)
     }
 
-    if (this.editUrl) {
-      const link = document.createElement("a")
-      link.href = this.editUrl
-      link.target = "_blank"
-      link.rel = "noopener"
-      link.className = "cm-wysiwyg-diagram-edit"
-      link.textContent = "編集"
-      fig.appendChild(link)
-    }
+    const actions = document.createElement("div")
+    actions.className = "cm-wysiwyg-diagram-actions"
+    appendDiagramAction(actions, { href: this.editUrl, label: "編集" })
+    appendDiagramAction(actions, { href: this.sourceUrl, label: "ソース" })
+    appendDiagramAction(actions, { href: this.viewUrl, label: "ビューアで開く" })
+    if (actions.childElementCount > 0) fig.appendChild(actions)
 
     return fig
   }
 
   ignoreEvent(event) {
-    return event.target?.closest?.("a.cm-wysiwyg-diagram-edit") != null
+    return event.target?.closest?.(".cm-wysiwyg-diagram-actions a") != null
   }
 
   get estimatedHeight() {
@@ -183,7 +197,8 @@ function buildDiagramDecorations(view, getMemoId) {
 
     const blockDiagram = parseBlockDiagramLine(text)
     if (blockDiagram && !onLine) {
-      const svgRel = diagramSvgRelativePath(blockDiagram.macroPath)
+      const macroPath = blockDiagram.macroPath
+      const svgRel = diagramSvgRelativePath(macroPath)
       const src = svgRel ? memoAssetSrc(memoId, svgRel) : null
       pushSpec(
         specs,
@@ -192,8 +207,10 @@ function buildDiagramDecorations(view, getMemoId) {
         Decoration.replace({
           widget: new DiagramPreviewWidget({
             src,
-            label: blockDiagram.macroPath,
-            editUrl: diagramEditUrl(memoId, blockDiagram.macroPath),
+            label: macroPath,
+            editUrl: diagramEditUrl(memoId, macroPath),
+            sourceUrl: diagramSourceUrl(memoId, macroPath),
+            viewUrl: src ? diagramViewUrl(memoId, macroPath) : null,
             block: true
           })
         })
@@ -208,7 +225,8 @@ function buildDiagramDecorations(view, getMemoId) {
       if (blockDiagram && macro.from === line.from && macro.to === line.to) continue
       if (editingActive && selectionTouches(state, macro.from, macro.to)) continue
 
-      const svgRel = diagramSvgRelativePath(macro.macroPath)
+      const macroPath = macro.macroPath
+      const svgRel = diagramSvgRelativePath(macroPath)
       const src = svgRel ? memoAssetSrc(memoId, svgRel) : null
       pushSpec(
         specs,
@@ -217,8 +235,10 @@ function buildDiagramDecorations(view, getMemoId) {
         Decoration.replace({
           widget: new DiagramPreviewWidget({
             src,
-            label: macro.macroPath,
-            editUrl: diagramEditUrl(memoId, macro.macroPath),
+            label: macroPath,
+            editUrl: diagramEditUrl(memoId, macroPath),
+            sourceUrl: diagramSourceUrl(memoId, macroPath),
+            viewUrl: src ? diagramViewUrl(memoId, macroPath) : null,
             block: false
           })
         })

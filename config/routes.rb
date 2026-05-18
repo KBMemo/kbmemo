@@ -41,6 +41,7 @@ Rails.application.routes.draw do
       post :ai_chat, to: "memo_ai_chats#create"
       patch :draft
       post "assets", to: "memo_assets#create", as: :assets
+      get "assets/*filename/view", to: "memo_assets#view", as: :asset_view, format: false
       get "assets/*filename", to: "memo_assets#show", as: :asset, format: false
       delete "assets", to: "memo_assets#destroy", as: :destroy_asset
     end
@@ -50,6 +51,7 @@ Rails.application.routes.draw do
       constraints: { diagram_key: /[^\/]+/ } do
       member do
         post :preview
+        get :view
       end
     end
   end

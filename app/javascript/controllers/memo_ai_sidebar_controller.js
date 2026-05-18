@@ -16,7 +16,7 @@ export default class extends Controller {
     "resizer"
   ]
   static values = {
-    storageKey: { type: String, default: "kbmemo_memo_sidebar_v1" }
+    storageKey: { type: String, default: "kbmemo_memo_ai_sidebar_v1" }
   }
 
   connect() {
@@ -25,7 +25,7 @@ export default class extends Controller {
     this._onPointerMove = (e) => this._dragMove(e)
     this._onPointerUp = () => this._dragEnd()
     this._onResize = () => this._applyLayout()
-    this._width = 320
+    this._width = 288
     this._collapsed = false
     this._readPrefs()
     this._applyLayout()
@@ -118,9 +118,9 @@ export default class extends Controller {
 
   _dragMove(event) {
     if (!this._dragging || !this.hasShellTarget) return
-    const left = this.shellTarget.getBoundingClientRect().left
-    const maxPx = Math.min(Math.floor(window.innerWidth * 0.55), 560)
-    this._width = clamp(event.clientX - left, 220, maxPx)
+    const shellRect = this.shellTarget.getBoundingClientRect()
+    const maxPx = Math.min(Math.floor(window.innerWidth * 0.45), 480)
+    this._width = clamp(shellRect.right - event.clientX, 220, maxPx)
     this.shellTarget.style.width = `${this._width}px`
     this.shellTarget.style.maxWidth = `${maxPx}px`
     this._positionToggleButton()
@@ -141,7 +141,7 @@ export default class extends Controller {
 
     if (md) {
       this.shellTarget.style.maxHeight = ""
-      const maxPx = Math.min(Math.floor(window.innerWidth * 0.55), 560)
+      const maxPx = Math.min(Math.floor(window.innerWidth * 0.45), 480)
       if (this._collapsed) {
         this.shellTarget.style.width = "3rem"
         this.shellTarget.style.minWidth = "3rem"
@@ -193,7 +193,7 @@ export default class extends Controller {
 
     const shellRect = this.shellTarget.getBoundingClientRect()
     const resizerWidth = this.hasResizerTarget ? this.resizerTarget.offsetWidth : 0
-    const edgeX = shellRect.right + resizerWidth / 2
+    const edgeX = shellRect.left - resizerWidth / 2
 
     btn.style.left = `${edgeX}px`
     btn.style.top = "50vh"
@@ -203,9 +203,9 @@ export default class extends Controller {
   _updateToggleUi() {
     const c = this._collapsed
     const expanded = !c
-    const glyph = c ? "»»" : "««"
+    const glyph = c ? "««" : "»»"
     const label = c ? "展開" : "折りたたむ"
-    const title = c ? "メモ一覧サイドバーを展開" : "メモ一覧サイドバーを折りたたむ"
+    const title = c ? "AI パネルを展開" : "AI パネルを折りたたむ"
 
     if (this.hasToggleButtonTarget) {
       this.toggleButtonTarget.setAttribute("aria-expanded", String(expanded))
