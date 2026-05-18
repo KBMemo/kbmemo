@@ -22,15 +22,11 @@ export default class extends Controller {
     }
     if (this.hasToggleIconTarget) {
       this.toggleIconTarget.textContent = this.expandedValue ? "▲" : "▼"
-      this.toggleIconTarget.setAttribute(
-        "aria-label",
-        this.expandedValue ? "添付ファイル一覧を閉じる" : "添付ファイル一覧を開く"
-      )
     }
-    const toggleBtn = this.element.querySelector("[data-action*='toggle']")
+    const toggleBtn = this.element.querySelector("[data-action*='memo-attachments#toggle']")
     if (toggleBtn) {
       toggleBtn.setAttribute("aria-expanded", this.expandedValue ? "true" : "false")
-      toggleBtn.title = this.expandedValue ? "一覧を閉じる" : "一覧を開く"
+      toggleBtn.title = this.expandedValue ? "添付ファイル一覧を閉じる" : "添付ファイル一覧を開く"
     }
   }
 
