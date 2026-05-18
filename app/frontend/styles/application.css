@@ -39,6 +39,10 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   position: relative;
 }
 
+.memo-body-editor.memo-body-editor--source-only .cm-content {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
 .memo-body-editor .cm-scroller {
   display: flex;
 }

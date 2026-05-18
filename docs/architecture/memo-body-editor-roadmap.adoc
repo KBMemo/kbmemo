@@ -314,11 +314,13 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 * 他タブ本文の取り込みは全文差し替え（`memo_body_editor_controller` の `_onTextareaExternalChange`）。
 * 競合時はユーザー確認（バナー）を優先し、黙って上書きしない。
 
-==== Phase 6b — 任意（未着手）
+==== Phase 6b — WYSIWYG トグル（2026-05）
 
-* 「ソース / WYSIWYG-lite」トグルと `Compartment` による拡張パックのオンオフ。
-* E2E（Playwright 等）。補完と装飾の結合ポイントの自動テスト。
-* 別ブラウザ・別端末間の競合（Operational Transform / サーバー版番号）は Phase 6 範囲外。
+* `Compartment` で WYSIWYG 拡張パック（`wysiwyg_lite` / 画像 / 表 / リンク）をオンオフ。
+* ツールバー「ソース表示」⇔「プレビュー風」。設定は `localStorage`（`kbmemo_memo_editor_wysiwyg`、既定オン）。
+* オフ時もシンタックスハイライト・Wiki 補完・リスト継続は有効。
+
+*未着手:* E2E（Playwright 等）。別端末間の競合は Phase 6 範囲外。
 
 == リスクと意思決定（早めに固定）
 
@@ -361,6 +363,7 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 * `app/javascript/controllers/memo_body_editor_controller.js` — CM マウント・textarea 同期
 * `app/javascript/memo_body_editor/asciidoc_extensions.js` — 言語ハイライト・`[[…]]` 装飾
 * `app/javascript/memo_body_editor/wiki_completion.js` — Wiki オートコンプリート
+* `app/javascript/memo_body_editor/wysiwyg_pack.js` — WYSIWYG 拡張の Compartment パック
 * `app/javascript/memo_body_editor/wysiwyg_lite.js` — WYSIWYG ライト（見出し・インライン・リスト・admonition）
 * `app/javascript/memo_body_editor/admonition_syntax.js` — admonition ブロック境界パース
 * `app/javascript/memo_body_editor/admonition_wysiwyg.js` — admonition 装飾

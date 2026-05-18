@@ -2,10 +2,11 @@ import { Controller } from "@hotwired/stimulus"
 import { asciidocExtensions } from "../memo_body_editor/asciidoc_extensions"
 import { wikiAutocompletion } from "../memo_body_editor/wiki_completion"
 import { listContinuationExtension } from "../memo_body_editor/list_continuation"
-import { tableWysiwygFieldExtension } from "../memo_body_editor/table_wysiwyg_field"
-import { imageWysiwygExtension } from "../memo_body_editor/image_wysiwyg"
-import { wysiwygLiteExtension } from "../memo_body_editor/wysiwyg_lite"
-import { wikiLinkWysiwygExtension } from "../memo_body_editor/wiki_link_wysiwyg"
+import {
+  readWysiwygPreference,
+  wysiwygExtensionPack,
+  writeWysiwygPreference
+} from "../memo_body_editor/wysiwyg_pack"
 
 const ACCEPTED_IMAGE_TYPE = /^image\/(png|jpeg|gif|webp|svg\+xml)$/i
 const ACCEPTED_IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i
@@ -97,7 +98,7 @@ function shouldHandleImagePaste(clipboardData) {
 // 本文 textarea（送信・memo-draft の参照用）と CodeMirror を同期する。
 // CodeMirror は動的 import で初回のみ別チャンク読み込み。
 export default class extends Controller {
-  static targets = ["field", "host", "imageInput", "uploadError"]
+  static targets = ["field", "host", "imageInput", "uploadError", "wysiwygToggle"]
   static values = {
     labelId: String,
     wikiCompletionsUrl: String,
@@ -109,7 +110,7 @@ export default class extends Controller {
   async connect() {
     if (!this.hasHostTarget || !this.hasFieldTarget) return
 
-    const [{ EditorView, basicSetup }, { EditorState }] = await Promise.all([
+    const [{ EditorView, basicSetup }, { EditorState, Compartment }] = await Promise.all([
       import("codemirror"),
       import("@codemirror/state")
     ])
@@ -207,6 +208,9 @@ export default class extends Controller {
 
     const startDoc = textarea.value
     const editorHost = this
+    const wysiwygPackConfig = { getMemoId, getWikiLabelsConfig }
+    this._wysiwygCompartment = new Compartment()
+    this._wysiwygEnabled = readWysiwygPreference()
 
     const state = EditorState.create({
       doc: startDoc,
@@ -214,11 +218,10 @@ export default class extends Controller {
         basicSetup,
         EditorView.lineWrapping,
         ...asciidocExtensions(),
-        wysiwygLiteExtension(),
-        imageWysiwygExtension(getMemoId),
-        ...tableWysiwygFieldExtension(),
+        this._wysiwygCompartment.of(
+          this._wysiwygEnabled ? wysiwygExtensionPack(wysiwygPackConfig) : []
+        ),
         listContinuationExtension(),
-        ...wikiLinkWysiwygExtension(getWikiLabelsConfig),
         ...wikiAutocompletion(getWikiConfig),
         updateListener,
         a11y,
@@ -250,6 +253,37 @@ export default class extends Controller {
     })
 
     this._bindDragDrop()
+    this._wysiwygPackConfig = wysiwygPackConfig
+    this.syncWysiwygUi()
+  }
+
+  toggleWysiwyg() {
+    if (!this.view || !this._wysiwygCompartment) return
+    this._wysiwygEnabled = !this._wysiwygEnabled
+    writeWysiwygPreference(this._wysiwygEnabled)
+    this.view.dispatch({
+      effects: this._wysiwygCompartment.reconfigure(
+        this._wysiwygEnabled ? wysiwygExtensionPack(this._wysiwygPackConfig) : []
+      )
+    })
+    this.syncWysiwygUi()
+    queueMicrotask(() => this.view?.requestMeasure())
+  }
+
+  syncWysiwygUi() {
+    if (this.hasWysiwygToggleTarget) {
+      this.wysiwygToggleTarget.textContent = this._wysiwygEnabled
+        ? "ソース表示"
+        : "プレビュー風"
+      this.wysiwygToggleTarget.setAttribute(
+        "aria-pressed",
+        this._wysiwygEnabled ? "true" : "false"
+      )
+      this.wysiwygToggleTarget.title = this._wysiwygEnabled
+        ? "マーカーを表示する（WYSIWYG オフ）"
+        : "装飾プレビューを表示する（WYSIWYG オン）"
+    }
+    this.element.classList.toggle("memo-body-editor--source-only", !this._wysiwygEnabled)
   }
 
   canUploadImages() {

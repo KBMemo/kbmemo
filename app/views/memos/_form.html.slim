@@ -95,6 +95,8 @@ ruby:
       data-memo-body-editor-upload-url-value=(memo.image_assets_uploadable? ? assets_memo_path(memo) : "")
     ]
       .mb-1.flex.flex-wrap.items-center.gap-2.border-b.border-zinc-100.pb-2
+        button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50 type="button" data-memo-body-editor-target="wysiwygToggle" data-action="memo-body-editor#toggleWysiwyg" aria-pressed="true" title="マーカーを表示する（WYSIWYG オフ）"
+          | ソース表示
         - if memo.image_assets_uploadable?
           = link_to "ダイアグラムを作成", new_memo_diagram_path(memo), class: "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50", target: "_blank", rel: "noopener"
           = render "memos/diagram_links", memo: memo, compact: true
