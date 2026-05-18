@@ -99,6 +99,17 @@ jobs:
         with:
           bundler-cache: true
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Set up Chrome
+        uses: browser-actions/setup-chrome@v1
+
       - name: Run System Tests
         env:
           RAILS_ENV: test
