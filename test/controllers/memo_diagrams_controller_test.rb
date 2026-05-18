@@ -16,7 +16,7 @@ class MemoDiagramsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Mermaid"
   end
 
-  test "edit plantuml uses diagram editor without mermaid language" do
+  test "edit plantuml uses diagram editor with plantuml engine" do
     @repo.write_asset!(@memo, filename: "diagrams/arch.puml", io: StringIO.new("@startuml\nA -> B\n@enduml"))
 
     get edit_memo_diagram_path(@memo, "arch.puml")
