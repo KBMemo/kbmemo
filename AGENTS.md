@@ -1,15 +1,14 @@
 # Agent guide (kbmemo_site)
 
-このリポジトリでエージェント／コントリビュータが参照するドキュメントと方針の入口です。
+このリポジトリでエージェント／コントリビュータが参照する方針の入口です。
 
-## Architecture docs
+## メモ本文
 
-| Topic | Document |
-|-------|----------|
-| メモディレクトリ階層（`home` / `share` / `public`、`full_path`） | [docs/architecture/memo-directory-layout.adoc](docs/architecture/memo-directory-layout.adoc) |
-| 本文エディタ（CodeMirror + AsciiDoc）の段階的ロードマップ | [docs/architecture/memo-body-editor-roadmap.adoc](docs/architecture/memo-body-editor-roadmap.adoc) |
+- **正は DB の AsciiDoc プレーン文字列／CM は見せ方のみ。** サーバー側の変換・表示は Asciidoctor（`MemoWikiLinks` 等）。
 
-メモ本文の編集・WYSIWYG ライト・Wiki 補完を触る前に、**memo-body-editor-roadmap** のフェーズと「正は DB の AsciiDoc プレーン文字列／CM は見せ方のみ」を確認すること。
+## Slim と Tailwind
+
+- Slim のドット記法（`tag.foo.bar`）は **`[` を含むクラス名をパースできない**（任意値 `text-[10px]` など）。角括弧付きユーティリティは **`class="クラス名 ..."`** で指定すること。
 
 ## Stack (short)
 
