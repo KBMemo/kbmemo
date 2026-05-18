@@ -16,6 +16,14 @@ class MemoDiagramsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Mermaid"
   end
 
+  test "edit plantuml uses diagram editor without mermaid language" do
+    @repo.write_asset!(@memo, filename: "diagrams/arch.puml", io: StringIO.new("@startuml\nA -> B\n@enduml"))
+
+    get edit_memo_diagram_path(@memo, "arch.puml")
+    assert_response :success
+    assert_includes response.body, 'data-memo-diagram-editor-engine-value="plantuml"'
+  end
+
   test "create redirects to edit" do
     svg = '<svg xmlns="http://www.w3.org/2000/svg"/>'
     with_stubbed_kroki(svg) do
@@ -32,6 +40,8 @@ class MemoDiagramsControllerTest < ActionDispatch::IntegrationTest
     get edit_memo_diagram_path(@memo, "flow.mmd")
     assert_response :success
     assert_includes response.body, "diagram::flow.mmd[]"
+    assert_includes response.body, 'data-controller="memo-diagram-editor"'
+    assert_includes response.body, 'data-memo-diagram-editor-engine-value="mermaid"'
 
     svg = '<svg xmlns="http://www.w3.org/2000/svg"><circle r="1"/></svg>'
     with_stubbed_kroki(svg) do
