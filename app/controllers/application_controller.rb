@@ -19,7 +19,16 @@ class ApplicationController < ActionController::Base
   end
 
   def user_not_authorized
+    if json_request?
+      render json: { error: "権限がありません。" }, status: :forbidden
+      return
+    end
+
     flash[:alert] = "権限がありません。"
     redirect_back(fallback_location: root_path, allow_other_host: false)
+  end
+
+  def json_request?
+    request.format.json? || request.headers["Accept"].to_s.include?("application/json")
   end
 end

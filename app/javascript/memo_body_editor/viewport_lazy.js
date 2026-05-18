@@ -24,10 +24,15 @@ function lineRangeKey(range) {
 }
 
 function publishViewportRange(view) {
+  if (!view.dom?.isConnected) return
   const range = computeViewportLineRange(view)
-  const current = view.state.field(viewportLineRangeField)
-  if (lineRangeKey(current) === lineRangeKey(range)) return
+  const current = view.state.field(viewportLineRangeField, false)
+  if (!current || lineRangeKey(current) === lineRangeKey(range)) return
   view.dispatch({ effects: setViewportLineRange.of(range) })
+}
+
+function schedulePublishViewportRange(view) {
+  queueMicrotask(() => publishViewportRange(view))
 }
 
 /**
@@ -38,13 +43,13 @@ export function viewportLineRangeSyncExtension() {
     viewportLineRangeField,
     EditorView.updateListener.of((update) => {
       if (update.viewportChanged || update.docChanged) {
-        publishViewportRange(update.view)
+        schedulePublishViewportRange(update.view)
       }
     }),
     ViewPlugin.fromClass(
       class {
         constructor(view) {
-          publishViewportRange(view)
+          schedulePublishViewportRange(view)
         }
       }
     )

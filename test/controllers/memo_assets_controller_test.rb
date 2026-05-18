@@ -61,6 +61,116 @@ class MemoAssetsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "destroy removes asset file" do
+    repo = MemoRepository.new
+    repo.write_asset!(@memo, filename: "remove-me.png", io: StringIO.new("PNG"))
+
+    delete destroy_asset_memo_path(@memo, asset_path: "remove-me.png")
+    assert_response :no_content
+    assert_not repo.absolute_asset_path_for(@memo, "remove-me.png").file?
+  end
+
+  test "destroy with json accept removes asset file" do
+    repo = MemoRepository.new
+    repo.write_asset!(@memo, filename: "json-remove.png", io: StringIO.new("PNG"))
+
+    delete destroy_asset_memo_path(@memo, asset_path: "json-remove.png"),
+      headers: { "Accept" => "application/json" }
+
+    assert_response :no_content
+    assert_not repo.absolute_asset_path_for(@memo, "json-remove.png").file?
+  end
+
+  test "destroy removes root svg image via json body" do
+    repo = MemoRepository.new
+    svg = '<svg xmlns="http://www.w3.org/2000/svg"></svg>'
+    repo.write_asset!(@memo, filename: "icon.svg", io: StringIO.new(svg))
+
+    delete "/memos/#{@memo.id}/assets",
+      params: { asset_path: "icon.svg" },
+      as: :json
+
+    assert_response :no_content
+    assert_not repo.absolute_asset_path_for(@memo, "icon.svg").file?
+  end
+
+  test "destroy svg keeps brackets in filename" do
+    repo = MemoRepository.new
+    repo.write_asset!(@memo, filename: "diagrams/[flow].svg", io: StringIO.new("<svg></svg>"))
+
+    delete "/memos/#{@memo.id}/assets",
+      params: { asset_path: "diagrams/[flow].svg" },
+      as: :json
+
+    assert_response :no_content
+    assert_not repo.absolute_asset_path_for(@memo, "diagrams/[flow].svg").file?
+  end
+
+  test "destroy svg via legacy filename param split as format" do
+    repo = MemoRepository.new
+    svg = '<svg xmlns="http://www.w3.org/2000/svg"></svg>'
+    repo.write_asset!(@memo, filename: "legacy.svg", io: StringIO.new(svg))
+
+    delete "/memos/#{@memo.id}/assets?filename=legacy&format=svg",
+      headers: { "Accept" => "application/json" }
+
+    assert_response :no_content
+    assert_not repo.absolute_asset_path_for(@memo, "legacy.svg").file?
+  end
+
+  test "destroy removes orphan diagram svg" do
+    repo = MemoRepository.new
+    repo.write_asset!(@memo, filename: "diagrams/orphan.svg", io: StringIO.new("<svg></svg>"))
+
+    delete destroy_asset_memo_path(@memo, asset_path: "diagrams/orphan.svg"),
+      headers: { "Accept" => "application/json" }
+
+    assert_response :no_content
+    assert_not repo.absolute_asset_path_for(@memo, "diagrams/orphan.svg").file?
+  end
+
+  test "destroy removes jpeg image" do
+    repo = MemoRepository.new
+    repo.write_asset!(@memo, filename: "photo.jpeg", io: StringIO.new("JPEG"))
+
+    delete destroy_asset_memo_path(@memo, asset_path: "photo.jpeg"),
+      headers: { "Accept" => "application/json" }
+
+    assert_response :no_content
+    assert_not repo.absolute_asset_path_for(@memo, "photo.jpeg").file?
+  end
+
+  test "destroy removes unreferenced diagram source and svg" do
+    repo = MemoRepository.new
+    repo.write_asset!(@memo, filename: "diagrams/orphan.mmd", io: StringIO.new("graph TD"))
+    repo.write_asset!(@memo, filename: "diagrams/orphan.svg", io: StringIO.new("<svg></svg>"))
+
+    delete destroy_asset_memo_path(@memo, asset_path: "diagrams/orphan.mmd"),
+      headers: { "Accept" => "application/json" }
+
+    assert_response :no_content
+    assert_not repo.absolute_asset_path_for(@memo, "diagrams/orphan.mmd").file?
+    assert_not repo.absolute_asset_path_for(@memo, "diagrams/orphan.svg").file?
+  end
+
+  test "destroy removes git tracked asset" do
+    repo = MemoRepository.new
+    repo.write_asset!(@memo, filename: "tracked.png", io: StringIO.new("PNG"))
+    repo.write_and_commit!(@memo)
+    tracked_rel = repo.assets_dir_relative_for(@memo).join("tracked.png").to_s
+
+    delete destroy_asset_memo_path(@memo, asset_path: "tracked.png"),
+      headers: { "Accept" => "application/json" }
+
+    assert_response :no_content
+    assert_not repo.absolute_asset_path_for(@memo, "tracked.png").file?
+
+    _out, err, st = Open3.capture3(
+      "git", "ls-files", "--error-unmatch", "--", tracked_rel, chdir: repo.root.to_s
+    )
+    assert_not st.success?, err
+  end
+
   test "show serves diagram svg under diagrams subdirectory" do
     repo = MemoRepository.new
     svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>'

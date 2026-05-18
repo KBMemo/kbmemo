@@ -22,6 +22,14 @@ class MemoAssetsController < ApplicationController
     head :not_found
   end
 
+  def destroy
+    authorize @memo, :upload_asset?
+    MemoAssets.delete!(@memo, relative_path: asset_filename_from_params)
+    head :no_content
+  rescue MemoAssets::InvalidFile => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
   private
 
   def set_memo
@@ -29,9 +37,18 @@ class MemoAssetsController < ApplicationController
   end
 
   def asset_filename_from_params
-    value = params[:filename]
+    value = params[:asset_path].presence || params[:filename]
     value = value.join("/") if value.is_a?(Array)
-    value.to_s
+    value = value.to_s
+    return value if value.blank?
+
+    # filename=icon.svg 等が format に分離された場合（.svg / .jpeg 等）
+    if params[:format].present?
+      fmt = params[:format].to_s.delete_prefix(".")
+      value = "#{value}.#{fmt}" unless value.end_with?(".#{fmt}")
+    end
+
+    value
   end
 
   def apply_svg_asset_headers(path)

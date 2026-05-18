@@ -1,11 +1,12 @@
-/ locals: (memo:, compact: false)
+/ locals: (memo:, compact: false, label: nil)
 - compact = local_assigns.fetch(:compact, false)
 - entries = memo_diagram_entries(memo)
 - return unless entries.any?
 
 - if compact
-  .flex.flex-wrap.items-center.gap-x-2.gap-y-1.text-xs role="navigation" aria-label="既存のダイアグラム"
-    span.text-zinc-500 既存:
+  - row_label = local_assigns.fetch(:label, "既存:")
+  .flex.flex-wrap.items-center.gap-x-2.gap-y-1.text-xs role="navigation" aria-label="添付ファイル"
+    span.shrink-0.text-zinc-600.font-medium= row_label
     - entries.each do |entry|
       = link_to entry[:diagram_key],
         entry[:edit_url],

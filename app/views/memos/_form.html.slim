@@ -94,19 +94,21 @@ ruby:
       data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "")
       data-memo-body-editor-upload-url-value=(memo.image_assets_uploadable? ? assets_memo_path(memo) : "")
     ]
-      .mb-1.flex.flex-wrap.items-center.gap-2.border-b.border-zinc-100.pb-2
-        button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50 type="button" data-memo-body-editor-target="wysiwygToggle" data-action="memo-body-editor#toggleWysiwyg" aria-pressed="true" title="マーカーを表示する（WYSIWYG オフ）"
-          | ソース表示
+      .mb-1.space-y-1.border-b.border-zinc-100.pb-2
+        .flex.flex-wrap.items-center.gap-2
+          button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50 type="button" data-memo-body-editor-target="wysiwygToggle" data-action="memo-body-editor#toggleWysiwyg" aria-pressed="true" title="マーカーを表示する（WYSIWYG オフ）"
+            | ソース表示
+          - if memo.image_assets_uploadable?
+            = link_to "ダイアグラムを作成", new_memo_diagram_path(memo), class: "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50", target: "_blank", rel: "noopener"
+            label.cursor-pointer.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50
+              | 画像を挿入
+              input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple=true data-memo-body-editor-target="imageInput" data-action="change->memo-body-editor#uploadImage"
+          - else
+            button.rounded-md.border.border-zinc-200.bg-zinc-100.px-2.py-1.text-xs.font-medium.text-zinc-400.cursor-not-allowed type="button" disabled=true title="メモを Git にコミットしてから画像を挿入できます"
+              | 画像を挿入
+          span.hidden.text-xs.text-red-600 data-memo-body-editor-target="uploadError"
         - if memo.image_assets_uploadable?
-          = link_to "ダイアグラムを作成", new_memo_diagram_path(memo), class: "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50", target: "_blank", rel: "noopener"
-          = render "memos/diagram_links", memo: memo, compact: true
-          label.cursor-pointer.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50
-            | 画像を挿入
-            input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple=true data-memo-body-editor-target="imageInput" data-action="change->memo-body-editor#uploadImage"
-        - else
-          button.rounded-md.border.border-zinc-200.bg-zinc-100.px-2.py-1.text-xs.font-medium.text-zinc-400.cursor-not-allowed type="button" disabled=true title="メモを Git にコミットしてから画像を挿入できます"
-            | 画像を挿入
-        span.hidden.text-xs.text-red-600 data-memo-body-editor-target="uploadError"
+          = render "memos/attachment_panel", memo: memo, body: memo.body
         p.text-xs.text-zinc-500
           - if memo.image_assets_uploadable?
             | 画像は
@@ -115,7 +117,13 @@ ruby:
             code.text-zinc-600 stem:[E=mc^2]
             |  /
             code.text-zinc-600 latexmath:[\\int x dx]
-            | 等（表示時に KaTeX でレンダリング）。
+            | 、ブロックは
+            code.text-zinc-600 [stem]
+            |  +
+            code.text-zinc-600 ++++
+            |  （任意で直前に
+            code.text-zinc-600 .title
+            | ）。`diagram::` も編集画面で SVG プレビュー。
           - else
             | 画像の挿入はメモを Git にコミットした後に利用できます（新規作成時・未コミットのドラフトでは利用できません）。
       = f.text_area :body,

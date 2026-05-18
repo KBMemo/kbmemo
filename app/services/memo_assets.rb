@@ -17,6 +17,10 @@ class MemoAssets
     new(repo: repo).resolve_path!(memo, filename)
   end
 
+  def self.delete!(memo, relative_path:, repo: MemoRepository.new)
+    new(repo: repo).delete!(memo, relative_path: relative_path)
+  end
+
   def initialize(repo: MemoRepository.new)
     @repo = repo
   end
@@ -41,12 +45,24 @@ class MemoAssets
   end
 
   def resolve_path!(memo, filename)
-    safe = MemoAssetPath.normalize!(filename)
-    path = @repo.absolute_asset_path_for(memo, safe)
-    raise InvalidFile, "画像が見つかりません" unless path.file? && path.exist?
+    path = find_asset_file(memo, filename)
+    raise InvalidFile, "画像が見つかりません" unless path&.file? && path.exist?
     raise InvalidFile, "画像が見つかりません" unless path_under_assets_dir?(memo, path)
 
     path
+  end
+
+  def delete!(memo, relative_path:)
+    unless memo.image_assets_uploadable?
+      raise InvalidFile, "メモを Git にコミットしてから削除してください"
+    end
+
+    path = resolve_path!(memo, relative_path)
+    safe = path.relative_path_from(@repo.assets_dir_absolute_for(memo)).to_s
+    path_rel = path.relative_path_from(@repo.root).to_s
+    remove_companion_svg!(memo, safe)
+    FileUtils.rm_f(path)
+    @repo.remove_tracked_path!(path_rel)
   end
 
   def self.asset_url_for(memo, filename)
@@ -58,6 +74,37 @@ class MemoAssets
 
   def asset_url_for(memo, filename)
     self.class.asset_url_for(memo, filename)
+  end
+
+  def remove_companion_svg!(memo, source_relative)
+    ext = File.extname(source_relative).downcase
+    return unless source_relative.start_with?("diagrams/") && MemoDiagram::ALLOWED_EXTENSIONS.include?(ext)
+
+    macro = source_relative.sub(%r{\Adiagrams/}, "")
+    svg_rel = MemoDiagram.svg_relative_path(macro)
+    svg_path = @repo.absolute_asset_path_for(memo, svg_rel)
+    return unless svg_path.file?
+
+    svg_repo_rel = svg_path.relative_path_from(@repo.root).to_s
+    FileUtils.rm_f(svg_path)
+    @repo.remove_tracked_path!(svg_repo_rel)
+  rescue MemoDiagram::InvalidPath
+    nil
+  end
+
+  def find_asset_file(memo, filename)
+    assets_dir = @repo.assets_dir_absolute_for(memo)
+
+    if MemoAssetPath.safe_relative?(filename)
+      exact = MemoAssetPath.existing_relative!(filename)
+      path = assets_dir.join(exact)
+      return path if path.file?
+    end
+
+    safe = MemoAssetPath.normalize!(filename)
+    assets_dir.join(safe)
+  rescue InvalidFile
+    nil
   end
 
   def path_under_assets_dir?(memo, path)

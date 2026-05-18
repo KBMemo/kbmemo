@@ -4,8 +4,17 @@
 
 import { application } from "./application"
 
+import FlashNoticeController from "./flash_notice_controller"
+application.register("flash-notice", FlashNoticeController)
+
 import HelloController from "./hello_controller"
 application.register("hello", HelloController)
+
+import MemoAttachmentsController from "./memo_attachments_controller"
+application.register("memo-attachments", MemoAttachmentsController)
+
+import MemoBodyEditorController from "./memo_body_editor_controller"
+application.register("memo-body-editor", MemoBodyEditorController)
 
 import MemoDirectoryDndController from "./memo_directory_dnd_controller"
 application.register("memo-directory-dnd", MemoDirectoryDndController)
@@ -16,20 +25,14 @@ application.register("memo-directory-parent-picker", MemoDirectoryParentPickerCo
 import MemoDraftController from "./memo_draft_controller"
 application.register("memo-draft", MemoDraftController)
 
-import MemoBodyEditorController from "./memo_body_editor_controller"
-application.register("memo-body-editor", MemoBodyEditorController)
-
 import MemoSearchController from "./memo_search_controller"
 application.register("memo-search", MemoSearchController)
 
-import MemoWikiLinkCopyController from "./memo_wiki_link_copy_controller"
-application.register("memo-wiki-link-copy", MemoWikiLinkCopyController)
-
-import FlashNoticeController from "./flash_notice_controller"
-application.register("flash-notice", FlashNoticeController)
-
 import MemoSidebarController from "./memo_sidebar_controller"
 application.register("memo-sidebar", MemoSidebarController)
+
+import MemoWikiLinkCopyController from "./memo_wiki_link_copy_controller"
+application.register("memo-wiki-link-copy", MemoWikiLinkCopyController)
 
 import UserMenuController from "./user_menu_controller"
 application.register("user-menu", UserMenuController)

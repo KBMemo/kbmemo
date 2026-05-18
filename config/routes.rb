@@ -41,6 +41,7 @@ Rails.application.routes.draw do
       patch :draft
       post "assets", to: "memo_assets#create", as: :assets
       get "assets/*filename", to: "memo_assets#show", as: :asset, format: false
+      delete "assets", to: "memo_assets#destroy", as: :destroy_asset
     end
 
     resources :diagrams, only: %i[new create edit update], controller: "memo_diagrams",

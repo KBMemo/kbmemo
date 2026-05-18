@@ -86,6 +86,20 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, "<object"
   end
 
+  test "memo_html renders stem block with title via katex" do
+    body = <<~ADOC
+      .stem title
+      [stem]
+      ++++
+      E=mc^2
+      ++++
+    ADOC
+    html = memo_html(body, source_memo: memos(:one))
+    assert_includes html, 'class="katex"'
+    assert_includes html, "stem title"
+    assert_includes html, ">E=mc"
+  end
+
   test "memo_html renders stem and latexmath via katex" do
     body = <<~ADOC
       Inline stem: stem:[E = mc^2]

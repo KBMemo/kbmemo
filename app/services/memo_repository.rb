@@ -116,6 +116,18 @@ class MemoRepository
     end
   end
 
+  # Git 追跡中のアセットを作業ツリーとインデックスから削除する
+  def remove_tracked_path!(relative_from_repo_root)
+    ensure_repo!
+    rel = relative_from_repo_root.to_s
+    return if rel.blank?
+
+    with_repo_lock do
+      _out, _err, st = Open3.capture3("git", "ls-files", "--error-unmatch", "--", rel, chdir: @root.to_s)
+      git!("rm", "-f", "--", rel) if st.success?
+    end
+  end
+
   private
 
   # TODO: 本文未参照のアセットは現状削除しない（roadmap Phase 5f TODO 参照）
@@ -125,12 +137,8 @@ class MemoRepository
     assets_abs = @root.join(assets_rel)
     return paths unless assets_abs.directory?
 
-    Dir.glob(assets_abs.join("**", "*"), File::FNM_DOTMATCH).each do |abs|
-      next unless File.file?(abs)
-
-      rel = Pathname.new(abs).relative_path_from(@root).to_s
-      paths << rel
-    end
+    # ディレクトリ単位で add し、削除済みアセットもコミットに含める
+    paths << assets_rel
     paths.uniq
   end
 

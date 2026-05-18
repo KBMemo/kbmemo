@@ -309,6 +309,12 @@ module MemosHelper
     MemoDiagrams.list(memo)
   end
 
+  def memo_attachment_entries(memo, body: nil)
+    return [] unless memo.persisted?
+
+    MemoAttachments.list(memo, body: body.presence || memo.body.to_s)
+  end
+
   def memo_html(body, source_memo: nil)
     return "".html_safe if body.blank?
 

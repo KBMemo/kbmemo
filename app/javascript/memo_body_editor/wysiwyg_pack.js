@@ -1,4 +1,6 @@
 /** Phase 6b: WYSIWYG-lite 拡張を Compartment でまとめる */
+import { diagramWysiwygExtension } from "./diagram_wysiwyg"
+import { mathWysiwygExtension } from "./math_wysiwyg"
 import { wysiwygLiteExtension } from "./wysiwyg_lite"
 import { imageWysiwygExtension } from "./image_wysiwyg"
 import { tableWysiwygFieldExtension } from "./table_wysiwyg_field"
@@ -27,6 +29,8 @@ export function wysiwygExtensionPack({ getMemoId, getWikiLabelsConfig }) {
   return [
     ...viewportLineRangeSyncExtension(),
     wysiwygLiteExtension(),
+    diagramWysiwygExtension(getMemoId),
+    mathWysiwygExtension(),
     imageWysiwygExtension(getMemoId),
     ...tableWysiwygFieldExtension(),
     ...wikiLinkWysiwygExtension(getWikiLabelsConfig)

@@ -4,7 +4,14 @@ import { admonitionBlockByLine, scanAdmonitionBlocks } from "./admonition_syntax
 import { applyAdmonitionWysiwyg, cursorInAdmonitionBlock } from "./admonition_wysiwyg"
 import { codeBlockByLine, isFenceDelimiterLine, scanCodeBlocks } from "./code_block_syntax"
 import { applyCodeBlockWysiwyg, cursorInCodeBlock } from "./code_block_wysiwyg"
+import { diagramBlockLineSet, diagramExclusionRanges } from "./diagram_syntax"
 import { imageExclusionRanges } from "./image_syntax"
+import {
+  mathExclusionRanges,
+  scanStemBlocks,
+  scanStemDraftLineSet,
+  stemBlockByLine
+} from "./math_syntax"
 import { linkExclusionRanges } from "./wiki_link_wysiwyg"
 import { orderedListIndex, parseListLine } from "./list_syntax"
 import { scanTableBlocks, tableBlockByLine } from "./table_syntax"
@@ -168,7 +175,9 @@ function pushSpec(specs, from, to, deco, kind) {
 function decorateInline(specs, atomicRanges, line, text, lineFrom, state, editingActive) {
   const linkRanges = linkExclusionRanges(text, lineFrom)
   const imageRanges = imageExclusionRanges(text, lineFrom)
-  const excludeRanges = linkRanges.concat(imageRanges)
+  const diagramRanges = diagramExclusionRanges(text, lineFrom)
+  const mathRanges = mathExclusionRanges(text, lineFrom)
+  const excludeRanges = linkRanges.concat(imageRanges, diagramRanges, mathRanges)
   const occupied = []
 
   const overlapsOccupied = (from, to) =>
@@ -218,6 +227,10 @@ function buildWysiwygDecorations(view) {
   const skipBlockLine = (n) => codeByLine.has(n) || tableByLine.has(n)
   const admonitionBlocks = scanAdmonitionBlocks(state.doc, skipBlockLine)
   const admonitionByLine = admonitionBlockByLine(admonitionBlocks)
+  const stemBlocks = scanStemBlocks(state.doc, skipBlockLine)
+  const stemByLine = stemBlockByLine(stemBlocks)
+  const stemDraftLines = scanStemDraftLineSet(state.doc, skipBlockLine)
+  const diagramBlockLines = diagramBlockLineSet(state.doc, skipBlockLine)
   const viewportRange = getViewportLineRange(state)
 
   for (let lineNo = 1; lineNo <= state.doc.lines; lineNo++) {
@@ -236,6 +249,9 @@ function buildWysiwygDecorations(view) {
     if (codeBlock) continue
 
     if (tableByLine.has(lineNo)) continue
+    if (stemByLine.has(lineNo)) continue
+    if (stemDraftLines.has(lineNo)) continue
+    if (diagramBlockLines.has(lineNo)) continue
 
     if (!shouldDecorateEditorLine(view, lineNo, viewportRange)) continue
 

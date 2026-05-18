@@ -1,0 +1,38 @@
+/ locals: (memo:, body: nil)
+- return unless memo.image_assets_uploadable?
+- entries = memo_attachment_entries(memo, body: body)
+- can_manage = policy(memo).update?
+
+div.text-xs data-controller="memo-attachments" data-memo-attachments-expanded-value="false"
+  .flex.w-full.items-center.gap-1
+    span.shrink-0.font-medium.text-zinc-600 添付ファイル：
+    button.ml-auto.inline-flex.h-6.w-6.shrink-0.items-center.justify-center.rounded.border.border-zinc-300.bg-white.text-zinc-600.hover:bg-zinc-50 type="button" data-action="memo-attachments#toggle" aria-expanded="false" aria-controls="memo-attachment-panel" title="一覧を開く"
+      span.leading-none data-memo-attachments-target="toggleIcon" aria-hidden="true"
+        | ▼
+  #memo-attachment-panel.hidden.pt-1 data-memo-attachments-target="panel"
+    - if entries.empty?
+      p.px-1.py-2.text-zinc-500 添付ファイルはありません
+    - else
+      ul.divide-y.divide-zinc-100.rounded-md.border.border-zinc-200.bg-white
+        - entries.each do |entry|
+          li class="memo-attachment-row grid grid-cols-1 gap-2 px-2 py-2 sm:grid-cols-[minmax(0,1fr)_auto]" data-memo-attachments-target="row"
+            .flex.min-w-0.flex-wrap.items-center.gap-x-2.gap-y-1
+              span.font-mono.text-zinc-800= entry.name
+              .flex.flex-wrap.items-center.gap-1
+                - if entry.svg_missing
+                  span.rounded.bg-amber-50.px-1.5.py-0.5.text-amber-800 SVG無し
+                - unless entry.referenced
+                  span.rounded.bg-zinc-100.px-1.5.py-0.5.text-zinc-600 未使用
+            .flex.flex-wrap.items-center.gap-1.sm:justify-end
+              - if entry.edit_url
+                = link_to "編集",
+                  entry.edit_url,
+                  class: "rounded border border-zinc-300 bg-white px-2 py-0.5 text-zinc-700 hover:bg-zinc-50",
+                  target: "_blank",
+                  rel: "noopener"
+              - unless entry.referenced
+                button.rounded.border.border-zinc-300.bg-white.px-2.py-0.5.text-zinc-700.hover:bg-zinc-50 type="button" data-action="memo-attachments#insert" data-memo-attachments-text-param=entry.insert_text
+                  | 挿入
+              - if can_manage && entry.delete_path
+                button.rounded.border.border-red-200.bg-white.px-2.py-0.5.text-red-700.hover:bg-red-50 type="button" data-action="memo-attachments#remove" data-destroy-path=entry.delete_path data-memo-id=memo.id data-destroy-name=entry.name
+                  | 削除

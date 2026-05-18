@@ -255,6 +255,22 @@ export default class extends Controller {
     this._bindDragDrop()
     this._wysiwygPackConfig = wysiwygPackConfig
     this.syncWysiwygUi()
+    this._bindInsertEvent()
+  }
+
+  _bindInsertEvent() {
+    this._handleInsert = (event) => {
+      const text = event.detail?.text
+      if (!text) return
+      void this.insertAtCursor(text)
+    }
+    this.element.addEventListener("memo-body-editor:insert", this._handleInsert)
+  }
+
+  _unbindInsertEvent() {
+    if (this._handleInsert) {
+      this.element.removeEventListener("memo-body-editor:insert", this._handleInsert)
+    }
   }
 
   toggleWysiwyg() {
@@ -291,6 +307,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this._unbindInsertEvent()
     this._unbindDragDrop()
     if (this.fieldTarget && this._onTextareaExternalChange) {
       this.fieldTarget.removeEventListener("change", this._onTextareaExternalChange)
