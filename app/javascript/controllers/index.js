@@ -16,6 +16,9 @@ application.register("memo-attachments", MemoAttachmentsController)
 import MemoBodyEditorController from "./memo_body_editor_controller"
 application.register("memo-body-editor", MemoBodyEditorController)
 
+import MemoDiagramEditorController from "./memo_diagram_editor_controller"
+application.register("memo-diagram-editor", MemoDiagramEditorController)
+
 import ExpandableHintController from "./expandable_hint_controller"
 application.register("expandable-hint", ExpandableHintController)
 

@@ -10,6 +10,9 @@ class MemoDiagramsTest < ActiveSupport::TestCase
   end
 
   test "list returns diagram sources under assets diagrams" do
+    diagrams_dir = @repo.assets_dir_absolute_for(@memo).join("diagrams")
+    FileUtils.rm_rf(diagrams_dir) if diagrams_dir.directory?
+
     @repo.write_asset!(@memo, filename: "diagrams/a.mmd", io: StringIO.new("graph TD"))
     @repo.write_asset!(@memo, filename: "diagrams/a.svg", io: StringIO.new("<svg/>"))
     @repo.write_asset!(@memo, filename: "diagrams/b.puml", io: StringIO.new("@startuml\n@enduml"))
@@ -20,6 +23,18 @@ class MemoDiagramsTest < ActiveSupport::TestCase
     assert listed.find { |e| e[:diagram_key] == "a.mmd" }[:svg_exists]
     assert_not listed.find { |e| e[:diagram_key] == "b.puml" }[:svg_exists]
     assert_includes listed.first[:edit_url], "/diagrams/a.mmd/edit"
+  end
+
+  test "preview_render returns svg without writing assets" do
+    svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>'
+    with_stubbed_kroki(svg) do
+      body = MemoDiagrams.preview_render(
+        source_relative: "diagrams/ephemeral.mmd",
+        source: "graph TD\nA-->B"
+      )
+      assert_equal svg, body
+    end
+    assert_not @repo.absolute_asset_path_for(@memo, "diagrams/ephemeral.mmd").exist?
   end
 
   test "create writes source and svg via kroki" do

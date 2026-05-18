@@ -2,7 +2,7 @@
 
 class MemoDiagramsController < ApplicationController
   before_action :set_memo
-  before_action :set_source_relative, only: %i[edit update]
+  before_action :set_source_relative, only: %i[edit update preview]
 
   after_action :verify_authorized
 
@@ -30,6 +30,14 @@ class MemoDiagramsController < ApplicationController
     @engine = MemoDiagram.engine_for_filename(@source_relative)
   rescue MemoDiagrams::Error => e
     redirect_to edit_memo_path(@memo), alert: e.message
+  end
+
+  def preview
+    authorize @memo, :show_diagram?
+    svg = MemoDiagrams.preview_render(source_relative: @source_relative, source: params.require(:source))
+    render json: { svg: svg }
+  rescue MemoDiagram::InvalidPath, MemoDiagramRenderer::Error, MemoDiagramRenderer::Unavailable => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def update

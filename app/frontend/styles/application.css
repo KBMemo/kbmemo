@@ -127,3 +127,25 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   background-color: #f4f4f5;
   border-radius: 0.125rem;
 }
+
+/* ダイアグラム専用 CodeMirror（edit.html.slim） */
+.memo-diagram-editor .cm-editor {
+  position: relative;
+}
+
+.memo-diagram-editor .cm-scroller {
+  min-height: 24rem;
+}
+
+.memo-diagram-editor .cm-content {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.memo-diagram-editor-preview__canvas {
+  overflow: auto;
+}
+
+.memo-diagram-editor-preview-object {
+  display: block;
+  max-width: 100%;
+}

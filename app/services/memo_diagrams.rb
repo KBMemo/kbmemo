@@ -12,6 +12,10 @@ class MemoDiagrams
     new(repo: repo).save_and_render!(memo, source_relative: source_relative, source: source)
   end
 
+  def self.preview_render(source_relative:, source:)
+    new.preview_render(source_relative: source_relative, source: source)
+  end
+
   def self.list(memo, repo: MemoRepository.new)
     new(repo: repo).list(memo)
   end
@@ -58,6 +62,14 @@ class MemoDiagrams
       svg_relative: svg_rel,
       asciidoc: MemoDiagram.asciidoc_for(source_rel)
     }
+  end
+
+  # Kroki で SVG を生成する（Git へは書き込まない）
+  def preview_render(source_relative:, source:)
+    source_rel = source_relative.to_s
+    engine = MemoDiagram.engine_for_filename(source_rel)
+    normalized = MemoDiagram.normalize_source(engine, source)
+    MemoDiagramRenderer.render(engine: engine, source: normalized)
   end
 
   def read_source(memo, source_relative:)

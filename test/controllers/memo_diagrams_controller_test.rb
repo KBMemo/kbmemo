@@ -16,13 +16,22 @@ class MemoDiagramsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Mermaid"
   end
 
+  test "edit plantuml uses diagram editor with plantuml engine" do
+    @repo.write_asset!(@memo, filename: "diagrams/arch.puml", io: StringIO.new("@startuml\nA -> B\n@enduml"))
+
+    get edit_memo_diagram_path(@memo, "arch.puml")
+    assert_response :success
+    assert_includes response.body, 'data-memo-diagram-editor-engine-value="plantuml"'
+  end
+
   test "create redirects to edit" do
+    name = "arch-#{SecureRandom.hex(4)}"
     svg = '<svg xmlns="http://www.w3.org/2000/svg"/>'
     with_stubbed_kroki(svg) do
-      post memo_diagrams_path(@memo), params: { name: "arch", engine: "plantuml" }
+      post memo_diagrams_path(@memo), params: { name: name, engine: "plantuml" }
     end
-    assert_redirected_to edit_memo_diagram_path(@memo, "arch.puml")
-    assert @repo.absolute_asset_path_for(@memo, "diagrams/arch.puml").file?
+    assert_redirected_to edit_memo_diagram_path(@memo, "#{name}.puml")
+    assert @repo.absolute_asset_path_for(@memo, "diagrams/#{name}.puml").file?
   end
 
   test "edit and update source" do
@@ -32,6 +41,10 @@ class MemoDiagramsControllerTest < ActionDispatch::IntegrationTest
     get edit_memo_diagram_path(@memo, "flow.mmd")
     assert_response :success
     assert_includes response.body, "diagram::flow.mmd[]"
+    assert_includes response.body, 'data-controller="memo-diagram-editor"'
+    assert_includes response.body, 'data-memo-diagram-editor-engine-value="mermaid"'
+    assert_includes response.body, "data-memo-diagram-editor-preview-url-value"
+    assert_includes response.body, 'data-memo-diagram-editor-target="preview"'
 
     svg = '<svg xmlns="http://www.w3.org/2000/svg"><circle r="1"/></svg>'
     with_stubbed_kroki(svg) do
@@ -39,5 +52,20 @@ class MemoDiagramsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to edit_memo_diagram_path(@memo, "flow.mmd")
     assert_includes @repo.absolute_asset_path_for(@memo, "diagrams/flow.mmd").read, "X-->Y"
+  end
+
+  test "preview returns svg without saving source" do
+    @repo.write_asset!(@memo, filename: "diagrams/flow.mmd", io: StringIO.new("graph TD\nA-->B"))
+
+    svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>preview</text></svg>'
+    with_stubbed_kroki(svg) do
+      post preview_memo_diagram_path(@memo, "flow.mmd"),
+        params: { source: "graph TD\nP-->Q" },
+        as: :json
+    end
+
+    assert_response :success
+    assert_equal svg, response.parsed_body["svg"]
+    assert_includes @repo.absolute_asset_path_for(@memo, "diagrams/flow.mmd").read, "A-->B"
   end
 end

@@ -46,6 +46,10 @@ Rails.application.routes.draw do
 
     resources :diagrams, only: %i[new create edit update], controller: "memo_diagrams",
       param: :diagram_key,
-      constraints: { diagram_key: /[^\/]+/ }
+      constraints: { diagram_key: /[^\/]+/ } do
+      member do
+        post :preview
+      end
+    end
   end
 end
