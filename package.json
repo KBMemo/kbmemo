@@ -17,6 +17,7 @@
     "codemirror": "^6.0.2",
     "codemirror-asciidoc": "^2.0.1",
     "font-awesome": "^4.7.0",
+    "katex": "^0.16.11",
     "lucide": "^1.14.0",
     "stimulus-use": "^0.52.3"
   }

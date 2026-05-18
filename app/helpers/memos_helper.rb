@@ -318,7 +318,10 @@ module MemosHelper
     ).substitute(body.to_s)
     processed = MemoDiagramMacro.new(memo: source_memo).substitute(processed)
 
-    attrs = { "icons" => "font" }
+    attrs = {
+      "icons" => "font",
+      "stem" => "latexmath"
+    }
     if source_memo&.persisted?
       attrs["imagesdir"] = "#{memo_path(source_memo)}/assets/"
     end

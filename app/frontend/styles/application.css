@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "katex/dist/katex.min.css";
 @import "./asciidoctor-material-grey.css";
 
 /* app/views は JS の依存グラフに含まれない — Tailwind にコンテンツパスを明示する。

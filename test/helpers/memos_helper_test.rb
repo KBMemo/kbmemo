@@ -86,6 +86,27 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, "<object"
   end
 
+  test "memo_html renders stem and latexmath via katex" do
+    body = <<~ADOC
+      Inline stem: stem:[E = mc^2]
+
+      Display block:
+
+      [stem]
+      ++++
+      \\sqrt{4}
+      ++++
+
+      latexmath:[\\int_0^1 x^2 dx]
+    ADOC
+
+    html = memo_html(body, source_memo: memos(:one))
+    assert_includes html, 'class="katex"'
+    assert_includes html, "katex-display"
+    assert_includes html, ">E = mc"
+    assert_not_includes html, "stem:[E"
+  end
+
   test "memo_html renders svg image as img in safe mode" do
     memo = memos(:one)
     repo = MemoRepository.new

@@ -37,6 +37,23 @@
   height: auto;
 }
 
+/* KaTeX（asciidoctor-katex / stem / latexmath） */
+.memo-body .katex {
+  font-size: 1.05em;
+}
+
+.memo-body .katex-display {
+  display: block;
+  margin: 1.25rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+
+.memo-body .stemblock > .content {
+  overflow-x: auto;
+}
+
 .memo-body a {
   text-decoration: none;
   color: var(--mg-text);
