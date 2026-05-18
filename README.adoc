@@ -1,27 +1,82 @@
-= README
+= kbmemo
 
+KBMemo（Kanban + Blog + Memo）のアプリケーションサイト。
 
+概要・設計ドキュメントは link:README.md[README.md] を参照。
 
+== テスト
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Minitest（`test/`）を使用しています。
 
-Things you may want to cover:
+=== 単体・統合テスト
 
-* Ruby version
+[source,bash]
+----
+bin/rails db:test:prepare test
+bin/rails test test/controllers/memos_controller_test.rb
+----
 
-* System dependencies
+並列実行は CPU コア数に応じて自動です。
+メモ用 Git 作業ツリーはワーカーごとに `tmp/memo_git_test/` 以下へ分離されます（`config/environments/test.rb`）。
 
-* Configuration
+統合テストのログインは `test/test_helper.rb` の `RodauthIntegrationSignIn` が `POST /login` で行います。
+既定アカウントはフィクスチャ `accounts(:one)`（`freddie@queen.com` / パスワード `password`）です。
 
-* Database creation
+=== システムテスト（Capybara + Cuprite）
 
-* Database initialization
+ブラウザを使う E2E です。
+ドライバは https://github.com/rubycdp/cuprite[Cuprite]（Chrome / Chromium + CDP）です。
+設定は `test/application_system_test_case.rb` にあります。
 
-* How to run the test suite
+*前提*
 
-* Services (job queues, cache servers, search engines, etc.)
+* Google Chrome または Chromium がインストールされていること
+* JavaScript 資産用に Node.js（`npm ci`）。テスト環境では Vite が初回アクセス時に自動ビルドされます（`config/vite.json` の `test`）
 
-* Deployment instructions
+[source,bash]
+----
+bin/rails test:system
+bin/rails test:system test/system/memo_attachment_delete_test.rb
+----
 
-* ...
+==== ブラウザの表示 / 非表示
+
+[cols="2,3",options="header"]
+|===
+|条件 |動作
+
+|ローカル（既定） |Chrome ウィンドウを表示
+|`CI` 環境変数あり |headless
+|`HEADLESS=1` |headless
+|`SHOW_BROWSER=1` |表示（明示）
+|`CUPRITE_INSPECTOR=1` |表示 + DevTools
+|===
+
+SSH などディスプレイがない環境では headless で実行します。
+
+[source,bash]
+----
+HEADLESS=1 bin/rails test:system
+----
+
+システムテストはブラウザと Git 作業ツリーの都合で `parallelize(workers: 1)` です。
+ログインは `ApplicationSystemTestCase#sign_in_via_browser` が `/login` フォームから行います。
+
+現状の例: `test/system/memo_attachment_delete_test.rb`（メモ編集画面で未使用添付ファイルを削除）。
+
+=== CI
+
+`.github/workflows/ci.yml` では次のジョブが分かれています。
+
+* `test` — `bin/rails db:test:prepare test`
+* `system-test` — Node（`npm ci`）と Chrome をセットアップしたうえで `bin/rails test:system`
+
+ローカルで RuboCop・Brakeman・単体テストまでまとめて実行する場合:
+
+[source,bash]
+----
+bin/ci
+----
+
+`config/ci.rb` ではシステムテストは任意（コメントアウト）です。
+有効化する場合は `Tests: System` の行のコメントを外してください。
