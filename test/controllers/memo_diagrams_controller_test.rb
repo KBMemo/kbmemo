@@ -74,6 +74,18 @@ class MemoDiagramsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "SVG がまだありません。ダイアグラムを編集して保存してください。", flash[:alert]
   end
 
+  test "source shows read-only diagram source viewer" do
+    @repo.write_asset!(@memo, filename: "diagrams/flow.mmd", io: StringIO.new("graph TD\nA-->B"))
+    @repo.write_asset!(@memo, filename: "diagrams/flow.svg", io: StringIO.new('<svg xmlns="http://www.w3.org/2000/svg"/>'))
+
+    get source_memo_diagram_path(@memo, "flow.mmd")
+    assert_response :success
+    assert_includes response.body, 'data-controller="diagram-source-viewer"'
+    assert_includes response.body, "graph TD"
+    assert_includes response.body, 'data-diagram-source-viewer-engine-value="mermaid"'
+    assert_includes response.body, "ビューアで開く"
+  end
+
   test "preview returns svg without saving source" do
     @repo.write_asset!(@memo, filename: "diagrams/flow.mmd", io: StringIO.new("graph TD\nA-->B"))
 

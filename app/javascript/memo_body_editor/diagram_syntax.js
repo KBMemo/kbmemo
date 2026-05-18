@@ -56,9 +56,11 @@ export function diagramEditUrl(memoId, macroPath) {
   return `/memos/${encodeURIComponent(String(memoId))}/diagrams/${encodeURIComponent(key)}/edit`
 }
 
+/** ソースをシンタックスハイライト付きで表示するビューア */
 export function diagramSourceUrl(memoId, macroPath) {
-  const rel = diagramSourceRelativePath(macroPath)
-  return rel ? memoAssetSrc(memoId, rel) : null
+  const key = diagramDiagramKey(macroPath)
+  if (!memoId || !key) return null
+  return `/memos/${encodeURIComponent(String(memoId))}/diagrams/${encodeURIComponent(key)}/source`
 }
 
 /** SVG を拡大縮小できる別ウィンドウ用ビューア */

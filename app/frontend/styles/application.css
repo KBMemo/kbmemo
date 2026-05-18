@@ -2,6 +2,7 @@
 @import "katex/dist/katex.min.css";
 @import "./asciidoctor-material-grey.css";
 @import "./diagram_svg_viewer.css";
+@import "./diagram_source_viewer.css";
 
 /* app/views は JS の依存グラフに含まれない — Tailwind にコンテンツパスを明示する。
    `{slim,erb,html}` の brace 展開は環境によって取りこぼしがあるため拡張子を分ける。 */

@@ -1,0 +1,7 @@
+.diagram-source-viewer__host .cm-editor {
+  height: 100%;
+}
+
+.diagram-source-viewer__host .cm-scroller {
+  min-height: 100%;
+}

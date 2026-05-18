@@ -52,6 +52,7 @@ Rails.application.routes.draw do
       member do
         post :preview
         get :view
+        get :source
       end
     end
   end

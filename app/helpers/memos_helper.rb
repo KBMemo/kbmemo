@@ -335,7 +335,8 @@ module MemosHelper
       standalone: false,
       attributes: attrs
     )
-    memo_html_lazy_load_images(html)
+    html = memo_html_lazy_load_images(html)
+    memo_html_add_asset_viewer_links(html, source_memo)
   end
 
   # 表示画面: ビューポート外の画像読み込みを遅延（<object> 図は対象外）
@@ -344,6 +345,20 @@ module MemosHelper
     fragment.css("img:not([loading])").each do |img|
       img["loading"] = "lazy"
       img["decoding"] = "async"
+    end
+    fragment.to_html.html_safe
+  end
+
+  # 表示画面: 画像・ダイアグラムにビューア／ソースへのリンクを付与
+  def memo_html_add_asset_viewer_links(html, memo)
+    return html if memo.blank? || !memo.persisted?
+
+    fragment = Nokogiri::HTML.fragment(html.to_s)
+    fragment.css(".imageblock").each do |block|
+      links = memo_show_asset_action_links(block, memo)
+      next if links.empty?
+
+      block.add_child(build_memo_show_asset_actions_node(fragment, links))
     end
     fragment.to_html.html_safe
   end
@@ -388,6 +403,101 @@ module MemosHelper
       "block w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900",
       "placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-0"
     ].join(" ")
+  end
+
+  MEMO_ASSET_URL_PATH = %r{\A/memos/(\d+)/assets/(.+)\z}
+
+  def memo_show_asset_action_links(imageblock, memo)
+    obj = imageblock.at_css("object[data]")
+    if obj
+      relative = memo_asset_relative_from_url(obj["data"], memo: memo)
+      return [] unless relative
+
+      return memo_show_diagram_action_links(memo, relative) if memo_diagram_svg_relative?(relative)
+
+      return viewer_link_for_asset(memo, relative)
+    end
+
+    img = imageblock.at_css("img[src]")
+    return [] unless img
+
+    relative = memo_asset_relative_from_url(img["src"], memo: memo)
+    return [] unless relative
+
+    viewer_link_for_asset(memo, relative)
+  end
+
+  def memo_show_diagram_action_links(memo, svg_relative)
+    key = memo_diagram_key_from_svg_relative(memo, svg_relative)
+    source_rel = MemoDiagram.source_relative_path(key)
+    links = [
+      { label: "ソース", href: source_memo_diagram_path(memo, key) }
+    ]
+    if memo_diagram_svg_exists?(memo, svg_relative)
+      links << { label: "ビューアで開く", href: view_memo_diagram_path(memo, key) }
+    end
+    links
+  rescue MemoDiagram::InvalidPath
+    []
+  end
+
+  def viewer_link_for_asset(memo, relative)
+    return [] unless memo_viewable_image_relative?(relative)
+    return [] unless memo_asset_exists?(memo, relative)
+
+    [ { label: "ビューアで開く", href: asset_view_memo_path(memo, relative) } ]
+  end
+
+  def build_memo_show_asset_actions_node(fragment, links)
+    doc = fragment.document
+    div = Nokogiri::XML::Node.new("div", doc)
+    div["class"] = "memo-show-asset-actions"
+    links.each do |spec|
+      a = Nokogiri::XML::Node.new("a", doc)
+      a["href"] = spec[:href]
+      a["class"] = "memo-show-asset-action"
+      a["target"] = "_blank"
+      a["rel"] = "noopener noreferrer"
+      a.content = spec[:label]
+      div.add_child(a)
+    end
+    div
+  end
+
+  def memo_asset_relative_from_url(url, memo:)
+    path = url.to_s
+    path = URI.parse(path).path if path.include?("://")
+    match = path.match(MEMO_ASSET_URL_PATH)
+    return nil unless match && match[1].to_i == memo.id
+
+    match[2].split("/").map { |seg| CGI.unescape(seg) }.join("/")
+  end
+
+  def memo_diagram_svg_relative?(relative)
+    relative.start_with?("diagrams/") && relative.downcase.end_with?(".svg")
+  end
+
+  def memo_diagram_key_from_svg_relative(memo, svg_relative)
+    base = File.basename(svg_relative, ".svg")
+    MemoDiagram::ALLOWED_EXTENSIONS.each do |ext|
+      key = "#{base}#{ext}"
+      return key if memo_asset_exists?(memo, "diagrams/#{key}")
+    end
+    "#{base}.mmd"
+  end
+
+  def memo_diagram_svg_exists?(memo, svg_relative)
+    memo_asset_exists?(memo, svg_relative)
+  end
+
+  def memo_asset_exists?(memo, relative)
+    MemoAssets.resolve_path!(memo, relative).file?
+  rescue MemoAssets::InvalidFile
+    false
+  end
+
+  def memo_viewable_image_relative?(relative)
+    relative.match?(/\.(png|jpe?g|gif|webp|svg)\z/i)
   end
 
   def memo_form_underline_input(extra_classes = "")

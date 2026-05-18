@@ -2,7 +2,7 @@
 
 class MemoDiagramsController < ApplicationController
   before_action :set_memo
-  before_action :set_source_relative, only: %i[edit update preview view]
+  before_action :set_source_relative, only: %i[edit update preview view source]
 
   after_action :verify_authorized
 
@@ -39,6 +39,16 @@ class MemoDiagramsController < ApplicationController
   rescue MemoAssets::InvalidFile
     redirect_to edit_memo_diagram_path(@memo, params[:diagram_key]),
       alert: "SVG がまだありません。ダイアグラムを編集して保存してください。"
+  end
+
+  def source
+    authorize @memo, :show_diagram?
+    @source = MemoDiagrams.new.read_source(@memo, source_relative: @source_relative)
+    @engine = MemoDiagram.engine_for_filename(@source_relative)
+    @has_svg = diagram_svg_available?
+    render layout: "diagram_viewer"
+  rescue MemoDiagrams::Error => e
+    redirect_to edit_memo_path(@memo), alert: e.message
   end
 
   def edit
@@ -88,5 +98,12 @@ class MemoDiagramsController < ApplicationController
 
   def diagram_key_param(source_relative)
     source_relative.sub(%r{\Adiagrams/}, "")
+  end
+
+  def diagram_svg_available?
+    svg_relative = MemoDiagram.svg_relative_path(params[:diagram_key])
+    MemoAssets.resolve_path!(@memo, svg_relative).file?
+  rescue MemoAssets::InvalidFile, MemoDiagram::InvalidPath
+    false
   end
 end

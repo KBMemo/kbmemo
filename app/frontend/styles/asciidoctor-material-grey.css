@@ -37,6 +37,23 @@
   height: auto;
 }
 
+.memo-body .memo-show-asset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin-top: 0.35rem;
+}
+
+.memo-body .memo-show-asset-action {
+  font-size: 0.75rem;
+  color: #3f3f46;
+  text-decoration: underline;
+}
+
+.memo-body .memo-show-asset-action:hover {
+  color: #18181b;
+}
+
 /* KaTeX（asciidoctor-katex / stem / latexmath） */
 .memo-body .katex {
   font-size: 1.05em;

@@ -35,7 +35,7 @@
         title="画面に合わせる"
       ]
         | 画面に合わせる
-      = link_to "ソース", asset_memo_path(@memo, @source_relative), class: "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-800 hover:bg-zinc-50", target: "_blank", rel: "noopener"
+      = link_to "ソース", source_memo_diagram_path(@memo, params[:diagram_key]), class: "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-800 hover:bg-zinc-50", target: "_blank", rel: "noopener"
       = link_to "編集", edit_memo_diagram_path(@memo, params[:diagram_key]), class: "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-800 hover:bg-zinc-50"
   .diagram-svg-viewer__stage.flex.min-h-0.flex-1.items-center.justify-center.overflow-hidden.p-4[
     data-diagram-svg-viewer-target="stage"

@@ -84,6 +84,11 @@ class MemosHelperTest < ActionView::TestCase
     html = memo_html("diagram::flow.mmd[]", source_memo: memo)
     assert_includes html, %(data="/memos/#{memo.id}/assets/diagrams/flow.svg")
     assert_includes html, "<object"
+    assert_includes html, "memo-show-asset-actions"
+    assert_includes html, "ビューアで開く"
+    assert_includes html, %(href="/memos/#{memo.id}/diagrams/flow.mmd/view")
+    assert_includes html, "ソース"
+    assert_includes html, %(href="/memos/#{memo.id}/diagrams/flow.mmd/source")
   end
 
   test "memo_html renders stem block with title via katex" do
@@ -145,6 +150,8 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, "<img"
     assert_includes html, 'loading="lazy"'
     assert_includes html, 'decoding="async"'
+    assert_includes html, "ビューアで開く"
+    assert_includes html, %(href="/memos/#{memo.id}/assets/shot.png/view")
   end
 
   test "memo_html renders admonition with font icon" do
