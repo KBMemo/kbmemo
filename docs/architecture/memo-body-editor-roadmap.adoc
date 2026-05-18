@@ -294,9 +294,31 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 
 === Phase 6 — Turbo・マルチタブ・将来拡張
 
-* Turbo Stream で本文 partial が差し替わるときの状態マージ（選択範囲・undo 履歴）戦略。
-* 「ソース / WYSIWYG-lite」トグルがあるなら `Compartment` で拡張パックをオンオフ。
-* E2E（Playwright 等）は任意。補完と装飾の結合ポイントだけ自動テストすると安全。
+==== Phase 6a — マルチタブ・Turbo Stream（2026-05 着手）
+
+*マルチタブ（同一ブラウザ）:*
+
+* `BroadcastChannel`（`kbmemo.memo.{id}`）でドラフト保存をタブ間通知。
+* 受信タブで本文が未保存変更なし → textarea / CodeMirror に自動反映（`change` 経由）。
+* 未保存変更あり → 警告バナー。「最新の本文を読み込む」で明示的に上書き。
+* 保存側タブは `notifyRemoteDraftSaved` で本文スナップショットを送信。
+
+*Turbo Stream（表示ペイン）:*
+
+* `turbo_stream_from` による `show_content` 差し替え時、`#memos_editor_scroll` のスクロール位置を復元（`application.js`）。
+* 編集フォームはドラフト応答で `title` / `slug` / サイドバーのみ Stream 更新（本文 CM は差し替えない）。
+
+*エディタ状態（方針）:*
+
+* CM の選択・undo は Stream では触らない（編集 partial を Stream しない）。
+* 他タブ本文の取り込みは全文差し替え（`memo_body_editor_controller` の `_onTextareaExternalChange`）。
+* 競合時はユーザー確認（バナー）を優先し、黙って上書きしない。
+
+==== Phase 6b — 任意（未着手）
+
+* 「ソース / WYSIWYG-lite」トグルと `Compartment` による拡張パックのオンオフ。
+* E2E（Playwright 等）。補完と装飾の結合ポイントの自動テスト。
+* 別ブラウザ・別端末間の競合（Operational Transform / サーバー版番号）は Phase 6 範囲外。
 
 == リスクと意思決定（早めに固定）
 
@@ -314,7 +336,7 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 |kbmemo は Stimulus。CM API はそのまま利用可能。
 
 |DnD 等からのドラフト
-|サイドバー更新が必要なら `Accept: text/vnd.turbo-stream.html` を `memo-draft` と揃える（任意・未着手の場合あり）。
+|*決定（2026-05）:* `memo-draft` は `Accept: text/vnd.turbo-stream.html` でサイドバー同期済み。DnD からのドラフトも同経路で可。
 |===
 
 == 推奨マイルストーン順（まとめ）
@@ -356,4 +378,6 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 * `app/services/memo_diagram_macro.rb` — `diagram::` 展開
 * `config/initializers/kroki.rb` / `docker-compose.kroki.yml` — Kroki
 * `config/initializers/asciidoctor.rb` — STEM / KaTeX（5g）
+* `app/javascript/controllers/memo_draft_controller.js` — ドラフト・マルチタブ `BroadcastChannel`
+* `app/frontend/entrypoints/application.js` — Turbo Stream 後のスクロール復元
 * `app/controllers/memos_controller.rb` — `wiki_completions`, `draft`

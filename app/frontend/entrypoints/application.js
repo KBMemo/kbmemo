@@ -30,14 +30,45 @@ const scheduleLucideIconsAfterStream = () => {
   })
 }
 
+let memosEditorScrollTop = null
+
+function memoStreamTargetId(streamElement) {
+  const target = streamElement?.getAttribute?.("target")
+  return target?.startsWith("memo_") ? target : null
+}
+
+function captureMemosEditorScroll() {
+  const el = document.getElementById("memos_editor_scroll")
+  if (!el) return
+  memosEditorScrollTop = el.scrollTop
+}
+
+function restoreMemosEditorScroll() {
+  if (memosEditorScrollTop == null) return
+  const el = document.getElementById("memos_editor_scroll")
+  if (!el) return
+  el.scrollTop = memosEditorScrollTop
+  memosEditorScrollTop = null
+}
+
 document.addEventListener("turbo:before-stream-render", (event) => {
+  const streamElement = event.target
+  if (streamElement?.tagName === "TURBO-STREAM" && memoStreamTargetId(streamElement)) {
+    captureMemosEditorScroll()
+  }
+
   const orig = event.detail?.render
   if (typeof orig !== "function") return
 
   event.detail.render = (streamElement) => {
     const result = orig(streamElement)
     Promise.resolve(result).finally(() => {
-      queueMicrotask(() => scheduleLucideIconsAfterStream())
+      queueMicrotask(() => {
+        if (memoStreamTargetId(streamElement)) {
+          restoreMemosEditorScroll()
+        }
+        scheduleLucideIconsAfterStream()
+      })
     })
     return result
   }

@@ -62,7 +62,7 @@ html
               = render "memos/list_panel"
           .hidden.shrink-0.self-stretch.w-2.cursor-col-resize.bg-transparent.transition-colors.hover:bg-zinc-400.active:bg-zinc-500.md:block.z-10[role="separator" aria-orientation="vertical" aria-label="サイドバーの幅を変更" title="ドラッグして幅を変更" tabindex="-1" data-memo-sidebar-target="resizer" data-action="pointerdown->memo-sidebar#resizerPointerDown"]
           section[class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"]
-            div[class="flex-1 overflow-y-auto px-4 py-5 md:px-8"]
+            div#memos_editor_scroll[class="flex-1 overflow-y-auto px-4 py-5 md:px-8"]
               = yield :memos_editor
       - else
         = yield

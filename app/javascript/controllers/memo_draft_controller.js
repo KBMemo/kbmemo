@@ -18,13 +18,16 @@ export default class extends Controller {
     "tagPills",
     "tagSuggestionsJson",
     "propertiesYaml",
-    "directory"
+    "directory",
+    "remoteNotice",
+    "remoteNoticeText"
   ]
   static values = {
     draftUrl: String,
     createUrl: String,
     debounce: { type: Number, default: 800 },
-    fileCommitted: { type: Boolean, default: false }
+    fileCommitted: { type: Boolean, default: false },
+    memoId: Number
   }
 
   connect() {
@@ -32,12 +35,21 @@ export default class extends Controller {
     this._creating = false
     this._persistChain = Promise.resolve()
     this._slugTouched = false
+    this._tabId = crypto.randomUUID()
+    this._pendingRemoteBody = null
+    this._lastSavedBody = this.hasBodyTarget ? this.bodyTarget.value : null
+    this._setupRemoteDraftChannel()
     queueMicrotask(() => {
       this.syncTitleFromBodyIfBlank()
       this.syncSlugFromTitleIfBlank()
       this.hydrateTagSuggestionsCatalog()
       this.renderTagPillsFromHiddenIfPresent()
     })
+  }
+
+  disconnect() {
+    this._remoteChannel?.close()
+    this._remoteChannel = null
   }
 
   preventSubmit(event) {
@@ -435,11 +447,13 @@ export default class extends Controller {
           if (window.Turbo?.renderStreamMessage) {
             window.Turbo.renderStreamMessage(stream)
           }
+          this.notifyRemoteDraftSaved({ body: wrapped.memo?.body })
           return true
         }
         if (ct.includes("application/json")) {
           const data = await res.json()
           this.applyDraftServerPayload(data)
+          this.notifyRemoteDraftSaved({ body: wrapped.memo?.body, savedAt: data.saved_at })
           return true
         }
         return false
@@ -498,6 +512,66 @@ export default class extends Controller {
     if (typeof data.file_committed === "boolean") {
       this.fileCommittedValue = data.file_committed
     }
+  }
+
+  applyRemoteDraft() {
+    if (this._pendingRemoteBody == null || !this.hasBodyTarget) return
+    this.applyRemoteBody(this._pendingRemoteBody)
+    this._pendingRemoteBody = null
+    this.hideRemoteNotice()
+  }
+
+  _setupRemoteDraftChannel() {
+    if (!this.hasMemoIdValue || typeof BroadcastChannel === "undefined") return
+    this._remoteChannel = new BroadcastChannel(`kbmemo.memo.${this.memoIdValue}`)
+    this._remoteChannel.onmessage = (event) => this._onRemoteDraftMessage(event.data)
+  }
+
+  _onRemoteDraftMessage(data) {
+    if (!data || data.tabId === this._tabId) return
+    if (typeof data.body !== "string" || !this.hasBodyTarget) return
+
+    const dirty = this.bodyTarget.value !== this._lastSavedBody
+    if (dirty) {
+      this._pendingRemoteBody = data.body
+      this.showRemoteNotice()
+      return
+    }
+
+    this.applyRemoteBody(data.body)
+  }
+
+  notifyRemoteDraftSaved({ body, savedAt }) {
+    if (typeof body === "string") {
+      this._lastSavedBody = body
+    } else if (this.hasBodyTarget) {
+      this._lastSavedBody = this.bodyTarget.value
+    }
+
+    if (!this._remoteChannel) return
+    this._remoteChannel.postMessage({
+      tabId: this._tabId,
+      body: this._lastSavedBody,
+      savedAt: savedAt ?? new Date().toISOString()
+    })
+  }
+
+  applyRemoteBody(body) {
+    if (!this.hasBodyTarget) return
+    this.bodyTarget.value = body
+    this._lastSavedBody = body
+    this.bodyTarget.dispatchEvent(new Event("change", { bubbles: true }))
+    this.bodyTarget.dispatchEvent(new Event("input", { bubbles: true }))
+  }
+
+  showRemoteNotice() {
+    if (!this.hasRemoteNoticeTarget) return
+    this.remoteNoticeTarget.classList.remove("hidden")
+  }
+
+  hideRemoteNotice() {
+    if (!this.hasRemoteNoticeTarget) return
+    this.remoteNoticeTarget.classList.add("hidden")
   }
 }
 

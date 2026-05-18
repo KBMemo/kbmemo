@@ -314,6 +314,18 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_equal "weird-slug-#{memo.id}", body["slug"]
   end
 
+  test "draft json returns saved_at for multi-tab sync" do
+    memo = memos(:one)
+    patch draft_memo_url(memo),
+      params: { memo: { body: "= Updated\n\nBody." } },
+      as: :json
+    assert_response :success
+    data = JSON.parse(response.body)
+    assert data["saved_at"].present?
+    memo.reload
+    assert_includes memo.body, "Updated"
+  end
+
   test "draft broadcasts show content replace to memo turbo stream" do
     memo = memos(:one)
     assert_turbo_stream_broadcasts memo do
