@@ -9,6 +9,10 @@ import {
   TABLE_DELIM
 } from "./table_syntax"
 import { activateTableBlock } from "./table_wysiwyg_effects"
+import {
+  blockInViewportRange,
+  selectionInLineBlock
+} from "./viewport_lazy"
 
 function bindTableWidgetActivate(el, view, blockStartLine, editLineNo) {
   if (!view) return
@@ -163,7 +167,11 @@ function lineClassForTableLine(lineNo, block, text) {
  * StateField 用: 表ブロックの block replace + 周辺行の line/replace 装飾。
  * 選択がブロック内にある間は装飾しない（ソース編集）。
  */
-export function buildTablePreviewDecorations(state, activeTableStartLine = null) {
+export function buildTablePreviewDecorations(
+  state,
+  activeTableStartLine = null,
+  viewportRange = null
+) {
   const decoRanges = []
   const coveredByLogicalRow = new Set()
 
@@ -173,6 +181,13 @@ export function buildTablePreviewDecorations(state, activeTableStartLine = null)
 
   for (const block of blocks) {
     if (activeTableStartLine != null && block.startLine === activeTableStartLine) continue
+    if (
+      viewportRange &&
+      !blockInViewportRange(block.startLine, block.endLine, viewportRange) &&
+      !selectionInLineBlock(state, block.startLine, block.endLine)
+    ) {
+      continue
+    }
 
     const logicalRows = groupTableLogicalRows(state.doc, block)
 

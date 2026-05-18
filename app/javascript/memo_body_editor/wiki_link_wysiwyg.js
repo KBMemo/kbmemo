@@ -1,5 +1,6 @@
 import { RangeSet, RangeSetBuilder, StateEffect, StateField } from "@codemirror/state"
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view"
+import { getViewportLineRange, shouldDecorateEditorLine } from "./viewport_lazy"
 
 const WIKI_LINK = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g
 const LINK_LABEL = /((?:[^\\\]]|\\.)*)/
@@ -378,10 +379,13 @@ function buildLinkDecorations(view, labels) {
   const { state } = view
   const editingActive = view.hasFocus
   let inFenced = false
+  const viewportRange = getViewportLineRange(state)
 
   for (let lineNo = 1; lineNo <= state.doc.lines; lineNo++) {
     const line = state.doc.line(lineNo)
     const text = line.text
+
+    if (!shouldDecorateEditorLine(view, lineNo, viewportRange)) continue
 
     if (FENCE_LINE.test(text)) {
       inFenced = !inFenced
@@ -495,6 +499,7 @@ export function wikiLinkWysiwygExtension(getConfig) {
         const needsRebuild =
           update.docChanged ||
           update.selectionSet ||
+          update.viewportChanged ||
           update.focusChanged ||
           labelGen !== this.labelsGeneration
 

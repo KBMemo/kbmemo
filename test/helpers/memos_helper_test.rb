@@ -129,6 +129,8 @@ class MemosHelperTest < ActionView::TestCase
     html = memo_html("image::shot.png[]", source_memo: memo)
     assert_includes html, %(src="/memos/#{memo.id}/assets/shot.png")
     assert_includes html, "<img"
+    assert_includes html, 'loading="lazy"'
+    assert_includes html, 'decoding="async"'
   end
 
   test "memo_html renders admonition with font icon" do

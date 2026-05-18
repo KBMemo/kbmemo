@@ -328,12 +328,23 @@ module MemosHelper
 
     # safe モード: SVG は既定で <img src="...">（インライン SVG は jail で無効）。
     # image::x.svg[opts=interactive] は <object> になるため、アップロード時サニタイズに依存する。
-    Asciidoctor.convert(
+    html = Asciidoctor.convert(
       processed,
       safe: :safe,
       standalone: false,
       attributes: attrs
-    ).html_safe
+    )
+    memo_html_lazy_load_images(html)
+  end
+
+  # 表示画面: ビューポート外の画像読み込みを遅延（<object> 図は対象外）
+  def memo_html_lazy_load_images(html)
+    fragment = Nokogiri::HTML.fragment(html.to_s)
+    fragment.css("img:not([loading])").each do |img|
+      img["loading"] = "lazy"
+      img["decoding"] = "async"
+    end
+    fragment.to_html.html_safe
   end
 
   # DB は JSON。編集フォームでは YAML で入力・表示する。

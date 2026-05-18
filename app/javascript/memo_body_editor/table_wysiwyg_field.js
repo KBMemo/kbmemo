@@ -16,12 +16,20 @@ import {
   activateTableBlock,
   setTableActiveBlock
 } from "./table_wysiwyg_effects"
+import {
+  getViewportLineRange,
+  setViewportLineRange
+} from "./viewport_lazy"
 
 export { setTableActiveBlock } from "./table_wysiwyg_effects"
 
 function tableFieldValue(state, active) {
   return {
-    decorations: buildTablePreviewDecorations(state, active).decorations,
+    decorations: buildTablePreviewDecorations(
+      state,
+      active,
+      getViewportLineRange(state)
+    ).decorations,
     active
   }
 }
@@ -43,7 +51,8 @@ const tablePreviewField = StateField.define({
       }
     }
 
-    if (tr.docChanged || tr.selectionSet || active !== value.active) {
+    const viewportChanged = tr.effects.some((e) => e.is(setViewportLineRange))
+    if (tr.docChanged || tr.selectionSet || active !== value.active || viewportChanged) {
       return tableFieldValue(tr.state, active)
     }
 

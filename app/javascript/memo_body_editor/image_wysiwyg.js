@@ -7,6 +7,7 @@ import {
   scanImageMacrosOnLine
 } from "./image_syntax"
 import { scanTableBlocks, tableBlockByLine } from "./table_syntax"
+import { getViewportLineRange, shouldDecorateEditorLine } from "./viewport_lazy"
 
 function selectionTouches(state, from, to) {
   return state.selection.ranges.some((range) => {
@@ -89,8 +90,10 @@ function buildImageDecorations(view, getMemoId) {
   const codeByLine = codeBlockByLine(codeBlocks)
   const tableBlocks = scanTableBlocks(state.doc, (n) => codeByLine.has(n))
   const tableByLine = tableBlockByLine(tableBlocks)
+  const viewportRange = getViewportLineRange(state)
   for (let lineNo = 1; lineNo <= state.doc.lines; lineNo++) {
     if (codeByLine.has(lineNo) || tableByLine.has(lineNo)) continue
+    if (!shouldDecorateEditorLine(view, lineNo, viewportRange)) continue
 
     const line = state.doc.line(lineNo)
     const text = line.text

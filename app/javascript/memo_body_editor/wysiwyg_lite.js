@@ -8,6 +8,11 @@ import { imageExclusionRanges } from "./image_syntax"
 import { linkExclusionRanges } from "./wiki_link_wysiwyg"
 import { orderedListIndex, parseListLine } from "./list_syntax"
 import { scanTableBlocks, tableBlockByLine } from "./table_syntax"
+import {
+  getViewportLineRange,
+  shouldDecorateEditorBlock,
+  shouldDecorateEditorLine
+} from "./viewport_lazy"
 
 const HEADING_LINE = /^(={2,6})(\s+)(.+)$/
 const DOC_TITLE_LINE = /^=(?!=)(\s*)(.*)$/
@@ -213,6 +218,7 @@ function buildWysiwygDecorations(view) {
   const skipBlockLine = (n) => codeByLine.has(n) || tableByLine.has(n)
   const admonitionBlocks = scanAdmonitionBlocks(state.doc, skipBlockLine)
   const admonitionByLine = admonitionBlockByLine(admonitionBlocks)
+  const viewportRange = getViewportLineRange(state)
 
   for (let lineNo = 1; lineNo <= state.doc.lines; lineNo++) {
     const line = state.doc.line(lineNo)
@@ -222,12 +228,16 @@ function buildWysiwygDecorations(view) {
     const editingCode = codeBlock && editingActive && cursorInCodeBlock(state, codeBlock)
 
     if (codeBlock && !editingCode) {
-      applyCodeBlockWysiwyg(specs, atomicRanges, line, text, lineNo, codeBlock)
+      if (shouldDecorateEditorBlock(view, codeBlock.startLine, codeBlock.endLine, viewportRange)) {
+        applyCodeBlockWysiwyg(specs, atomicRanges, line, text, lineNo, codeBlock)
+      }
       continue
     }
     if (codeBlock) continue
 
     if (tableByLine.has(lineNo)) continue
+
+    if (!shouldDecorateEditorLine(view, lineNo, viewportRange)) continue
 
     const onLine = editingActive && cursorOnLine(state, line)
     const admonition = admonitionByLine.get(lineNo)
