@@ -2,7 +2,7 @@
 - diagram_key = params[:diagram_key]
 - asciidoc = MemoDiagram.asciidoc_for(@source_relative)
 
-main.mx-auto.max-w-4xl.px-4.py-8
+main.mx-auto.max-w-6xl.px-4.py-8
   .flex.flex-wrap.items-start.justify-between.gap-2
     div
       h1.text-lg.font-semibold.text-zinc-900 ダイアグラム編集
@@ -19,19 +19,28 @@ main.mx-auto.max-w-4xl.px-4.py-8
     | （保存後にメモへコミットすると Git に記録されます）
 
   = form_with url: memo_diagram_path(@memo, diagram_key), method: :patch, class: "mt-4 space-y-4" do |f|
-    div.memo-diagram-editor.mt-1.rounded-md.border.border-zinc-300.bg-white[
+    div.grid.gap-4.lg:grid-cols-2[
       data-controller="memo-diagram-editor"
       data-memo-diagram-editor-engine-value=@engine.to_s
+      data-memo-diagram-editor-preview-url-value=preview_memo_diagram_path(@memo, diagram_key)
     ]
-      label#diagram-source-label.block.border-b.border-zinc-200.bg-zinc-50.px-3.py-2.text-sm.font-medium.text-zinc-700 for="source" ソース
-      textarea#source.sr-only name="source" required=true tabindex="-1" autocomplete="off" data-memo-diagram-editor-target="field"
-        = @source
-      div.memo-diagram-editor__host.relative[data-memo-diagram-editor-target="host"]
+      .memo-diagram-editor.rounded-md.border.border-zinc-300.bg-white
+        label#diagram-source-label.block.border-b.border-zinc-200.bg-zinc-50.px-3.py-2.text-sm.font-medium.text-zinc-700 for="source" ソース
+        textarea#source.sr-only name="source" required=true tabindex="-1" autocomplete="off" data-memo-diagram-editor-target="field"
+          = @source
+        div.memo-diagram-editor__host.relative[data-memo-diagram-editor-target="host"]
+
+      .memo-diagram-editor-preview.rounded-md.border.border-zinc-300.bg-white
+        .border-b.border-zinc-200.bg-zinc-50.px-3.py-2.text-sm.font-medium.text-zinc-700 プレビュー
+        p.hidden.px-3.py-2.text-xs.text-zinc-500 data-memo-diagram-editor-target="previewLoading"
+          | 生成中…
+        p.hidden.px-3.py-2.text-sm.text-red-600 data-memo-diagram-editor-target="previewError"
+        .memo-diagram-editor-preview__canvas.flex.min-h-96.items-start.justify-center.p-4 data-memo-diagram-editor-target="preview"
 
     p.text-xs.text-zinc-500
       | 保存すると Kroki で SVG を生成し、
       code= @source_relative.sub(/\.[^.]+$/, ".svg")
-      | に書き込みます。メモ表示では
+      | に書き込みます。編集中のプレビューは保存前の内容を Kroki で描画したものです。メモ表示では
       code= asciidoc
       | としてプレビューされます。
 
