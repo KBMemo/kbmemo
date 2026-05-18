@@ -99,7 +99,7 @@ ruby:
           - if memo.image_assets_uploadable?
             | 画像は
             code.text-zinc-600 image::filename[]
-            | 形式で保存されます（コミット時に Git へ記録）。エディタへドラッグ＆ドロップでも挿入できます。
+            | 形式で保存されます（コミット時に Git へ記録）。エディタへドラッグ＆ドロップ、または画像の貼り付け（Ctrl+V）でも挿入できます。
           - else
             | 画像の挿入はメモを Git にコミットした後に利用できます（新規作成時・未コミットのドラフトでは利用できません）。
       = f.text_area :body,

@@ -17,19 +17,20 @@ function imageFilesFrom(fileList) {
 }
 
 function imageFilesFromDataTransfer(dataTransfer) {
-  const fromFiles = imageFilesFrom(dataTransfer?.files)
-  if (fromFiles.length > 0) return fromFiles
+  if (!dataTransfer) return []
 
-  const picked = []
-  for (const item of dataTransfer?.items ?? []) {
+  const fromItems = []
+  for (const item of dataTransfer.items ?? []) {
     if (item.kind !== "file") continue
     const file = item.getAsFile()
     if (!file) continue
     if (ACCEPTED_IMAGE_TYPE.test(file.type) || ACCEPTED_IMAGE_EXT.test(file.name)) {
-      picked.push(file)
+      fromItems.push(file)
     }
   }
-  return picked
+  if (fromItems.length > 0) return fromItems
+
+  return imageFilesFrom(dataTransfer.files)
 }
 
 function dataTransferHasFiles(dataTransfer) {
@@ -37,6 +38,49 @@ function dataTransferHasFiles(dataTransfer) {
   if (dataTransfer.files?.length > 0) return true
   const types = dataTransfer.types ? Array.from(dataTransfer.types) : []
   return types.includes("Files") || types.includes("application/x-moz-file")
+}
+
+const CLIPBOARD_IMAGE_EXT = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/gif": "gif",
+  "image/webp": "webp",
+  "image/svg+xml": "svg"
+}
+
+function extensionForImageType(type) {
+  return CLIPBOARD_IMAGE_EXT[type?.toLowerCase()] || "png"
+}
+
+function withPasteFilename(file) {
+  if (file.name && ACCEPTED_IMAGE_EXT.test(file.name)) return file
+  const ext = extensionForImageType(file.type)
+  return new File([file], `paste-${Date.now()}.${ext}`, { type: file.type })
+}
+
+function imageFilesFromClipboard(clipboardData) {
+  if (!clipboardData) return []
+
+  const fromItems = []
+  for (const item of clipboardData.items ?? []) {
+    if (item.kind !== "file" || !item.type.startsWith("image/")) continue
+    const file = item.getAsFile()
+    if (!file) continue
+    if (!ACCEPTED_IMAGE_TYPE.test(file.type) && !ACCEPTED_IMAGE_EXT.test(file.name)) continue
+    fromItems.push(withPasteFilename(file))
+  }
+  if (fromItems.length > 0) return fromItems
+
+  return imageFilesFrom(clipboardData.files).map((file) => withPasteFilename(file))
+}
+
+function clipboardHasImageFiles(clipboardData) {
+  return imageFilesFromClipboard(clipboardData).length > 0
+}
+
+function clipboardHasMeaningfulText(clipboardData) {
+  const text = clipboardData?.getData("text/plain")?.trim()
+  return Boolean(text)
 }
 
 // 本文 textarea（送信・memo-draft の参照用）と CodeMirror を同期する。
@@ -175,6 +219,9 @@ export default class extends Controller {
           },
           drop(event) {
             return editorHost.handleImageDrop(event)
+          },
+          paste(event) {
+            return editorHost.handleImagePaste(event)
           }
         })
       ]
@@ -302,6 +349,35 @@ export default class extends Controller {
 
   _onDrop = (event) => {
     void this.handleImageDrop(event)
+  }
+
+  /** クリップボード画像（スクリーンショット等）の貼り付け */
+  async handleImagePaste(event) {
+    const clipboard = event.clipboardData
+    if (!clipboard || !clipboardHasImageFiles(clipboard)) return false
+    if (clipboardHasMeaningfulText(clipboard)) return false
+    if (this._imagePasteHandled) return true
+
+    event.preventDefault()
+    event.stopPropagation()
+    this._imagePasteHandled = true
+
+    try {
+      if (!this.canUploadImages()) {
+        this.showUploadError("メモを Git にコミットしてから画像を貼り付けできます")
+        return true
+      }
+
+      const files = imageFilesFromClipboard(clipboard)
+      if (files.length === 0) return false
+
+      await this.uploadFiles(files)
+      return true
+    } finally {
+      queueMicrotask(() => {
+        this._imagePasteHandled = false
+      })
+    }
   }
 
   placeSelectionAtDrop(event) {

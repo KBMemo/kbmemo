@@ -196,6 +196,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-memo-body-editor-upload-url-value=?]", assets_memo_path(memos(:one))
     assert_select "input[data-memo-body-editor-target='imageInput'][multiple][data-action*='uploadImage']"
     assert_includes response.body, "ドラッグ＆ドロップ"
+    assert_includes response.body, "貼り付け"
     assert_select '[data-controller*="memo-body-editor"] [data-memo-body-editor-target="host"]'
     assert_select '[data-controller*="memo-body-editor"] [data-memo-body-editor-target="field"]'
   end
