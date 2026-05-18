@@ -22,4 +22,48 @@ class MemoSvgSanitizerTest < ActiveSupport::TestCase
       MemoSvgSanitizer.sanitize!("<html></html>")
     end
   end
+
+  test "keeps style rules needed for diagram fills" do
+    raw = <<~SVG
+      <svg xmlns="http://www.w3.org/2000/svg">
+        <style>#container .node rect{fill:#ECECFF;stroke:#9370DB;}</style>
+        <g class="node"><rect width="50" height="30"/></g>
+      </svg>
+    SVG
+
+    out = MemoSvgSanitizer.sanitize!(raw)
+    assert_includes out, "<style>"
+    assert_includes out, "fill:#ECECFF"
+    assert_includes out, "<rect"
+  end
+
+  test "keeps sanitized foreignObject labels for mermaid" do
+    raw = <<~SVG
+      <svg xmlns="http://www.w3.org/2000/svg">
+        <foreignObject width="40" height="24">
+          <div xmlns="http://www.w3.org/1999/xhtml">
+            <span class="nodeLabel"><p>Start</p></span>
+          </div>
+        </foreignObject>
+      </svg>
+    SVG
+
+    out = MemoSvgSanitizer.sanitize!(raw)
+    assert_includes out, "<foreignObject"
+    assert_includes out, ">Start<"
+    assert_not_includes out, "<script"
+  end
+
+  test "strips dangerous css in style element" do
+    raw = <<~SVG
+      <svg xmlns="http://www.w3.org/2000/svg">
+        <style>rect { fill: red; background: url(javascript:alert(1)); }</style>
+        <rect width="10" height="10"/>
+      </svg>
+    SVG
+
+    out = MemoSvgSanitizer.sanitize!(raw)
+    assert_not_includes out, "javascript:"
+    assert_includes out, "fill: red"
+  end
 end

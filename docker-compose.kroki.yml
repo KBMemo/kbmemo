@@ -1,0 +1,20 @@
+# Kroki（Mermaid / PlantUML 等）。開発時:
+#   docker compose -f docker-compose.kroki.yml up -d
+#
+# - PlantUML は yuzutech/kroki 本体に同梱
+# - Mermaid は yuzutech/kroki-mermaid コンパニオン（既定 8002）が別途必要
+services:
+  kroki:
+    image: yuzutech/kroki
+    environment:
+      # 末尾ドットで検索ドメイン付き解決（*.artif.org 等）を防ぐ
+      KROKI_MERMAID_HOST: kroki-mermaid.
+    ports:
+      - "8063:8000"
+    depends_on:
+      - kroki-mermaid
+    restart: unless-stopped
+
+  kroki-mermaid:
+    image: yuzutech/kroki-mermaid
+    restart: unless-stopped

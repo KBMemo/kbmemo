@@ -88,6 +88,8 @@ ruby:
     ]
       .mb-1.flex.flex-wrap.items-center.gap-2.border-b.border-zinc-100.pb-2
         - if memo.image_assets_uploadable?
+          = link_to "ダイアグラムを作成", new_memo_diagram_path(memo), class: "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50", target: "_blank", rel: "noopener"
+          = render "memos/diagram_links", memo: memo, compact: true
           label.cursor-pointer.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50
             | 画像を挿入
             input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple=true data-memo-body-editor-target="imageInput" data-action="change->memo-body-editor#uploadImage"

@@ -40,8 +40,11 @@ Rails.application.routes.draw do
     member do
       patch :draft
       post "assets", to: "memo_assets#create", as: :assets
-      get "assets/:filename", to: "memo_assets#show", as: :asset,
-        constraints: { filename: /[^\/]+/ }
+      get "assets/*filename", to: "memo_assets#show", as: :asset, format: false
     end
+
+    resources :diagrams, only: %i[new create edit update], controller: "memo_diagrams",
+      param: :diagram_key,
+      constraints: { diagram_key: /[^\/]+/ }
   end
 end

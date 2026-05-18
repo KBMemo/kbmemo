@@ -1,0 +1,36 @@
+- content_for :title, "ダイアグラム編集 · #{@memo.title}"
+- diagram_key = params[:diagram_key]
+- asciidoc = MemoDiagram.asciidoc_for(@source_relative)
+
+main.mx-auto.max-w-4xl.px-4.py-8
+  .flex.flex-wrap.items-start.justify-between.gap-2
+    div
+      h1.text-lg.font-semibold.text-zinc-900 ダイアグラム編集
+      p.mt-1.text-sm.text-zinc-600
+        | #{@engine} ·
+        code.text-zinc-700= @source_relative
+    .flex.flex-wrap.gap-2
+      = link_to "メモに戻る", edit_memo_path(@memo), class: "rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50", target: "_blank", rel: "noopener"
+      = link_to "メモを表示", memo_path(@memo), class: "rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50", target: "_blank", rel: "noopener"
+
+  .mt-4.rounded-md.border.border-zinc-200.bg-zinc-50.px-3.py-2.text-sm.text-zinc-700
+    | 本文への挿入:
+    code.ml-1= asciidoc
+    | （保存後にメモへコミットすると Git に記録されます）
+
+  = form_with url: memo_diagram_path(@memo, diagram_key), method: :patch, class: "mt-4 space-y-4" do |f|
+    div
+      label.block.text-sm.font-medium.text-zinc-700 for="source" ソース
+      textarea#source.mt-1.block.w-full.rounded-md.border.border-zinc-300.px-3.py-2.font-mono.text-sm.leading-relaxed name="source" rows=24 required=true
+        = @source
+
+    p.text-xs.text-zinc-500
+      | 保存すると Kroki で SVG を生成し、
+      code= @source_relative.sub(/\.[^.]+$/, ".svg")
+      | に書き込みます。メモ表示では
+      code= asciidoc
+      | としてプレビューされます。
+
+    .flex.gap-2
+      = f.submit "保存して SVG を更新", class: "rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+      = link_to "キャンセル", edit_memo_path(@memo), class: "rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"

@@ -36,19 +36,34 @@ class MemoAssets
     {
       filename: filename,
       asciidoc: "image::#{filename}[]",
-      url: Rails.application.routes.url_helpers.asset_memo_path(memo, filename)
+      url: asset_url_for(memo, filename)
     }
   end
 
   def resolve_path!(memo, filename)
-    safe = sanitize_filename(filename)
+    safe = MemoAssetPath.normalize!(filename)
     path = @repo.absolute_asset_path_for(memo, safe)
     raise InvalidFile, "画像が見つかりません" unless path.file? && path.exist?
+    raise InvalidFile, "画像が見つかりません" unless path_under_assets_dir?(memo, path)
 
     path
   end
 
+  def self.asset_url_for(memo, filename)
+    relative = MemoAssetPath.normalize!(filename)
+    Rails.application.routes.url_helpers.asset_memo_path(memo, relative)
+  end
+
   private
+
+  def asset_url_for(memo, filename)
+    self.class.asset_url_for(memo, filename)
+  end
+
+  def path_under_assets_dir?(memo, path)
+    assets_root = @repo.assets_dir_absolute_for(memo).expand_path
+    path.expand_path.to_s.start_with?("#{assets_root}/") || path.expand_path == assets_root
+  end
 
   def validate!(file)
     io = io_for(file)

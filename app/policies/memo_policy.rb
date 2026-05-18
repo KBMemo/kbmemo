@@ -44,6 +44,9 @@ class MemoPolicy < ApplicationPolicy
     show?
   end
 
+  alias show_diagram? show?
+  alias edit_diagram? update?
+
   def destroy?
     user.present? && record.account_id == user.id
   end

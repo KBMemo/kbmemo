@@ -75,6 +75,17 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, ">1<"
   end
 
+  test "memo_html renders diagram macro via cached svg" do
+    memo = memos(:one)
+    repo = MemoRepository.new
+    repo.write_asset!(memo, filename: "diagrams/flow.mmd", io: StringIO.new("graph TD"))
+    repo.write_asset!(memo, filename: "diagrams/flow.svg", io: StringIO.new('<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>'))
+
+    html = memo_html("diagram::flow.mmd[]", source_memo: memo)
+    assert_includes html, %(data="/memos/#{memo.id}/assets/diagrams/flow.svg")
+    assert_includes html, "<object"
+  end
+
   test "memo_html renders svg image as img in safe mode" do
     memo = memos(:one)
     repo = MemoRepository.new

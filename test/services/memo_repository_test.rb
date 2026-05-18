@@ -53,6 +53,25 @@ class MemoRepositoryTest < ActiveSupport::TestCase
     assert_equal "repo-slug-#{@memo.id}.assets", @repo.assets_dir_relative_for(@memo).to_s
   end
 
+  test "write_and_commit! includes nested assets in git commit" do
+    @memo.memo_directory = MemoDirectory.root
+    @memo.slug = "repo-slug-#{@memo.id}"
+    @repo.write_asset!(@memo, filename: "diagrams/flow.mmd", io: StringIO.new("graph TD"))
+    @repo.write_asset!(@memo, filename: "diagrams/flow.svg", io: StringIO.new("<svg/>"))
+    @repo.write_and_commit!(@memo)
+
+    assets_rel = @repo.assets_dir_relative_for(@memo)
+    tracked, err, st = Open3.capture3(
+      "git", "ls-files", "--",
+      "#{assets_rel}/diagrams/flow.mmd",
+      "#{assets_rel}/diagrams/flow.svg",
+      chdir: @repo.root.to_s
+    )
+    assert st.success?, err
+    assert_includes tracked, "flow.mmd"
+    assert_includes tracked, "flow.svg"
+  end
+
   test "write_and_commit! includes assets in git commit" do
     @memo.memo_directory = MemoDirectory.root
     @memo.slug = "repo-slug-#{@memo.id}"

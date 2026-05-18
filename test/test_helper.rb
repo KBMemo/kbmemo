@@ -13,6 +13,14 @@ module ActiveSupport
 
     setup { normalize_memo_slug_fixtures! }
 
+    def with_stubbed_kroki(svg_body = '<svg xmlns="http://www.w3.org/2000/svg"/>')
+      original = MemoDiagramRenderer.method(:render)
+      MemoDiagramRenderer.singleton_class.define_method(:render) { |engine:, source:, **| svg_body }
+      yield
+    ensure
+      MemoDiagramRenderer.singleton_class.define_method(:render, original)
+    end
+
     # フィクスチャの slug は stem のみ。テスト DB では global_slug（-{id} 付き）に揃える。
     def normalize_memo_slug_fixtures!
       Memo.find_each do |memo|

@@ -52,6 +52,7 @@ class MemoRepository
     dir = assets_dir_absolute_for(memo)
     dir.mkpath
     dest = dir.join(filename.to_s)
+    dest.parent.mkpath
     io.rewind if io.respond_to?(:rewind)
     File.open(dest, "wb") { |f| f.write(io.read) }
     dest
@@ -124,13 +125,13 @@ class MemoRepository
     assets_abs = @root.join(assets_rel)
     return paths unless assets_abs.directory?
 
-    Dir.children(assets_abs).each do |name|
-      child = assets_abs.join(name)
-      next unless child.file?
+    Dir.glob(assets_abs.join("**", "*"), File::FNM_DOTMATCH).each do |abs|
+      next unless File.file?(abs)
 
-      paths << "#{assets_rel}/#{name}"
+      rel = Pathname.new(abs).relative_path_from(@root).to_s
+      paths << rel
     end
-    paths
+    paths.uniq
   end
 
   def relocate_file_in_git_or_fs!(from_s, to_s, full_from, full_to)

@@ -30,6 +30,13 @@
   margin-bottom: 1.25rem;
 }
 
+/* ダイアグラム SVG（Mermaid の foreignObject ラベルは object 表示が必要） */
+.memo-body .imageblock object {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
 .memo-body a {
   text-decoration: none;
   color: var(--mg-text);
@@ -666,6 +673,12 @@
   display: inline-block;
   max-height: 6rem;
   vertical-align: middle;
+}
+
+.memo-body .memo-diagram-missing {
+  color: #b45309;
+  font-style: italic;
+  font-size: 0.875rem;
 }
 
 .memo-body-editor .cm-wysiwyg-image-missing {

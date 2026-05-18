@@ -74,13 +74,24 @@ function imageFilesFromClipboard(clipboardData) {
   return imageFilesFrom(clipboardData.files).map((file) => withPasteFilename(file))
 }
 
-function clipboardHasImageFiles(clipboardData) {
-  return imageFilesFromClipboard(clipboardData).length > 0
-}
+/** 画像貼り付けとして扱うか（テキスト貼り付けは CodeMirror の既定動作に任せる） */
+function shouldHandleImagePaste(clipboardData) {
+  if (!clipboardData) return false
 
-function clipboardHasMeaningfulText(clipboardData) {
-  const text = clipboardData?.getData("text/plain")?.trim()
-  return Boolean(text)
+  const files = imageFilesFromClipboard(clipboardData)
+  if (files.length === 0) return false
+
+  const types = Array.from(clipboardData.types ?? [])
+
+  // HTML 付きは通常のリッチテキスト貼り付けを優先（getData しない）
+  if (types.includes("text/html")) return false
+
+  if (types.includes("text/plain")) {
+    const plain = clipboardData.getData("text/plain") ?? ""
+    return plain.trim().length === 0
+  }
+
+  return true
 }
 
 // 本文 textarea（送信・memo-draft の参照用）と CodeMirror を同期する。
@@ -351,33 +362,29 @@ export default class extends Controller {
     void this.handleImageDrop(event)
   }
 
-  /** クリップボード画像（スクリーンショット等）の貼り付け */
-  async handleImagePaste(event) {
+  /**
+   * クリップボード画像（スクリーンショット等）の貼り付け。
+   * 同期で true/false を返す（async にすると Promise が truthy になり通常貼り付けが壊れる）。
+   */
+  handleImagePaste(event) {
     const clipboard = event.clipboardData
-    if (!clipboard || !clipboardHasImageFiles(clipboard)) return false
-    if (clipboardHasMeaningfulText(clipboard)) return false
-    if (this._imagePasteHandled) return true
+    if (!shouldHandleImagePaste(clipboard)) return false
+
+    const files = imageFilesFromClipboard(clipboard)
+    if (files.length === 0) return false
 
     event.preventDefault()
     event.stopPropagation()
-    this._imagePasteHandled = true
 
-    try {
-      if (!this.canUploadImages()) {
-        this.showUploadError("メモを Git にコミットしてから画像を貼り付けできます")
-        return true
-      }
-
-      const files = imageFilesFromClipboard(clipboard)
-      if (files.length === 0) return false
-
-      await this.uploadFiles(files)
+    if (!this.canUploadImages()) {
+      this.showUploadError("メモを Git にコミットしてから画像を貼り付けできます")
       return true
-    } finally {
-      queueMicrotask(() => {
-        this._imagePasteHandled = false
-      })
     }
+
+    void this.uploadFiles(files).catch(() => {
+      this.showUploadError("画像の貼り付けに失敗しました")
+    })
+    return true
   }
 
   placeSelectionAtDrop(event) {

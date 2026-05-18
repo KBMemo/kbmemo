@@ -60,4 +60,14 @@ class MemoAssetsControllerTest < ActionDispatch::IntegrationTest
     get asset_memo_path(@memo, "missing.png")
     assert_response :not_found
   end
+
+  test "show serves diagram svg under diagrams subdirectory" do
+    repo = MemoRepository.new
+    svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>'
+    repo.write_asset!(@memo, filename: "diagrams/flow2.svg", io: StringIO.new(svg))
+
+    get asset_memo_path(@memo, "diagrams/flow2.svg")
+    assert_response :success
+    assert_includes response.body, "<svg"
+  end
 end

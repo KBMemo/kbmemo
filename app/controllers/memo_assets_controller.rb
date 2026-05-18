@@ -15,7 +15,7 @@ class MemoAssetsController < ApplicationController
 
   def show
     authorize @memo, :show_asset?
-    path = MemoAssets.resolve_path!(@memo, params[:filename])
+    path = MemoAssets.resolve_path!(@memo, asset_filename_from_params)
     apply_svg_asset_headers(path)
     send_file path, disposition: :inline, type: Marcel::MimeType.for(path)
   rescue MemoAssets::InvalidFile
@@ -26,6 +26,12 @@ class MemoAssetsController < ApplicationController
 
   def set_memo
     @memo = policy_scope(Memo).find(params[:id])
+  end
+
+  def asset_filename_from_params
+    value = params[:filename]
+    value = value.join("/") if value.is_a?(Array)
+    value.to_s
   end
 
   def apply_svg_asset_headers(path)

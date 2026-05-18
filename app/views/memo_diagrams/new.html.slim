@@ -1,0 +1,23 @@
+- content_for :title, "ダイアグラム作成 · #{@memo.title}"
+
+main.mx-auto.max-w-2xl.px-4.py-8
+  h1.text-lg.font-semibold.text-zinc-900 ダイアグラムを新規作成
+  p.mt-1.text-sm.text-zinc-600
+    | メモ:
+    = link_to @memo.title, edit_memo_path(@memo), class: "ml-1 text-zinc-800 underline hover:text-zinc-600"
+
+  = form_with url: memo_diagrams_path(@memo), method: :post, class: "mt-6 space-y-4" do
+    div
+      label.block.text-sm.font-medium.text-zinc-700 for="name" 名前（ファイル名）
+      input#name.mt-1.block.w-full.rounded-md.border.border-zinc-300.px-3.py-2.text-sm name="name" required=true placeholder="flow"
+      p.mt-1.text-xs.text-zinc-500 拡張子は種別に応じて付きます（Mermaid → .mmd、PlantUML → .puml）
+
+    div
+      label.block.text-sm.font-medium.text-zinc-700 for="engine" 種別
+      select#engine.mt-1.block.w-full.rounded-md.border.border-zinc-300.px-3.py-2.text-sm name="engine" required=true
+        option value="mermaid" Mermaid
+        option value="plantuml" PlantUML
+
+    .flex.gap-2
+      button.rounded-md.bg-zinc-900.px-4.py-2.text-sm.font-medium.text-white.hover:bg-zinc-800 type="submit" 作成して編集
+      = link_to "キャンセル", edit_memo_path(@memo), class: "rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"

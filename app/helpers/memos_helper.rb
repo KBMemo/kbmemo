@@ -303,6 +303,12 @@ module MemosHelper
     "[[#{seg}]]"
   end
 
+  def memo_diagram_entries(memo)
+    return [] unless memo.persisted?
+
+    MemoDiagrams.list(memo)
+  end
+
   def memo_html(body, source_memo: nil)
     return "".html_safe if body.blank?
 
@@ -310,6 +316,7 @@ module MemosHelper
       scope: policy_scope(Memo),
       source_memo: source_memo
     ).substitute(body.to_s)
+    processed = MemoDiagramMacro.new(memo: source_memo).substitute(processed)
 
     attrs = { "icons" => "font" }
     if source_memo&.persisted?
