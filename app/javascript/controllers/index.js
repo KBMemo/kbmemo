@@ -10,6 +10,9 @@ application.register("flash-notice", FlashNoticeController)
 import HelloController from "./hello_controller"
 application.register("hello", HelloController)
 
+import MemoAiPanelController from "./memo_ai_panel_controller"
+application.register("memo-ai-panel", MemoAiPanelController)
+
 import MemoAttachmentsController from "./memo_attachments_controller"
 application.register("memo-attachments", MemoAttachmentsController)
 

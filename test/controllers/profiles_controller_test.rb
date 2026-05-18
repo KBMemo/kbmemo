@@ -26,4 +26,16 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_includes response.body, "too long"
   end
+
+  test "signed-in user can save and clear openai api key" do
+    account = accounts(:one)
+
+    patch profile_url, params: { account: { openai_api_key: "sk-test-key-123" } }
+    assert_redirected_to edit_profile_path
+    assert account.reload.openai_api_key_configured?
+
+    patch profile_url, params: { account: { clear_openai_api_key: "1" } }
+    assert_redirected_to edit_profile_path
+    assert_not account.reload.openai_api_key_configured?
+  end
 end

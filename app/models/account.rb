@@ -2,12 +2,13 @@
 #
 # Table name: accounts
 #
-#  id            :integer          not null, primary key
-#  admin         :boolean          default(FALSE), not null
-#  email         :string           not null
-#  nickname      :string
-#  password_hash :string
-#  status        :integer          default("unverified"), not null
+#  id             :integer          not null, primary key
+#  admin          :boolean          default(FALSE), not null
+#  email          :string           not null
+#  nickname       :string
+#  openai_api_key :text
+#  password_hash  :string
+#  status         :integer          default("unverified"), not null
 #
 # Indexes
 #
@@ -16,6 +17,8 @@
 class Account < ApplicationRecord
   include Rodauth::Rails.model
   enum :status, { unverified: 1, verified: 2, closed: 3 }
+
+  encrypts :openai_api_key
 
   validates :nickname, length: { maximum: 40 }, allow_blank: true
 
@@ -26,6 +29,10 @@ class Account < ApplicationRecord
   has_many :memo_groups, through: :memo_group_memberships
 
   after_create_commit :provision_memo_directory_user_space
+
+  def openai_api_key_configured?
+    openai_api_key.present?
+  end
 
   # 画面表示用。未設定ならメールアドレスをそのまま使う。
   def display_name

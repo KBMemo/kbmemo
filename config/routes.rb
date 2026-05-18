@@ -38,6 +38,7 @@ Rails.application.routes.draw do
     end
 
     member do
+      post :ai_chat, to: "memo_ai_chats#create"
       patch :draft
       post "assets", to: "memo_assets#create", as: :assets
       get "assets/*filename", to: "memo_assets#show", as: :asset, format: false

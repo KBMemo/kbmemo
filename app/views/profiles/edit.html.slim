@@ -1,19 +1,44 @@
-- content_for :title, "ニックネーム"
+- content_for :title, "プロフィール"
 
-h1.text-xl.font-semibold.text-zinc-900 ニックネーム（表示名）
+h1.text-xl.font-semibold.text-zinc-900 プロフィール
 
-p.mt-2.text-sm.text-zinc-600
-  | ヘッダーやメモディレクトリの表示に使います。空にするとメールアドレスが表示されます。
+section.mt-8
+  h2.text-base.font-semibold.text-zinc-900 ニックネーム（表示名）
+  p.mt-1.text-sm.text-zinc-600
+    | ヘッダーやメモディレクトリの表示に使います。空にするとメールアドレスが表示されます。
 
-= form_with model: @account, url: profile_path, method: :patch, class: "mt-6 space-y-4" do |f|
+section.mt-10
+  h2.text-base.font-semibold.text-zinc-900 OpenAI API キー（BYOK）
+  p.mt-1.text-sm.text-zinc-600
+    | メモ編集の AI サイドパネル用です。キーは暗号化して保存し、OpenAI API 呼び出し時のみサーバーから送信します。
+  p.mt-1.text-xs.text-zinc-500
+    | 本文は OpenAI に送信されます。機密メモでは利用を控えてください。
+
+= form_with model: @account, url: profile_path, method: :patch, class: "mt-6 space-y-8" do |f|
   - if @account.errors.any?
     ul.mb-4.list-inside.list-disc.text-sm.text-red-700
       - @account.errors.full_messages.each do |msg|
         li = msg
+
   div
     = f.label :nickname, "ニックネーム", class: "block text-sm font-medium text-zinc-800"
     = f.text_field :nickname, class: "mt-1 block w-full max-w-md rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500", autocomplete: "nickname", maxlength: 40, placeholder: "例: けんせい"
     p.mt-1.text-xs.text-zinc-500 最大40文字
+
+  div
+    = f.label :openai_api_key, "OpenAI API キー", class: "block text-sm font-medium text-zinc-800"
+    - if @account.openai_api_key_configured?
+      p.mt-1.text-xs.text-emerald-700 設定済み（再入力すると上書きします）
+    - else
+      p.mt-1.text-xs.text-amber-700 未設定 — AI パネルは利用できません
+    = f.password_field :openai_api_key, class: "mt-1 block w-full max-w-md rounded-md border border-zinc-300 px-3 py-2 text-sm font-mono shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500", autocomplete: "off", placeholder: "sk-…"
+    .mt-2.flex.items-center.gap-2
+      = f.check_box :clear_openai_api_key, class: "rounded border-zinc-300"
+      = f.label :clear_openai_api_key, "保存済みのキーを削除する", class: "text-sm text-zinc-700"
+    p.mt-1.text-xs.text-zinc-500
+      | API キーは
+      = link_to "platform.openai.com", "https://platform.openai.com/api-keys", class: "text-zinc-700 underline", target: "_blank", rel: "noopener"
+      |  で発行できます（ChatGPT Plus とは別課金）。
 
   .flex.flex-wrap.gap-3
     = f.submit "保存", class: "rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"

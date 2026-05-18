@@ -8,7 +8,7 @@ class ProfilesController < ApplicationController
   def update
     @account = rodauth.rails_account
     if @account.update(profile_params)
-      redirect_to edit_profile_path, notice: "ニックネームを保存しました。"
+      redirect_to edit_profile_path, notice: "プロフィールを保存しました。"
     else
       render :edit, status: :unprocessable_entity
     end
@@ -17,6 +17,12 @@ class ProfilesController < ApplicationController
   private
 
   def profile_params
-    params.require(:account).permit(:nickname)
+    permitted = params.require(:account).permit(:nickname, :openai_api_key, :clear_openai_api_key)
+    if ActiveModel::Type::Boolean.new.cast(permitted.delete(:clear_openai_api_key))
+      permitted[:openai_api_key] = nil
+    elsif permitted[:openai_api_key].blank?
+      permitted.delete(:openai_api_key)
+    end
+    permitted
   end
 end

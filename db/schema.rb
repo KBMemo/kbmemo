@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_16_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_18_120000) do
   create_table "account_login_change_keys", force: :cascade do |t|
     t.datetime "deadline", null: false
     t.string "key", null: false
@@ -38,6 +38,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_16_120000) do
     t.boolean "admin", default: false, null: false
     t.string "email", null: false
     t.string "nickname"
+    t.text "openai_api_key"
     t.string "password_hash"
     t.integer "status", default: 1, null: false
     t.index ["email"], name: "index_accounts_on_email", unique: true, where: "status IN (1, 2)"

@@ -1,0 +1,55 @@
+- account = rodauth.rails_account
+aside.memo-ai-panel.hidden.flex.w-72.shrink-0.flex-col.border-l.border-zinc-200.bg-white.lg:flex[
+  data-memo-ai-panel-target="panel"
+  aria-label="AI アシスタント"
+]
+  .flex.items-center.justify-between.gap-2.border-b.border-zinc-100.px-3.py-2
+    h2.text-sm.font-semibold.text-zinc-900 AI
+    button.rounded.border.border-zinc-300.bg-white.px-2.py-0.5.text-xs.text-zinc-700.hover:bg-zinc-50[
+      type="button"
+      data-action="memo-ai-panel#togglePanel"
+      title="パネルを閉じる"
+    ]
+      | 閉じる
+  .flex.min-h-0.flex-1.flex-col.px-3.py-2
+    - unless account.openai_api_key_configured?
+      p.mb-2.text-xs.text-amber-800
+        | API キー未設定。
+        = link_to "プロフィールで登録", edit_profile_path, class: "underline font-medium"
+    p class="mb-2 text-[10px] leading-snug text-zinc-500"
+      | 送信するとメモ本文（抜粋）と会話が OpenAI に送られます。
+    .mb-2.flex-1.overflow-y-auto.rounded-md.border.border-zinc-100.bg-zinc-50.p-2[
+      data-memo-ai-panel-target="messages"
+      style="min-height: 12rem; max-height: 40vh;"
+    ]
+    p.hidden.mb-2.text-xs.text-red-700[data-memo-ai-panel-target="error"]
+    label.mb-2.flex.items-center.gap-2.text-xs.text-zinc-600
+      input.rounded.border-zinc-300[
+        type="checkbox"
+        checked=true
+        data-memo-ai-panel-target="includeSelection"
+      ]
+      | 選択範囲もコンテキストに含める
+    textarea.w-full.resize-y.rounded-md.border.border-zinc-300.px-2.py-1.5.text-xs.font-sans.leading-relaxed.focus:border-zinc-500.focus:outline-none.focus:ring-1.focus:ring-zinc-500[
+      rows=3
+      placeholder="例: 次の節を AsciiDoc で追記して"
+      data-memo-ai-panel-target="input"
+      data-action="keydown.enter->memo-ai-panel#send:prevent"
+    ]
+    .mt-2.flex.flex-wrap.gap-2
+      button.rounded-md.bg-zinc-900.px-2.py-1.text-xs.font-medium.text-white.hover:bg-zinc-800[
+        type="button"
+        data-memo-ai-panel-target="sendButton"
+        data-action="memo-ai-panel#send"
+      ]
+        | 送信
+      button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50[
+        type="button"
+        data-action="memo-ai-panel#insertLastReply"
+      ]
+        | 応答を挿入
+      button.rounded-md.border.border-zinc-200.bg-zinc-50.px-2.py-1.text-xs.text-zinc-600.hover:bg-zinc-100[
+        type="button"
+        data-action="memo-ai-panel#clearChat"
+      ]
+        | 履歴を消去

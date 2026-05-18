@@ -80,3 +80,61 @@ bin/ci
 
 `config/ci.rb` ではシステムテストは任意（コメントアウト）です。
 有効化する場合は `Tests: System` の行のコメントを外してください。
+
+== 本番デプロイ
+
+=== Active Record Encryption（OpenAI API キー BYOK）
+
+プロフィールに保存する OpenAI API キーは `accounts.openai_api_key` に Active Record Encryption で暗号化して保存します（`config/initializers/active_record_encryption.rb`）。
+本番では開発用の既定鍵は使わず、次のいずれかで鍵を設定してください。
+
+*環境変数（Kamal 等で推奨）*
+
+次の 3 つを本番コンテナに渡します。値はデプロイごとに固定し、ローテーションする場合は暗号化データの再保存が必要です。
+
+[cols="2,3",options="header"]
+|===
+|変数名 |用途
+
+|`ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY`
+|暗号化の主鍵
+
+|`ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY`
+|決定論的暗号化用鍵（将来の deterministic 列向け）
+
+|`ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT`
+|鍵導出用ソルト
+|===
+
+鍵の生成例:
+
+[source,bash]
+----
+bin/rails db:encryption:init
+----
+
+出力された値を credentials に書くか、上記環境変数にそのまま設定します。
+
+*Rails credentials*
+
+`RAILS_MASTER_KEY` を渡したうえで、`bin/rails db:encryption:init` の結果を `active_record_encryption` 以下に格納しても構いません（環境変数が未設定のとき initializer が credentials を参照します）。
+
+*Kamal*
+
+`config/deploy.yml` の `env.secret` に 3 変数を追加し、`.kamal/secrets` 等で値を注入してください。既存の `RAILS_MASTER_KEY` と同様の扱いです。
+
+[source,yaml]
+----
+env:
+  secret:
+    - RAILS_MASTER_KEY
+    - ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY
+    - ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY
+    - ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT
+----
+
+*注意*
+
+* 鍵を失うと、既に保存した API キーは復号できません。
+* 開発・本番で鍵を共有しないでください（開発は `Rails.env.local?` 時のみ initializer 内の固定値が使われます）。
+* OpenAI API キー自体はユーザーがプロフィールで登録します。上記はその保存用マスター鍵であり、OpenAI 側の API キーではありません。

@@ -530,6 +530,13 @@ export default class extends Controller {
     }
   }
 
+  getSelectedText() {
+    if (!this.view) return ""
+    const { from, to } = this.view.state.selection.main
+    if (from === to) return ""
+    return this.view.state.doc.sliceString(from, to)
+  }
+
   async insertAtCursor(text) {
     if (!this.view) {
       this.showUploadError("エディタの準備ができていません。少し待ってから再度お試しください。")
