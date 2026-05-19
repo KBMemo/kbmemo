@@ -75,6 +75,42 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, ">1<"
   end
 
+  test "memo_properties_summary_line summarizes checkboxes" do
+    memo = memos(:one)
+    memo.update_columns(
+      properties: {
+        "checkboxes" => [
+          { "id" => "cb-1", "label" => "TODO1", "checked" => true },
+          { "id" => "cb-2", "label" => "TODO2", "checked" => false }
+        ]
+      }
+    )
+
+    line = memo_properties_summary_line(memo)
+    assert_includes line, "checkboxes: 2件"
+    assert_includes line, "cb-1"
+    assert_includes line, "TODO1"
+    assert_includes line, "✓"
+    assert_includes line, "○"
+  end
+
+  test "memo_html adds checklist controls for interactive list" do
+    memo = memos(:one)
+    memo.update_columns(
+      body: <<~ADOC.strip,
+        [%interactive]
+        * [ ] TODO1
+      ADOC
+      properties: {}
+    )
+    MemoChecklist.sync_properties_from_body!(memo)
+    memo.save!
+
+    html = memo_html(memo.body, source_memo: memo)
+    assert_includes html, 'data-memo-checklist-id'
+    assert_includes html, "change->memo-checklist#toggle"
+  end
+
   test "memo_html renders diagram macro via cached svg" do
     memo = memos(:one)
     repo = MemoRepository.new

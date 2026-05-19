@@ -1,5 +1,5 @@
 class MemosController < ApplicationController
-  prepend_before_action :set_memo, only: %i[show edit update destroy draft]
+  prepend_before_action :set_memo, only: %i[show edit update destroy draft checklist_toggle]
   before_action :set_memo_groups_for_form, only: %i[new create edit update]
   include MemoSidebar
 
@@ -135,6 +135,17 @@ class MemosController < ApplicationController
     dir_id = @memo.memo_directory_id
     @memo.destroy
     redirect_to memos_url(memo_directory_id: dir_id), notice: "メモを削除しました。", status: :see_other
+  end
+
+  def checklist_toggle
+    authorize @memo, :update?
+    checked = ActiveModel::Type::Boolean.new.cast(params[:checked])
+    MemoChecklist.toggle!(@memo, id: params.require(:checklist_id), checked: checked)
+    @memo.save(validate: false)
+    html = render_to_string(partial: "memos/show_content", locals: { memo: @memo }, formats: [ :html ])
+    render turbo_stream: turbo_stream.replace(helpers.dom_id(@memo), html: html)
+  rescue MemoChecklist::Error => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def draft
@@ -273,6 +284,10 @@ class MemosController < ApplicationController
 
     if src.key?(:properties_yaml)
       memo.properties = parse_properties_yaml(src[:properties_yaml])
+    end
+
+    if src.key?(:body)
+      MemoChecklist.sync_properties_from_body!(memo)
     end
 
     true

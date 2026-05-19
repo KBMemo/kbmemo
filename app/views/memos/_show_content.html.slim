@@ -35,10 +35,22 @@ div id=dom_id(memo)
             title: "サイドバーでこのタグを表示"
 
   - if memo.properties.present?
-    section.mb-8.rounded-lg.border.border-zinc-200.bg-white.p-4.shadow-sm
-      h2.mb-2.text-sm.font-semibold.text-zinc-800 プロパティ
-      pre.overflow-x-auto.rounded-md.bg-zinc-50.p-3.font-mono.text-xs.text-zinc-800 = memo_properties_yaml_value(memo)
+    section.mb-8.rounded-lg.border.border-zinc-200.bg-white.p-4.shadow-sm data-controller="expandable-hint" data-expandable-hint-expanded-value="false" data-expandable-hint-expand-label-value="プロパティ全文を表示" data-expandable-hint-collapse-label-value="プロパティ全文を閉じる"
+      .flex.min-w-0.items-center.gap-2
+        h2.shrink-0.text-sm.font-semibold.text-zinc-800 プロパティ
+        p.min-w-0.flex-1.truncate.font-mono.text-xs.text-zinc-600 title=memo_properties_summary_line(memo)
+          = memo_properties_summary_line(memo)
+        button.shrink-0.inline-flex.h-6.w-6.items-center.justify-center.rounded.border.border-zinc-300.bg-white.text-zinc-600.hover:bg-zinc-50 type="button" data-action="expandable-hint#toggle" aria-expanded="false" aria-controls="memo-properties-panel" title="プロパティ全文を表示"
+          span.leading-none data-expandable-hint-target="toggleIcon" aria-hidden="true"
+            | ▼
+      pre#memo-properties-panel.hidden.overflow-x-auto.rounded-md.bg-zinc-50.p-3.font-mono.text-xs.text-zinc-800 data-expandable-hint-target="panel"
+        = memo_properties_yaml_value(memo)
 
+  - checklist_editable = policy(memo).update? && Array(memo.properties["checkboxes"]).any?
   article.memo-body.rounded-lg.border.border-zinc-200.bg-white.p-6.shadow-sm
-    .max-w-none.text-zinc-800 class="[&_a]:text-blue-600 [&_a]:underline [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_h1]:mb-4 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_li]:my-1 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-zinc-900 [&_pre]:p-4 [&_pre]:text-sm [&_pre]:text-zinc-100"
-      == memo_html(memo.body, source_memo: memo)
+    - if checklist_editable
+      .max-w-none.text-zinc-800 class="[&_a]:text-blue-600 [&_a]:underline [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_h1]:mb-4 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_li]:my-1 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-zinc-900 [&_pre]:p-4 [&_pre]:text-sm [&_pre]:text-zinc-100" data-controller="memo-checklist" data-memo-checklist-toggle-url-value=checklist_toggle_memo_path(memo) data-action="change->memo-checklist#toggle"
+        == memo_html(memo.body, source_memo: memo)
+    - else
+      .max-w-none.text-zinc-800 class="[&_a]:text-blue-600 [&_a]:underline [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_h1]:mb-4 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_li]:my-1 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-zinc-900 [&_pre]:p-4 [&_pre]:text-sm [&_pre]:text-zinc-100"
+        == memo_html(memo.body, source_memo: memo)

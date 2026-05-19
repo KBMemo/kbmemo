@@ -336,7 +336,8 @@ module MemosHelper
       attributes: attrs
     )
     html = memo_html_lazy_load_images(html)
-    memo_html_add_asset_viewer_links(html, source_memo)
+    html = memo_html_add_asset_viewer_links(html, source_memo)
+    memo_html_add_checklist_controls(html, source_memo)
   end
 
   # 表示画面: ビューポート外の画像読み込みを遅延（<object> 図は対象外）
@@ -345,6 +346,37 @@ module MemosHelper
     fragment.css("img:not([loading])").each do |img|
       img["loading"] = "lazy"
       img["decoding"] = "async"
+    end
+    fragment.to_html.html_safe
+  end
+
+  # 表示画面: [%interactive] チェックリストに id 付きトグル（properties と同期）
+  def memo_html_add_checklist_controls(html, memo)
+    return html if memo.blank? || !memo.persisted?
+
+    rows = Array(memo.properties["checkboxes"])
+    return html if rows.empty?
+
+    items = MemoChecklist.interactive_items(memo)
+    return html if items.empty?
+
+    fragment = Nokogiri::HTML.fragment(html.to_s)
+    inputs = fragment.css("div.checklist input[type=checkbox]")
+    return html.to_s.html_safe if inputs.size != rows.size
+
+    inputs.each_with_index do |input, index|
+      row = rows[index]
+      next unless row
+
+      input["data-memo-checklist-id"] = row["id"]
+      input["data-action"] = "change->memo-checklist#toggle"
+      if row["checked"]
+        input["checked"] = "checked"
+        input["data-item-complete"] = "1"
+      else
+        input.remove_attribute("checked")
+        input["data-item-complete"] = "0"
+      end
     end
     fragment.to_html.html_safe
   end
@@ -369,6 +401,30 @@ module MemosHelper
     return "" if h.blank?
 
     YAML.dump(h.deep_stringify_keys).sub(/\A---\s*\n?/, "").strip
+  end
+
+  # 表示画面: プロパティ見出し横の 1 行要約（全文はトグルで展開）
+  def memo_properties_summary_line(memo)
+    props = memo.properties.presence || {}
+    return "" if props.blank?
+
+    boxes = Array(props["checkboxes"])
+    if boxes.any?
+      parts = boxes.map do |row|
+        mark = row["checked"] ? "✓" : "○"
+        label = row["label"].to_s.truncate(24)
+        "#{row["id"]}: #{label} #{mark}"
+      end
+      line = "checkboxes: #{boxes.size}件 — #{parts.join(", ")}"
+      other_keys = props.except("checkboxes")
+      if other_keys.present?
+        rest = memo_properties_yaml_value(memo).gsub(/\s+/, " ").strip
+        line = "#{line} · #{rest}"
+      end
+      return truncate(line, length: 160)
+    end
+
+    truncate(memo_properties_yaml_value(memo).gsub(/\s+/, " ").strip, length: 160)
   end
 
   # 参照表示用（JSON のまま見せる場合）

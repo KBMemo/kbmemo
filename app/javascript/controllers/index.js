@@ -22,6 +22,9 @@ application.register("memo-attachments", MemoAttachmentsController)
 import MemoBodyEditorController from "./memo_body_editor_controller"
 application.register("memo-body-editor", MemoBodyEditorController)
 
+import MemoChecklistController from "./memo_checklist_controller"
+application.register("memo-checklist", MemoChecklistController)
+
 import DiagramSourceViewerController from "./diagram_source_viewer_controller"
 application.register("diagram-source-viewer", DiagramSourceViewerController)
 
