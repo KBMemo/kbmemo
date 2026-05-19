@@ -25,6 +25,12 @@ application.register("memo-body-editor", MemoBodyEditorController)
 import MemoChecklistController from "./memo_checklist_controller"
 application.register("memo-checklist", MemoChecklistController)
 
+import BoardAddMemoController from "./board_add_memo_controller"
+application.register("board-add-memo", BoardAddMemoController)
+
+import BoardKanbanDndController from "./board_kanban_dnd_controller"
+application.register("board-kanban-dnd", BoardKanbanDndController)
+
 import DiagramSourceViewerController from "./diagram_source_viewer_controller"
 application.register("diagram-source-viewer", DiagramSourceViewerController)
 

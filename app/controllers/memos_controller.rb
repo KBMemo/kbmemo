@@ -248,7 +248,7 @@ class MemosController < ApplicationController
 
   def set_memo
     base = policy_scope(Memo)
-    @memo = base.includes(:tags, :memo_directory, :account, :memo_group).find(params[:id])
+    @memo = base.includes(:tags, :memo_directory, :account, :memo_group, :board).find(params[:id])
   end
 
   def memo_params

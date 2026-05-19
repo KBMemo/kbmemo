@@ -460,6 +460,21 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
       text: memo.memo_directory.labeled_path_from_root
   end
 
+  test "show displays board link when memo is on kanban board" do
+    memo = memos(:one)
+    board = boards(:one)
+    column = board_columns(:one_todo)
+    memo.update_columns(
+      board_id: board.id,
+      kanban_column_id: column.id,
+      kanban_position: 0,
+      file_committed_at: 1.hour.ago
+    )
+    get memo_url(memo)
+    assert_response :success
+    assert_select "a[href=?]", board_path(board), text: board.title
+  end
+
   test "show tag links open sidebar tag tab" do
     memo = memos(:one)
     tag = memo.tags.first!

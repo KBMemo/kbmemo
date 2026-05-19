@@ -1,0 +1,9 @@
+- column_memos = kanban_column_memos(column, visible_memo_ids)
+- column_dom_id = dom_id(column, :kanban)
+section class="flex min-w-[16rem] flex-1 flex-col rounded-lg border border-zinc-200 bg-zinc-100/80" id=column_dom_id data-board-kanban-dnd-target="column" data-column-id=column.id
+  header.flex.items-center.justify-between.border-b.border-zinc-200.bg-white.px-3.py-2.rounded-t-lg
+    h2.text-sm.font-semibold.text-zinc-900 = column.name
+    span.text-xs.tabular-nums.text-zinc-500 = column_memos.size
+  div class="flex min-h-[12rem] flex-col gap-2 p-2" data-drop-column="" data-column-id=column.id data-action="dragover->board-kanban-dnd#allowDrop dragenter->board-kanban-dnd#dragEnterColumn dragleave->board-kanban-dnd#dragLeaveColumn drop->board-kanban-dnd#dropOnColumn"
+    - column_memos.each do |memo|
+      = render "boards/card", board: board, memo: memo, column: column

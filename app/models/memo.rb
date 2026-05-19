@@ -5,6 +5,7 @@
 #  id                :integer          not null, primary key
 #  body              :text             default(""), not null
 #  file_committed_at :datetime
+#  kanban_position   :integer          default(0), not null
 #  properties        :json             not null
 #  slug              :string
 #  slug_manual       :boolean          default(FALSE), not null
@@ -14,12 +15,16 @@
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
 #  account_id        :integer          not null
+#  board_id          :integer
+#  kanban_column_id  :integer
 #  memo_directory_id :integer          not null
 #  memo_group_id     :integer
 #
 # Indexes
 #
 #  index_memos_on_account_id         (account_id)
+#  index_memos_on_board_id           (board_id)
+#  index_memos_on_kanban_column_id   (kanban_column_id)
 #  index_memos_on_memo_directory_id  (memo_directory_id)
 #  index_memos_on_memo_group_id      (memo_group_id)
 #  index_memos_on_slug               (slug) UNIQUE
@@ -27,6 +32,8 @@
 # Foreign Keys
 #
 #  account_id         (account_id => accounts.id)
+#  board_id           (board_id => boards.id)
+#  kanban_column_id   (kanban_column_id => board_columns.id)
 #  memo_directory_id  (memo_directory_id => memo_directories.id)
 #  memo_group_id      (memo_group_id => memo_groups.id)
 #
@@ -36,9 +43,14 @@ class Memo < ApplicationRecord
   belongs_to :memo_directory
   belongs_to :account
   belongs_to :memo_group, optional: true
+  belongs_to :board, optional: true
+  belongs_to :kanban_column, class_name: "BoardColumn", optional: true
 
   has_many :memo_tags, dependent: :destroy
   has_many :tags, through: :memo_tags
+
+  scope :on_kanban_board, -> { where.not(board_id: nil) }
+  scope :available_for_board, -> { where(board_id: nil) }
 
   scope :search_text, lambda { |query|
     q = query.to_s.strip
@@ -62,6 +74,7 @@ class Memo < ApplicationRecord
   validates :memo_group_id, presence: true, if: -> { group_read? || group_read_write? }
   validate :memo_group_must_include_owner, if: -> { group_read? || group_read_write? }
   validate :memo_directory_must_be_assignable_location
+  validate :kanban_placement_consistency
 
   before_validation :assign_default_memo_directory
   before_validation :clear_memo_group_when_not_group_visibility
@@ -190,6 +203,24 @@ class Memo < ApplicationRecord
     return if MemoGroupMembership.exists?(memo_group_id: memo_group_id, account_id: account_id)
 
     errors.add(:memo_group_id, "はオーナーが参加しているグループを選んでください")
+  end
+
+  def kanban_placement_consistency
+    if self[:board_id].blank?
+      if self[:kanban_column_id].present?
+        errors.add(:kanban_column_id, "はボード未所属のメモには設定できません")
+      end
+      return
+    end
+
+    if self[:kanban_column_id].blank?
+      errors.add(:kanban_column_id, "を指定してください")
+      return
+    end
+
+    return if kanban_column&.board_id == self[:board_id]
+
+    errors.add(:kanban_column_id, "は同じボードの列を選んでください")
   end
 
   def memo_directory_must_be_assignable_location

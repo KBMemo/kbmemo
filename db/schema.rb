@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_18_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_19_100000) do
   create_table "account_login_change_keys", force: :cascade do |t|
     t.datetime "deadline", null: false
     t.string "key", null: false
@@ -42,6 +42,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_120000) do
     t.string "password_hash"
     t.integer "status", default: 1, null: false
     t.index ["email"], name: "index_accounts_on_email", unique: true, where: "status IN (1, 2)"
+  end
+
+  create_table "board_columns", force: :cascade do |t|
+    t.integer "board_id", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["board_id", "position"], name: "index_board_columns_on_board_id_and_position", unique: true
+    t.index ["board_id"], name: "index_board_columns_on_board_id"
+  end
+
+  create_table "boards", force: :cascade do |t|
+    t.integer "account_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "memo_directory_id"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_boards_on_account_id"
+    t.index ["memo_directory_id"], name: "index_boards_on_memo_directory_id"
   end
 
   create_table "memo_directories", force: :cascade do |t|
@@ -81,9 +101,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_120000) do
 
   create_table "memos", force: :cascade do |t|
     t.integer "account_id", null: false
+    t.integer "board_id"
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
     t.datetime "file_committed_at"
+    t.integer "kanban_column_id"
+    t.integer "kanban_position", default: 0, null: false
     t.integer "memo_directory_id", null: false
     t.integer "memo_group_id"
     t.json "properties", default: {}, null: false
@@ -94,6 +117,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_120000) do
     t.datetime "updated_at", null: false
     t.integer "visibility", default: 4, null: false
     t.index ["account_id"], name: "index_memos_on_account_id"
+    t.index ["board_id"], name: "index_memos_on_board_id"
+    t.index ["kanban_column_id"], name: "index_memos_on_kanban_column_id"
     t.index ["memo_directory_id"], name: "index_memos_on_memo_directory_id"
     t.index ["memo_group_id"], name: "index_memos_on_memo_group_id"
     t.index ["slug"], name: "index_memos_on_slug", unique: true
@@ -111,12 +136,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_18_120000) do
   add_foreign_key "account_password_reset_keys", "accounts", column: "id"
   add_foreign_key "account_remember_keys", "accounts", column: "id"
   add_foreign_key "account_verification_keys", "accounts", column: "id"
+  add_foreign_key "board_columns", "boards"
+  add_foreign_key "boards", "accounts"
+  add_foreign_key "boards", "memo_directories"
   add_foreign_key "memo_directories", "memo_directories", column: "parent_id"
   add_foreign_key "memo_group_memberships", "accounts"
   add_foreign_key "memo_group_memberships", "memo_groups"
   add_foreign_key "memo_tags", "memos"
   add_foreign_key "memo_tags", "tags"
   add_foreign_key "memos", "accounts"
+  add_foreign_key "memos", "board_columns", column: "kanban_column_id"
+  add_foreign_key "memos", "boards"
   add_foreign_key "memos", "memo_directories"
   add_foreign_key "memos", "memo_groups"
 end

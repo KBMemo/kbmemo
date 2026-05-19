@@ -1,0 +1,540 @@
+= カンバン機能 MVP 仕様
+
+このドキュメントは KBMemo におけるカンバン機能の **MVP（Phase 1）** の仕様を定義する。
+前提として、KBMemo の正はメモ本文（AsciiDoc）であり、カンバンの列・順序などのメタデータは DB に保持する（`AGENTS.md` 方針に従う）。
+
+== 背景・目的
+
+* README 上のプロダクト構成は「Kanban + Blog + Memo」だが、現状の実装はメモ／Wiki が中心である。
+* カンバンは **既存メモ（`Memo`）をカードとして扱う** ことで、Wiki リンク・タグ・チェックリスト・公開範囲などの既存資産を活かす。
+* MVP では **独立した `/boards` 画面** を提供し、ボードの作成からカード操作まで一連のワークフローを完結させる。
+
+== 確定した設計方針
+
+[cols="1,3"]
+|===
+|項目 |決定内容
+
+|カード
+|既存 `Memo` をそのままカードとする（Memo = Card）
+
+|ボード
+|独立した `Board` モデルを持つ（ディレクトリとの 1:1 固定にはしない）
+
+|列（カラム）
+|MVP は **3 列固定**（Todo / Doing / Done）。列 CRUD は名前変更・並び替えを含むが、**列数の増減は MVP 外**
+
+|画面
+|ヘッダーナビから `/boards` へ遷移する **独立ページ**
+
+|MVP 操作
+|ボード CRUD、列 CRUD（3 列固定の範囲内）、カード DnD、既存メモ追加、新規メモ作成、カードからメモ編集への遷移
+|===
+
+== 用語
+
+[cols="1,3"]
+|===
+|用語 |定義
+
+|ボード（Board）
+|カンバン列とカードの集合。所有者は `account_id`。
+
+|列（BoardColumn）
+|ボード内のステータス列。MVP では 3 列固定。
+
+|カード（Card）
+|ボード上に配置された `Memo` の表示単位。実体は `Memo` レコード。
+
+|ボード未所属メモ
+|`board_id` が null のメモ。通常のメモ一覧では従来どおり表示され、ボード上には現れない。
+
+|配置（Placement）
+|メモが特定ボードの特定列・特定順序に載っている状態（`board_id`, `kanban_column_id`, `kanban_position`）。
+|===
+
+== データモデル
+
+=== 新規テーブル
+
+==== `boards`
+
+[cols="1,1,3"]
+|===
+|カラム |型 |説明
+
+|`id`
+|integer PK
+|
+
+|`account_id`
+|integer FK, NOT NULL
+|ボード所有者
+
+|`title`
+|string, NOT NULL
+|ボード名
+
+|`memo_directory_id`
+|integer FK, NULL 可
+|任意。新規メモ作成時のデフォルト配置ディレクトリ
+
+|`created_at` / `updated_at`
+|datetime
+|
+|===
+
+* `account_id` にインデックス。
+* `memo_directory_id` は NULL 可。設定時は **所有者が書き込み可能なディレクトリ** に限定する（バリデーション）。
+
+==== `board_columns`
+
+[cols="1,1,3"]
+|===
+|カラム |型 |説明
+
+|`id`
+|integer PK
+|
+
+|`board_id`
+|integer FK, NOT NULL
+|所属ボード
+
+|`name`
+|string, NOT NULL
+|列名（MVP 初期値: Todo / Doing / Done）
+
+|`position`
+|integer, NOT NULL
+|左から右への表示順（0 始まり）
+
+|`created_at` / `updated_at`
+|datetime
+|
+|===
+
+* `(board_id, position)` にユニークインデックス。
+* ボード作成時に 3 列を自動生成する。
+
+=== 既存 `memos` への追加カラム
+
+[cols="1,1,3"]
+|===
+|カラム |型 |説明
+
+|`board_id`
+|integer FK, NULL 可
+|載せているボード。NULL = ボード未所属
+
+|`kanban_column_id`
+|integer FK, NULL 可
+|所属列。`board_id` があるときのみ有効
+
+|`kanban_position`
+|integer, NOT NULL, default 0
+|列内の並び順（昇順）
+|===
+
+制約・バリデーション:
+
+* `board_id` が NULL のとき、`kanban_column_id` も NULL でなければならない。
+* `board_id` があるとき、`kanban_column_id` は **同一ボードに属する列** でなければならない。
+* 同一 `(board_id, kanban_column_id, kanban_position)` の重複は DnD 更新時に解消する（既存カードの position を再採番する）。
+
+=== ER 概要
+
+[source]
+----
+Account 1--* Board
+Board 1--* BoardColumn
+Board 0..1-- MemoDirectory  （memo_directory_id、新規メモのデフォルト先）
+Board 1--* Memo              （board_id）
+BoardColumn 1--* Memo        （kanban_column_id）
+Memo *--1 MemoDirectory      （既存、本文・Git 配置の正）
+----
+
+=== Git / 本文との関係
+
+* カンバン配置情報（ボード・列・順序）は **DB のみ** に保持し、`.adoc` ファイルや Git コミットメタデータには書かない。
+* メモ本文（AsciiDoc）・スラッグ・ディレクトリ配置は従来どおり `Memo` / `MemoRepository` が正とする。
+* ボードからメモを外しても（`board_id` を NULL にしても）、メモ本体・Git 上のファイルは削除しない。
+
+== 権限（Pundit）
+
+=== `BoardPolicy`
+
+[cols="1,3"]
+|===
+|操作 |条件
+
+|一覧・表示
+|ログインユーザーかつ `board.account_id == user.id`（MVP）
+
+|作成
+|ログイン済み
+
+|更新・削除
+|ボード所有者のみ
+|===
+
+MVP では **共有ボード（MemoGroup 連携）は対象外**。Phase 2 以降で拡張する。
+
+=== `BoardColumnPolicy`
+
+* 親 `Board` の更新権限に準ずる（`update?` は `board.update?` を委譲）。
+
+=== カード（Memo）操作
+
+* ボードへの追加・DnD・ボードからの除外は、対象 `Memo` の `update?` が必要。
+* ボード表示時のカード一覧は `MemoPolicy::Scope` でフィルタし、**閲覧不可のメモはボード上に表示しない**。
+* ボード所有者であっても、他人の非公開メモを勝手にボードに載せることはできない（追加 UI も Policy スコープ内のメモのみ）。
+
+== ルーティング
+
+[source,ruby]
+----
+resources :boards do
+  member do
+    patch :move_card   # カード DnD（列間・列内）
+  end
+
+  resources :board_columns, only: %i[update], path: "columns"
+
+  collection do
+    # 既存メモ追加用の検索は boards#show 内 UI から Ajax / Turbo で呼ぶ
+  end
+end
+
+# ボード上からの新規メモ作成・既存メモ追加
+resources :boards do
+  resources :board_cards, only: %i[create destroy], path: "cards"
+end
+----
+
+画面 URL:
+
+[cols="1,3"]
+|===
+|パス |用途
+
+|`GET /boards`
+|ボード一覧
+
+|`GET /boards/new`, `POST /boards`
+|ボード作成
+
+|`GET /boards/:id`
+|カンバン本体（3 列表示）
+
+|`GET /boards/:id/edit`, `PATCH /boards/:id`, `DELETE /boards/:id`
+|ボード編集・削除
+
+|`PATCH /boards/:id/columns/:column_id`
+|列名変更・並び替え（MVP: 名前と position の更新）
+
+|`POST /boards/:id/cards`
+|カード追加（既存メモ ID または新規メモ作成パラメータ）
+
+|`DELETE /boards/:id/cards/:memo_id`
+|ボードからカードを外す（メモ自体は削除しない）
+
+|`PATCH /boards/:id/move_card`
+|DnD による `kanban_column_id` / `kanban_position` 更新
+|===
+
+メモ編集への遷移は既存 `GET /memos/:id`（または `edit`）を使用する。
+
+== 画面仕様
+
+=== グローバルナビ
+
+* ヘッダーに「カンバン」リンクを追加し、`/boards` へ遷移する。
+* 配置: 「メモ」「タグ管理」と同列。
+
+=== ボード一覧（`/boards`）
+
+表示内容:
+
+* 自分が所有するボードの一覧（タイトル、カード数、更新日時）。
+* 「新規ボード」ボタン。
+
+操作:
+
+* ボード名クリック → カンバン画面へ。
+* 各行から編集・削除（確認ダイアログあり）。
+
+=== ボード作成・編集
+
+フォーム項目:
+
+[cols="1,3"]
+|===
+|項目 |説明
+
+|タイトル
+|必須
+
+|デフォルトディレクトリ
+|任意。ボード上から新規メモを作る際の `memo_directory_id`。未指定時は所有者の `home/u-{id}` デフォルト。
+
+|===
+
+作成時:
+
+* `Board` 保存後、3 列（Todo / Doing / Done）を `position` 0, 1, 2 で自動生成する。
+
+=== カンバン画面（`/boards/:id`）
+
+レイアウト:
+
+* 横スクロール可能な **3 列カンバン**（モバイルは列を縦積み、または横スワイプ）。
+* 各列ヘッダー: 列名（インライン編集または設定モーダル）、カード枚数。
+* 列内: カードを `kanban_position` 昇順で表示。
+
+カード表示（MVP）:
+
+[cols="1,3"]
+|===
+|要素 |内容
+
+|タイトル
+|`Memo#title`
+
+|タグ
+|紐づくタグ（最大 3 件表示 + 残数）
+
+|チェックリスト進捗
+|`properties["checkboxes"]` があれば `完了数/総数`（例: `2/5`）
+
+|更新日時
+|任意。`updated_at` の相対表示
+|===
+
+カード操作:
+
+* **クリック** → 既存メモ編集画面（`/memos/:id`）へ遷移。遷移後もブラウザバックでボードに戻れるよう、通常のリンク遷移とする。
+* **ドラッグ** → 列内・列間の DnD（後述）。
+
+ツールバー:
+
+* 「既存メモを追加」— モーダルまたはパネルでメモ検索・選択。
+* 「新規カード」— タイトル入力でメモを作成し、指定列（既定: Todo）の末尾に配置。
+* 「ボード設定」— タイトル・デフォルトディレクトリ・列名編集。
+
+=== 既存メモ追加 UI
+
+* 検索: タイトル／本文の部分一致（既存 `Memo.search_text` を利用）。
+* 一覧: Policy スコープ内かつ **`board_id` が NULL** のメモのみ（既に当ボードにあるメモは除外）。
+* 選択して追加 → 既定列 Todo の末尾に配置（`board_id`, `kanban_column_id`, `kanban_position` を設定）。
+* 1 メモは **同時に 1 ボードにのみ** 所属できる（別ボードへ移す場合は先に除外するか、将来の「ボード移動」で対応）。
+
+=== 新規メモ作成（ボード上）
+
+* 最低限 **タイトル** を入力して作成。
+* `account_id` = 現在ユーザー、`memo_directory_id` = ボードの `memo_directory_id` または所有者デフォルト。
+* 作成後、Todo 列末尾に自動配置し、Turbo Stream でカードを DOM に追加。
+* 詳細編集はカードクリックで既存メモ画面へ。
+
+== 操作詳細
+
+=== ボード CRUD
+
+[cols="1,3"]
+|===
+|操作 |挙動
+
+|Create
+|Board + 3 BoardColumn 自動生成
+
+|Read
+|一覧・詳細（カンバン）
+
+|Update
+|title, memo_directory_id
+
+|Delete
+|ボード削除時: 配下 `BoardColumn` を削除。関連 `Memo` の `board_id` / `kanban_column_id` を NULL にし、`kanban_position` を 0 にリセット。**メモ本体は削除しない**
+|===
+
+=== 列 CRUD（3 列固定）
+
+MVP で許可する操作:
+
+[cols="1,3"]
+|===
+|操作 |MVP
+
+|列名変更
+|可（Todo / Doing / Done から任意名へ）
+
+|列の左右入れ替え
+|可（`position` 更新）
+
+|列の追加
+|不可
+
+|列の削除
+|不可
+|===
+
+列更新時、配下カードの `kanban_column_id` は維持する（列 ID は不変）。
+
+=== カード DnD
+
+既存 `memo_directory_dnd` と同様のパターンを踏襲する:
+
+* Stimulus コントroler（例: `board-kanban-dnd`）+ HTML5 DnD。
+* ドロップ時 `PATCH /boards/:id/move_card` を JSON で呼ぶ。
+* リクエスト body 例:
+
+[source,json]
+----
+{
+  "memo_id": 42,
+  "kanban_column_id": 7,
+  "kanban_position": 2
+}
+----
+
+* レスポンス: `Accept: text/vnd.turbo-stream.html` で Turbo Stream（列・カード DOM 更新）。失敗時は HTTP 4xx とし、UI は楽観更新しない（または失敗時ロールバック）。
+* サーバー側で同一列内の `kanban_position` を再採番し、ギャップを詰める。
+* 権限: `MemoPolicy#update?` + 列が同一ボードに属することを検証。
+
+=== ボードからカードを外す
+
+* `DELETE /boards/:id/cards/:memo_id` で `board_id`, `kanban_column_id` を NULL、`kanban_position` を 0 に。
+* メモレコード・Git ファイルは保持。
+
+=== カード → メモ編集
+
+* カード全体または「編集」アイコンから `memo_path(memo)` へリンク。
+* メモ画面のサイドバー・ディレクトリ文脈は従来どおり（ボード文脈の引き継ぎは MVP 不要）。
+
+== 既存機能との連携
+
+[cols="1,3"]
+|===
+|機能 |MVP での扱い
+
+|AsciiDoc 本文
+|カード詳細はメモ編集画面で編集。ボード上ではプレビューしない
+
+|Wiki リンク
+|メモ間リンクは従来どおり。カード = Memo のため追加対応不要
+
+|タグ
+|カード面に表示。ボード内フィルタは MVP 外
+
+|チェックリスト
+|カード面に進捗表示。トグルはメモ画面で実施
+
+|visibility / MemoGroup
+|Policy どおり。閲覧不可カードは非表示
+
+|MemoDirectory
+|メモの Git 配置先。ボードの `memo_directory_id` は新規作成時のデフォルトのみ
+
+|Git sync
+|カンバン配置変更では Git コミットを発生させない
+|===
+
+== 技術実装方針
+
+=== スタック
+
+* Rails 8, Pundit, Slim, Tailwind, Turbo, Stimulus, Vite（既存スタック踏襲）。
+
+=== Slim / Tailwind
+
+* 角括弧付きユーティリティ（`min-h-[...]` 等）は `class="..."` で指定（`AGENTS.md`）。
+
+=== Turbo Stream
+
+* DnD、カード追加・削除、列名変更は Turbo Stream で部分更新。
+* ボード画面はメモ 3 ペインレイアウト外のため、`wide_content_layout?` / `memos_wide_layout?` とは別レイアウト（通常 `max-w-[1800px]` 程度のワイド）。
+
+=== Stimulus
+
+* `board-kanban-dnd`: カード DnD。
+* `board-column-edit`: 列名インライン編集（任意）。
+* `board-add-memo`: 既存メモ検索モーダル。
+
+=== サービスオブジェクト（推奨）
+
+* `BoardKanban::MoveCard` — DnD 時の position 再採番とバリデーション。
+* `BoardKanban::AddMemo` — 既存メモをボードに配置。
+* `BoardKanban::CreateCard` — 新規 Memo 作成 + 配置。
+
+== MVP スコープ外（Phase 2 以降）
+
+* 列の追加・削除（3 列固定の解除）
+* ボード共有（MemoGroup / 共同編集）
+* WIP 制限、期限、担当者
+* ボード内タグ・テキストフィルタ
+* カードの Markdown/AsciiDoc プレビュー
+* メモ画面からの「このメモをボードに追加」ショートカット
+* 1 メモの複数ボード所属
+* Blog 連携
+* ボードのアーカイブ・テンプレート
+
+== 受け入れ条件（Acceptance Criteria）
+
+=== ボード
+
+* ログインユーザーがボードを作成でき、作成直後に Todo / Doing / Done の 3 列が表示される。
+* ボード一覧に自分のボードのみが表示される。
+* ボードを削除しても、載っていたメモはメモ一覧に残る。
+
+=== 列
+
+* 各列の名前を変更でき、カンバン上に反映される。
+* 3 列の左右顺序を入れ替えられ、カードは列に紐づいたまま表示される。
+
+=== カード
+
+* 既存メモを検索してボードに追加できる（権限のあるメモのみ）。
+* ボード上からタイトルのみで新規メモを作成し、Todo 列に表示できる。
+* カードを列内・列間で DnD でき、リロード後も位置が保持される。
+* カードクリックでメモ編集画面に遷移できる。
+* ボードからカードを外してもメモは削除されない。
+
+=== 権限
+
+* 他人のボードは一覧・表示・更新できない。
+* 更新権限のないメモはボードに追加できず、DnD も拒否される。
+
+== テスト方針
+
+=== モデル・サービス
+
+* Board 作成時の 3 列自動生成。
+* Memo の `board_id` / `kanban_column_id` 整合性バリデーション。
+* `MoveCard` の position 再採番。
+
+=== コントローラ・Policy
+
+* Board CRUD の認可。
+* カード追加・DnD・除外の認可と 404/403。
+
+=== システムテスト（任意・推奨）
+
+* ボード作成 → 新規カード → DnD → メモ編集遷移の E2E。
+
+== 関連コード（実装時の参照）
+
+* `app/javascript/controllers/memo_directory_dnd_controller.js` — DnD + Turbo Stream パターン
+* `app/services/memo_checklist.rb` — チェックリスト進捗表示
+* `app/policies/memo_policy.rb` — カード権限
+* `docs/architecture/memo-directory-layout.adoc` — ディレクトリ設計
+
+== 変更履歴
+
+[cols="1,1,3"]
+|===
+|日付 |版 |内容
+
+|2026-05-19
+|0.1
+|MVP 仕様初版（ユーザー合意反映）
+|===

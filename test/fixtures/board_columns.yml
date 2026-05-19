@@ -1,0 +1,34 @@
+# == Schema Information
+#
+# Table name: board_columns
+#
+#  id         :integer          not null, primary key
+#  name       :string           not null
+#  position   :integer          default(0), not null
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#  board_id   :integer          not null
+#
+# Indexes
+#
+#  index_board_columns_on_board_id               (board_id)
+#  index_board_columns_on_board_id_and_position  (board_id,position) UNIQUE
+#
+# Foreign Keys
+#
+#  board_id  (board_id => boards.id)
+#
+one_todo:
+  board: one
+  name: Todo
+  position: 0
+
+one_doing:
+  board: one
+  name: Doing
+  position: 1
+
+one_done:
+  board: one
+  name: Done
+  position: 2

@@ -1,0 +1,68 @@
+# frozen_string_literal: true
+
+require "test_helper"
+
+class BoardsControllerTest < ActionDispatch::IntegrationTest
+  test "index lists boards" do
+    get boards_url
+    assert_response :success
+    assert_includes response.body, boards(:one).title
+  end
+
+  test "show renders kanban" do
+    get board_url(boards(:one))
+    assert_response :success
+    assert_includes response.body, board_columns(:one_todo).name
+  end
+
+  test "create board with default columns" do
+    assert_difference("Board.count", 1) do
+      post boards_url, params: { board: { title: "New board" } }
+    end
+    board = Board.order(:id).last
+    assert_redirected_to board_url(board)
+    assert_equal 3, board.board_columns.count
+  end
+
+  test "move_card updates placement" do
+    board = boards(:one)
+    memo = memos(:one)
+    BoardKanban::AddMemo.call(board: board, memo: memo, column: board_columns(:one_todo))
+
+    patch move_card_board_url(board),
+      params: {
+        memo_id: memo.id,
+        kanban_column_id: board_columns(:one_doing).id,
+        kanban_position: 0
+      },
+      headers: { Accept: "text/vnd.turbo-stream.html" }
+
+    assert_response :success
+    assert_equal board_columns(:one_doing).id, memo.reload.kanban_column_id
+  end
+
+  test "available_memos returns unassigned memos" do
+    get available_memos_board_url(boards(:one)), headers: { Accept: "application/json" }
+    assert_response :success
+    ids = JSON.parse(response.body).map { |row| row["id"] }
+    assert_includes ids, memos(:one).id
+  end
+
+  test "destroy board keeps memos" do
+    board = boards(:one)
+    memo = memos(:one)
+    BoardKanban::AddMemo.call(board: board, memo: memo, column: board_columns(:one_todo))
+
+    assert_difference("Memo.count", 0) do
+      delete board_url(board)
+    end
+    assert_redirected_to boards_url
+    assert_nil memo.reload.board_id
+  end
+
+  test "cannot access other users board" do
+    other_board = Board.create!(title: "Other", account: accounts(:two))
+    get board_url(other_board)
+    assert_response :not_found
+  end
+end

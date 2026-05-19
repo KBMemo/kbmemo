@@ -1,0 +1,25 @@
+# == Schema Information
+#
+# Table name: boards
+#
+#  id                :integer          not null, primary key
+#  title             :string           not null
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#  account_id        :integer          not null
+#  memo_directory_id :integer
+#
+# Indexes
+#
+#  index_boards_on_account_id         (account_id)
+#  index_boards_on_memo_directory_id  (memo_directory_id)
+#
+# Foreign Keys
+#
+#  account_id         (account_id => accounts.id)
+#  memo_directory_id  (memo_directory_id => memo_directories.id)
+#
+one:
+  title: Sprint board
+  account_id: 1
+  memo_directory: work

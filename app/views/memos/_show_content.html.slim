@@ -11,6 +11,12 @@ div id=dom_id(memo)
           .flex.flex-wrap.items-center.gap-x-3.gap-y-1.text-sm.text-zinc-500
             time datetime=memo.updated_at.iso8601
               | 更新 #{memo.updated_at.strftime("%Y-%m-%d %H:%M")}
+            - if memo.board.present? && policy(memo.board).show?
+              span.text-zinc-400 aria-hidden="true" ·
+              = link_to memo.board.title,
+                board_path(memo.board),
+                class: "underline decoration-zinc-300 hover:text-zinc-800",
+                title: "カンバンボードを開く"
             - dir = memo.memo_directory
             - if dir && !dir.root?
               span.text-zinc-400 aria-hidden="true" ·

@@ -1,0 +1,26 @@
+- content_for :title, "ボード編集"
+
+.mb-6
+  h1.text-xl.font-semibold.text-zinc-900 ボード編集
+  p.mt-1.text-sm.text-zinc-600 = @board.title
+
+= render "form", board: @board, submit_label: "更新"
+
+.mt-8.border-t.border-zinc-200.pt-6
+  h2.text-base.font-semibold.text-zinc-900 列（3 列固定）
+  p.mb-4.text-sm.text-zinc-600 列名の変更と左右の入れ替えができます。
+  .space-y-3
+    - @board_columns.each_with_index do |column, index|
+      .flex.flex-wrap.items-center.gap-3.rounded-md.border.border-zinc-200.bg-white.px-3.py-2
+        span.text-xs.font-medium.uppercase.text-zinc-500 = "列 #{index + 1}"
+        = form_with model: column, url: board_board_column_path(@board, column), method: :patch, class: "flex min-w-0 flex-1 flex-wrap items-center gap-2" do |f|
+          = f.text_field :name, class: "min-w-[8rem] flex-1 rounded-md border border-zinc-300 px-2 py-1 text-sm"
+          = f.submit "名前を保存", class: "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-800 hover:bg-zinc-50"
+        .flex.items-center.gap-1
+          - if index.positive?
+            = button_to "←", swap_board_board_column_path(@board, column, other_column_id: @board_columns[index - 1].id), method: :post, class: "rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50", title: "左へ"
+          - if index < @board_columns.size - 1
+            = button_to "→", swap_board_board_column_path(@board, column, other_column_id: @board_columns[index + 1].id), method: :post, class: "rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50", title: "右へ"
+
+.mt-4
+  = link_to "カンバンに戻る", board_path(@board), class: "text-sm text-zinc-600 hover:text-zinc-900"

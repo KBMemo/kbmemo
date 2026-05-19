@@ -5,6 +5,7 @@
 #  id                :integer          not null, primary key
 #  body              :text             default(""), not null
 #  file_committed_at :datetime
+#  kanban_position   :integer          default(0), not null
 #  properties        :json             not null
 #  slug              :string
 #  slug_manual       :boolean          default(FALSE), not null
@@ -14,12 +15,16 @@
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
 #  account_id        :integer          not null
+#  board_id          :integer
+#  kanban_column_id  :integer
 #  memo_directory_id :integer          not null
 #  memo_group_id     :integer
 #
 # Indexes
 #
 #  index_memos_on_account_id         (account_id)
+#  index_memos_on_board_id           (board_id)
+#  index_memos_on_kanban_column_id   (kanban_column_id)
 #  index_memos_on_memo_directory_id  (memo_directory_id)
 #  index_memos_on_memo_group_id      (memo_group_id)
 #  index_memos_on_slug               (slug) UNIQUE
@@ -27,6 +32,8 @@
 # Foreign Keys
 #
 #  account_id         (account_id => accounts.id)
+#  board_id           (board_id => boards.id)
+#  kanban_column_id   (kanban_column_id => board_columns.id)
 #  memo_directory_id  (memo_directory_id => memo_directories.id)
 #  memo_group_id      (memo_group_id => memo_groups.id)
 #

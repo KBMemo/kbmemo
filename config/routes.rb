@@ -31,6 +31,21 @@ Rails.application.routes.draw do
     end
   end
 
+  resources :boards do
+    member do
+      patch :move_card
+      get :available_memos
+    end
+
+    resources :board_columns, only: %i[update], path: "columns" do
+      member do
+        post :swap
+      end
+    end
+
+    resources :board_cards, only: %i[create destroy], path: "cards"
+  end
+
   resources :memos do
     collection do
       get :wiki_completions
