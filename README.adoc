@@ -83,6 +83,8 @@ bin/ci
 
 == 本番デプロイ
 
+手順の全体像は link:docs/deployment/production.adoc[docs/deployment/production.adoc] を参照してください（Ubuntu 24.04・nginx・`/home/kensei/sites/kbmemo`・https://kbmemo.org/ ）。
+
 === Active Record Encryption（OpenAI API キー BYOK）
 
 プロフィールに保存する OpenAI API キーは `accounts.openai_api_key` に Active Record Encryption で暗号化して保存します（`config/initializers/active_record_encryption.rb`）。

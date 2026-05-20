@@ -2,7 +2,7 @@
 
 # Kroki（Mermaid / PlantUML 等の SVG 変換）。未起動時はダイアグラム保存でエラーになる。
 module KrokiConfig
-  DEFAULT_URL = "http://localhost:8063"
+  DEFAULT_URL = "http://localhost:8001"
 
   module_function
 

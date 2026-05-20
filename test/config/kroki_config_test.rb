@@ -5,10 +5,10 @@ require "test_helper"
 class KrokiConfigTest < ActiveSupport::TestCase
   test "resolve uses default for blank or invalid env" do
     with_env("KROKI_URL" => "{}") do
-      assert_equal "http://localhost:8063", KrokiConfig.resolve
+      assert_equal "http://localhost:8001", KrokiConfig.resolve
     end
     with_env("KROKI_URL" => "") do
-      assert_equal "http://localhost:8063", KrokiConfig.resolve
+      assert_equal "http://localhost:8001", KrokiConfig.resolve
     end
   end
 
