@@ -1,4 +1,5 @@
 import { Decoration, MatchDecorator, ViewPlugin } from '@codemirror/view'
+import { diagramWysiwygExtension } from '../memo_body_editor/diagram_wysiwyg.js'
 import { mathWysiwygExtension } from '../memo_body_editor/math_wysiwyg.js'
 import { wikiAutocompletion } from '../memo_body_editor/wiki_completion.js'
 import { viewportLineRangeSyncExtension } from '../memo_body_editor/viewport_lazy.js'
@@ -23,12 +24,16 @@ const wikiLinkHighlight = ViewPlugin.fromClass(
 )
 
 /**
- * WYSIWYG ユニット内ソース CodeMirror 向け拡張（Wiki リンク + 数式 KaTeX プレビュー）。
+ * WYSIWYG ユニット内ソース CodeMirror 向け拡張（Wiki リンク + 数式 + ダイアグラム）。
  *
- * @param {() => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null } | undefined} getWikiConfig
+ * @param {{ getWikiConfig?: () => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null }, getMemoId?: () => string | null | undefined }} [options]
  */
-export function createWysiwygSourceExtensions(getWikiConfig) {
-  const extensions = [...viewportLineRangeSyncExtension(), ...mathWysiwygExtension()]
+export function createWysiwygSourceExtensions({ getWikiConfig, getMemoId } = {}) {
+  const extensions = [
+    ...viewportLineRangeSyncExtension(),
+    diagramWysiwygExtension(getMemoId ?? (() => null)),
+    ...mathWysiwygExtension(),
+  ]
 
   if (!getWikiConfig) return extensions
 

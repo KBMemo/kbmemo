@@ -1,6 +1,7 @@
 import { asciidocBlockToHtml } from './asciidoc/blockConvert.js'
 import { unitToAsciidoc } from './asciidoc/htmlToAsciidoc.js'
 import { normalizeMemoImagePathsInSource } from '../memo_body_editor/image_syntax.js'
+import { substituteDiagramsForPreview } from '../memo_body_editor/diagram_substitute.js'
 import {
   ensureWikiLinkLabelsInCache,
   extractWikiLinkTargets,
@@ -63,14 +64,15 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
   let activeSourceUnit = null
   const history = createWysiwygHistory()
   let isApplyingHistory = false
-  const wikiExtensions = createWysiwygSourceExtensions(getWikiConfig)
+  const wikiExtensions = createWysiwygSourceExtensions({ getWikiConfig, getMemoId })
   /** @type {Map<string, object>} */
   const wikiLabelCache = new Map()
   let wikiLabelRefreshSeq = 0
 
   function previewHtmlForAdoc(adoc) {
-    const processed = substituteWikiLinksForPreview(adoc, wikiLabelCache)
-    return asciidocBlockToHtml(processed)
+    let processed = substituteDiagramsForPreview(adoc)
+    processed = substituteWikiLinksForPreview(processed, wikiLabelCache)
+    return asciidocBlockToHtml(processed, getMemoId?.())
   }
 
   /**
@@ -469,18 +471,38 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
     activateSourceUnit(/** @type {HTMLElement} */ (unit))
   }
 
+  /**
+   * @param {string} adoc
+   * @returns {'start' | number | undefined}
+   */
+  function diagramMacroCaretInSource(adoc) {
+    const match = adoc.match(/diagram::([^\[\]]+?)(\[[^\]]*\])?/)
+    if (!match || match.index === undefined) return undefined
+    return match.index
+  }
+
   editorEl.addEventListener('mousedown', (event) => {
     if (event.button !== 0) return
     if (isRendering || isSwitchingUnit) return
     const target = /** @type {HTMLElement} */ (event.target)
     if (target.closest('.wysiwyg-source-editor')) return
+    if (target.closest('.cm-wysiwyg-diagram-actions a')) return
 
     const unit = target.closest('.wysiwyg-unit')
     if (!unit || !editorEl.contains(unit)) return
     if (unit === activeSourceUnit) return
 
+    const clickedDiagram =
+      target.closest('.imageblock object[data]') ||
+      target.closest('.memo-diagram-missing') ||
+      target.closest('.cm-wysiwyg-diagram')
+
     event.preventDefault()
-    activateSourceUnit(/** @type {HTMLElement} */ (unit))
+    activateSourceUnit(/** @type {HTMLElement} */ (unit), {
+      caret: clickedDiagram
+        ? diagramMacroCaretInSource(getUnitAdocSource(unit) ?? '') ?? 'start'
+        : 'start',
+    })
   })
 
   document.addEventListener('selectionchange', () => {
@@ -585,6 +607,69 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
     return getDocumentSourceForSync()
   }
 
+  const SCROLL_INTO_VIEW_PADDING_PX = 24
+
+  function getEditorScrollContainer() {
+    const scrollRoot = document.getElementById('memos_editor_scroll')
+    if (scrollRoot?.contains(editorEl)) return scrollRoot
+
+    let node = editorEl.parentElement
+    while (node) {
+      const { overflowY } = getComputedStyle(node)
+      if ((overflowY === 'auto' || overflowY === 'scroll') && node.scrollHeight > node.clientHeight + 1) {
+        return node
+      }
+      node = node.parentElement
+    }
+    return null
+  }
+
+  /**
+   * @param {Element} container
+   * @param {DOMRectReadOnly} rect
+   * @param {number} [padding]
+   */
+  function scrollRectIntoContainer(container, rect, padding = SCROLL_INTO_VIEW_PADDING_PX) {
+    const containerRect = container.getBoundingClientRect()
+    if (rect.top < containerRect.top + padding) {
+      container.scrollTop += rect.top - containerRect.top - padding
+    } else if (rect.bottom > containerRect.bottom - padding) {
+      container.scrollTop += rect.bottom - containerRect.bottom + padding
+    }
+  }
+
+  /**
+   * @param {HTMLElement} unit
+   * @param {HTMLElement | null | undefined} [host]
+   */
+  function scrollUnitIntoView(unit, host) {
+    const container = getEditorScrollContainer()
+    if (!container) {
+      unit.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+      return
+    }
+
+    scrollRectIntoContainer(container, unit.getBoundingClientRect())
+
+    if (!(host instanceof HTMLElement)) return
+
+    const view = getWysiwygSourceView(host)
+    const cursor = view?.dom.querySelector('.cm-cursor, .cm-dropCursor')
+    if (cursor instanceof HTMLElement) {
+      scrollRectIntoContainer(container, cursor.getBoundingClientRect())
+    }
+  }
+
+  /**
+   * @param {HTMLElement} unit
+   * @param {HTMLElement | null | undefined} [host]
+   */
+  function scheduleScrollUnitIntoView(unit, host) {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => scrollUnitIntoView(unit, host))
+    })
+  }
+
   /**
    * @param {HTMLElement} unit
    * @param {{ caret?: 'start' | 'end' | number, caretEnd?: number, source?: string, skipSync?: boolean }} [options]
@@ -602,6 +687,7 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
         const to = caretEnd ?? from
         focusWysiwygSourceEditor(host)
         setWysiwygSourceRange(host, from, to)
+        scheduleScrollUnitIntoView(unit, host)
       }
       return
     }
@@ -648,6 +734,7 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
       setWysiwygSourceSelection(host, position)
     }
     focusWysiwygSourceEditor(host)
+    scheduleScrollUnitIntoView(unit, host)
     isSwitchingUnit = false
   }
 

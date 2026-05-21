@@ -1,5 +1,6 @@
 import { loadDocument } from './instance.js'
 import { computeHighlights } from './highlight.js'
+import { substituteDiagramsForPreview } from '../../memo_body_editor/diagram_substitute.js'
 import { normalizeMemoImagePathsInSource } from '../../memo_body_editor/image_syntax.js'
 
 /** @typedef {{ from: number, to: number, className: string }} HighlightSpan */
@@ -33,12 +34,26 @@ export function refreshHighlights(source) {
  * @param {string | null | undefined} memoId
  */
 function previewConvertOptions(memoId) {
-  if (!memoId) return {}
-  return {
-    attributes: {
-      imagesdir: `/memos/${encodeURIComponent(String(memoId))}/assets/`
+  /** @type {Record<string, unknown>} */
+  const options = { safe: 'safe' }
+  if (memoId != null && memoId !== '') {
+    options.attributes = {
+      imagesdir: `/memos/${encodeURIComponent(String(memoId))}/assets/`,
     }
   }
+  return options
+}
+
+/**
+ * @param {string} source
+ * @param {string | null | undefined} memoId
+ */
+function previewSourceForConvert(source, memoId) {
+  let processed = substituteDiagramsForPreview(source)
+  if (memoId != null && memoId !== '') {
+    processed = normalizeMemoImagePathsInSource(processed, memoId)
+  }
+  return processed
 }
 
 /**
@@ -49,10 +64,7 @@ function previewConvertOptions(memoId) {
  * @param {{ memoId?: string | null }} [options]
  */
 export function refreshPreview(source, { memoId } = {}) {
-  const previewSource =
-    memoId != null && memoId !== ""
-      ? normalizeMemoImagePathsInSource(source, memoId)
-      : source
+  const previewSource = previewSourceForConvert(source, memoId)
 
   if (cache.source === source && cache.html && cachePreviewMemoId === memoId) {
     return { html: cache.html, highlights: cache.highlights }

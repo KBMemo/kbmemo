@@ -1,3 +1,4 @@
+import { diagramMacroPathFromSvgRelative } from '../../memo_body_editor/diagram_syntax.js'
 import { memoAssetRelativePath } from '../../memo_body_editor/image_syntax.js'
 import { getUnitAdocSource } from '../wysiwyg_unit_source.js'
 
@@ -192,11 +193,22 @@ function convertListing(block) {
  * @param {string | null | undefined} [memoId]
  */
 function convertImage(block, memoId) {
+  const obj = block.querySelector('object[data]')
   const img = block.querySelector('img')
-  if (!img) return null
-  const raw = img.getAttribute('data-filename') || img.getAttribute('src') || ''
+  const raw =
+    obj?.getAttribute('data-filename') ||
+    obj?.getAttribute('data') ||
+    img?.getAttribute('data-filename') ||
+    img?.getAttribute('src') ||
+    ''
   const src = memoAssetRelativePath(memoId, raw) || raw
-  const alt = img.getAttribute('alt') ?? ''
+
+  const diagramMacro = diagramMacroPathFromSvgRelative(src)
+  if (diagramMacro) {
+    return `diagram::${diagramMacro}[]`
+  }
+
+  const alt = img?.getAttribute('alt') ?? obj?.querySelector('.alt')?.textContent?.trim() ?? ''
   return `image::${src}[${alt}]`
 }
 
