@@ -1,0 +1,135 @@
+/* Dark preview skin — overrides scoped to .asciidoctor preview panes */
+
+.asciidoctor.preview-skin-dark {
+  background: #0d1117;
+  color: #c9d1d9;
+}
+
+.asciidoctor.preview-skin-dark a {
+  color: #58a6ff;
+}
+
+.asciidoctor.preview-skin-dark a:hover {
+  color: #79c0ff;
+}
+
+.asciidoctor.preview-skin-dark h1,
+.asciidoctor.preview-skin-dark h2,
+.asciidoctor.preview-skin-dark h3,
+.asciidoctor.preview-skin-dark h4,
+.asciidoctor.preview-skin-dark h5,
+.asciidoctor.preview-skin-dark h6 {
+  color: #e6edf3;
+  border-bottom-color: #30363d;
+}
+
+.asciidoctor.preview-skin-dark hr {
+  border-color: #30363d;
+}
+
+.asciidoctor.preview-skin-dark code,
+.asciidoctor.preview-skin-dark pre {
+  background: #161b22;
+  color: #e6edf3;
+  border-color: #30363d;
+}
+
+.asciidoctor.preview-skin-dark pre > code {
+  background: transparent;
+}
+
+.asciidoctor.preview-skin-dark .quoteblock blockquote,
+.asciidoctor.preview-skin-dark .verseblock pre {
+  color: #8b949e;
+}
+
+.asciidoctor.preview-skin-dark .quoteblock blockquote::before {
+  color: #484f58;
+}
+
+.asciidoctor.preview-skin-dark table thead,
+.asciidoctor.preview-skin-dark table tfoot {
+  background: #161b22;
+}
+
+.asciidoctor.preview-skin-dark table tbody tr {
+  background: #0d1117;
+}
+
+.asciidoctor.preview-skin-dark table tbody tr:nth-child(even) {
+  background: #161b22;
+}
+
+.asciidoctor.preview-skin-dark table thead th,
+.asciidoctor.preview-skin-dark table tbody td {
+  border-color: #30363d;
+}
+
+.asciidoctor.preview-skin-dark .admonitionblock td.content,
+.asciidoctor.preview-skin-dark .exampleblock > .content,
+.asciidoctor.preview-skin-dark .sidebarblock,
+.asciidoctor.preview-skin-dark .sidebarblock > .content {
+  background: #161b22;
+  border-color: #30363d;
+  color: #c9d1d9;
+}
+
+.asciidoctor.preview-skin-dark .admonitionblock td.icon .title {
+  color: inherit;
+}
+
+.asciidoctor.preview-skin-dark .conum {
+  background: #21262d;
+  color: #58a6ff;
+  border-color: #30363d;
+}
+
+.asciidoctor.preview-skin-dark .footnote,
+.asciidoctor.preview-skin-dark .footnoteref {
+  color: #8b949e;
+}
+
+.asciidoctor.preview-skin-dark kbd {
+  background: #21262d;
+  color: #e6edf3;
+  border-color: #484f58;
+  box-shadow: 0 1px 0 #484f58;
+}
+
+.asciidoctor.preview-skin-dark .menuseq .menu,
+.asciidoctor.preview-skin-dark .menuseq .menuitem {
+  color: #e6edf3;
+}
+
+.asciidoctor.preview-skin-dark .listingblock .title,
+.asciidoctor.preview-skin-dark .imageblock .title,
+.asciidoctor.preview-skin-dark .tableblock .title,
+.asciidoctor.preview-skin-dark .literalblock .title {
+  color: #8b949e;
+}
+
+.asciidoctor.preview-skin-dark .wysiwyg-source-editor,
+.asciidoctor.preview-skin-dark .wysiwyg-source-editor .cm-editor {
+  background: #161b22;
+  color: #e6edf3;
+}
+
+.asciidoctor.preview-skin-dark .wysiwyg-source-editor .cm-content {
+  caret-color: #e6edf3;
+}
+
+.asciidoctor.preview-skin-dark .wysiwyg-source-editor .cm-cursor,
+.asciidoctor.preview-skin-dark .wysiwyg-source-editor .cm-dropCursor {
+  border-left-color: #e6edf3;
+}
+
+.asciidoctor.preview-skin-dark .wysiwyg-source-editor .cm-selectionBackground,
+.asciidoctor.preview-skin-dark .wysiwyg-source-editor.cm-focused .cm-selectionBackground,
+.asciidoctor.preview-skin-dark .wysiwyg-source-editor .cm-editor.cm-focused .cm-selectionBackground {
+  background: rgba(88, 166, 255, 0.35) !important;
+}
+
+.asciidoctor.preview-skin-dark .wysiwyg-unit.is-source:focus-within .wysiwyg-source-editor {
+  border-color: rgba(88, 166, 255, 0.65);
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+}

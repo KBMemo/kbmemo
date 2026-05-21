@@ -103,7 +103,9 @@ ruby:
           - if memo.image_assets_uploadable?
             div data-controller="memo-attachments" data-memo-attachments-expanded-value="false"
               .flex.flex-wrap.items-center.gap-2
-                button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50 type="button" data-memo-body-editor-target="wysiwygToggle" data-action="memo-body-editor#toggleWysiwyg" aria-pressed="true" title="マーカーを表示する（WYSIWYG オフ）"
+                button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50 type="button" data-memo-body-editor-target="previewToggle" data-action="memo-body-editor#toggleLivePreview" aria-pressed="false" title="Asciidoctor.js によるライブプレビューを表示"
+                | ライブプレビュー
+              button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50 type="button" data-memo-body-editor-target="wysiwygToggle" data-action="memo-body-editor#toggleWysiwyg" aria-pressed="true" title="マーカーを表示する（WYSIWYG オフ）"
                   | ソース表示
                 = link_to "ダイアグラムを作成", new_memo_diagram_path(memo), class: "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50", target: "_blank", rel: "noopener"
                 label.cursor-pointer.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50
@@ -117,6 +119,8 @@ ruby:
               = render "memos/attachment_panel", memo: memo, body: memo.body
           - else
             .flex.flex-wrap.items-center.gap-2
+              button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50 type="button" data-memo-body-editor-target="previewToggle" data-action="memo-body-editor#toggleLivePreview" aria-pressed="false" title="Asciidoctor.js によるライブプレビューを表示"
+                | ライブプレビュー
               button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50 type="button" data-memo-body-editor-target="wysiwygToggle" data-action="memo-body-editor#toggleWysiwyg" aria-pressed="true" title="マーカーを表示する（WYSIWYG オフ）"
                 | ソース表示
               button.rounded-md.border.border-zinc-200.bg-zinc-100.px-2.py-1.text-xs.font-medium.text-zinc-400.cursor-not-allowed type="button" disabled=true title="メモを Git にコミットしてから画像を挿入できます"
@@ -128,7 +132,16 @@ ruby:
           tabindex: -1,
           autocomplete: "off",
           data: { memo_draft_target: "body", memo_body_editor_target: "field", action: "input->memo-draft#bodyInput compositionend->memo-draft#bodyInput blur->memo-draft#bodyInput" }
-        div.memo-body-editor__host.relative[data-memo-body-editor-target="host" style="min-height: inherit"]
+        div.memo-body-editor__workspace
+          div.memo-body-editor__source
+            div.memo-body-editor__host.relative[data-memo-body-editor-target="host" style="min-height: inherit"]
+          div.memo-body-editor__preview aria-hidden="true"
+            div.memo-body-editor__preview-toolbar
+              span.memo-body-editor__preview-label Preview
+              label.memo-body-editor__preview-skin
+                span Skin
+                select.text-xs.border.border-zinc-300.rounded.bg-white.px-1.py-0.5 aria-label="Preview skin" data-memo-body-editor-target="previewSkinSelect"
+            div.memo-body-editor__preview-content.asciidoctor.preview-skin-default[data-memo-body-editor-target="previewHost"]
 
   - if memo.persisted?
     .mt-4.flex.justify-end.gap-2

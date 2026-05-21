@@ -5,3 +5,4 @@
  */
 export { asciidocHighlight } from "./asciidoc/codemirror.js"
 export { refreshHighlights, refreshPreview, clearParseCache } from "./asciidoc/parseSession.js"
+export { createLivePreview } from "./live_preview.js"

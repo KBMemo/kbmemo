@@ -10,6 +10,15 @@ import {
 
 const ACCEPTED_IMAGE_TYPE = /^image\/(png|jpeg|gif|webp|svg\+xml)$/i
 const ACCEPTED_IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i
+const LIVE_PREVIEW_PREF_KEY = "kbmemo_memo_editor_live_preview"
+
+function readLivePreviewPreference() {
+  return localStorage.getItem(LIVE_PREVIEW_PREF_KEY) === "1"
+}
+
+function writeLivePreviewPreference(enabled) {
+  localStorage.setItem(LIVE_PREVIEW_PREF_KEY, enabled ? "1" : "0")
+}
 
 function imageFilesFrom(fileList) {
   return Array.from(fileList ?? []).filter(
@@ -98,7 +107,7 @@ function shouldHandleImagePaste(clipboardData) {
 // 本文 textarea（送信・memo-draft の参照用）と CodeMirror を同期する。
 // CodeMirror は動的 import で初回のみ別チャンク読み込み。
 export default class extends Controller {
-  static targets = ["field", "host", "imageInput", "uploadError", "wysiwygToggle"]
+  static targets = ["field", "host", "imageInput", "uploadError", "wysiwygToggle", "previewHost", "previewSkinSelect", "previewToggle"]
   static values = {
     labelId: String,
     wikiCompletionsUrl: String,
@@ -133,6 +142,7 @@ export default class extends Controller {
         textarea.value = next
         textarea.dispatchEvent(new Event("input", { bubbles: true }))
       }
+      this._livePreview?.scheduleRender()
     })
 
     const a11y = EditorView.contentAttributes.of({
@@ -257,6 +267,53 @@ export default class extends Controller {
     this._wysiwygPackConfig = wysiwygPackConfig
     this.syncWysiwygUi()
     this._bindInsertEvent()
+    await this.setupLivePreview(textarea)
+  }
+
+  async setupLivePreview(textarea) {
+    if (!this.hasPreviewHostTarget) return
+    if (this._livePreview) return
+
+    this._livePreviewEnabled = readLivePreviewPreference()
+    this.syncLivePreviewUi()
+
+    if (!this._livePreviewEnabled) return
+
+    const { createLivePreview } = await import("../adoc_editor/mount.js")
+    this._livePreview = createLivePreview({
+      previewEl: this.previewHostTarget,
+      skinSelectEl: this.hasPreviewSkinSelectTarget ? this.previewSkinSelectTarget : null,
+      getMemoId: () => this.memoIdValue || null,
+      getSource: () => this.view?.state.doc.toString() ?? textarea.value
+    })
+  }
+
+  toggleLivePreview() {
+    this._livePreviewEnabled = !this._livePreviewEnabled
+    writeLivePreviewPreference(this._livePreviewEnabled)
+    this.syncLivePreviewUi()
+
+    if (this._livePreviewEnabled) {
+      void this.setupLivePreview(this.fieldTarget)
+      return
+    }
+
+    this._livePreview?.destroy()
+    this._livePreview = null
+  }
+
+  syncLivePreviewUi() {
+    if (this.hasPreviewToggleTarget) {
+      this.previewToggleTarget.setAttribute("aria-pressed", this._livePreviewEnabled ? "true" : "false")
+      this.previewToggleTarget.textContent = this._livePreviewEnabled ? "プレビュー非表示" : "ライブプレビュー"
+    }
+    this.element.classList.toggle("memo-body-editor--live-preview", !!this._livePreviewEnabled)
+    if (this.hasPreviewHostTarget) {
+      const previewPane = this.previewHostTarget.closest(".memo-body-editor__preview")
+      if (previewPane) {
+        previewPane.setAttribute("aria-hidden", this._livePreviewEnabled ? "false" : "true")
+      }
+    }
   }
 
   _bindInsertEvent() {
@@ -310,6 +367,8 @@ export default class extends Controller {
   disconnect() {
     this._unbindInsertEvent()
     this._unbindDragDrop()
+    this._livePreview?.destroy()
+    this._livePreview = null
     if (this.fieldTarget && this._onTextareaExternalChange) {
       this.fieldTarget.removeEventListener("change", this._onTextareaExternalChange)
     }
@@ -317,6 +376,7 @@ export default class extends Controller {
       this.view.destroy()
       this.view = null
     }
+    void import("../adoc_editor/mount.js").then(({ clearParseCache }) => clearParseCache())
   }
 
   _bindDragDrop() {
@@ -581,5 +641,6 @@ export default class extends Controller {
     this.view.dispatch({
       changes: { from: 0, to: cur.length, insert: next }
     })
+    this._livePreview?.scheduleRender()
   }
 }

@@ -61,6 +61,80 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   min-width: 0;
 }
 
+/* adoc_editor ライブプレビュー（Phase B） */
+.memo-body-editor__workspace {
+  display: block;
+  min-height: 18rem;
+}
+
+.memo-body-editor--live-preview .memo-body-editor__workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 24rem;
+}
+
+.memo-body-editor__source,
+.memo-body-editor__preview {
+  min-width: 0;
+  min-height: 0;
+}
+
+.memo-body-editor__preview {
+  display: none;
+  flex-direction: column;
+  border-left: 1px solid #e4e4e7;
+  background: #fff;
+}
+
+.memo-body-editor--live-preview .memo-body-editor__preview {
+  display: flex;
+}
+
+.memo-body-editor__preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #f4f4f5;
+  background: #fafafa;
+}
+
+.memo-body-editor__preview-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #71717a;
+}
+
+.memo-body-editor__preview-skin {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #71717a;
+}
+
+.memo-body-editor__preview-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .memo-body-editor--live-preview .memo-body-editor__workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(12rem, 1fr) minmax(12rem, 1fr);
+  }
+
+  .memo-body-editor__preview {
+    border-left: none;
+    border-top: 1px solid #e4e4e7;
+  }
+}
+
 /* 完成した Wiki リンク [[...]] */
 .memo-body-editor .cm-memo-wiki-link {
   color: #2563eb;

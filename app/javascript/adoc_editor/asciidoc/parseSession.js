@@ -6,6 +6,8 @@ import { computeHighlights } from './highlight.js'
 
 /** @type {ParseCache} */
 let cache = { source: '', doc: null, html: null, highlights: [] }
+/** @type {string | null | undefined} */
+let cachePreviewMemoId
 
 /**
  * Parse for editor highlights (sync on every keystroke).
@@ -22,7 +24,20 @@ export function refreshHighlights(source) {
   const doc = loadDocument(source)
   const highlights = computeHighlights(source, doc)
   cache = { source, doc, highlights, html: null }
+  cachePreviewMemoId = undefined
   return highlights
+}
+
+/**
+ * @param {string | null | undefined} memoId
+ */
+function previewConvertOptions(memoId) {
+  if (!memoId) return {}
+  return {
+    attributes: {
+      imagesdir: `/memos/${encodeURIComponent(String(memoId))}/assets/`
+    }
+  }
 }
 
 /**
@@ -30,9 +45,10 @@ export function refreshHighlights(source) {
  * Reuses doc/highlights from {@link refreshHighlights} when possible.
  *
  * @param {string} source
+ * @param {{ memoId?: string | null }} [options]
  */
-export function refreshPreview(source) {
-  if (cache.source === source && cache.html) {
+export function refreshPreview(source, { memoId } = {}) {
+  if (cache.source === source && cache.html && cachePreviewMemoId === memoId) {
     return { html: cache.html, highlights: cache.highlights }
   }
 
@@ -40,12 +56,15 @@ export function refreshPreview(source) {
     const doc = loadDocument(source)
     const highlights = computeHighlights(source, doc)
     cache = { source, doc, highlights, html: null }
+    cachePreviewMemoId = undefined
   }
 
-  cache.html = cache.doc.convert()
+  cache.html = cache.doc.convert(previewConvertOptions(memoId))
+  cachePreviewMemoId = memoId
   return { html: cache.html, highlights: cache.highlights }
 }
 
 export function clearParseCache() {
   cache = { source: '', doc: null, html: null, highlights: [] }
+  cachePreviewMemoId = undefined
 }
