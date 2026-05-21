@@ -1,7 +1,5 @@
 /** AsciiDoc `diagram::` マクロ（MemoDiagram / MemoDiagramMacro と同じ規則） */
 
-import { memoAssetSrc } from "./image_syntax"
-
 const BLOCK_DIAGRAM_LINE = /^(\s*)diagram::([^\[\]]+?)(\[[^\]]*\])?\s*$/
 const DIAGRAM_MACRO_RE = /diagram::([^\[\]]+?)(\[[^\]]*\])?/g
 
@@ -13,14 +11,14 @@ export function parseBlockDiagramLine(text) {
 
 export function scanDiagramMacrosOnLine(text, lineFrom) {
   const results = []
-  const re = new RegExp(DIAGRAM_MACRO_RE.source, "g")
+  const re = new RegExp(DIAGRAM_MACRO_RE.source, 'g')
   for (const match of text.matchAll(re)) {
     const full = match[0]
     results.push({
       from: lineFrom + match.index,
       to: lineFrom + match.index + full.length,
       macroPath: match[1].trim(),
-      block: false
+      block: false,
     })
   }
   return results
@@ -30,24 +28,31 @@ export function scanDiagramMacrosOnLine(text, lineFrom) {
 export function diagramSvgRelativePath(macroPath) {
   let path = macroPath.trim()
   if (!path) return null
-  if (!path.startsWith("diagrams/")) path = `diagrams/${path}`
+  if (!path.startsWith('diagrams/')) path = `diagrams/${path}`
   const extMatch = path.match(/(\.[^./]+)$/i)
   if (!extMatch) return null
-  return path.replace(new RegExp(`${extMatch[1].replace(".", "\\.")}$`, "i"), ".svg")
+  return path.replace(new RegExp(`${extMatch[1].replace('.', '\\.')}$`, 'i'), '.svg')
 }
 
 /** diagram::flow.mmd[] → diagrams/flow.mmd */
 export function diagramSourceRelativePath(macroPath) {
   let path = macroPath.trim()
   if (!path) return null
-  if (!path.startsWith("diagrams/")) path = `diagrams/${path}`
+  if (!path.startsWith('diagrams/')) path = `diagrams/${path}`
   return path
+}
+
+/** diagrams/flow.svg → flow.mmd（ソース拡張子は推定） */
+export function diagramMacroPathFromSvgRelative(svgRelative) {
+  const match = svgRelative.match(/^diagrams\/(.+)\.svg$/i)
+  if (!match) return null
+  return `${match[1]}.mmd`
 }
 
 /** 編集ページ URL の diagram_key（diagrams/ なし） */
 export function diagramDiagramKey(macroPath) {
   if (!macroPath?.trim()) return null
-  return macroPath.trim().replace(/^diagrams\//, "")
+  return macroPath.trim().replace(/^diagrams\//, '')
 }
 
 export function diagramEditUrl(memoId, macroPath) {

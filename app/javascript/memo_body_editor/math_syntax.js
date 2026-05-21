@@ -283,3 +283,31 @@ export function stemBlockForArrowKey(state, key, skipLine) {
 
   return null
 }
+
+/**
+ * parseEditUnits 向け: `[stem]` + `++++` ブロックを 0-based 行範囲で返す。
+ *
+ * @param {string[]} lines
+ * @param {(lineIndex: number) => boolean} [skipLine] 0-based
+ * @returns {{ adoc: string, startLine: number, endLine: number }[]}
+ */
+export function extractStemBlockUnitsFromLines(lines, skipLine) {
+  const doc = {
+    lines: lines.length,
+    line(lineNo) {
+      return { text: lines[lineNo - 1] ?? '' }
+    },
+  }
+  const skipLineOneBased = skipLine ? (lineNo) => skipLine(lineNo - 1) : undefined
+  const blocks = scanStemBlocks(doc, skipLineOneBased)
+
+  return blocks.map((block) => {
+    const startLine = block.startLine - 1
+    const endLine = block.endLine - 1
+    return {
+      adoc: lines.slice(startLine, endLine + 1).join('\n'),
+      startLine,
+      endLine,
+    }
+  })
+}

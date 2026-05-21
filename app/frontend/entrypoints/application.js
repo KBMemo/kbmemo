@@ -2,6 +2,7 @@ import "../styles/application.css"
 
 import "@hotwired/turbo-rails"
 import "../../javascript/controllers"
+import { applyStoredPreviewSkin } from "../../javascript/adoc_editor/preview_skin.js"
 import { createIcons, BookOpen, CircleHelp, Copy, Eye, GripVertical } from "lucide"
 
 const renderLucideIcons = () => {
@@ -18,6 +19,8 @@ const renderLucideIcons = () => {
 
 document.addEventListener("turbo:load", renderLucideIcons)
 document.addEventListener("turbo:render", renderLucideIcons)
+document.addEventListener("turbo:load", applyStoredPreviewSkin)
+document.addEventListener("turbo:render", applyStoredPreviewSkin)
 
 // Turbo Stream 置換では turbo:render が来ない。before-stream-render で render を包み、
 // DOM 更新後に Lucide を掛け直す（renderStreamMessage は getter のみで上書き不可）。

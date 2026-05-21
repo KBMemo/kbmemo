@@ -1,6 +1,6 @@
 = 本番デプロイ手順（Ubuntu 24.04 + nginx）
 
-KBMemo サイトを本番サーバーへデプロイする手順です。
+KBMemo サイトを本番サーバー（**kbmemo.org**）へデプロイする手順です。
 
 == 前提条件（本番環境）
 
@@ -18,13 +18,17 @@ KBMemo サイトを本番サーバーへデプロイする手順です。
 
 |アプリ実行ユーザー |`kensei`（配置パスと一致）
 
+|データベース |**SQLite**（`storage/production*.sqlite3`）。単一 VPS 構成の既定
+
 |DNS |`kbmemo.org`（必要なら `www`）の A/AAAA を本サーバー IP に向ける
 |===
 
 * デプロイ方式は **ネイティブ（systemd + Puma/Thruster）** です。nginx が TLS 終端とプロキシを担当し、Rails は **localhost のみ** で待ち受けます。
-* リポジトリには Kamal / Docker 用のファイルもありますが、本手順では使用しません。
+* ログは **`log/production.log` ではなく STDOUT** に出し、systemd の **journal** に記録されます（後述）。
+* リポジトリの Kamal / Docker 用ファイルは本手順では使用しません。
 
-* 暗号化鍵（BYOK）の詳細: link:../../README.adoc#_active_record_encryption_openai_api_キー_byok[README.adoc — Active Record Encryption]
+* 暗号化鍵（BYOK）: link:../../README.adoc#_active_record_encryption_openai_api_キー_byok[README.adoc — Active Record Encryption]
+* メモディレクトリ設計: link:../architecture/memo-directory-layout.adoc[memo-directory-layout.adoc]
 
 == 構成概要
 
@@ -43,9 +47,22 @@ KBMemo サイトを本番サーバーへデプロイする手順です。
                     [Kroki @ 127.0.0.1:8001]  ← KROKI_URL
 ----
 
-* **認証**: Rodauth（アカウント作成・メール確認・パスワードリセット）
-* **メモ本文**: DB の AsciiDoc が正。Git 作業ツリーは `MemoRepository`（既定 `storage/memo_git_worktree`）
+* **認証**: Rodauth（Web からの登録はメール確認あり）
+* **メモ本文**: DB の AsciiDoc が正。Git 作業ツリーは `MemoRepository`
 * **図（Mermaid 等）**: Kroki 未起動時は図の保存・レンダリングでエラー
+
+=== データベース（SQLite / MySQL / PostgreSQL）
+
+[cols="2,3",options="header"]
+|===
+|DB |本番での位置づけ
+
+|**SQLite** |**推奨（現状の既定）**。単一サーバー・低〜中程度の同時利用。追加の DB サーバー不要
+|PostgreSQL |同時書き込み・複数アプリサーバー・本格検索が必要になったら移行候補
+|MySQL |既存インフラが MySQL の場合のみ。新規なら PostgreSQL を優先
+|===
+
+本手順は **SQLite のまま** 進めます。`db:prepare` で `storage/production*.sqlite3` が作成されます。
 
 == サーバー準備（初回のみ）
 
@@ -64,12 +81,16 @@ sudo apt install -y \
 
 === Ruby 4.0.3
 
-`.ruby-version` に合わせて rbenv 等でインストールします（例: rbenv）。
+`.ruby-version` に合わせて rbenv 等でインストールします。
 
 [source,bash]
 ----
-# rbenv 未導入の場合は https://github.com/rbenv/rbenv を参照
-cd /home/kensei/sites/kbmemo   # 後述の clone 後でも可
+# rbenv 未導入: https://github.com/rbenv/rbenv
+mkdir -p /home/kensei/sites
+cd /home/kensei/sites
+git clone <リポジトリURL> kbmemo
+cd kbmemo
+git checkout main   # 本番ブランチ
 rbenv install -s "$(cat .ruby-version)"
 gem install bundler
 ----
@@ -80,28 +101,16 @@ LTS（20 または 22）を推奨します。
 
 [source,bash]
 ----
-# 例: NodeSource 22.x
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs
 node -v && npm -v
-----
-
-=== 配置ディレクトリ
-
-[source,bash]
-----
-mkdir -p /home/kensei/sites
-cd /home/kensei/sites
-git clone <リポジトリURL> kbmemo
-cd kbmemo
-git checkout <本番ブランチ>   # 例: main
 ----
 
 以降、アプリのルートは **`/home/kensei/sites/kbmemo`** とします。
 
 == 本番設定
 
-=== 1. Rails 本番オプション（`config/environments/production.rb`）
+=== 1. `config/environments/production.rb`
 
 nginx 経由の HTTPS では、次を有効にし、ホスト名を合わせます。
 
@@ -118,11 +127,36 @@ config.hosts = [
 ]
 ----
 
-Rodauth のメール内リンクもこのホストに依存します。SMTP は別途 `action_mailer.smtp_settings` を設定してください。
+SMTP は別途 `action_mailer.smtp_settings` を設定してください。
 
-=== 2. 環境変数ファイル
+=== 2. `RAILS_MASTER_KEY`（credentials 復号鍵）
 
-**Git にコミットしない** `/home/kensei/sites/kbmemo/.env.production` を作成します（権限 `600`）。
+**本番専用に新規生成するものではありません。** リポジトリの `config/credentials.yml.enc` と **ペアになる鍵** を本番へ渡します。
+
+[cols="2,3",options="header"]
+|===
+|やり方 |説明
+
+|開発マシンからコピー |`config/master.key` の内容を `.env.production` の `RAILS_MASTER_KEY` に設定（いちばん多い）
+|初回のみ credentials 作成 |`bin/rails credentials:edit` で `master.key` と `credentials.yml.enc` がペアで生成される
+|===
+
+[source,bash]
+----
+# 鍵の確認（開発マシン）。Git にコミットしないこと
+cat config/master.key
+
+# 本番 .env.production に同じ値を書く
+# RAILS_MASTER_KEY=<64文字の hex>
+----
+
+鍵を失うと `credentials.yml.enc` は復号できません。バックアップを別途保管してください。
+
+OpenAI API キー BYOK 用の **Active Record Encryption 3 変数** は別物です（`bin/rails db:encryption:init`）。必要なら `.env.production` と README を参照。
+
+=== 3. 環境変数ファイル
+
+**Git にコミットしない** `/home/kensei/sites/kbmemo/.env.production`（権限 `600`）。
 
 [source,bash]
 ----
@@ -130,15 +164,14 @@ cat > /home/kensei/sites/kbmemo/.env.production <<'EOF'
 RAILS_ENV=production
 PORT=3000
 
-RAILS_MASTER_KEY=<config/master.key の内容>
+RAILS_MASTER_KEY=<config/master.key と同じ値>
 
 MECAB_PATH=/usr/lib/x86_64-linux-gnu/libmecab.so.2
 SOLID_QUEUE_IN_PUMA=true
 
-# 図機能（Kroki を同一サーバーで動かす場合）
 KROKI_URL=http://127.0.0.1:8001
 
-# OpenAI API キー BYOK を使う場合（bin/rails db:encryption:init の出力）
+# BYOK 利用時
 # ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY=...
 # ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY=...
 # ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT=...
@@ -146,24 +179,12 @@ EOF
 chmod 600 /home/kensei/sites/kbmemo/.env.production
 ----
 
-[cols="2,3",options="header"]
-|===
-|変数 |説明
-
-|`RAILS_MASTER_KEY` |必須。`config/credentials.yml.enc` の復号
-|`MECAB_PATH` |必須（Ubuntu amd64 の例）
-|`KROKI_URL` |図を使う場合
-|`MEMO_GIT_WORK_TREE` |省略可。既定は `storage/memo_git_worktree`（アプリ直下）
-|===
-
-`config/master.key` はサーバーに置くか、`.env.production` のみに書き **リポジトリには含めない** でください。
-
-=== 3. アプリのビルドと DB
+=== 4. アプリのビルドと DB スキーマ
 
 [source,bash]
 ----
 cd /home/kensei/sites/kbmemo
-export $(grep -v '^#' .env.production | xargs)
+set -a && source .env.production && set +a
 
 bundle config set --local deployment 'true'
 bundle config set --local without 'development test'
@@ -173,12 +194,109 @@ npm ci
 bundle exec rails assets:precompile
 
 bundle exec rails db:prepare
-# 必要なら: bundle exec rails db:seed
 ----
+
+**注意（`db:prepare`）:** 新規 DB では `db:schema:load` 相当で **テーブルだけ** 作られ、マイグレーション内のデータ投入（メモディレクトリのルート行など）は走りません。次の「初回データ投入」は **必須** です。
+
+== 初回データ投入（メモディレクトリ + 管理者）
+
+[[memo-directory-bootstrap]]
+=== メモディレクトリの初期化（必須）
+
+`MemoDirectory.root`（`full_path: ""`）と `home` / `share` / `public`、各 `u-{account_id}` が無いと、アカウント作成や seed が失敗します。初回は次の **rails runner** で投入してください（`full_path` を明示して NOT NULL を満たします）。
+
+[source,bash]
+----
+cd /home/kensei/sites/kbmemo
+set -a && source .env.production && set +a
+
+bundle exec rails runner "
+  now = Time.current
+
+  unless MemoDirectory.where(full_path: '').exists?
+    MemoDirectory.insert_all([
+      { path_segment: '', label: 'ルート', full_path: '', parent_id: nil,
+        created_at: now, updated_at: now }
+    ])
+  end
+
+  root = MemoDirectory.find_by!(full_path: '')
+  labels = { 'home' => 'Home', 'share' => 'Share', 'public' => 'Public' }
+
+  %w[home share public].each do |seg|
+    next if MemoDirectory.exists?(full_path: seg)
+    MemoDirectory.insert_all([
+      { path_segment: seg, label: labels[seg], full_path: seg, parent_id: root.id,
+        created_at: now, updated_at: now }
+    ])
+  end
+
+  Account.find_each do |account|
+    %w[home share public].each do |bucket|
+      parent = MemoDirectory.find_by!(full_path: bucket)
+      seg = \"u-#{account.id}\"
+      fp = \"#{bucket}/#{seg}\"
+      next if MemoDirectory.exists?(full_path: fp)
+
+      d = MemoDirectory.new(
+        parent: parent,
+        path_segment: seg,
+        label: account.display_name.to_s.truncate(80)
+      )
+      d.full_path = fp
+      d.save(validate: false)
+    end
+  end
+
+  puts 'memo_directories bootstrap done'
+"
+----
+
+確認:
+
+[source,bash]
+----
+bundle exec rails runner "p MemoDirectory.root; p MemoDirectory.pluck(:full_path)"
+----
+
+=== 初回管理者アカウント（CLI）
+
+Web の `/create-account` はメール確認が必要なため、**最初の管理者はコンソール** で作成するのが確実です。
+
+[source,bash]
+----
+cd /home/kensei/sites/kbmemo
+set -a && source .env.production && set +a
+bundle exec rails console
+----
+
+[source,ruby]
+----
+email = "admin@kbmemo.org"
+password = "強いパスワード"   # 8 文字以上
+
+account = Account.create!(
+  email: email,
+  password_hash: RodauthApp.rodauth.allocate.password_hash(password),
+  status: :verified,
+  admin: true,
+  nickname: "Admin"
+)
+# => home/u-{id} 等は after_create_commit で作成（上記 bootstrap 後なら成功）
+----
+
+既存ユーザーに管理者を付与する場合:
+
+[source,ruby]
+----
+Account.find_by!(email: "既存@example.com").update!(admin: true, status: :verified)
+----
+
+管理画面: https://kbmemo.org/admin（要ログイン + `admin: true`）
 
 == systemd（アプリ常駐）
 
-`/etc/systemd/system/kbmemo.service` の例です。Ruby のパスは環境に合わせてください（`which ruby` / rbenv）。
+`/etc/systemd/system/kbmemo.service` の例です。
 
 [source,ini]
 ----
@@ -194,12 +312,13 @@ WorkingDirectory=/home/kensei/sites/kbmemo
 
 EnvironmentFile=/home/kensei/sites/kbmemo/.env.production
 
-# rbenv 利用時は PATH を通す（例）
 Environment=PATH=/home/kensei/.rbenv/shims:/home/kensei/.rbenv/bin:/usr/local/bin:/usr/bin:/bin
 
 ExecStart=/bin/bash -lc 'cd /home/kensei/sites/kbmemo && bundle exec thrust ./bin/rails server'
 Restart=on-failure
 RestartSec=5
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
@@ -219,11 +338,10 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/up
 
 === サイト設定
 
-`/etc/nginx/sites-available/kbmemo.org` の例です。
+`/etc/nginx/sites-available/kbmemo.org`:
 
 [source,nginx]
 ----
-# HTTP → HTTPS
 server {
     listen 80;
     listen [::]:80;
@@ -236,7 +354,6 @@ server {
     listen [::]:443 ssl http2;
     server_name kbmemo.org www.kbmemo.org;
 
-    # certbot 実行後にパスが入る（後述）
     ssl_certificate     /etc/letsencrypt/live/kbmemo.org/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/kbmemo.org/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
@@ -263,29 +380,12 @@ server {
 ----
 sudo ln -sf /etc/nginx/sites-available/kbmemo.org /etc/nginx/sites-enabled/
 sudo nginx -t
-----
-
-=== Let's Encrypt（初回）
-
-SSL 証明書がまだない場合は、一時的に HTTP のみの server ブロックで `certbot` するか、`certbot --nginx` を使います。
-
-[source,bash]
-----
 sudo certbot --nginx -d kbmemo.org -d www.kbmemo.org
 sudo systemctl reload nginx
-----
-
-=== 有効化
-
-[source,bash]
-----
-sudo nginx -t && sudo systemctl reload nginx
 curl -fsS https://kbmemo.org/up
 ----
 
 == Kroki（図機能・任意）
-
-同一サーバーで Docker Compose を使う例です。
 
 [source,bash]
 ----
@@ -294,7 +394,48 @@ docker compose -f docker-compose.kroki.yml up -d
 curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8001/health
 ----
 
-`.env.production` の `KROKI_URL=http://127.0.0.1:8001` と一致させ、`systemctl restart kbmemo` します。
+`.env.production` の `KROKI_URL=http://127.0.0.1:8001` と一致させ、`sudo systemctl restart kbmemo` します。
+
+[[logging-journal]]
+== ログの参照（journal）
+
+本番の `config/environments/production.rb` は **STDOUT にログ出力** する設定です（Rails 8 のコンテナ向け既定）。
+
+[source,ruby]
+----
+config.logger = ActiveSupport::TaggedLogging.logger(STDOUT)
+----
+
+そのため **`log/production.log` は通常作成されません。** systemd が標準出力を journal に取り込みます。
+
+=== アプリログ（Rails / Puma / Thruster）
+
+[cols="2,3",options="header"]
+|===
+|目的 |コマンド
+
+|リアルタイム追跡 |`sudo journalctl -u kbmemo -f`
+|直近 N 行 |`sudo journalctl -u kbmemo -n 200 --no-pager`
+|今日分 |`sudo journalctl -u kbmemo --since today`
+|エラー優先 |`sudo journalctl -u kbmemo -p err..alert`
+|起動直後の失敗 |`sudo journalctl -u kbmemo -b -n 100`
+|===
+
+`kbmemo` は systemd ユニット名です。`StandardOutput=journal` / `StandardError=journal` をユニットに書いておくと明示的です（上記例に含む）。
+
+=== nginx ログ
+
+* アクセス: `/var/log/nginx/kbmemo.org.access.log`
+* エラー: `/var/log/nginx/kbmemo.org.error.log`
+
+[source,bash]
+----
+sudo tail -f /var/log/nginx/kbmemo.org.error.log
+----
+
+=== `log/production.log` をファイルで残したい場合
+
+`production.rb` で File ロガーに切り替え、`log/production.log` の権限と logrotate を別途用意します。単一 VPS + systemd では **journal のまま** を推奨します。
 
 == 更新デプロイ（2 回目以降）
 
@@ -303,7 +444,7 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8001/health
 cd /home/kensei/sites/kbmemo
 git pull
 
-export $(grep -v '^#' .env.production | xargs)
+set -a && source .env.production && set +a
 bundle install
 npm ci
 bundle exec rails db:migrate
@@ -313,27 +454,30 @@ sudo systemctl restart kbmemo
 curl -fsS https://kbmemo.org/up
 ----
 
+新規アカウント追加後に `home/u-{id}` が無い場合は、<<memo-directory-bootstrap>> の runner の `Account.find_each` 部分だけ再実行してください。
+
 == 動作確認
 
 [cols="2,3",options="header"]
 |===
-|項目 |確認方法
+|項目 |確認
 
 |ヘルスチェック |`curl -fsS https://kbmemo.org/up`
 |アプリ直結 |`curl -fsS http://127.0.0.1:3000/up`
-|アカウント |https://kbmemo.org/create-account（メール確認あり）
-|メモ |作成・編集、`storage/memo_git_worktree/` に Git 作業ツリー
-|図 |Mermaid 保存 → Kroki 経由 SVG
+|ログイン |https://kbmemo.org/login
+|管理画面 |https://kbmemo.org/admin（管理者のみ）
+|メモ |作成・編集、`storage/memo_git_worktree/` に作業ツリー
+|図 |Mermaid 保存 → Kroki
 |===
 
 == バックアップ
 
-次を定期バックアップ対象にします（パスはすべて `/home/kensei/sites/kbmemo` 配下）。
+`/home/kensei/sites/kbmemo` 配下:
 
 * `storage/production*.sqlite3`
 * `storage/memo_git_worktree/`
-* Active Storage のファイル
-* `.env.production` と `config/master.key`（安全な場所へ）
+* Active Storage
+* `.env.production`（`RAILS_MASTER_KEY` 含む）
 
 SQLite は可能ならメンテナンス時間にコピーするか、ファイルシステムスナップショットを使用してください。
 
@@ -344,9 +488,10 @@ SQLite は可能ならメンテナンス時間にコピーするか、ファイ�
 |操作 |コマンド
 
 |起動 / 停止 / 再起動 |`sudo systemctl start|stop|restart kbmemo`
-|ログ |`journalctl -u kbmemo -f`
+|状態 |`sudo systemctl status kbmemo`
+|アプリログ（追跡） |`sudo journalctl -u kbmemo -f`
 |Rails コンソール |`cd /home/kensei/sites/kbmemo && set -a && source .env.production && set +a && bundle exec rails console`
-|nginx ログ |`/var/log/nginx/kbmemo.org.*.log`
+|nginx ログ |`tail -f /var/log/nginx/kbmemo.org.error.log`
 |===
 
 == トラブルシューティング
@@ -355,19 +500,23 @@ SQLite は可能ならメンテナンス時間にコピーするか、ファイ�
 |===
 |症状 |対処
 
-|502 Bad Gateway |`systemctl status kbmemo`、`curl http://127.0.0.1:3000/up`、`.env.production` の `PORT`
-|Blocked host |`production.rb` の `config.hosts` に `kbmemo.org` があるか
-|リダイレクトループ |`assume_ssl` / `force_ssl` と nginx の `X-Forwarded-Proto` ヘッダ
-|JS/CSS なし |`npm ci` と `assets:precompile` を本番で再実行
-|`MECAB_PATH` エラー |`.env.production` に amd64 の libmecab パス
-|図だけ失敗 |Kroki 起動と `KROKI_URL`
-|BYOK 500 |暗号化 3 変数が未設定
+|`log/production.log` が無い |正常。<<logging-journal>> を参照
+|502 Bad Gateway |`systemctl status kbmemo`、`journalctl -u kbmemo -n 50`、`curl http://127.0.0.1:3000/up`
+|Blocked host |`production.rb` の `config.hosts`
+|リダイレクトループ |`assume_ssl` / `force_ssl` と nginx の `X-Forwarded-Proto`
+|`MemoDirectory.root` NotFound |<<memo-directory-bootstrap>> を実行
+|`Full path can't be blank`（ルート作成） |`insert_all` で `full_path: ''` を明示（手順どおり）
+|`NOT NULL constraint failed: full_path` |`full_path` を明示してから `save(validate: false)`
+|`Parent Home / Share / Public の直下には移せません` |`u-{id}` 作成は runner 手順どおり（`full_path` 明示 + `validate: false`）
+|JS/CSS なし |`npm ci` と `assets:precompile`
+|`MECAB_PATH` エラー |`.env.production` の libmecab パス
+|図だけ失敗 |Kroki と `KROKI_URL`（ポート **8001**）
+|BYOK 500 |暗号化 3 変数
 |===
 
-== 付録: Kamal / Docker について
+== 付録: Kamal / Docker
 
-`config/deploy.yml` と `Dockerfile` はコンテナデプロイ用です。
-本番が **Ubuntu + nginx + `/home/kensei/sites/kbmemo`** の場合は本書の手順を優先し、Kamal の `proxy` / Let's Encrypt は使いません。
+`config/deploy.yml` / `Dockerfile` はコンテナデプロイ用です。本番（Ubuntu + nginx + `/home/kensei/sites/kbmemo`）では本書を優先してください。
 
 == 関連ドキュメント
 

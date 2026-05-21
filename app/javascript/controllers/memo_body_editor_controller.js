@@ -1,15 +1,36 @@
 import { Controller } from "@hotwired/stimulus"
-import { asciidocExtensions } from "../memo_body_editor/asciidoc_extensions"
+import "../adoc_editor/contextMenu.css"
+import { initEditorContextMenus } from "../adoc_editor/editorContextMenu.js"
+import { loadAsciidocExtensions } from "../memo_body_editor/asciidoc_extensions"
 import { wikiAutocompletion } from "../memo_body_editor/wiki_completion"
 import { listContinuationExtension } from "../memo_body_editor/list_continuation"
-import {
-  readWysiwygPreference,
-  wysiwygExtensionPack,
-  writeWysiwygPreference
-} from "../memo_body_editor/wysiwyg_pack"
 
 const ACCEPTED_IMAGE_TYPE = /^image\/(png|jpeg|gif|webp|svg\+xml)$/i
 const ACCEPTED_IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i
+const LIVE_PREVIEW_PREF_KEY = "kbmemo_memo_editor_live_preview"
+const EDIT_MODE_PREF_KEY = "kbmemo_memo_editor_edit_mode"
+
+function readLivePreviewPreference() {
+  return localStorage.getItem(LIVE_PREVIEW_PREF_KEY) === "1"
+}
+
+function writeLivePreviewPreference(enabled) {
+  localStorage.setItem(LIVE_PREVIEW_PREF_KEY, enabled ? "1" : "0")
+}
+
+function readEditModePreference() {
+  const stored = localStorage.getItem(EDIT_MODE_PREF_KEY)
+  if (stored === "source") return "source"
+  return "wysiwyg"
+}
+
+function writeEditModePreference(mode) {
+  localStorage.setItem(EDIT_MODE_PREF_KEY, mode)
+}
+
+function removeLegacyGlobalAsciidoctorStylesheet() {
+  document.getElementById("kbmemo-adoc-preview-base")?.remove()
+}
 
 function imageFilesFrom(fileList) {
   return Array.from(fileList ?? []).filter(
@@ -98,7 +119,19 @@ function shouldHandleImagePaste(clipboardData) {
 // 本文 textarea（送信・memo-draft の参照用）と CodeMirror を同期する。
 // CodeMirror は動的 import で初回のみ別チャンク読み込み。
 export default class extends Controller {
-  static targets = ["field", "host", "imageInput", "uploadError", "wysiwygToggle"]
+  static targets = [
+    "field",
+    "host",
+    "imageInput",
+    "uploadError",
+    "previewHost",
+    "previewSkinSelect",
+    "previewToggle",
+    "sourcePane",
+    "wysiwygPane",
+    "wysiwygHost",
+    "editModeTab"
+  ]
   static values = {
     labelId: String,
     wikiCompletionsUrl: String,
@@ -110,7 +143,7 @@ export default class extends Controller {
   async connect() {
     if (!this.hasHostTarget || !this.hasFieldTarget) return
 
-    const [{ EditorView, basicSetup }, { EditorState, Compartment }] = await Promise.all([
+    const [{ EditorView, basicSetup }, { EditorState }] = await Promise.all([
       import("codemirror"),
       import("@codemirror/state")
     ])
@@ -120,12 +153,6 @@ export default class extends Controller {
       url: this.wikiCompletionsUrlValue,
       memoId: this.memoIdValue || null
     })
-    const getWikiLabelsConfig = () => ({
-      url: this.wikiLinkLabelsUrlValue,
-      memoId: this.memoIdValue || null
-    })
-    const getMemoId = () => this.memoIdValue || null
-
     const updateListener = EditorView.updateListener.of((vu) => {
       if (!vu.docChanged) return
       const next = vu.state.doc.toString()
@@ -133,6 +160,7 @@ export default class extends Controller {
         textarea.value = next
         textarea.dispatchEvent(new Event("input", { bubbles: true }))
       }
+      this._livePreview?.scheduleRender()
     })
 
     const a11y = EditorView.contentAttributes.of({
@@ -208,19 +236,14 @@ export default class extends Controller {
 
     const startDoc = textarea.value
     const editorHost = this
-    const wysiwygPackConfig = { getMemoId, getWikiLabelsConfig }
-    this._wysiwygCompartment = new Compartment()
-    this._wysiwygEnabled = readWysiwygPreference()
+    const asciidocExts = await loadAsciidocExtensions()
 
     const state = EditorState.create({
       doc: startDoc,
       extensions: [
         basicSetup,
         EditorView.lineWrapping,
-        ...asciidocExtensions(),
-        this._wysiwygCompartment.of(
-          this._wysiwygEnabled ? wysiwygExtensionPack(wysiwygPackConfig) : []
-        ),
+        ...asciidocExts,
         listContinuationExtension(),
         ...wikiAutocompletion(getWikiConfig),
         updateListener,
@@ -246,6 +269,20 @@ export default class extends Controller {
       parent: this.hostTarget
     })
 
+    const contextMenuTargets = {
+      live: {
+        container: this.hostTarget,
+        getView: () => this.view
+      }
+    }
+    if (this.hasPreviewHostTarget) {
+      contextMenuTargets.preview = {
+        container: this.previewHostTarget,
+        getView: () => this.view
+      }
+    }
+    initEditorContextMenus(contextMenuTargets)
+
     textarea.addEventListener("change", this._onTextareaExternalChange)
 
     queueMicrotask(() => {
@@ -253,9 +290,157 @@ export default class extends Controller {
     })
 
     this._bindDragDrop()
-    this._wysiwygPackConfig = wysiwygPackConfig
-    this.syncWysiwygUi()
     this._bindInsertEvent()
+    this._editMode = "source"
+    this.syncEditModeUi()
+    removeLegacyGlobalAsciidoctorStylesheet()
+    await this.setupLivePreview(textarea)
+    const preferredMode = readEditModePreference()
+    if (preferredMode === "wysiwyg" && this.hasWysiwygPaneTarget) {
+      await this.switchEditMode("wysiwyg")
+    } else {
+      this.syncEditModeUi()
+    }
+  }
+
+  async setupLivePreview(textarea) {
+    if (!this.hasPreviewHostTarget) return
+    if (this._livePreview) return
+
+    this._livePreviewEnabled = readLivePreviewPreference()
+    this.syncLivePreviewUi()
+
+    if (!this._livePreviewEnabled) return
+
+    const { createLivePreview } = await import("../adoc_editor/mount.js")
+    this._livePreview = createLivePreview({
+      previewEl: this.previewHostTarget,
+      skinSelectEl: this.hasPreviewSkinSelectTarget ? this.previewSkinSelectTarget : null,
+      getMemoId: () => this.memoIdValue || null,
+      getSource: () => this.view?.state.doc.toString() ?? textarea.value
+    })
+  }
+
+  toggleLivePreview(event) {
+    this._livePreviewEnabled =
+      event?.target?.type === "checkbox" ? event.target.checked : !this._livePreviewEnabled
+    writeLivePreviewPreference(this._livePreviewEnabled)
+    this.syncLivePreviewUi()
+
+    if (this._livePreviewEnabled) {
+      void this.setupLivePreview(this.fieldTarget)
+      return
+    }
+
+    this._livePreview?.destroy()
+    this._livePreview = null
+  }
+
+  syncLivePreviewUi() {
+    if (this.hasPreviewToggleTarget) {
+      this.previewToggleTarget.checked = !!this._livePreviewEnabled
+    }
+    this.element.classList.toggle("memo-body-editor--live-preview", !!this._livePreviewEnabled)
+    if (this.hasPreviewHostTarget) {
+      const previewPane = this.previewHostTarget.closest(".memo-body-editor__preview")
+      if (previewPane) {
+        previewPane.setAttribute("aria-hidden", this._livePreviewEnabled ? "false" : "true")
+      }
+    }
+  }
+
+  setEditMode(event) {
+    const mode = event.currentTarget?.dataset?.editMode
+    if (mode !== "source" && mode !== "wysiwyg") return
+    void this.switchEditMode(mode)
+  }
+
+  async switchEditMode(mode) {
+    if (this._editMode === mode) return
+
+    let flushedSource = null
+    if (this._editMode === "wysiwyg") {
+      flushedSource = this._wysiwygEditor?.flush() ?? this.fieldTarget.value
+    }
+
+    this._editMode = mode
+    writeEditModePreference(mode)
+
+    if (flushedSource !== null) {
+      this.syncSourceFromWysiwyg(flushedSource)
+    }
+
+    if (mode === "wysiwyg") {
+      const source = this.view?.state.doc.toString() ?? this.fieldTarget.value
+      await this.ensureWysiwygEditor()
+      this._wysiwygEditor.renderFromSource(source)
+      this._wysiwygEditor.focus()
+    }
+
+    this.syncEditModeUi()
+  }
+
+  async ensureWysiwygEditor() {
+    if (this._wysiwygEditor || !this.hasWysiwygHostTarget) return
+
+    const { createMemoWysiwygEditor } = await import("../adoc_editor/wysiwyg_mount.js")
+    this._wysiwygEditor = createMemoWysiwygEditor({
+      editorEl: this.wysiwygHostTarget,
+      paneEl: this.hasWysiwygPaneTarget ? this.wysiwygPaneTarget : null,
+      getMemoId: () => this.memoIdValue || null,
+      getWikiConfig: () => ({
+        completionsUrl: this.wikiCompletionsUrlValue,
+        labelsUrl: this.wikiLinkLabelsUrlValue,
+        memoId: this.memoIdValue || null,
+      }),
+      onSourceChange: (source) => this.syncSourceFromWysiwyg(source)
+    })
+  }
+
+  syncSourceFromWysiwyg(source) {
+    const textarea = this.fieldTarget
+    if (textarea.value !== source) {
+      textarea.value = source
+      textarea.dispatchEvent(new Event("input", { bubbles: true }))
+    }
+    // Hidden source CM is synced when leaving WYSIWYG (switchEditMode). Updating it
+    // on every WYSIWYG keystroke re-parses the full memo and spuriously warns on
+    // table blocks (asciidoctor: unterminated table block) while units stay valid.
+    if (this._editMode !== "wysiwyg") {
+      this.updateCodeMirrorSource(source)
+    }
+    if (this._editMode === "source") {
+      this._livePreview?.scheduleRender()
+    }
+  }
+
+  updateCodeMirrorSource(source) {
+    if (!this.view) return
+    const cur = this.view.state.doc.toString()
+    if (cur === source) return
+    this.view.dispatch({
+      changes: { from: 0, to: cur.length, insert: source }
+    })
+  }
+
+  syncEditModeUi() {
+    const isWysiwyg = this._editMode === "wysiwyg"
+    this.element.classList.toggle("memo-body-editor--wysiwyg-mode", isWysiwyg)
+
+    if (this.hasSourcePaneTarget) {
+      this.sourcePaneTarget.hidden = isWysiwyg
+      this.sourcePaneTarget.setAttribute("aria-hidden", isWysiwyg ? "true" : "false")
+    }
+    if (this.hasWysiwygPaneTarget) {
+      this.wysiwygPaneTarget.hidden = !isWysiwyg
+      this.wysiwygPaneTarget.setAttribute("aria-hidden", isWysiwyg ? "false" : "true")
+    }
+
+    for (const tab of this.editModeTabTargets) {
+      const active = tab.dataset.editMode === this._editMode
+      tab.classList.toggle("is-active", active)
+      tab.setAttribute("aria-pressed", active ? "true" : "false")
+    }
   }
 
   _bindInsertEvent() {
@@ -273,35 +458,6 @@ export default class extends Controller {
     }
   }
 
-  toggleWysiwyg() {
-    if (!this.view || !this._wysiwygCompartment) return
-    this._wysiwygEnabled = !this._wysiwygEnabled
-    writeWysiwygPreference(this._wysiwygEnabled)
-    this.view.dispatch({
-      effects: this._wysiwygCompartment.reconfigure(
-        this._wysiwygEnabled ? wysiwygExtensionPack(this._wysiwygPackConfig) : []
-      )
-    })
-    this.syncWysiwygUi()
-    queueMicrotask(() => this.view?.requestMeasure())
-  }
-
-  syncWysiwygUi() {
-    if (this.hasWysiwygToggleTarget) {
-      this.wysiwygToggleTarget.textContent = this._wysiwygEnabled
-        ? "ソース表示"
-        : "プレビュー風"
-      this.wysiwygToggleTarget.setAttribute(
-        "aria-pressed",
-        this._wysiwygEnabled ? "true" : "false"
-      )
-      this.wysiwygToggleTarget.title = this._wysiwygEnabled
-        ? "マーカーを表示する（WYSIWYG オフ）"
-        : "装飾プレビューを表示する（WYSIWYG オン）"
-    }
-    this.element.classList.toggle("memo-body-editor--source-only", !this._wysiwygEnabled)
-  }
-
   canUploadImages() {
     return this.hasUploadUrlValue && this.uploadUrlValue
   }
@@ -309,6 +465,10 @@ export default class extends Controller {
   disconnect() {
     this._unbindInsertEvent()
     this._unbindDragDrop()
+    this._wysiwygEditor?.flush()
+    this._wysiwygEditor = null
+    this._livePreview?.destroy()
+    this._livePreview = null
     if (this.fieldTarget && this._onTextareaExternalChange) {
       this.fieldTarget.removeEventListener("change", this._onTextareaExternalChange)
     }
@@ -316,6 +476,7 @@ export default class extends Controller {
       this.view.destroy()
       this.view = null
     }
+    void import("../adoc_editor/mount.js").then(({ clearParseCache }) => clearParseCache())
   }
 
   _bindDragDrop() {
@@ -538,6 +699,17 @@ export default class extends Controller {
   }
 
   async insertAtCursor(text) {
+    if (this._editMode === "wysiwyg" && this._wysiwygEditor) {
+      const textarea = this.fieldTarget
+      const cur = textarea.value
+      const sep = cur.length > 0 && !cur.endsWith("\n") ? "\n\n" : ""
+      const next = cur + sep + text
+      this.syncSourceFromWysiwyg(next)
+      this._wysiwygEditor.renderFromSource(next)
+      this._wysiwygEditor.focus()
+      return
+    }
+
     if (!this.view) {
       this.showUploadError("エディタの準備ができていません。少し待ってから再度お試しください。")
       return
@@ -577,8 +749,13 @@ export default class extends Controller {
     const next = this.fieldTarget.value
     const cur = this.view.state.doc.toString()
     if (next === cur) return
+    if (this._editMode === "wysiwyg" && this._wysiwygEditor) {
+      this._wysiwygEditor.renderFromSource(next)
+      return
+    }
     this.view.dispatch({
       changes: { from: 0, to: cur.length, insert: next }
     })
+    this._livePreview?.scheduleRender()
   }
 }

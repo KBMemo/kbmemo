@@ -207,8 +207,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-memo-body-editor-wiki-completions-url-value]"
     assert_select "[data-memo-body-editor-upload-url-value=?]", assets_memo_path(memos(:one))
     assert_select "input[data-memo-body-editor-target='imageInput'][multiple][data-action*='uploadImage']"
-    assert_includes response.body, "ドラッグ＆ドロップ"
-    assert_includes response.body, "貼り付け"
+    assert_includes response.body, "画像を挿入"
+    assert_includes response.body, "ライブプレビュー"
     assert_select '[data-controller*="memo-body-editor"] [data-memo-body-editor-target="host"]'
     assert_select '[data-controller*="memo-body-editor"] [data-memo-body-editor-target="field"]'
   end
@@ -287,6 +287,58 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     repo = MemoRepository.new
     assert_predicate repo.absolute_path_for(memo), :exist?
     assert_includes repo.absolute_path_for(memo).read, "Git integration"
+  end
+
+  test "revert_draft restores memo fields from last git commit" do
+    memo = memos(:one)
+    repo = MemoRepository.new
+    committed_at = 2.hours.ago.change(usec: 0)
+    memo.update_columns(
+      title: "Committed title",
+      body: "= Committed title\n\nCommitted paragraph.",
+      slug: "committed-title-#{memo.id}",
+      file_committed_at: committed_at,
+      updated_at: committed_at
+    )
+    repo.write_and_commit!(memo)
+
+    patch draft_memo_url(memo),
+      params: { memo: { body: "= Draft title\n\nDraft paragraph.", title: "Draft title", title_manual: true } },
+      as: :json
+    assert_response :success
+    assert memo.reload.display_as_draft?
+
+    patch revert_draft_memo_url(memo), as: :json
+    assert_response :success
+    data = JSON.parse(response.body)
+    assert_equal edit_memo_path(memo), data["edit_path"]
+
+    memo.reload
+    assert_not memo.display_as_draft?
+    assert_equal committed_at.to_i, memo.updated_at.to_i
+    assert_equal "Committed title", memo.title
+    assert_includes memo.body, "Committed paragraph."
+    assert_includes repo.absolute_path_for(memo).read, "Committed paragraph."
+    assert_not_includes repo.absolute_path_for(memo).read, "Draft paragraph."
+  end
+
+  test "revert_draft rejects memo without file commit" do
+    memo = memos(:one)
+    memo.update_column(:file_committed_at, nil)
+    patch revert_draft_memo_url(memo), as: :json
+    assert_response :unprocessable_entity
+  end
+
+  test "edit shows revert draft button when re-editing committed memo" do
+    memo = memos(:one)
+    t = 1.hour.ago.change(usec: 0)
+    memo.update_columns(file_committed_at: t, updated_at: t)
+    patch draft_memo_url(memo), params: { memo: { body: "= Changed\n\nx" } }, as: :json
+    assert memo.reload.display_as_draft?
+
+    get edit_memo_url(memo)
+    assert_response :success
+    assert_includes response.body, "ドラフトを破棄"
   end
 
   test "draft can respond with turbo stream for title sync" do

@@ -38,6 +38,10 @@ html
               .absolute.right-0.top-full.z-50.mt-1.hidden.min-w-48.rounded-md.border.border-zinc-200.bg-white.py-1.text-sm.shadow-lg[data-user-menu-target="panel" role="menu"]
                 = link_to "プロフィール", edit_profile_path, class: "block px-3 py-2 text-zinc-800 hover:bg-zinc-50", role: "menuitem"
                 = link_to "パスワード変更", rodauth.change_password_path, class: "block px-3 py-2 text-zinc-800 hover:bg-zinc-50", role: "menuitem"
+                .px-3.py-2 role="none"
+                  label.flex.items-center.justify-between.gap-3.text-zinc-800
+                    span.text-zinc-600 Skin
+                    select.rounded.border.border-zinc-300.bg-white.px-1.5.py-0.5.text-sm data-preview-skin-select="true" data-user-menu-target="skinSelect" data-action="change->user-menu#changeSkin" aria-label="表示スキン"
                 hr.my-1.border-zinc-200
                 = button_to "ログアウト", rodauth.logout_path, method: :post, form: { class: "block w-full" }, class: "w-full rounded-none border-0 bg-transparent px-3 py-2 text-left text-sm font-normal text-zinc-800 hover:bg-zinc-50", role: "menuitem"
           - if Rails.env.development?

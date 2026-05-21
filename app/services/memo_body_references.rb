@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "set"
+require "cgi"
 
 # 本文中で参照されている image:: / diagram:: パスを収集する。
 class MemoBodyReferences
@@ -21,6 +22,42 @@ class MemoBodyReferences
 
   def diagram_key?(diagram_key)
     @diagram_keys.include?(diagram_key.to_s)
+  end
+
+  # image マクロ内の `/memos/:id/assets/...` を相対パスへ（imagesdir 二重付与の防止）
+  def self.normalize_image_macro_paths(body)
+    body.to_s.gsub(IMAGE_MACRO) do |match|
+      block_path = Regexp.last_match(1)
+      inline_path = Regexp.last_match(2)
+      path = (block_path || inline_path).to_s.strip
+      relative = normalize_asset_path(path)
+      if match.start_with?("image::")
+        match.sub(path, relative)
+      else
+        match.sub(path, relative)
+      end
+    end
+  end
+
+  def self.normalize_asset_path(path)
+    path = path.to_s.unicode_normalize(:nfc).gsub("\\", "/")
+    path = path.delete_prefix("./")
+
+    loop do
+      if (match = path.match(%r{\A/memos/\d+/assets/(.+)\z}i))
+        path = decode_asset_path_segments(match[1])
+      elsif (match = path.match(%r{\Amemos/\d+/assets/(.+)\z}i))
+        path = decode_asset_path_segments(match[1])
+      else
+        break
+      end
+    end
+
+    path
+  end
+
+  def self.decode_asset_path_segments(path)
+    path.split("/").map { |seg| CGI.unescape(seg) }.join("/")
   end
 
   private
@@ -60,7 +97,6 @@ class MemoBodyReferences
   end
 
   def normalize_path(path)
-    path = path.unicode_normalize(:nfc).gsub("\\", "/")
-    path.delete_prefix("./")
+    self.class.normalize_asset_path(path)
   end
 end

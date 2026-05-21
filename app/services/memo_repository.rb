@@ -46,6 +46,8 @@ class MemoRepository
     assets_dir_absolute_for(memo).join(filename.to_s)
   end
 
+  FRONT_MATTER = /\A---\s*\n(.*?)\n---\s*\n+/m
+
   # ドラフト中も作業ツリーへ保存（コミットは write_and_commit! 時）
   def write_asset!(memo, filename:, io:)
     ensure_repo!
@@ -94,6 +96,58 @@ class MemoRepository
 
   alias relocate_file! relocate_path!
 
+  # Git HEAD に記録されている .adoc の相対パス（*-{memo.id}.adoc）
+  def committed_relative_path_for(memo)
+    ensure_repo!
+    suffix = "-#{memo.id}.adoc"
+    candidates = git_head_paths.select { |path| path.end_with?(suffix) }
+    raise Error, "Git にコミット済みのメモファイルが見つかりません" if candidates.empty?
+
+    candidates.max_by { |path| last_commit_epoch_for_path(path) }
+  end
+
+  # 最終コミット（HEAD）のファイル内容を DB 復元用にパースする
+  def read_committed_snapshot!(memo)
+    relative = committed_relative_path_for(memo)
+    content = read_git_blob("HEAD", relative)
+    parsed = parse_adoc_file(content)
+    slug = File.basename(relative, ".adoc")
+
+    {
+      relative_path: relative,
+      file_content: content,
+      body: parsed.fetch(:body),
+      title: parsed.fetch(:title),
+      tags: parsed.fetch(:tags),
+      properties: parsed.fetch(:properties),
+      slug: slug,
+      memo_directory: memo_directory_from_repo_path(relative)
+    }
+  end
+
+  # 作業ツリーへ書き込むだけ（git add / commit しない）
+  def write_work_tree_file!(memo, content: nil)
+    write_work_tree_at!(relative_path_for(memo), content || file_contents_for(memo))
+  end
+
+  def write_work_tree_at!(relative, content)
+    ensure_repo!
+    full = @root.join(relative.to_s)
+    full.parent.mkpath
+    File.write(full, content, encoding: "UTF-8")
+  end
+
+  # 同一メモ ID の .adoc のうち、keep 以外を作業ツリーから削除（git 操作なし）
+  def remove_work_tree_files_for_memo_except!(memo, keep_relative:)
+    suffix = "-#{memo.id}.adoc"
+    @root.glob("**/*#{suffix}").each do |abs|
+      rel = abs.relative_path_from(@root).to_s
+      next if rel == keep_relative.to_s
+
+      FileUtils.rm_f(abs)
+    end
+  end
+
   # ファイル書き込み + git add / commit（変更がない場合はコミットをスキップ）
   def write_and_commit!(memo, message: nil)
     ensure_repo!
@@ -129,6 +183,54 @@ class MemoRepository
   end
 
   private
+
+  def git_head_paths
+    out, err, st = Open3.capture3("git", "ls-tree", "-r", "--name-only", "HEAD", chdir: @root.to_s)
+    raise Error, err.to_s.strip unless st.success?
+
+    out.each_line.map(&:strip).reject(&:blank?)
+  end
+
+  def read_git_blob(rev, relative_path)
+    rel = relative_path.to_s
+    out, err, st = Open3.capture3("git", "show", "#{rev}:#{rel}", chdir: @root.to_s)
+    raise Error, (err.presence || "Git から #{rel} を読み込めません").to_s.strip unless st.success?
+
+    out
+  end
+
+  def last_commit_epoch_for_path(relative_path)
+    rel = relative_path.to_s
+    out, err, st = Open3.capture3("git", "log", "-1", "--format=%ct", "--", rel, chdir: @root.to_s)
+    return 0 unless st.success?
+
+    out.to_s.strip.to_i
+  end
+
+  def parse_adoc_file(content)
+    meta = if (m = content.match(FRONT_MATTER))
+      YAML.safe_load(m[1]) || {}
+    else
+      {}
+    end
+    body = m ? content.sub(FRONT_MATTER, "") : content
+    tags = Array(meta["tags"]).map(&:to_s).reject(&:blank?).uniq
+    properties = meta["properties"].is_a?(Hash) ? meta["properties"].stringify_keys : (meta["properties"] || {})
+
+    {
+      title: meta["title"].to_s,
+      tags: tags,
+      properties: properties,
+      body: body
+    }
+  end
+
+  def memo_directory_from_repo_path(relative)
+    dir_part = Pathname.new(relative).dirname.to_s
+    return MemoDirectory.root if dir_part.blank? || dir_part == "."
+
+    MemoDirectory.find_by!(full_path: dir_part)
+  end
 
   # TODO: 本文未参照のアセットは現状削除しない（roadmap Phase 5f TODO 参照）
   def commit_paths_for(memo, adoc_relative)
@@ -172,8 +274,12 @@ class MemoRepository
     @root.mkpath
     return if @root.join(".git").exist?
 
-    git!("init")
-    ensure_git_identity!
+    with_repo_lock do
+      return if @root.join(".git").exist?
+
+      git!("init")
+      ensure_git_identity!
+    end
   end
 
   def ensure_git_identity!

@@ -1,8 +1,25 @@
 import { Controller } from "@hotwired/stimulus"
+import {
+  applyPreviewSkin,
+  getStoredSkinId,
+  populatePreviewSkinSelect,
+} from "../adoc_editor/preview_skin.js"
 
 // ヘッダー: 表示名ボタンで開く個人メニュー（外クリック・Escape で閉じる）
 export default class extends Controller {
-  static targets = ["panel", "button"]
+  static targets = ["panel", "button", "skinSelect"]
+
+  connect() {
+    if (this.hasSkinSelectTarget) {
+      populatePreviewSkinSelect(this.skinSelectTarget)
+      this.skinSelectTarget.value = getStoredSkinId()
+    }
+  }
+
+  changeSkin() {
+    if (!this.hasSkinSelectTarget) return
+    applyPreviewSkin(null, this.skinSelectTarget.value)
+  }
 
   disconnect() {
     this.teardownDocumentListeners()

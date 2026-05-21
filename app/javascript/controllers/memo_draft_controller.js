@@ -24,6 +24,7 @@ export default class extends Controller {
   ]
   static values = {
     draftUrl: String,
+    discardDraftUrl: String,
     createUrl: String,
     debounce: { type: Number, default: 800 },
     fileCommitted: { type: Boolean, default: false },
@@ -400,6 +401,48 @@ export default class extends Controller {
     if (!this.hasDirectoryTarget) return
     const id = this.directoryTarget.value
     await this.persistDraftMerged({ memo_directory_id: id })
+  }
+
+  discardDraft(event) {
+    event?.preventDefault()
+    void this.performDiscardDraft()
+  }
+
+  async performDiscardDraft() {
+    if (!this.hasDiscardDraftUrlValue || !this.discardDraftUrlValue) return
+    if (
+      !window.confirm(
+        "ドラフトの変更を破棄し、最後にコミットした内容を読み込みます。よろしいですか？"
+      )
+    ) {
+      return
+    }
+
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content")
+    try {
+      const res = await fetch(this.discardDraftUrlValue, {
+        method: "PATCH",
+        headers: {
+          "X-CSRF-Token": token,
+          Accept: "application/json"
+        }
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        const message =
+          Array.isArray(err.errors) && err.errors.length > 0
+            ? err.errors.join("\n")
+            : "復元に失敗しました"
+        window.alert(message)
+        return
+      }
+      const data = await res.json()
+      const navigate = window.Turbo?.visit ?? ((url) => window.location.assign(url))
+      navigate(data.edit_path || window.location.href)
+    } catch (e) {
+      console.error(e)
+      window.alert("復元に失敗しました")
+    }
   }
 
   normalizeOutgoingTitle(value) {

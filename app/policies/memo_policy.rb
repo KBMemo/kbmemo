@@ -7,7 +7,6 @@ class MemoPolicy < ApplicationPolicy
   end
 
   alias wiki_completions? index?
-  alias wiki_link_labels? wiki_completions?
 
   def show?
     return true if record.public_everyone?
@@ -35,6 +34,7 @@ class MemoPolicy < ApplicationPolicy
 
   # member route `draft` → verify_authorized は draft? を参照する
   alias draft? update?
+  alias revert_draft? update?
   alias ai_chat? update?
 
   def upload_asset?

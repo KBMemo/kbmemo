@@ -53,10 +53,10 @@ div id=dom_id(memo)
         = memo_properties_yaml_value(memo)
 
   - checklist_editable = policy(memo).update? && Array(memo.properties["checkboxes"]).any?
-  article.memo-body.rounded-lg.border.border-zinc-200.bg-white.p-6.shadow-sm
+  article.memo-body.asciidoctor.preview-skin-default.rounded-lg.border.border-zinc-200.bg-white.p-6.shadow-sm
     - if checklist_editable
-      .max-w-none.text-zinc-800 class="[&_a]:text-blue-600 [&_a]:underline [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_h1]:mb-4 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_li]:my-1 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-zinc-900 [&_pre]:p-4 [&_pre]:text-sm [&_pre]:text-zinc-100" data-controller="memo-checklist" data-memo-checklist-toggle-url-value=checklist_toggle_memo_path(memo) data-action="change->memo-checklist#toggle"
+      .max-w-none data-controller="memo-checklist" data-memo-checklist-toggle-url-value=checklist_toggle_memo_path(memo) data-action="change->memo-checklist#toggle"
         == memo_html(memo.body, source_memo: memo)
     - else
-      .max-w-none.text-zinc-800 class="[&_a]:text-blue-600 [&_a]:underline [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1 [&_h1]:mb-4 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-xl [&_h2]:font-semibold [&_li]:my-1 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-zinc-900 [&_pre]:p-4 [&_pre]:text-sm [&_pre]:text-zinc-100"
+      .max-w-none
         == memo_html(memo.body, source_memo: memo)

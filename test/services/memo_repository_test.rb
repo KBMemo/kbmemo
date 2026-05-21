@@ -98,4 +98,36 @@ class MemoRepositoryTest < ActiveSupport::TestCase
     log2, = Open3.capture3("git", "log", "--oneline", chdir: root.to_s)
     assert_equal log1, log2
   end
+
+  test "read_committed_snapshot! reads body and metadata from git HEAD" do
+    memo = memos(:two)
+    memo.assign_attributes(
+      body: "= Committed title\n\nCommitted body.",
+      title: "Committed title",
+      slug: "committed-slug-#{memo.id}"
+    )
+    @repo.write_and_commit!(memo)
+
+    memo.assign_attributes(body: "= Draft\n\nChanged.", title: "Draft")
+    snapshot = @repo.read_committed_snapshot!(memo)
+
+    assert_includes snapshot[:body], "Committed body."
+    assert_equal "Committed title", snapshot[:title]
+    assert_equal "committed-slug-#{memo.id}", snapshot[:slug]
+    assert_equal memo.memo_directory, snapshot[:memo_directory]
+    assert_includes snapshot[:file_content], "Committed title"
+  end
+
+  test "write_work_tree_file! writes without creating git commit" do
+    @repo.write_and_commit!(@memo)
+    log_before, = Open3.capture3("git", "rev-list", "--count", "HEAD", chdir: @repo.root.to_s)
+    @memo.assign_attributes(body: "= Work tree\n\nOnly.", slug: "work-tree-#{@memo.id}")
+    @repo.write_work_tree_file!(@memo)
+    path = @repo.absolute_path_for(@memo)
+    assert path.exist?
+    assert_includes path.read, "Work tree"
+
+    log_after, = Open3.capture3("git", "rev-list", "--count", "HEAD", chdir: @repo.root.to_s)
+    assert_equal log_before, log_after
+  end
 end
