@@ -2,11 +2,6 @@ import { Controller } from "@hotwired/stimulus"
 import { loadAsciidocExtensions } from "../memo_body_editor/asciidoc_extensions"
 import { wikiAutocompletion } from "../memo_body_editor/wiki_completion"
 import { listContinuationExtension } from "../memo_body_editor/list_continuation"
-import {
-  readWysiwygPreference,
-  wysiwygExtensionPack,
-  writeWysiwygPreference
-} from "../memo_body_editor/wysiwyg_pack"
 
 const ACCEPTED_IMAGE_TYPE = /^image\/(png|jpeg|gif|webp|svg\+xml)$/i
 const ACCEPTED_IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i
@@ -125,7 +120,6 @@ export default class extends Controller {
     "host",
     "imageInput",
     "uploadError",
-    "wysiwygToggle",
     "previewHost",
     "previewSkinSelect",
     "previewToggle",
@@ -138,7 +132,6 @@ export default class extends Controller {
   static values = {
     labelId: String,
     wikiCompletionsUrl: String,
-    wikiLinkLabelsUrl: String,
     memoId: String,
     uploadUrl: String
   }
@@ -146,7 +139,7 @@ export default class extends Controller {
   async connect() {
     if (!this.hasHostTarget || !this.hasFieldTarget) return
 
-    const [{ EditorView, basicSetup }, { EditorState, Compartment }] = await Promise.all([
+    const [{ EditorView, basicSetup }, { EditorState }] = await Promise.all([
       import("codemirror"),
       import("@codemirror/state")
     ])
@@ -156,12 +149,6 @@ export default class extends Controller {
       url: this.wikiCompletionsUrlValue,
       memoId: this.memoIdValue || null
     })
-    const getWikiLabelsConfig = () => ({
-      url: this.wikiLinkLabelsUrlValue,
-      memoId: this.memoIdValue || null
-    })
-    const getMemoId = () => this.memoIdValue || null
-
     const updateListener = EditorView.updateListener.of((vu) => {
       if (!vu.docChanged) return
       const next = vu.state.doc.toString()
@@ -245,9 +232,6 @@ export default class extends Controller {
 
     const startDoc = textarea.value
     const editorHost = this
-    const wysiwygPackConfig = { getMemoId, getWikiLabelsConfig }
-    this._wysiwygCompartment = new Compartment()
-    this._wysiwygEnabled = readWysiwygPreference()
     const asciidocExts = await loadAsciidocExtensions()
 
     const state = EditorState.create({
@@ -256,9 +240,6 @@ export default class extends Controller {
         basicSetup,
         EditorView.lineWrapping,
         ...asciidocExts,
-        this._wysiwygCompartment.of(
-          this._wysiwygEnabled ? wysiwygExtensionPack(wysiwygPackConfig) : []
-        ),
         listContinuationExtension(),
         ...wikiAutocompletion(getWikiConfig),
         updateListener,
@@ -291,8 +272,6 @@ export default class extends Controller {
     })
 
     this._bindDragDrop()
-    this._wysiwygPackConfig = wysiwygPackConfig
-    this.syncWysiwygUi()
     this._bindInsertEvent()
     this._editMode = "source"
     this.syncEditModeUi()
@@ -452,35 +431,6 @@ export default class extends Controller {
     if (this._handleInsert) {
       this.element.removeEventListener("memo-body-editor:insert", this._handleInsert)
     }
-  }
-
-  toggleWysiwyg() {
-    if (!this.view || !this._wysiwygCompartment) return
-    this._wysiwygEnabled = !this._wysiwygEnabled
-    writeWysiwygPreference(this._wysiwygEnabled)
-    this.view.dispatch({
-      effects: this._wysiwygCompartment.reconfigure(
-        this._wysiwygEnabled ? wysiwygExtensionPack(this._wysiwygPackConfig) : []
-      )
-    })
-    this.syncWysiwygUi()
-    queueMicrotask(() => this.view?.requestMeasure())
-  }
-
-  syncWysiwygUi() {
-    if (this.hasWysiwygToggleTarget) {
-      this.wysiwygToggleTarget.textContent = this._wysiwygEnabled
-        ? "ソース表示"
-        : "プレビュー風"
-      this.wysiwygToggleTarget.setAttribute(
-        "aria-pressed",
-        this._wysiwygEnabled ? "true" : "false"
-      )
-      this.wysiwygToggleTarget.title = this._wysiwygEnabled
-        ? "マーカーを表示する（WYSIWYG オフ）"
-        : "装飾プレビューを表示する（WYSIWYG オン）"
-    }
-    this.element.classList.toggle("memo-body-editor--source-only", !this._wysiwygEnabled)
   }
 
   canUploadImages() {

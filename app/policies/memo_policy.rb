@@ -7,7 +7,6 @@ class MemoPolicy < ApplicationPolicy
   end
 
   alias wiki_completions? index?
-  alias wiki_link_labels? wiki_completions?
 
   def show?
     return true if record.public_everyone?

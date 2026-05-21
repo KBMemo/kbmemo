@@ -96,7 +96,6 @@ ruby:
       data-controller="memo-body-editor"
       data-memo-body-editor-label-id-value="memo-body-label"
       data-memo-body-editor-wiki-completions-url-value=wiki_completions_memos_path(format: :json)
-      data-memo-body-editor-wiki-link-labels-url-value=wiki_link_labels_memos_path(format: :json)
       data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "")
       data-memo-body-editor-upload-url-value=(memo.image_assets_uploadable? ? assets_memo_path(memo) : "")
     ]
@@ -112,8 +111,6 @@ ruby:
                 .flex.flex-wrap.items-center.gap-2
                   button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50 type="button" data-memo-body-editor-target="previewToggle" data-action="memo-body-editor#toggleLivePreview" aria-pressed="false" title="Asciidoctor.js によるライブプレビューを表示"
                     | ライブプレビュー
-                  button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50 type="button" data-memo-body-editor-target="wysiwygToggle" data-action="memo-body-editor#toggleWysiwyg" aria-pressed="true" title="マーカーを表示する（WYSIWYG オフ）"
-                    | ソース表示
                   = link_to "ダイアグラムを作成", new_memo_diagram_path(memo), class: "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50", target: "_blank", rel: "noopener"
                   label.cursor-pointer.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50
                     | 画像を挿入
@@ -128,8 +125,6 @@ ruby:
               .flex.flex-wrap.items-center.gap-2
                 button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50 type="button" data-memo-body-editor-target="previewToggle" data-action="memo-body-editor#toggleLivePreview" aria-pressed="false" title="Asciidoctor.js によるライブプレビューを表示"
                   | ライブプレビュー
-                button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-700.hover:bg-zinc-50 type="button" data-memo-body-editor-target="wysiwygToggle" data-action="memo-body-editor#toggleWysiwyg" aria-pressed="true" title="マーカーを表示する（WYSIWYG オフ）"
-                  | ソース表示
                 button.rounded-md.border.border-zinc-200.bg-zinc-100.px-2.py-1.text-xs.font-medium.text-zinc-400.cursor-not-allowed type="button" disabled=true title="メモを Git にコミットしてから画像を挿入できます"
                   | 画像を挿入
                 span.hidden.text-xs.text-red-600 data-memo-body-editor-target="uploadError"

@@ -34,8 +34,7 @@ export function parseListLine(text) {
     markerEndInLine,
     content,
     kind,
-    level,
-    lineClass: `cm-wysiwyg-list cm-wysiwyg-list-${kind} cm-wysiwyg-list-level-${level}`
+    level
   }
 }
 

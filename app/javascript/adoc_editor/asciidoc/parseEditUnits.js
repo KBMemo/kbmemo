@@ -298,10 +298,51 @@ function visitBlocks(node, units, protectedRanges) {
 
 /**
  * @param {string} source
+ * @param {number} cursorLine 0-based
+ * @returns {{ tableAdoc: string, paragraphAdoc: string, tableEndLine: number } | null}
  */
-export function shouldSplitEditUnits(source) {
+export function getTableParagraphSplit(source, cursorLine) {
+  const lines = source.split('\n')
+  const tableRanges = getTableLineRanges(lines)
+  if (tableRanges.length === 0) return null
+
+  const [tableStart, tableEnd] = tableRanges[tableRanges.length - 1]
+  if (!isTableDelimiterLine(lines[tableEnd] ?? '')) return null
+  if (cursorLine <= tableEnd) return null
+  if (tableEnd + 1 >= lines.length) return null
+
+  const tableAdoc = lines.slice(tableStart, tableEnd + 1).join('\n')
+  const paragraphAdoc = lines.slice(tableEnd + 1).join('\n').replace(/^\n+/, '')
+
+  return { tableAdoc, paragraphAdoc, tableEndLine: tableEnd }
+}
+
+/**
+ * @param {string} source
+ * @param {number} separatorStartLine 0-based first line after preceding block
+ * @param {number} selectionStart
+ */
+export function getCaretInFollowingBlock(source, separatorStartLine, selectionStart) {
+  const rawAfter = source.split('\n').slice(separatorStartLine).join('\n')
+  const blockAdoc = rawAfter.replace(/^\n+/, '')
+  const leadingRemoved = rawAfter.length - blockAdoc.length
+  const regionStart = getSourceOffsetForLine(source, separatorStartLine)
+  return Math.max(0, Math.min(selectionStart - regionStart - leadingRemoved, blockAdoc.length))
+}
+
+/**
+ * @param {string} source
+ * @param {number} [cursorLine] 0-based; when set, enables table→paragraph split detection
+ */
+export function shouldSplitEditUnits(source, cursorLine) {
+  if (cursorLine != null && getTableParagraphSplit(source, cursorLine)) {
+    return true
+  }
+
   if (!hasBlankLineSeparator(source)) return false
-  return parseEditUnitsFromSource(source).length > 1
+
+  const units = parseEditUnitsFromSource(source).filter((unit) => unit.adoc.trim())
+  return units.length > 1
 }
 
 /**

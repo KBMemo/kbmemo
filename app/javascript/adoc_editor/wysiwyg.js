@@ -4,6 +4,8 @@ import { normalizeMemoImagePathsInSource } from '../memo_body_editor/image_synta
 import {
   getActiveUnitIndex,
   getCaretOffsetInUnit,
+  getCaretInFollowingBlock,
+  getTableParagraphSplit,
   parseEditUnitsFromSource,
   shouldSplitEditUnits,
 } from './asciidoc/parseEditUnits.js'
@@ -547,10 +549,11 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
 
     const host = createSourceEditorHost(initialSource, {
       onChange: () => {
+        setUnitAdocSource(unit, getWysiwygSourceValue(host))
         scheduleSplitCheck(host)
         scheduleSync()
       },
-      onKeyDown: (event, view) => handleSourceKeydown(event, view, activateSourceUnit),
+      onKeyDown: (event, view) => handleSourceKeydown(event, view, activateSourceUnit, getUnitText),
       onContextMenu: (event, view) => {
         void openWysiwygContextMenu(event, () => view)
       },
@@ -640,22 +643,88 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
     if (activeSourceUnit !== host.closest('.wysiwyg-unit')) return
 
     const source = getWysiwygSourceValue(host)
-    if (!shouldSplitEditUnits(source)) return
-
-    const parsedUnits = parseEditUnitsFromSource(source)
     const selectionStart = getWysiwygSourceSelection(host)
     const cursorLine = source.slice(0, selectionStart).split('\n').length - 1
-    const activeIndex = getActiveUnitIndex(parsedUnits, cursorLine)
-    const activeUnit = parsedUnits[activeIndex]
-    const caret = getCaretOffsetInUnit(source, activeUnit, selectionStart)
 
+    const tableSplit = getTableParagraphSplit(source, cursorLine)
+    if (tableSplit) {
+      splitIntoTableAndParagraph(host, source, selectionStart, tableSplit)
+      return
+    }
+
+    if (!shouldSplitEditUnits(source, cursorLine)) return
+
+    const allUnits = parseEditUnitsFromSource(source)
+    const activeIndex = getActiveUnitIndex(allUnits, cursorLine)
+    const activeUnit = allUnits[activeIndex]
+    let caret = getCaretOffsetInUnit(source, activeUnit, selectionStart)
+
+    let parsedUnits = allUnits.filter((unit) => unit.adoc.trim())
+    let filteredActiveIndex = parsedUnits.indexOf(activeUnit)
+
+    if (filteredActiveIndex < 0 && !activeUnit.adoc.trim()) {
+      const paragraphAdoc = source
+        .split('\n')
+        .slice(activeUnit.startLine)
+        .join('\n')
+        .replace(/^\n+/, '')
+      let insertAt = parsedUnits.findIndex((unit) => unit.startLine > activeUnit.startLine)
+      if (insertAt < 0) insertAt = parsedUnits.length
+      const paragraphUnit = {
+        adoc: paragraphAdoc,
+        startLine: activeUnit.startLine,
+        endLine: activeUnit.endLine,
+      }
+      parsedUnits = [
+        ...parsedUnits.slice(0, insertAt),
+        paragraphUnit,
+        ...parsedUnits.slice(insertAt),
+      ]
+      filteredActiveIndex = insertAt
+      caret = getCaretInFollowingBlock(source, activeUnit.startLine, selectionStart)
+    }
+
+    if (filteredActiveIndex < 0) return
+
+    replaceActiveUnitWithSplit(host, parsedUnits, filteredActiveIndex, caret)
+  }
+
+  /**
+   * @param {HTMLElement} host
+   * @param {string} source
+   * @param {number} selectionStart
+   * @param {{ tableAdoc: string, paragraphAdoc: string, tableEndLine: number }} tableSplit
+   */
+  function splitIntoTableAndParagraph(host, source, selectionStart, tableSplit) {
+    const { tableAdoc, paragraphAdoc, tableEndLine } = tableSplit
+    const caret = getCaretInFollowingBlock(source, tableEndLine + 1, selectionStart)
+    replaceActiveUnitWithSplit(
+      host,
+      [
+        { adoc: tableAdoc, startLine: 0, endLine: 0 },
+        { adoc: paragraphAdoc, startLine: 0, endLine: 0 },
+      ],
+      1,
+      caret,
+    )
+  }
+
+  /**
+   * @param {HTMLElement} host
+   * @param {{ adoc: string }[]} parsedUnits
+   * @param {number} activeIndex
+   * @param {number} caret
+   */
+  function replaceActiveUnitWithSplit(host, parsedUnits, activeIndex, caret) {
     isSwitchingUnit = true
     clearTimeout(splitTimer)
 
     destroyWysiwygSourceEditor(host)
 
     const currentUnit = /** @type {HTMLElement} */ (activeSourceUnit)
-    const newElements = parsedUnits.map((unitData, index) => buildUnitElement(unitData.adoc, index === activeIndex))
+    const newElements = parsedUnits.map((unitData, index) =>
+      buildUnitElement(unitData.adoc, index === activeIndex),
+    )
 
     currentUnit.replaceWith(...newElements)
     activeSourceUnit = newElements[activeIndex]
@@ -678,6 +747,7 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
     const wrapper = document.createElement('div')
     wrapper.className = 'wysiwyg-unit'
     wrapper.contentEditable = 'false'
+    setUnitAdocSource(wrapper, adoc)
 
     if (asSource) {
       wrapper.classList.add('is-source')
@@ -686,11 +756,12 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
           onChange: () => {
             const host = wrapper.querySelector('.wysiwyg-source-editor')
             if (host instanceof HTMLElement) {
+              setUnitAdocSource(wrapper, getWysiwygSourceValue(host))
               scheduleSplitCheck(host)
             }
             scheduleSync()
           },
-          onKeyDown: (event, view) => handleSourceKeydown(event, view, activateSourceUnit),
+          onKeyDown: (event, view) => handleSourceKeydown(event, view, activateSourceUnit, getUnitText),
           onContextMenu: (event, view) => {
             void openWysiwygContextMenu(event, () => view)
           },
@@ -706,6 +777,16 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
     renderPreviewHtml(asciidocBlockToHtml(adoc), temp, getMemoId?.())
     wrapper.append(...temp.childNodes)
     return wrapper
+  }
+
+  function getUnitText(unit) {
+    if (unit.classList.contains('is-source')) {
+      const host = unit.querySelector(':scope > .wysiwyg-source-editor')
+      if (host instanceof HTMLElement) {
+        return getWysiwygSourceValue(host)
+      }
+    }
+    return getUnitAdocSource(unit) ?? unitToAsciidoc(unit, getMemoId?.())
   }
 
   function wrapUnits(container = editorEl, { skipDeactivate = false } = {}) {
@@ -763,8 +844,9 @@ function getUnitFromNode(node) {
  * @param {KeyboardEvent} event
  * @param {import('@codemirror/view').EditorView} view
  * @param {(unit: HTMLElement, options?: { caret?: 'start' | 'end' | number, source?: string }) => void} activateSourceUnit
+ * @param {(unit: HTMLElement) => string} getUnitText
  */
-function handleSourceKeydown(event, view, activateSourceUnit) {
+function handleSourceKeydown(event, view, activateSourceUnit, getUnitText) {
   const host = view.dom
   const unit = host.closest('.wysiwyg-unit')
   if (!(unit instanceof HTMLElement)) return false
@@ -787,13 +869,20 @@ function handleSourceKeydown(event, view, activateSourceUnit) {
 
     const units = [...editorEl.querySelectorAll(':scope > .wysiwyg-unit')]
     const index = units.indexOf(unit)
-    const nextIndex = event.key === 'ArrowUp' ? index - 1 : index + 1
-    const nextUnit = units[nextIndex]
-    if (!(nextUnit instanceof HTMLElement)) return false
+    const step = event.key === 'ArrowUp' ? -1 : 1
+    let nextIndex = index + step
 
-    event.preventDefault()
-    activateSourceUnit(nextUnit, { caret: event.key === 'ArrowUp' ? 'end' : 'start' })
-    return true
+    while (nextIndex >= 0 && nextIndex < units.length) {
+      const nextUnit = units[nextIndex]
+      if (nextUnit instanceof HTMLElement && getUnitText(nextUnit).trim()) {
+        event.preventDefault()
+        activateSourceUnit(nextUnit, { caret: event.key === 'ArrowUp' ? 'end' : 'start' })
+        return true
+      }
+      nextIndex += step
+    }
+
+    return false
   }
 
   if (event.key !== 'Tab') return false

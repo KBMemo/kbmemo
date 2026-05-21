@@ -41,10 +41,6 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   position: relative;
 }
 
-.memo-body-editor.memo-body-editor--source-only .cm-content {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-}
-
 .memo-body-editor .cm-scroller {
   display: flex;
 }
@@ -252,54 +248,6 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 
 .memo-body-editor a.cm-memo-wiki-link--open:hover {
   color: #1d4ed8;
-}
-
-/* Phase 4 WYSIWYG ライト（カーソル外のみマーカー非表示） */
-.memo-body-editor .cm-wysiwyg-heading {
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  color: #18181b;
-}
-
-.memo-body-editor .cm-wysiwyg-heading-1,
-.memo-body-editor .cm-wysiwyg-doc-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-.memo-body-editor .cm-wysiwyg-heading-2 {
-  font-size: 1.375rem;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.memo-body-editor .cm-wysiwyg-heading-3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  line-height: 1.35;
-}
-
-.memo-body-editor .cm-wysiwyg-heading-4,
-.memo-body-editor .cm-wysiwyg-heading-5,
-.memo-body-editor .cm-wysiwyg-heading-6 {
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.memo-body-editor .cm-wysiwyg-bold {
-  font-weight: 700;
-}
-
-.memo-body-editor .cm-wysiwyg-italic {
-  font-style: italic;
-}
-
-.memo-body-editor .cm-wysiwyg-monospace {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 0.92em;
-  background-color: #f4f4f5;
-  border-radius: 0.125rem;
 }
 
 /* ダイアグラム専用 CodeMirror（edit.html.slim） */

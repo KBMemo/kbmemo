@@ -49,7 +49,6 @@ Rails.application.routes.draw do
   resources :memos do
     collection do
       get :wiki_completions
-      get :wiki_link_labels
     end
 
     member do
