@@ -63,6 +63,8 @@ export async function openEditorContextMenu(event, { scope = 'editor', getView, 
     return
   }
 
+  createContextMenuElement()
+
   event.preventDefault()
   event.stopPropagation()
   hideContextMenu()

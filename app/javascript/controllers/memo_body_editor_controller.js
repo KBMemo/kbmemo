@@ -1,4 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
+import "../adoc_editor/contextMenu.css"
+import { initEditorContextMenus } from "../adoc_editor/editorContextMenu.js"
 import { loadAsciidocExtensions } from "../memo_body_editor/asciidoc_extensions"
 import { wikiAutocompletion } from "../memo_body_editor/wiki_completion"
 import { listContinuationExtension } from "../memo_body_editor/list_continuation"
@@ -266,6 +268,20 @@ export default class extends Controller {
       state,
       parent: this.hostTarget
     })
+
+    const contextMenuTargets = {
+      live: {
+        container: this.hostTarget,
+        getView: () => this.view
+      }
+    }
+    if (this.hasPreviewHostTarget) {
+      contextMenuTargets.preview = {
+        container: this.previewHostTarget,
+        getView: () => this.view
+      }
+    }
+    initEditorContextMenus(contextMenuTargets)
 
     textarea.addEventListener("change", this._onTextareaExternalChange)
 
