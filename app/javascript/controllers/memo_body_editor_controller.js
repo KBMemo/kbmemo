@@ -17,7 +17,9 @@ function writeLivePreviewPreference(enabled) {
 }
 
 function readEditModePreference() {
-  return localStorage.getItem(EDIT_MODE_PREF_KEY) === "wysiwyg" ? "wysiwyg" : "source"
+  const stored = localStorage.getItem(EDIT_MODE_PREF_KEY)
+  if (stored === "source") return "source"
+  return "wysiwyg"
 }
 
 function writeEditModePreference(mode) {
@@ -126,7 +128,6 @@ export default class extends Controller {
     "sourcePane",
     "wysiwygPane",
     "wysiwygHost",
-    "wysiwygToolbar",
     "editModeTab"
   ]
   static values = {
@@ -278,8 +279,11 @@ export default class extends Controller {
     this.syncEditModeUi()
     removeLegacyGlobalAsciidoctorStylesheet()
     await this.setupLivePreview(textarea)
-    if (this.hasWysiwygPaneTarget && readEditModePreference() === "wysiwyg") {
+    const preferredMode = readEditModePreference()
+    if (preferredMode === "wysiwyg" && this.hasWysiwygPaneTarget) {
       await this.switchEditMode("wysiwyg")
+    } else {
+      this.syncEditModeUi()
     }
   }
 
@@ -301,8 +305,9 @@ export default class extends Controller {
     })
   }
 
-  toggleLivePreview() {
-    this._livePreviewEnabled = !this._livePreviewEnabled
+  toggleLivePreview(event) {
+    this._livePreviewEnabled =
+      event?.target?.type === "checkbox" ? event.target.checked : !this._livePreviewEnabled
     writeLivePreviewPreference(this._livePreviewEnabled)
     this.syncLivePreviewUi()
 
@@ -317,8 +322,7 @@ export default class extends Controller {
 
   syncLivePreviewUi() {
     if (this.hasPreviewToggleTarget) {
-      this.previewToggleTarget.setAttribute("aria-pressed", this._livePreviewEnabled ? "true" : "false")
-      this.previewToggleTarget.textContent = this._livePreviewEnabled ? "プレビュー非表示" : "ライブプレビュー"
+      this.previewToggleTarget.checked = !!this._livePreviewEnabled
     }
     this.element.classList.toggle("memo-body-editor--live-preview", !!this._livePreviewEnabled)
     if (this.hasPreviewHostTarget) {
@@ -361,12 +365,11 @@ export default class extends Controller {
   }
 
   async ensureWysiwygEditor() {
-    if (this._wysiwygEditor || !this.hasWysiwygHostTarget || !this.hasWysiwygToolbarTarget) return
+    if (this._wysiwygEditor || !this.hasWysiwygHostTarget) return
 
     const { createMemoWysiwygEditor } = await import("../adoc_editor/wysiwyg_mount.js")
     this._wysiwygEditor = createMemoWysiwygEditor({
       editorEl: this.wysiwygHostTarget,
-      toolbarEl: this.wysiwygToolbarTarget,
       paneEl: this.hasWysiwygPaneTarget ? this.wysiwygPaneTarget : null,
       getMemoId: () => this.memoIdValue || null,
       getWikiConfig: () => ({

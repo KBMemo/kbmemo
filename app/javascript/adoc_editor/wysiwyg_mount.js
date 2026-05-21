@@ -14,17 +14,16 @@ function removeLegacyGlobalStylesheet() {
 /**
  * @param {object} options
  * @param {HTMLElement} options.editorEl
- * @param {HTMLElement} options.toolbarEl
  * @param {HTMLElement} [options.paneEl]
  * @param {() => string | null | undefined} [options.getMemoId]
  * @param {() => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null }} [options.getWikiConfig]
  * @param {(source: string) => void} options.onSourceChange
  */
-export function createMemoWysiwygEditor({ editorEl, toolbarEl, paneEl, getMemoId, getWikiConfig, onSourceChange }) {
+export function createMemoWysiwygEditor({ editorEl, paneEl, getMemoId, getWikiConfig, onSourceChange }) {
   removeLegacyGlobalStylesheet()
   applyPreviewSkin(editorEl, getStoredSkinId())
 
-  return createWysiwygEditor(editorEl, toolbarEl, {
+  return createWysiwygEditor(editorEl, {
     paneEl,
     getMemoId,
     getWikiConfig,

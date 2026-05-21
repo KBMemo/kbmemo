@@ -45,17 +45,15 @@ import { openDocumentSearchReplaceDialog } from './searchReplaceDialog.js'
 import { isModF } from './searchKeybindings.js'
 import { createWysiwygHistory, isModRedo, isModZ } from './wysiwygHistory.js'
 import { createWysiwygSourceExtensions } from './wysiwygSourceExtensions.js'
-import { startCompletion } from '@codemirror/autocomplete'
 
 const SPLIT_DEBOUNCE_MS = 300
 const SYNC_DEBOUNCE_MS = 400
 
 /**
  * @param {HTMLElement} editorEl
- * @param {HTMLElement} toolbarEl
  * @param {{ onSourceChange: (source: string) => void, paneEl?: HTMLElement | null, getMemoId?: () => string | null | undefined, getWikiConfig?: () => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null } }} options
  */
-export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneEl, getMemoId, getWikiConfig }) {
+export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoId, getWikiConfig }) {
   let syncTimer
   let splitTimer
   let isRendering = false
@@ -120,23 +118,6 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
       source,
     )
   }
-
-  toolbarEl.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-cmd]')
-    if (!button) return
-    event.preventDefault()
-    const cmd = button.getAttribute('data-cmd')
-    if (activeSourceUnit) {
-      if (cmd === 'wiki') {
-        insertWikiLinkOpener(activeSourceUnit)
-        scheduleSync()
-      }
-      return
-    }
-    applyCommand(editorEl, cmd, button.getAttribute('data-value'))
-    wrapUnits(editorEl)
-    scheduleSync()
-  })
 
   editorEl.addEventListener('paste', (event) => {
     if (event.target instanceof HTMLElement && event.target.closest('.wysiwyg-source-editor')) return
@@ -992,20 +973,6 @@ function createSourceEditorHost(source, { onChange, onKeyDown, onContextMenu, on
 /**
  * @param {HTMLElement} unit
  */
-function insertWikiLinkOpener(unit) {
-  const host = unit.querySelector('.wysiwyg-source-editor')
-  if (!(host instanceof HTMLElement)) return
-  const view = getWysiwygSourceView(host)
-  if (!view) return
-  const pos = view.state.selection.main.head
-  view.dispatch({
-    changes: { from: pos, insert: '[[' },
-    selection: { anchor: pos + 2 },
-  })
-  focusWysiwygSourceEditor(host)
-  startCompletion(view)
-}
-
 /**
  * @param {Node | null} node
  * @returns {HTMLElement | null}
@@ -1067,60 +1034,4 @@ function handleSourceKeydown(event, view, activateSourceUnit, getUnitText) {
   const spaces = '  '
   view.dispatch(view.state.replaceSelection(spaces))
   return true
-}
-
-/**
- * @param {HTMLElement} editorEl
- * @param {string | null} cmd
- * @param {string | null} value
- */
-function applyCommand(editorEl, cmd, value) {
-  editorEl.focus()
-
-  switch (cmd) {
-    case 'bold':
-      document.execCommand('bold')
-      break
-    case 'italic':
-      document.execCommand('italic')
-      break
-    case 'code':
-      document.execCommand('insertHTML', false, `<code>${escapeHtml(getSelectionText() || 'code')}</code>`)
-      break
-    case 'h1':
-    case 'h2':
-    case 'h3':
-      document.execCommand('formatBlock', false, value ?? cmd.toUpperCase())
-      break
-    case 'ul':
-      document.execCommand('insertUnorderedList')
-      break
-    case 'ol':
-      document.execCommand('insertOrderedList')
-      break
-    case 'paragraph':
-      document.execCommand('formatBlock', false, 'P')
-      break
-    case 'link': {
-      const url = window.prompt('URL')
-      if (url) document.execCommand('createLink', false, url)
-      break
-    }
-    default:
-      break
-  }
-}
-
-function getSelectionText() {
-  return window.getSelection()?.toString() ?? ''
-}
-
-/**
- * @param {string} value
- */
-function escapeHtml(value) {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
 }
