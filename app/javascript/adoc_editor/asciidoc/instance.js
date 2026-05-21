@@ -12,6 +12,7 @@ const PARSE_OPTIONS = {
     showtitle: true,
     experimental: '',
     'source-highlighter': 'highlight.js',
+    stem: 'latexmath',
   },
 }
 

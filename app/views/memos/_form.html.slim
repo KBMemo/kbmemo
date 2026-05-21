@@ -96,6 +96,7 @@ ruby:
       data-controller="memo-body-editor"
       data-memo-body-editor-label-id-value="memo-body-label"
       data-memo-body-editor-wiki-completions-url-value=wiki_completions_memos_path(format: :json)
+      data-memo-body-editor-wiki-link-labels-url-value=wiki_link_labels_memos_path(format: :json)
       data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "")
       data-memo-body-editor-upload-url-value=(memo.image_assets_uploadable? ? assets_memo_path(memo) : "")
     ]
@@ -150,6 +151,7 @@ ruby:
               button.toolbar-button type="button" data-cmd="code" Code
               button.toolbar-button type="button" data-cmd="ul" List
               button.toolbar-button type="button" data-cmd="link" Link
+              button.toolbar-button type="button" data-cmd="wiki" title="Wiki リンク（[[slug]]）" Wiki
           div.memo-body-editor__wysiwyg-content.memo-body.asciidoctor.preview-skin-default contenteditable="false" spellcheck="false" data-memo-body-editor-target="wysiwygHost"
         = f.text_area :body,
           rows: 1,

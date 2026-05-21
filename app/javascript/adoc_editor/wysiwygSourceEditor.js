@@ -1,5 +1,5 @@
 import { EditorState } from '@codemirror/state'
-import { EditorView } from '@codemirror/view'
+import { EditorView, ViewPlugin } from '@codemirror/view'
 import { search } from '@codemirror/search'
 import { asciidocHighlight } from './asciidoc/codemirror.js'
 import { createModFKeymap } from './searchKeybindings.js'
@@ -7,6 +7,9 @@ import { isModRedo, isModZ } from './wysiwygHistory.js'
 
 /** @type {WeakMap<HTMLElement, EditorView>} */
 const viewByHost = new WeakMap()
+
+/** @type {WeakMap<EditorView, number>} */
+const resizeFrameByView = new WeakMap()
 
 /** @type {WeakMap<HTMLElement, () => void>} */
 const historyKeyCleanupByHost = new WeakMap()
@@ -23,9 +26,9 @@ export function isWysiwygSourceComposing(host) {
 
 /**
  * @param {string} source
- * @param {{ onChange?: (view: EditorView) => void, onKeyDown?: (event: KeyboardEvent, view: EditorView) => boolean | void, onContextMenu?: (event: MouseEvent, view: EditorView) => void, onModF?: (view: EditorView) => void, onUndo?: () => boolean, onRedo?: () => boolean }} [handlers]
+ * @param {{ extensions?: import('@codemirror/state').Extension[], onChange?: (view: EditorView) => void, onKeyDown?: (event: KeyboardEvent, view: EditorView) => boolean | void, onContextMenu?: (event: MouseEvent, view: EditorView) => void, onModF?: (view: EditorView) => void, onUndo?: () => boolean, onRedo?: () => boolean }} [handlers]
  */
-export function createWysiwygSourceEditor(source, { onChange, onKeyDown, onContextMenu, onModF, onUndo, onRedo } = {}) {
+export function createWysiwygSourceEditor(source, { extensions = [], onChange, onKeyDown, onContextMenu, onModF, onUndo, onRedo } = {}) {
   const host = document.createElement('div')
   host.className = 'wysiwyg-source-editor'
 
@@ -37,12 +40,11 @@ export function createWysiwygSourceEditor(source, { onChange, onKeyDown, onConte
         search(),
         asciidocHighlight,
         EditorView.lineWrapping,
+        wysiwygAutoHeightExtension(),
+        ...extensions,
         EditorView.updateListener.of((update) => {
           if (update.docChanged && !composingByHost.get(host)) {
             onChange?.(view)
-          }
-          if (update.docChanged || update.geometryChanged) {
-            resizeWysiwygSourceEditor(view)
           }
         }),
         EditorView.domEventHandlers({
@@ -78,8 +80,54 @@ export function createWysiwygSourceEditor(source, { onChange, onKeyDown, onConte
   }
 
   viewByHost.set(host, view)
-  resizeWysiwygSourceEditor(view)
+  scheduleWysiwygSourceEditorResize(view)
   return host
+}
+
+function wysiwygAutoHeightExtension() {
+  return ViewPlugin.fromClass(
+    class {
+      /** @param {EditorView} view */
+      constructor(view) {
+        this.view = view
+        scheduleWysiwygSourceEditorResize(view)
+      }
+
+      update(update) {
+        scheduleWysiwygSourceEditorResize(update.view)
+      }
+
+      destroy() {
+        cancelWysiwygSourceEditorResize(this.view)
+      }
+    },
+  )
+}
+
+/**
+ * @param {EditorView} view
+ */
+export function scheduleWysiwygSourceEditorResize(view) {
+  const existing = resizeFrameByView.get(view)
+  if (existing != null) cancelAnimationFrame(existing)
+
+  const frame = requestAnimationFrame(() => {
+    resizeFrameByView.delete(view)
+    if (!view.dom.isConnected) return
+    view.requestMeasure()
+    resizeWysiwygSourceEditor(view)
+  })
+  resizeFrameByView.set(view, frame)
+}
+
+/**
+ * @param {EditorView | undefined} view
+ */
+function cancelWysiwygSourceEditorResize(view) {
+  if (!view) return
+  const existing = resizeFrameByView.get(view)
+  if (existing != null) cancelAnimationFrame(existing)
+  resizeFrameByView.delete(view)
 }
 
 const wysiwygSourceTheme = EditorView.theme({
@@ -107,9 +155,18 @@ const wysiwygSourceTheme = EditorView.theme({
  * @param {EditorView} view
  */
 export function resizeWysiwygSourceEditor(view) {
-  const host = view.dom
-  host.style.height = 'auto'
-  host.style.height = `${view.scrollDOM.scrollHeight}px`
+  const editorEl = view.dom
+  const host = editorEl.closest('.wysiwyg-source-editor')
+  const contentHeight = Math.ceil(view.contentHeight)
+  const height = `${contentHeight}px`
+
+  editorEl.style.height = 'auto'
+  editorEl.style.height = height
+
+  if (host instanceof HTMLElement) {
+    host.style.height = 'auto'
+    host.style.height = height
+  }
 }
 
 /**
@@ -130,6 +187,7 @@ export function destroyWysiwygSourceEditor(host) {
 
   const view = viewByHost.get(host)
   if (view) {
+    cancelWysiwygSourceEditorResize(view)
     view.destroy()
     viewByHost.delete(host)
   }
@@ -158,6 +216,7 @@ export function setWysiwygSourceSelection(host, position) {
   if (!view) return
   const pos = Math.max(0, Math.min(position, view.state.doc.length))
   view.dispatch({ selection: { anchor: pos, head: pos } })
+  scheduleWysiwygSourceEditorResize(view)
 }
 
 /**
@@ -172,6 +231,7 @@ export function setWysiwygSourceRange(host, from, to) {
   const anchor = Math.max(0, Math.min(from, length))
   const head = Math.max(0, Math.min(to, length))
   view.dispatch({ selection: { anchor, head } })
+  scheduleWysiwygSourceEditorResize(view)
 }
 
 /**
@@ -191,6 +251,7 @@ export function replaceWysiwygSourceDocument(host, source) {
   view.dispatch({
     changes: { from: 0, to: view.state.doc.length, insert: source },
   })
+  scheduleWysiwygSourceEditorResize(view)
 }
 
 /**

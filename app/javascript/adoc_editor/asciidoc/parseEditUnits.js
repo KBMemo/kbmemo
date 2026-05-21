@@ -1,5 +1,6 @@
 import { loadDocument } from './instance.js'
 import { BLOCK_TITLE_LINE } from '../../memo_body_editor/code_block_syntax.js'
+import { extractStemBlockUnitsFromLines } from '../../memo_body_editor/math_syntax.js'
 import { isTableAttrLine, isTableDelimiterLine } from '../../memo_body_editor/table_syntax.js'
 
 /** @typedef {{ adoc: string, startLine: number, endLine: number }} ParsedEditUnit */
@@ -131,7 +132,19 @@ function getTableLineRanges(lines) {
  * @returns {[number, number][]}
  */
 function getProtectedLineRanges(lines) {
-  return [...getDelimitedLineRanges(lines), ...getTableLineRanges(lines)]
+  return [
+    ...getDelimitedLineRanges(lines),
+    ...getTableLineRanges(lines),
+    ...getStemLineRanges(lines),
+  ]
+}
+
+/**
+ * @param {string[]} lines
+ * @returns {[number, number][]}
+ */
+function getStemLineRanges(lines) {
+  return extractStemBlockUnitsFromLines(lines).map((unit) => [unit.startLine, unit.endLine])
 }
 
 /**
@@ -195,6 +208,14 @@ function extractTableBlockUnits(lines) {
 }
 
 /**
+ * @param {string[]} lines
+ * @returns {ParsedEditUnit[]}
+ */
+function extractStemBlockUnits(lines) {
+  return extractStemBlockUnitsFromLines(lines)
+}
+
+/**
  * Parse AsciiDoc source into edit units with 0-based line ranges.
  *
  * @param {string} source
@@ -212,6 +233,7 @@ export function parseEditUnitsFromSource(source) {
   const units = [
     ...extractDelimitedBlockUnits(lines),
     ...extractTableBlockUnits(lines),
+    ...extractStemBlockUnits(lines),
   ]
 
   const doc = loadDocument(source)
@@ -223,14 +245,15 @@ export function parseEditUnitsFromSource(source) {
     }
   }
 
-  visitBlocks(doc, units, protectedRanges)
+  visitBlocks(doc, units, protectedRanges, lines)
 
   if (units.length === 0) {
     return [{ adoc: source, startLine: 0, endLine: lines.length - 1 }]
   }
 
   units.sort((a, b) => a.startLine - b.startLine)
-  const deduped = dedupeContainedUnits(units)
+  let deduped = dedupeContainedUnits(units)
+  deduped = fillGapUnits(lines, deduped, protectedRanges)
   units.length = 0
   units.push(...deduped)
   appendTrailingUnits(lines, units, protectedRanges)
@@ -261,11 +284,12 @@ function dedupeContainedUnits(units) {
 }
 
 /**
- * @param {import('@asciidoctor/core').Document | import('@asciidoctor/core').Section | import('@asciidoctor/core').Block} node
+ * @param {import('@asciidoctor/core').Document | import('@asciidoctor/core').Section | import('@asciidoctor/core').Block | import('@asciidoctor/core').List} node
  * @param {ParsedEditUnit[]} units
  * @param {[number, number][]} protectedRanges
+ * @param {string[]} lines
  */
-function visitBlocks(node, units, protectedRanges) {
+function visitBlocks(node, units, protectedRanges, lines) {
   const ctx = node.getContext?.()
   if (ctx === 'document' || ctx === 'section') {
     if (ctx === 'section') {
@@ -279,8 +303,18 @@ function visitBlocks(node, units, protectedRanges) {
     }
 
     for (const block of node.getBlocks()) {
-      visitBlocks(block, units, protectedRanges)
+      visitBlocks(block, units, protectedRanges, lines)
     }
+    return
+  }
+
+  if (ctx === 'ulist' || ctx === 'olist') {
+    pushListUnit(node, units, protectedRanges, lines)
+    return
+  }
+
+  if (ctx === 'admonition') {
+    pushAdmonitionUnit(node, units, protectedRanges, lines)
     return
   }
 
@@ -294,6 +328,182 @@ function visitBlocks(node, units, protectedRanges) {
   }
 
   units.push({ adoc: blockSource, startLine, endLine })
+}
+
+/**
+ * @param {import('@asciidoctor/core').List} node
+ * @param {ParsedEditUnit[]} units
+ * @param {[number, number][]} protectedRanges
+ * @param {string[]} lines
+ */
+function pushListUnit(node, units, protectedRanges, lines) {
+  const startLine = (node.getLineNumber() ?? 1) - 1
+  const endLine = listBlockEndLine(node)
+  if (isRangeInsideProtected(startLine, endLine, protectedRanges)) return
+
+  units.push({
+    adoc: lines.slice(startLine, endLine + 1).join('\n'),
+    startLine,
+    endLine,
+  })
+}
+
+/**
+ * @param {import('@asciidoctor/core').List | import('@asciidoctor/core').ListItem} node
+ */
+function listBlockEndLine(node) {
+  let endLine = (node.getLineNumber() ?? 1) - 1
+  for (const item of node.getBlocks?.() ?? []) {
+    endLine = Math.max(endLine, listItemEndLine(item))
+  }
+  return endLine
+}
+
+/**
+ * @param {import('@asciidoctor/core').ListItem} item
+ */
+function listItemEndLine(item) {
+  let endLine = (item.getLineNumber() ?? 1) - 1
+
+  for (const block of item.getBlocks?.() ?? []) {
+    const ctx = block.getContext?.()
+    if (ctx === 'ulist' || ctx === 'olist') {
+      endLine = Math.max(endLine, listBlockEndLine(block))
+      continue
+    }
+
+    const src = block.getSource?.()
+    if (!src) continue
+
+    const line = (block.getLineNumber() ?? 1) - 1
+    endLine = Math.max(endLine, line + src.split('\n').length - 1)
+  }
+
+  return endLine
+}
+
+/**
+ * @param {import('@asciidoctor/core').Block} node
+ * @param {ParsedEditUnit[]} units
+ * @param {[number, number][]} protectedRanges
+ * @param {string[]} lines
+ */
+function pushAdmonitionUnit(node, units, protectedRanges, lines) {
+  const { adoc, startLine, endLine } = admonitionUnitFromNode(node, lines)
+  if (!adoc.trim()) return
+  if (isRangeInsideProtected(startLine, endLine, protectedRanges)) return
+
+  units.push({ adoc, startLine, endLine })
+}
+
+/**
+ * Asciidoctor の admonition は getSource() が本文のみのため、NOTE:/[NOTE] 形式を復元する。
+ *
+ * @param {import('@asciidoctor/core').Block} node
+ * @param {string[]} lines
+ */
+function admonitionUnitFromNode(node, lines) {
+  const contentStartLine = (node.getLineNumber() ?? 1) - 1
+  const content = node.getSource?.() ?? ''
+  const style = node.getStyle?.()
+
+  if (style) {
+    const prevLine = contentStartLine > 0 ? lines[contentStartLine - 1]?.trim() : ''
+    if (prevLine === `[${style}]`) {
+      const startLine = contentStartLine - 1
+      const endLine = contentStartLine + Math.max(0, content.split('\n').length - 1)
+      return {
+        adoc: lines.slice(startLine, endLine + 1).join('\n'),
+        startLine,
+        endLine,
+      }
+    }
+
+    if (content.includes('\n')) {
+      return {
+        adoc: `[${style}]\n${content}`,
+        startLine: contentStartLine,
+        endLine: contentStartLine + content.split('\n').length,
+      }
+    }
+
+    return {
+      adoc: `${style}: ${content}`,
+      startLine: contentStartLine,
+      endLine: contentStartLine,
+    }
+  }
+
+  const endLine = contentStartLine + Math.max(0, content.split('\n').length - 1)
+  return { adoc: content, startLine: contentStartLine, endLine }
+}
+
+/**
+ * visitBlocks で拾えなかった行範囲をユニット化する（リスト等の取りこぼし防止）。
+ *
+ * @param {string[]} lines
+ * @param {ParsedEditUnit[]} units
+ * @param {[number, number][]} protectedRanges
+ */
+function fillGapUnits(lines, units, protectedRanges) {
+  if (units.length === 0) return units
+
+  const sorted = [...units].sort((a, b) => a.startLine - b.startLine)
+  /** @type {ParsedEditUnit[]} */
+  const merged = []
+  let cursor = 0
+
+  for (const unit of sorted) {
+    if (unit.startLine > cursor) {
+      appendLineRangeUnits(lines, merged, cursor, unit.startLine - 1, protectedRanges)
+    }
+    merged.push(unit)
+    cursor = Math.max(cursor, unit.endLine + 1)
+  }
+
+  if (cursor < lines.length) {
+    appendLineRangeUnits(lines, merged, cursor, lines.length - 1, protectedRanges)
+  }
+
+  return merged
+}
+
+/**
+ * @param {string[]} lines
+ * @param {ParsedEditUnit[]} units
+ * @param {number} start
+ * @param {number} end
+ * @param {[number, number][]} protectedRanges
+ */
+function appendLineRangeUnits(lines, units, start, end, protectedRanges) {
+  let index = start
+
+  while (index <= end) {
+    if (isLineProtected(index, protectedRanges)) {
+      index++
+      continue
+    }
+
+    if (lines[index]?.trim() === '') {
+      index++
+      continue
+    }
+
+    const blockStart = index
+    while (index <= end && lines[index]?.trim() !== '') {
+      if (isLineProtected(index, protectedRanges)) break
+      index++
+    }
+
+    const blockEnd = index - 1
+    if (blockEnd >= blockStart) {
+      units.push({
+        adoc: lines.slice(blockStart, blockEnd + 1).join('\n'),
+        startLine: blockStart,
+        endLine: blockEnd,
+      })
+    }
+  }
 }
 
 /**

@@ -17,15 +17,17 @@ function removeLegacyGlobalStylesheet() {
  * @param {HTMLElement} options.toolbarEl
  * @param {HTMLElement} [options.paneEl]
  * @param {() => string | null | undefined} [options.getMemoId]
+ * @param {() => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null }} [options.getWikiConfig]
  * @param {(source: string) => void} options.onSourceChange
  */
-export function createMemoWysiwygEditor({ editorEl, toolbarEl, paneEl, getMemoId, onSourceChange }) {
+export function createMemoWysiwygEditor({ editorEl, toolbarEl, paneEl, getMemoId, getWikiConfig, onSourceChange }) {
   removeLegacyGlobalStylesheet()
   applyPreviewSkin(editorEl, getStoredSkinId())
 
   return createWysiwygEditor(editorEl, toolbarEl, {
     paneEl,
     getMemoId,
-    onSourceChange
+    getWikiConfig,
+    onSourceChange,
   })
 }

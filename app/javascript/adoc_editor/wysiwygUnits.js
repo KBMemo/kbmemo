@@ -7,6 +7,7 @@ const UNIT_CLASS_NAMES = new Set([
   'imageblock',
   'admonitionblock',
   'quoteblock',
+  'stemblock',
   'ulist',
   'olist',
   'tableblock',

@@ -174,12 +174,30 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
+  test "wiki_link_labels returns display labels for targets" do
+    two = memos(:two)
+    get wiki_link_labels_memos_url,
+      params: { memo_id: memos(:one).id, targets: [two.slug, "Second memo", "Missing"] },
+      as: :json
+    assert_response :success
+    body = JSON.parse(response.body)
+    assert_equal two.title, body[two.slug]["display"]
+    assert body[two.slug]["slug"]
+    assert_equal two.id, body[two.slug]["memo_id"]
+    assert_equal "Second memo", body["Second memo"]["display"]
+    assert_not body["Second memo"]["slug"]
+    assert_equal two.id, body["Second memo"]["memo_id"]
+    assert_not body["Missing"]["resolved"]
+    assert_nil body["Missing"]["memo_id"]
+  end
+
   test "edit has memo draft stimulus bindings" do
     get edit_memo_url(memos(:one))
     assert_response :success
     assert_includes response.body, 'data-controller="memo-draft"'
     assert_includes response.body, "memo-body-editor"
     assert_includes response.body, wiki_completions_memos_path(format: :json)
+    assert_includes response.body, wiki_link_labels_memos_path(format: :json)
     assert_includes response.body, 'data-controller="memo-directory-dnd"'
     assert_includes response.body, "memo-draft#preventSubmit"
     assert_includes response.body, "memo-draft#suppressEnterSubmit"

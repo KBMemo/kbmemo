@@ -166,8 +166,6 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 .memo-body-editor__wysiwyg-pane {
   display: none;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
   border-bottom: 1px solid #e4e4e7;
   background: #fff;
 }
@@ -180,7 +178,6 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   display: flex;
   flex-direction: column;
   min-height: 18rem;
-  max-height: min(70vh, 48rem);
 }
 
 .memo-body-editor__wysiwyg-toolbar {
@@ -218,9 +215,8 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 }
 
 .memo-body-editor__wysiwyg-content {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
+  min-height: 18rem;
+  overflow: visible;
   padding: 1.5rem 2rem;
   outline: none;
 }

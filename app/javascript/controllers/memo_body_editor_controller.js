@@ -132,6 +132,7 @@ export default class extends Controller {
   static values = {
     labelId: String,
     wikiCompletionsUrl: String,
+    wikiLinkLabelsUrl: String,
     memoId: String,
     uploadUrl: String
   }
@@ -368,6 +369,11 @@ export default class extends Controller {
       toolbarEl: this.wysiwygToolbarTarget,
       paneEl: this.hasWysiwygPaneTarget ? this.wysiwygPaneTarget : null,
       getMemoId: () => this.memoIdValue || null,
+      getWikiConfig: () => ({
+        completionsUrl: this.wikiCompletionsUrlValue,
+        labelsUrl: this.wikiLinkLabelsUrlValue,
+        memoId: this.memoIdValue || null,
+      }),
       onSourceChange: (source) => this.syncSourceFromWysiwyg(source)
     })
   }

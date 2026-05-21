@@ -2,6 +2,11 @@ import { asciidocBlockToHtml } from './asciidoc/blockConvert.js'
 import { unitToAsciidoc } from './asciidoc/htmlToAsciidoc.js'
 import { normalizeMemoImagePathsInSource } from '../memo_body_editor/image_syntax.js'
 import {
+  ensureWikiLinkLabelsInCache,
+  extractWikiLinkTargets,
+  substituteWikiLinksForPreview,
+} from '../memo_body_editor/wiki_link_substitute.js'
+import {
   getActiveUnitIndex,
   getCaretOffsetInUnit,
   getCaretInFollowingBlock,
@@ -23,10 +28,9 @@ import {
 } from './wysiwygSourceEditor.js'
 import { flattenAndWrapUnits } from './wysiwygUnits.js'
 import {
-  clearUnitAdocSource,
   getUnitAdocSource,
+  hasUnitAdocSource,
   setUnitAdocSource,
-  transferUnitAdocSource,
 } from './wysiwyg_unit_source.js'
 import { openEditorContextMenu } from './editorContextMenu.js'
 import {
@@ -39,6 +43,8 @@ import {
 import { openDocumentSearchReplaceDialog } from './searchReplaceDialog.js'
 import { isModF } from './searchKeybindings.js'
 import { createWysiwygHistory, isModRedo, isModZ } from './wysiwygHistory.js'
+import { createWysiwygSourceExtensions } from './wysiwygSourceExtensions.js'
+import { startCompletion } from '@codemirror/autocomplete'
 
 const SPLIT_DEBOUNCE_MS = 300
 const SYNC_DEBOUNCE_MS = 400
@@ -46,9 +52,9 @@ const SYNC_DEBOUNCE_MS = 400
 /**
  * @param {HTMLElement} editorEl
  * @param {HTMLElement} toolbarEl
- * @param {{ onSourceChange: (source: string) => void, paneEl?: HTMLElement | null, getMemoId?: () => string | null | undefined }} options
+ * @param {{ onSourceChange: (source: string) => void, paneEl?: HTMLElement | null, getMemoId?: () => string | null | undefined, getWikiConfig?: () => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null } }} options
  */
-export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneEl, getMemoId }) {
+export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneEl, getMemoId, getWikiConfig }) {
   let syncTimer
   let splitTimer
   let isRendering = false
@@ -57,16 +63,75 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
   let activeSourceUnit = null
   const history = createWysiwygHistory()
   let isApplyingHistory = false
+  const wikiExtensions = createWysiwygSourceExtensions(getWikiConfig)
+  /** @type {Map<string, object>} */
+  const wikiLabelCache = new Map()
+  let wikiLabelRefreshSeq = 0
+
+  function previewHtmlForAdoc(adoc) {
+    const processed = substituteWikiLinksForPreview(adoc, wikiLabelCache)
+    return asciidocBlockToHtml(processed)
+  }
+
+  /**
+   * @param {HTMLElement} unit
+   * @param {string} adoc
+   */
+  function renderUnitPreview(unit, adoc) {
+    const temp = document.createElement('div')
+    renderPreviewHtml(previewHtmlForAdoc(adoc), temp, getMemoId?.())
+    unit.replaceChildren(...temp.childNodes)
+  }
+
+  async function refreshWikiLabelPreviews(source) {
+    const config = getWikiConfig?.()
+    if (!config?.labelsUrl) return
+
+    await ensureWikiLinkLabelsInCache(
+      wikiLabelCache,
+      config.labelsUrl,
+      config.memoId ?? null,
+      source,
+    )
+
+    const seq = ++wikiLabelRefreshSeq
+    for (const unit of editorEl.querySelectorAll(':scope > .wysiwyg-unit')) {
+      if (seq !== wikiLabelRefreshSeq) return
+      if (unit.classList.contains('is-source')) continue
+
+      const adoc = getUnitAdocSource(unit)
+      if (adoc === undefined) continue
+      if (!extractWikiLinkTargets(adoc).some((target) => wikiLabelCache.has(target))) continue
+
+      renderUnitPreview(/** @type {HTMLElement} */ (unit), adoc)
+    }
+  }
+
+  async function ensureDocumentWikiLabels(source) {
+    const config = getWikiConfig?.()
+    if (!config?.labelsUrl) return
+
+    await ensureWikiLinkLabelsInCache(
+      wikiLabelCache,
+      config.labelsUrl,
+      config.memoId ?? null,
+      source,
+    )
+  }
 
   toolbarEl.addEventListener('click', (event) => {
     const button = event.target.closest('[data-cmd]')
     if (!button) return
     event.preventDefault()
-    if (activeSourceUnit) return
-    applyCommand(editorEl, button.getAttribute('data-cmd'), button.getAttribute('data-value'))
-    for (const unit of editorEl.querySelectorAll(':scope > .wysiwyg-unit')) {
-      clearUnitAdocSource(unit)
+    const cmd = button.getAttribute('data-cmd')
+    if (activeSourceUnit) {
+      if (cmd === 'wiki') {
+        insertWikiLinkOpener(activeSourceUnit)
+        scheduleSync()
+      }
+      return
     }
+    applyCommand(editorEl, cmd, button.getAttribute('data-value'))
     wrapUnits(editorEl)
     scheduleSync()
   })
@@ -186,9 +251,10 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
     history.setCurrent(normalizedSource, restoreCursor ?? 0)
     onSourceChange(normalizedSource)
     isApplyingHistory = true
-    renderFromSourceInternal(normalizedSource)
-    revealDocumentOffset(normalizedSource, restoreCursor ?? 0)
-    isApplyingHistory = false
+    void renderFromSourceInternal(normalizedSource).finally(() => {
+      revealDocumentOffset(normalizedSource, restoreCursor ?? 0)
+      isApplyingHistory = false
+    })
   }
 
   function commitDocumentSource(source, { restoreCursor } = {}) {
@@ -263,12 +329,16 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
         }
       } else {
         const stored = getUnitAdocSource(unit)
-        text = stored ?? unitToAsciidoc(unit, getMemoId?.())
+        if (stored !== undefined) {
+          text = stored
+        } else {
+          text = unitToAsciidoc(unit, getMemoId?.())
+        }
       }
 
-      text = text.trim()
-      if (!text) continue
+      if (!text.trim() && !hasUnitAdocSource(unit)) continue
 
+      text = text.trim()
       const from = offset
       const to = offset + text.length
       segments.push({ unit: /** @type {HTMLElement} */ (unit), text, from, to })
@@ -458,14 +528,17 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
     }
   }
 
-  function renderFromSourceInternal(source) {
+  async function renderFromSourceInternal(source) {
     isRendering = true
     activeSourceUnit = null
+    wikiLabelCache.clear()
     const memoId = getMemoId?.()
     const normalizedSource = memoId
       ? normalizeMemoImagePathsInSource(source, memoId)
       : source
     editorEl.replaceChildren()
+
+    await ensureDocumentWikiLabels(normalizedSource)
 
     for (const parsed of parseEditUnitsFromSource(normalizedSource)) {
       const wrapper = document.createElement('div')
@@ -479,17 +552,14 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
         empty.innerHTML = '<p></p>'
         wrapper.append(empty)
       } else {
-        const temp = document.createElement('div')
-        renderPreviewHtml(asciidocBlockToHtml(parsed.adoc), temp, memoId)
-        while (temp.firstChild) {
-          wrapper.append(temp.firstChild)
-        }
+        renderUnitPreview(wrapper, parsed.adoc)
       }
 
       editorEl.append(wrapper)
     }
 
     isRendering = false
+    void refreshWikiLabelPreviews(normalizedSource)
   }
 
   function renderFromSource(source) {
@@ -500,8 +570,9 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
     }
     history.reset(normalizeDocumentSource(source))
     isApplyingHistory = true
-    renderFromSourceInternal(source)
-    isApplyingHistory = false
+    void renderFromSourceInternal(source).finally(() => {
+      isApplyingHistory = false
+    })
   }
 
   function flush() {
@@ -560,7 +631,7 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
       onModF: () => openDocumentSearch(),
       onUndo: () => undoDocument(),
       onRedo: () => redoDocument(),
-    })
+    }, wikiExtensions)
     unit.append(host)
 
     activeSourceUnit = unit
@@ -596,12 +667,14 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
       return
     }
 
-    const temp = document.createElement('div')
-    renderPreviewHtml(asciidocBlockToHtml(adoc), temp, getMemoId?.())
+    renderUnitPreview(unit, adoc)
+    void ensureDocumentWikiLabels(adoc).then(() => {
+      if (!unit.isConnected || unit.classList.contains('is-source')) return
+      renderUnitPreview(unit, adoc)
+    })
 
     unit.classList.remove('is-source')
     unit.contentEditable = 'false'
-    unit.replaceChildren(...temp.childNodes)
 
     if (activeSourceUnit === unit) {
       activeSourceUnit = null
@@ -768,14 +841,12 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
           onModF: () => openDocumentSearch(),
           onUndo: () => undoDocument(),
           onRedo: () => redoDocument(),
-        }),
+        }, wikiExtensions),
       )
       return wrapper
     }
 
-    const temp = document.createElement('div')
-    renderPreviewHtml(asciidocBlockToHtml(adoc), temp, getMemoId?.())
-    wrapper.append(...temp.childNodes)
+    renderUnitPreview(wrapper, adoc)
     return wrapper
   }
 
@@ -819,8 +890,9 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
  * @param {string} source
  * @param {{ onChange: () => void, onKeyDown: (event: KeyboardEvent, view: import('@codemirror/view').EditorView) => boolean | void, onContextMenu?: (event: MouseEvent, view: import('@codemirror/view').EditorView) => void }} handlers
  */
-function createSourceEditorHost(source, { onChange, onKeyDown, onContextMenu, onModF, onUndo, onRedo }) {
+function createSourceEditorHost(source, { onChange, onKeyDown, onContextMenu, onModF, onUndo, onRedo }, extensions) {
   return createWysiwygSourceEditor(source, {
+    extensions,
     onChange: () => onChange(),
     onKeyDown,
     onContextMenu,
@@ -828,6 +900,23 @@ function createSourceEditorHost(source, { onChange, onKeyDown, onContextMenu, on
     onUndo,
     onRedo,
   })
+}
+
+/**
+ * @param {HTMLElement} unit
+ */
+function insertWikiLinkOpener(unit) {
+  const host = unit.querySelector('.wysiwyg-source-editor')
+  if (!(host instanceof HTMLElement)) return
+  const view = getWysiwygSourceView(host)
+  if (!view) return
+  const pos = view.state.selection.main.head
+  view.dispatch({
+    changes: { from: pos, insert: '[[' },
+    selection: { anchor: pos + 2 },
+  })
+  focusWysiwygSourceEditor(host)
+  startCompletion(view)
 }
 
 /**

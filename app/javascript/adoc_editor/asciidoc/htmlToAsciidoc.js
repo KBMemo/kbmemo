@@ -118,6 +118,10 @@ function convertNode(node, memoId) {
     return convertAdmonition(el)
   }
 
+  if (el.classList.contains('stemblock')) {
+    return convertStemBlock(el)
+  }
+
   if (el.classList.contains('quoteblock')) {
     const quote = el.querySelector('blockquote') ?? el
     return `____\n${quote.textContent?.trim() ?? ''}\n____`
@@ -205,6 +209,19 @@ function convertAdmonition(block) {
   const content = block.querySelector('.content') ?? block
   const text = content.textContent?.trim() ?? ''
   return `${label}: ${text}`
+}
+
+/**
+ * @param {HTMLElement} block
+ */
+function convertStemBlock(block) {
+  const title = block.querySelector('.title')?.textContent?.trim()
+  const content = block.querySelector('.content')?.textContent?.trim() ?? ''
+  /** @type {string[]} */
+  const lines = []
+  if (title) lines.push(`.${title}`)
+  lines.push('[stem]', '++++', content, '++++')
+  return lines.join('\n')
 }
 
 /**
