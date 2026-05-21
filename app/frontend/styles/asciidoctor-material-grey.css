@@ -5,7 +5,9 @@
 @import "font-awesome/css/font-awesome.min.css";
 
 .memo-body,
-.memo-body-editor {
+.memo-body-editor,
+.memo-body-editor__preview-content.asciidoctor,
+.memo-body-editor__wysiwyg-content.asciidoctor {
   --mg-primary: #9e9e9e;
   --mg-secondary: #ba3925;
   --mg-tertiary: #186d7a;

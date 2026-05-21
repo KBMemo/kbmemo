@@ -5,6 +5,7 @@ ruby:
     turbo: "false"
   }
   form_data[:memo_draft_draft_url_value] = draft_memo_path(memo, memo_sidebar_nav_query) if memo.persisted?
+  form_data[:memo_draft_discard_draft_url_value] = revert_draft_memo_path(memo, memo_sidebar_nav_query) if memo.persisted? && memo.file_committed_at.present? && memo.display_as_draft?
   form_data[:memo_draft_create_url_value] = memos_path unless memo.persisted?
   form_data[:memo_draft_file_committed_value] = memo.file_committed_at.present?
   form_data[:memo_draft_memo_id_value] = memo.id if memo.persisted?
@@ -141,7 +142,7 @@ ruby:
                 label.memo-body-editor__preview-skin
                   span Skin
                   select.text-xs.border.border-zinc-300.rounded.bg-white.px-1.py-0.5 aria-label="Preview skin" data-memo-body-editor-target="previewSkinSelect"
-              div.memo-body-editor__preview-content.asciidoctor.preview-skin-default[data-memo-body-editor-target="previewHost"]
+              div.memo-body-editor__preview-content.memo-body.asciidoctor.preview-skin-default[data-memo-body-editor-target="previewHost"]
         div.memo-body-editor__wysiwyg-pane data-memo-body-editor-target="wysiwygPane" hidden=true aria-hidden="true"
           div.memo-body-editor__wysiwyg-toolbar data-memo-body-editor-target="wysiwygToolbar"
             div.format-group role="toolbar" aria-label="書式"
@@ -154,7 +155,7 @@ ruby:
               button.toolbar-button type="button" data-cmd="code" Code
               button.toolbar-button type="button" data-cmd="ul" List
               button.toolbar-button type="button" data-cmd="link" Link
-          div.memo-body-editor__wysiwyg-content.asciidoctor.preview-skin-default contenteditable="false" spellcheck="false" data-memo-body-editor-target="wysiwygHost"
+          div.memo-body-editor__wysiwyg-content.memo-body.asciidoctor.preview-skin-default contenteditable="false" spellcheck="false" data-memo-body-editor-target="wysiwygHost"
         = f.text_area :body,
           rows: 1,
           class: "sr-only",
@@ -164,6 +165,9 @@ ruby:
 
   - if memo.persisted?
     .mt-4.flex.justify-end.gap-2
+      - if memo.file_committed_at.present? && memo.display_as_draft?
+        button.rounded-md.border.border-amber-300.bg-amber-50.px-4.py-2.text-sm.font-medium.text-amber-950.hover:bg-amber-100.focus:outline-none.focus-visible:ring-2.focus-visible:ring-amber-400.focus-visible:ring-offset-2 type="button" data-action="memo-draft#discardDraft" title="ドラフトの変更を破棄し、最後に Git へコミットした内容を読み込みます"
+          | ドラフトを破棄
       = link_to (memo.display_as_draft? ? "プレビュー" : "表示"), memo_path(memo), class: "rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
       = f.submit "コミット", title: "ファイルへ保存して、Gitに記録", data: { memo_commit: true }, class: "rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
 

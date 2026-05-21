@@ -4,16 +4,11 @@ import "./contextMenu.css"
 import { createWysiwygEditor } from "./wysiwyg.js"
 import { applyPreviewSkin, getStoredSkinId } from "./preview_skin.js"
 
-const ASCIIDOCTOR_CSS_ID = "kbmemo-adoc-preview-base"
+const LEGACY_ASCIIDOCTOR_LINK_ID = "kbmemo-adoc-preview-base"
 
-function ensureBaseStylesheet() {
-  if (document.getElementById(ASCIIDOCTOR_CSS_ID)) return
-
-  const link = document.createElement("link")
-  link.id = ASCIIDOCTOR_CSS_ID
-  link.rel = "stylesheet"
-  link.href = "/css/asciidoctor.css"
-  document.head.appendChild(link)
+/** 旧実装が head に載せたグローバル asciidoctor.css を除去する */
+function removeLegacyGlobalStylesheet() {
+  document.getElementById(LEGACY_ASCIIDOCTOR_LINK_ID)?.remove()
 }
 
 /**
@@ -25,7 +20,7 @@ function ensureBaseStylesheet() {
  * @param {(source: string) => void} options.onSourceChange
  */
 export function createMemoWysiwygEditor({ editorEl, toolbarEl, paneEl, getMemoId, onSourceChange }) {
-  ensureBaseStylesheet()
+  removeLegacyGlobalStylesheet()
   applyPreviewSkin(editorEl, getStoredSkinId())
 
   return createWysiwygEditor(editorEl, toolbarEl, {

@@ -52,6 +52,13 @@ application.register("memo-directory-parent-picker", MemoDirectoryParentPickerCo
 import MemoDraftController from "./memo_draft_controller"
 application.register("memo-draft", MemoDraftController)
 
+if (import.meta.hot) {
+  import.meta.hot.accept("./memo_draft_controller", (mod) => {
+    application.unload("memo-draft")
+    application.register("memo-draft", mod.default)
+  })
+}
+
 import MemoSearchController from "./memo_search_controller"
 application.register("memo-search", MemoSearchController)
 

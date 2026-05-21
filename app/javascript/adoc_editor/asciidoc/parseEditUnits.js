@@ -1,4 +1,6 @@
 import { loadDocument } from './instance.js'
+import { BLOCK_TITLE_LINE } from '../../memo_body_editor/code_block_syntax.js'
+import { isTableAttrLine, isTableDelimiterLine } from '../../memo_body_editor/table_syntax.js'
 
 /** @typedef {{ adoc: string, startLine: number, endLine: number }} ParsedEditUnit */
 
@@ -10,7 +12,7 @@ const PAIRED_BLOCK_DELIMITERS = ['----', '....', '====', '____', '****', '--', '
  * @param {string[]} lines
  * @returns {[number, number][]}
  */
-function getProtectedLineRanges(lines) {
+function getDelimitedLineRanges(lines) {
   /** @type {[number, number][]} */
   const ranges = []
   let index = 0
@@ -57,6 +59,82 @@ function getProtectedLineRanges(lines) {
 }
 
 /**
+ * @param {string[]} lines
+ * @param {number} delimLineIndex 0-based
+ */
+function parseTablePreambleStartLine(lines, delimLineIndex) {
+  /** @type {number[]} */
+  const preambleLines = []
+  let lineIndex = delimLineIndex - 1
+
+  while (lineIndex >= 0) {
+    const trimmed = lines[lineIndex].trim()
+    if (!trimmed) break
+
+    if (isTableAttrLine(trimmed)) {
+      preambleLines.push(lineIndex)
+      lineIndex--
+      continue
+    }
+
+    if (BLOCK_TITLE_LINE.test(trimmed)) {
+      preambleLines.push(lineIndex)
+      lineIndex--
+      continue
+    }
+
+    break
+  }
+
+  return preambleLines.length > 0 ? Math.min(...preambleLines) : delimLineIndex
+}
+
+/**
+ * |=== テーブル全体（タイトル・属性行を含む）の行範囲。
+ *
+ * @param {string[]} lines
+ * @returns {[number, number][]}
+ */
+function getTableLineRanges(lines) {
+  /** @type {[number, number][]} */
+  const ranges = []
+  let index = 0
+
+  while (index < lines.length) {
+    if (!isTableDelimiterLine(lines[index])) {
+      index++
+      continue
+    }
+
+    const startLine = parseTablePreambleStartLine(lines, index)
+    let endLine = index
+    index++
+
+    while (index < lines.length) {
+      if (isTableDelimiterLine(lines[index])) {
+        endLine = index
+        index++
+        break
+      }
+      endLine = index
+      index++
+    }
+
+    ranges.push([startLine, endLine])
+  }
+
+  return ranges
+}
+
+/**
+ * @param {string[]} lines
+ * @returns {[number, number][]}
+ */
+function getProtectedLineRanges(lines) {
+  return [...getDelimitedLineRanges(lines), ...getTableLineRanges(lines)]
+}
+
+/**
  * @param {number} lineIndex
  * @param {[number, number][]} ranges
  */
@@ -95,9 +173,21 @@ function isRangeInsideProtected(startLine, endLine, ranges) {
  * @returns {ParsedEditUnit[]}
  */
 function extractDelimitedBlockUnits(lines) {
-  const protectedRanges = getProtectedLineRanges(lines)
+  const delimitedRanges = getDelimitedLineRanges(lines)
 
-  return protectedRanges.map(([start, end]) => ({
+  return delimitedRanges.map(([start, end]) => ({
+    adoc: lines.slice(start, end + 1).join('\n'),
+    startLine: start,
+    endLine: end,
+  }))
+}
+
+/**
+ * @param {string[]} lines
+ * @returns {ParsedEditUnit[]}
+ */
+function extractTableBlockUnits(lines) {
+  return getTableLineRanges(lines).map(([start, end]) => ({
     adoc: lines.slice(start, end + 1).join('\n'),
     startLine: start,
     endLine: end,
@@ -119,7 +209,10 @@ export function parseEditUnitsFromSource(source) {
 
   const protectedRanges = getProtectedLineRanges(lines)
   /** @type {ParsedEditUnit[]} */
-  const units = extractDelimitedBlockUnits(lines)
+  const units = [
+    ...extractDelimitedBlockUnits(lines),
+    ...extractTableBlockUnits(lines),
+  ]
 
   const doc = loadDocument(source)
 
@@ -137,9 +230,34 @@ export function parseEditUnitsFromSource(source) {
   }
 
   units.sort((a, b) => a.startLine - b.startLine)
+  const deduped = dedupeContainedUnits(units)
+  units.length = 0
+  units.push(...deduped)
   appendTrailingUnits(lines, units, protectedRanges)
 
   return units
+}
+
+/**
+ * 内包される編集ユニットを除去（テーブル保護後も visitBlocks が部分一致する場合がある）
+ *
+ * @param {ParsedEditUnit[]} units
+ * @returns {ParsedEditUnit[]}
+ */
+function dedupeContainedUnits(units) {
+  const sorted = [...units].sort((a, b) => a.startLine - b.startLine || a.endLine - b.endLine)
+  /** @type {ParsedEditUnit[]} */
+  const kept = []
+
+  for (const unit of sorted) {
+    const contained = kept.some(
+      (existing) =>
+        unit.startLine >= existing.startLine && unit.endLine <= existing.endLine
+    )
+    if (!contained) kept.push(unit)
+  }
+
+  return kept
 }
 
 /**

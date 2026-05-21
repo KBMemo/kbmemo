@@ -29,6 +29,10 @@ function writeEditModePreference(mode) {
   localStorage.setItem(EDIT_MODE_PREF_KEY, mode)
 }
 
+function removeLegacyGlobalAsciidoctorStylesheet() {
+  document.getElementById("kbmemo-adoc-preview-base")?.remove()
+}
+
 function imageFilesFrom(fileList) {
   return Array.from(fileList ?? []).filter(
     (file) => ACCEPTED_IMAGE_TYPE.test(file.type) || ACCEPTED_IMAGE_EXT.test(file.name)
@@ -292,6 +296,7 @@ export default class extends Controller {
     this._bindInsertEvent()
     this._editMode = "source"
     this.syncEditModeUi()
+    removeLegacyGlobalAsciidoctorStylesheet()
     await this.setupLivePreview(textarea)
     if (this.hasWysiwygPaneTarget && readEditModePreference() === "wysiwyg") {
       await this.switchEditMode("wysiwyg")
@@ -353,13 +358,17 @@ export default class extends Controller {
   async switchEditMode(mode) {
     if (this._editMode === mode) return
 
+    let flushedSource = null
     if (this._editMode === "wysiwyg") {
-      this._wysiwygEditor?.flush()
-      this.updateCodeMirrorSource(this.fieldTarget.value)
+      flushedSource = this._wysiwygEditor?.flush() ?? this.fieldTarget.value
     }
 
     this._editMode = mode
     writeEditModePreference(mode)
+
+    if (flushedSource !== null) {
+      this.syncSourceFromWysiwyg(flushedSource)
+    }
 
     if (mode === "wysiwyg") {
       const source = this.view?.state.doc.toString() ?? this.fieldTarget.value
@@ -390,7 +399,12 @@ export default class extends Controller {
       textarea.value = source
       textarea.dispatchEvent(new Event("input", { bubbles: true }))
     }
-    this.updateCodeMirrorSource(source)
+    // Hidden source CM is synced when leaving WYSIWYG (switchEditMode). Updating it
+    // on every WYSIWYG keystroke re-parses the full memo and spuriously warns on
+    // table blocks (asciidoctor: unterminated table block) while units stay valid.
+    if (this._editMode !== "wysiwyg") {
+      this.updateCodeMirrorSource(source)
+    }
     if (this._editMode === "source") {
       this._livePreview?.scheduleRender()
     }

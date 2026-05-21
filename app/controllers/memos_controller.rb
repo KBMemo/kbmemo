@@ -1,5 +1,5 @@
 class MemosController < ApplicationController
-  prepend_before_action :set_memo, only: %i[show edit update destroy draft checklist_toggle]
+  prepend_before_action :set_memo, only: %i[show edit update destroy draft revert_draft checklist_toggle]
   before_action :set_memo_groups_for_form, only: %i[new create edit update]
   include MemoSidebar
 
@@ -211,6 +211,57 @@ class MemosController < ApplicationController
           }
         end
       end
+    else
+      render json: { errors: @memo.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
+
+  def revert_draft
+    authorize @memo, :revert_draft?
+
+    unless @memo.file_committed_at.present?
+      render json: { errors: [ "コミット済みのメモのみ復元できます" ] }, status: :unprocessable_entity
+      return
+    end
+
+    repo = MemoRepository.new
+
+    begin
+      snapshot = repo.read_committed_snapshot!(@memo)
+    rescue MemoRepository::Error => e
+      render json: { errors: [ e.message ] }, status: :unprocessable_entity
+      return
+    end
+
+    @memo.body = snapshot[:body].to_s
+    @memo.title = snapshot[:title].presence || Memo::TITLE_PLACEHOLDER
+    @memo.slug = snapshot[:slug]
+    @memo.memo_directory = snapshot[:memo_directory]
+    @memo.properties = snapshot[:properties].presence || {}
+    @memo.assign_tags_from_list(Array(snapshot[:tags]).join(", "))
+
+    derived = Memo.derived_title_from_body(@memo.body)
+    @memo.title_manual = !Memo.title_unfilled_value?(@memo.title) && @memo.title.to_s.strip != derived.to_s.strip
+    @memo.slug_manual = true
+    @memo.apply_storage_slug!
+
+    committed_rel = snapshot[:relative_path]
+
+    begin
+      repo.write_work_tree_at!(committed_rel, snapshot[:file_content])
+      repo.remove_work_tree_files_for_memo_except!(@memo, keep_relative: committed_rel)
+    rescue MemoRepository::Error => e
+      render json: { errors: [ e.message ] }, status: :unprocessable_entity
+      return
+    end
+
+    committed_at = @memo.file_committed_at
+    if @memo.save(validate: false)
+      @memo.update_columns(updated_at: committed_at)
+      load_sidebar_memos_list
+      broadcast_updated_show_content
+      flash[:notice] = "最後にコミットした内容を読み込みました。"
+      render json: { edit_path: edit_memo_path(@memo) }
     else
       render json: { errors: @memo.errors.full_messages }, status: :unprocessable_entity
     end

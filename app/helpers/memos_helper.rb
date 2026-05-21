@@ -313,10 +313,13 @@ module MemosHelper
   def memo_html(body, source_memo: nil)
     return "".html_safe if body.blank?
 
+    text = body.to_s
+    text = MemoBodyReferences.normalize_image_macro_paths(text) if source_memo&.persisted?
+
     processed = MemoWikiLinks.new(
       scope: policy_scope(Memo),
       source_memo: source_memo
-    ).substitute(body.to_s)
+    ).substitute(text)
     processed = MemoDiagramMacro.new(memo: source_memo).substitute(processed)
 
     attrs = {

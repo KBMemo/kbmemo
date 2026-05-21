@@ -55,6 +55,7 @@ Rails.application.routes.draw do
     member do
       post :ai_chat, to: "memo_ai_chats#create"
       patch :draft
+      patch :revert_draft
       patch :checklist_toggle
       post "assets", to: "memo_assets#create", as: :assets
       get "assets/*filename/view", to: "memo_assets#view", as: :asset_view, format: false

@@ -1,4 +1,5 @@
 /** AsciiDoc の 1 編集単位に相当する Asciidoctor 出力要素 */
+import { hasUnitAdocSource, transferUnitAdocSource } from './wysiwyg_unit_source.js'
 const UNIT_CLASS_NAMES = new Set([
   'paragraph',
   'listingblock',
@@ -40,23 +41,26 @@ export function isStructuralContainer(el) {
  * @param {HTMLElement} editorEl
  */
 export function flattenAndWrapUnits(editorEl) {
-  /** @type {HTMLElement[]} */
+  /** @type {{ element: HTMLElement, sourceUnit: HTMLElement | null }[]} */
   const units = []
   collectEditUnits(editorEl, units)
 
   editorEl.replaceChildren()
-  for (const unit of units) {
+  for (const { element, sourceUnit } of units) {
     const wrapper = document.createElement('div')
     wrapper.className = 'wysiwyg-unit'
     wrapper.contentEditable = 'false'
-    wrapper.append(unit)
+    if (sourceUnit instanceof HTMLElement) {
+      transferUnitAdocSource(sourceUnit, wrapper)
+    }
+    wrapper.append(element)
     editorEl.append(wrapper)
   }
 }
 
 /**
  * @param {ParentNode} container
- * @param {HTMLElement[]} out
+ * @param {{ element: HTMLElement, sourceUnit: HTMLElement | null }[]} out
  */
 function collectEditUnits(container, out) {
   for (const child of [...container.childNodes]) {
@@ -68,7 +72,7 @@ function collectEditUnits(container, out) {
       const p = document.createElement('p')
       p.textContent = text
       paragraph.append(p)
-      out.push(paragraph)
+      out.push({ element: paragraph, sourceUnit: null })
       continue
     }
 
@@ -76,12 +80,13 @@ function collectEditUnits(container, out) {
     const el = /** @type {HTMLElement} */ (child)
 
     if (el.classList.contains('wysiwyg-unit')) {
+      const sourceUnit = hasUnitAdocSource(el) ? el : null
       for (const inner of el.childNodes) {
         if (inner.nodeType === Node.ELEMENT_NODE && inner.classList.contains('wysiwyg-source-editor')) {
           continue
         }
         if (inner.nodeType === Node.ELEMENT_NODE) {
-          out.push(/** @type {HTMLElement} */ (inner))
+          out.push({ element: /** @type {HTMLElement} */ (inner), sourceUnit })
         }
       }
       continue
@@ -93,7 +98,7 @@ function collectEditUnits(container, out) {
     }
 
     if (isEditUnitElement(el)) {
-      out.push(el)
+      out.push({ element: el, sourceUnit: null })
       continue
     }
 

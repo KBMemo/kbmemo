@@ -1,12 +1,12 @@
 import { asciidocBlockToHtml } from './asciidoc/blockConvert.js'
-import { htmlToAsciidoc, unitToAsciidoc } from './asciidoc/htmlToAsciidoc.js'
+import { unitToAsciidoc } from './asciidoc/htmlToAsciidoc.js'
+import { normalizeMemoImagePathsInSource } from '../memo_body_editor/image_syntax.js'
 import {
   getActiveUnitIndex,
   getCaretOffsetInUnit,
   parseEditUnitsFromSource,
   shouldSplitEditUnits,
 } from './asciidoc/parseEditUnits.js'
-import { refreshPreview } from './asciidoc/parseSession.js'
 import { renderPreviewHtml } from './preview.js'
 import {
   createWysiwygSourceEditor,
@@ -20,6 +20,12 @@ import {
   isWysiwygSourceComposing,
 } from './wysiwygSourceEditor.js'
 import { flattenAndWrapUnits } from './wysiwygUnits.js'
+import {
+  clearUnitAdocSource,
+  getUnitAdocSource,
+  setUnitAdocSource,
+  transferUnitAdocSource,
+} from './wysiwyg_unit_source.js'
 import { openEditorContextMenu } from './editorContextMenu.js'
 import {
   buildSourceSegments,
@@ -56,6 +62,9 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
     event.preventDefault()
     if (activeSourceUnit) return
     applyCommand(editorEl, button.getAttribute('data-cmd'), button.getAttribute('data-value'))
+    for (const unit of editorEl.querySelectorAll(':scope > .wysiwyg-unit')) {
+      clearUnitAdocSource(unit)
+    }
     wrapUnits(editorEl)
     scheduleSync()
   })
@@ -95,7 +104,7 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
   })
 
   function getDocumentSource() {
-    return htmlToAsciidoc(editorEl, { getSourceValue: getWysiwygSourceValue })
+    return collectDocumentSegments().fullSource
   }
 
   function rebuildSourceReplacingSegment(source, segmentIndex, newText) {
@@ -251,7 +260,8 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
           text = getWysiwygSourceValue(host)
         }
       } else {
-        text = unitToAsciidoc(unit)
+        const stored = getUnitAdocSource(unit)
+        text = stored ?? unitToAsciidoc(unit, getMemoId?.())
       }
 
       text = text.trim()
@@ -436,11 +446,12 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
     splitTimer = setTimeout(() => trySplitActiveUnit(host), SPLIT_DEBOUNCE_MS)
   }
 
-  function syncFromDom() {
+  function syncFromDom({ forceNotify = false } = {}) {
     if (isApplyingHistory || isRendering || isActiveUnitComposing()) return
     const next = getDocumentSourceForSync()
     const cursor = getCursorPositionForSync(next)
-    if (commitHistoryChange(next, cursor)) {
+    const changed = commitHistoryChange(next, cursor)
+    if (changed || forceNotify) {
       onSourceChange(next)
     }
   }
@@ -449,9 +460,33 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
     isRendering = true
     activeSourceUnit = null
     const memoId = getMemoId?.()
-    const { html } = refreshPreview(source, { memoId })
-    renderPreviewHtml(html, editorEl, memoId)
-    wrapUnits(editorEl, { skipDeactivate: true })
+    const normalizedSource = memoId
+      ? normalizeMemoImagePathsInSource(source, memoId)
+      : source
+    editorEl.replaceChildren()
+
+    for (const parsed of parseEditUnitsFromSource(normalizedSource)) {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'wysiwyg-unit'
+      wrapper.contentEditable = 'false'
+      setUnitAdocSource(wrapper, parsed.adoc)
+
+      if (!parsed.adoc.trim()) {
+        const empty = document.createElement('div')
+        empty.className = 'paragraph'
+        empty.innerHTML = '<p></p>'
+        wrapper.append(empty)
+      } else {
+        const temp = document.createElement('div')
+        renderPreviewHtml(asciidocBlockToHtml(parsed.adoc), temp, memoId)
+        while (temp.firstChild) {
+          wrapper.append(temp.firstChild)
+        }
+      }
+
+      editorEl.append(wrapper)
+    }
+
     isRendering = false
   }
 
@@ -473,7 +508,8 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
     if (activeSourceUnit) {
       deactivateSourceUnit(activeSourceUnit)
     }
-    syncFromDom()
+    syncFromDom({ forceNotify: true })
+    return getDocumentSourceForSync()
   }
 
   /**
@@ -503,7 +539,8 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
     }
     removeEmptyRenderedUnits(new Set([unit]))
 
-    const initialSource = source ?? unitToAsciidoc(unit).trim()
+    const initialSource = source ?? getUnitAdocSource(unit) ?? unitToAsciidoc(unit, getMemoId?.()).trim()
+    setUnitAdocSource(unit, initialSource)
     unit.replaceChildren()
     unit.classList.add('is-source')
     unit.contentEditable = 'false'
@@ -549,6 +586,7 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
 
     const adoc = getWysiwygSourceValue(host)
     destroyWysiwygSourceEditor(host)
+    setUnitAdocSource(unit, adoc)
 
     if (!adoc.trim()) {
       removeEmptyUnit(unit)
@@ -588,7 +626,7 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
     for (const unit of [...editorEl.querySelectorAll(':scope > .wysiwyg-unit')]) {
       if (keep.has(unit)) continue
       if (unit.classList.contains('is-source')) continue
-      if (!unitToAsciidoc(unit).trim()) {
+      if (!unitToAsciidoc(unit, getMemoId?.()).trim()) {
         unit.remove()
       }
     }
@@ -680,6 +718,7 @@ export function createWysiwygEditor(editorEl, toolbarEl, { onSourceChange, paneE
   return {
     renderFromSource,
     flush,
+    getDocumentSource,
     wrapUnits,
     getActiveSourceView,
     ensureSourceEditable,

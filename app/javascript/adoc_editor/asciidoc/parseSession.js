@@ -1,5 +1,6 @@
 import { loadDocument } from './instance.js'
 import { computeHighlights } from './highlight.js'
+import { normalizeMemoImagePathsInSource } from '../../memo_body_editor/image_syntax.js'
 
 /** @typedef {{ from: number, to: number, className: string }} HighlightSpan */
 /** @typedef {{ source: string, doc: import('@asciidoctor/core').Document, html: string | null, highlights: HighlightSpan[] }} ParseCache */
@@ -48,6 +49,11 @@ function previewConvertOptions(memoId) {
  * @param {{ memoId?: string | null }} [options]
  */
 export function refreshPreview(source, { memoId } = {}) {
+  const previewSource =
+    memoId != null && memoId !== ""
+      ? normalizeMemoImagePathsInSource(source, memoId)
+      : source
+
   if (cache.source === source && cache.html && cachePreviewMemoId === memoId) {
     return { html: cache.html, highlights: cache.highlights }
   }
@@ -59,7 +65,9 @@ export function refreshPreview(source, { memoId } = {}) {
     cachePreviewMemoId = undefined
   }
 
-  cache.html = cache.doc.convert(previewConvertOptions(memoId))
+  const previewDoc =
+    previewSource === source ? cache.doc : loadDocument(previewSource)
+  cache.html = previewDoc.convert(previewConvertOptions(memoId))
   cachePreviewMemoId = memoId
   return { html: cache.html, highlights: cache.highlights }
 }
