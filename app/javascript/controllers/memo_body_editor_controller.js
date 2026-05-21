@@ -11,6 +11,7 @@ import {
 const ACCEPTED_IMAGE_TYPE = /^image\/(png|jpeg|gif|webp|svg\+xml)$/i
 const ACCEPTED_IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i
 const LIVE_PREVIEW_PREF_KEY = "kbmemo_memo_editor_live_preview"
+const EDIT_MODE_PREF_KEY = "kbmemo_memo_editor_edit_mode"
 
 function readLivePreviewPreference() {
   return localStorage.getItem(LIVE_PREVIEW_PREF_KEY) === "1"
@@ -18,6 +19,14 @@ function readLivePreviewPreference() {
 
 function writeLivePreviewPreference(enabled) {
   localStorage.setItem(LIVE_PREVIEW_PREF_KEY, enabled ? "1" : "0")
+}
+
+function readEditModePreference() {
+  return localStorage.getItem(EDIT_MODE_PREF_KEY) === "wysiwyg" ? "wysiwyg" : "source"
+}
+
+function writeEditModePreference(mode) {
+  localStorage.setItem(EDIT_MODE_PREF_KEY, mode)
 }
 
 function imageFilesFrom(fileList) {
@@ -107,7 +116,21 @@ function shouldHandleImagePaste(clipboardData) {
 // 本文 textarea（送信・memo-draft の参照用）と CodeMirror を同期する。
 // CodeMirror は動的 import で初回のみ別チャンク読み込み。
 export default class extends Controller {
-  static targets = ["field", "host", "imageInput", "uploadError", "wysiwygToggle", "previewHost", "previewSkinSelect", "previewToggle"]
+  static targets = [
+    "field",
+    "host",
+    "imageInput",
+    "uploadError",
+    "wysiwygToggle",
+    "previewHost",
+    "previewSkinSelect",
+    "previewToggle",
+    "sourcePane",
+    "wysiwygPane",
+    "wysiwygHost",
+    "wysiwygToolbar",
+    "editModeTab"
+  ]
   static values = {
     labelId: String,
     wikiCompletionsUrl: String,
@@ -267,7 +290,12 @@ export default class extends Controller {
     this._wysiwygPackConfig = wysiwygPackConfig
     this.syncWysiwygUi()
     this._bindInsertEvent()
+    this._editMode = "source"
+    this.syncEditModeUi()
     await this.setupLivePreview(textarea)
+    if (this.hasWysiwygPaneTarget && readEditModePreference() === "wysiwyg") {
+      await this.switchEditMode("wysiwyg")
+    }
   }
 
   async setupLivePreview(textarea) {
@@ -313,6 +341,87 @@ export default class extends Controller {
       if (previewPane) {
         previewPane.setAttribute("aria-hidden", this._livePreviewEnabled ? "false" : "true")
       }
+    }
+  }
+
+  setEditMode(event) {
+    const mode = event.currentTarget?.dataset?.editMode
+    if (mode !== "source" && mode !== "wysiwyg") return
+    void this.switchEditMode(mode)
+  }
+
+  async switchEditMode(mode) {
+    if (this._editMode === mode) return
+
+    if (this._editMode === "wysiwyg") {
+      this._wysiwygEditor?.flush()
+      this.updateCodeMirrorSource(this.fieldTarget.value)
+    }
+
+    this._editMode = mode
+    writeEditModePreference(mode)
+
+    if (mode === "wysiwyg") {
+      const source = this.view?.state.doc.toString() ?? this.fieldTarget.value
+      await this.ensureWysiwygEditor()
+      this._wysiwygEditor.renderFromSource(source)
+      this._wysiwygEditor.focus()
+    }
+
+    this.syncEditModeUi()
+  }
+
+  async ensureWysiwygEditor() {
+    if (this._wysiwygEditor || !this.hasWysiwygHostTarget || !this.hasWysiwygToolbarTarget) return
+
+    const { createMemoWysiwygEditor } = await import("../adoc_editor/wysiwyg_mount.js")
+    this._wysiwygEditor = createMemoWysiwygEditor({
+      editorEl: this.wysiwygHostTarget,
+      toolbarEl: this.wysiwygToolbarTarget,
+      paneEl: this.hasWysiwygPaneTarget ? this.wysiwygPaneTarget : null,
+      getMemoId: () => this.memoIdValue || null,
+      onSourceChange: (source) => this.syncSourceFromWysiwyg(source)
+    })
+  }
+
+  syncSourceFromWysiwyg(source) {
+    const textarea = this.fieldTarget
+    if (textarea.value !== source) {
+      textarea.value = source
+      textarea.dispatchEvent(new Event("input", { bubbles: true }))
+    }
+    this.updateCodeMirrorSource(source)
+    if (this._editMode === "source") {
+      this._livePreview?.scheduleRender()
+    }
+  }
+
+  updateCodeMirrorSource(source) {
+    if (!this.view) return
+    const cur = this.view.state.doc.toString()
+    if (cur === source) return
+    this.view.dispatch({
+      changes: { from: 0, to: cur.length, insert: source }
+    })
+  }
+
+  syncEditModeUi() {
+    const isWysiwyg = this._editMode === "wysiwyg"
+    this.element.classList.toggle("memo-body-editor--wysiwyg-mode", isWysiwyg)
+
+    if (this.hasSourcePaneTarget) {
+      this.sourcePaneTarget.hidden = isWysiwyg
+      this.sourcePaneTarget.setAttribute("aria-hidden", isWysiwyg ? "true" : "false")
+    }
+    if (this.hasWysiwygPaneTarget) {
+      this.wysiwygPaneTarget.hidden = !isWysiwyg
+      this.wysiwygPaneTarget.setAttribute("aria-hidden", isWysiwyg ? "false" : "true")
+    }
+
+    for (const tab of this.editModeTabTargets) {
+      const active = tab.dataset.editMode === this._editMode
+      tab.classList.toggle("is-active", active)
+      tab.setAttribute("aria-pressed", active ? "true" : "false")
     }
   }
 
@@ -367,6 +476,8 @@ export default class extends Controller {
   disconnect() {
     this._unbindInsertEvent()
     this._unbindDragDrop()
+    this._wysiwygEditor?.flush()
+    this._wysiwygEditor = null
     this._livePreview?.destroy()
     this._livePreview = null
     if (this.fieldTarget && this._onTextareaExternalChange) {
@@ -599,6 +710,17 @@ export default class extends Controller {
   }
 
   async insertAtCursor(text) {
+    if (this._editMode === "wysiwyg" && this._wysiwygEditor) {
+      const textarea = this.fieldTarget
+      const cur = textarea.value
+      const sep = cur.length > 0 && !cur.endsWith("\n") ? "\n\n" : ""
+      const next = cur + sep + text
+      this.syncSourceFromWysiwyg(next)
+      this._wysiwygEditor.renderFromSource(next)
+      this._wysiwygEditor.focus()
+      return
+    }
+
     if (!this.view) {
       this.showUploadError("エディタの準備ができていません。少し待ってから再度お試しください。")
       return
@@ -638,6 +760,10 @@ export default class extends Controller {
     const next = this.fieldTarget.value
     const cur = this.view.state.doc.toString()
     if (next === cur) return
+    if (this._editMode === "wysiwyg" && this._wysiwygEditor) {
+      this._wysiwygEditor.renderFromSource(next)
+      return
+    }
     this.view.dispatch({
       changes: { from: 0, to: cur.length, insert: next }
     })
