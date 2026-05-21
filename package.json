@@ -9,13 +9,14 @@
     "vite-plugin-ruby": "^5.2.1"
   },
   "dependencies": {
+    "@asciidoctor/core": "^3.0.4",
     "@codemirror/autocomplete": "^6.20.2",
     "@codemirror/language": "^6.12.3",
     "@codemirror/state": "^6.6.0",
     "@codemirror/view": "^6.43.0",
     "@hotwired/turbo-rails": "^8.0.23",
     "codemirror": "^6.0.2",
-    "codemirror-asciidoc": "^2.0.1",
+    "highlight.js": "^11.11.1",
     "codemirror-lang-mermaid": "^0.5.0",
     "font-awesome": "^4.7.0",
     "katex": "^0.16.11",

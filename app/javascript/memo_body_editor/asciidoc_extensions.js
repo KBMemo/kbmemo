@@ -1,5 +1,3 @@
-import { StreamLanguage, syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language"
-import { asciidoc } from "codemirror-asciidoc"
 import { Decoration, MatchDecorator, ViewPlugin } from "@codemirror/view"
 
 const wikiLinkMatcher = new MatchDecorator({
@@ -20,10 +18,8 @@ const wikiLinkHighlight = ViewPlugin.fromClass(
   { decorations: (v) => v.decorations }
 )
 
-export function asciidocExtensions() {
-  return [
-    StreamLanguage.define(asciidoc),
-    syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-    wikiLinkHighlight
-  ]
+/** Asciidoctor AST ハイライト + KBMemo 固有の wiki リンク装飾（初回 connect 時に別チャンク読み込み） */
+export async function loadAsciidocExtensions() {
+  const { asciidocHighlight } = await import("../adoc_editor/mount.js")
+  return [...asciidocHighlight, wikiLinkHighlight]
 }

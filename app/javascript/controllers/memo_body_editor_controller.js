@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { asciidocExtensions } from "../memo_body_editor/asciidoc_extensions"
+import { loadAsciidocExtensions } from "../memo_body_editor/asciidoc_extensions"
 import { wikiAutocompletion } from "../memo_body_editor/wiki_completion"
 import { listContinuationExtension } from "../memo_body_editor/list_continuation"
 import {
@@ -211,13 +211,14 @@ export default class extends Controller {
     const wysiwygPackConfig = { getMemoId, getWikiLabelsConfig }
     this._wysiwygCompartment = new Compartment()
     this._wysiwygEnabled = readWysiwygPreference()
+    const asciidocExts = await loadAsciidocExtensions()
 
     const state = EditorState.create({
       doc: startDoc,
       extensions: [
         basicSetup,
         EditorView.lineWrapping,
-        ...asciidocExtensions(),
+        ...asciidocExts,
         this._wysiwygCompartment.of(
           this._wysiwygEnabled ? wysiwygExtensionPack(wysiwygPackConfig) : []
         ),
