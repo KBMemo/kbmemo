@@ -1,0 +1,24 @@
+ruby:
+  editable = local_assigns.fetch(:editable, false)
+  all_tag_names = memo_tag_names_for_datalist
+  taken_lower = memo.tags.map { |t| t.name.downcase }
+  datalist_names = all_tag_names.reject { |n| taken_lower.include?(n.downcase) }
+  list_id = "memo_show_tag_suggestions_#{memo.id}"
+
+- if editable
+  .mb-6
+    = hidden_field_tag "memo_show_tag_list", memo.tags.map(&:name).join(", "), data: { memo_show_metadata_target: "tagList" }
+    div class="flex min-h-9 flex-wrap items-center gap-2 border-0 border-b border-zinc-300 pb-1 pt-0.5 focus-within:border-zinc-900"
+      div.flex.flex-wrap.items-center.gap-2 data-memo-show-metadata-target="tagPills"
+      = text_field_tag "memo_show_tag_input", "", id: "memo_show_tag_input_#{memo.id}", autocomplete: "off", placeholder: "タグを入力", list: list_id, class: memo_form_tag_input_inline, aria: { label: "タグ" }, data: { memo_show_metadata_target: "tagInput", action: "keydown->memo-show-metadata#tagInputKeydown change->memo-show-metadata#tagInputChange input->memo-show-metadata#tagInputInput" }
+    datalist id=list_id
+      - datalist_names.each do |name|
+        option value=name
+- elsif memo.tags.any?
+  ul.mb-6.flex.flex-wrap.gap-2
+    - memo.tags.each do |tag|
+      li
+        = link_to tag.name,
+          memo_sidebar_open_memo_path(memo, sidebar_view: "tag", tag_id: tag.id),
+          class: "inline-block rounded-full bg-white px-3 py-1 text-sm text-zinc-700 ring-1 ring-zinc-200 underline decoration-zinc-300 hover:bg-zinc-50 hover:text-zinc-900",
+          title: "サイドバーでこのタグを表示"

@@ -1,5 +1,5 @@
 class MemosController < ApplicationController
-  prepend_before_action :set_memo, only: %i[show edit update destroy draft commit revert_draft checklist_toggle]
+  prepend_before_action :set_memo, only: %i[show edit update destroy draft commit revert_draft checklist_toggle update_directory update_tags]
   before_action :set_memo_groups_for_form, only: %i[new create edit update]
   include MemoSidebar
 
@@ -121,10 +121,33 @@ class MemosController < ApplicationController
     checked = ActiveModel::Type::Boolean.new.cast(params[:checked])
     MemoChecklist.toggle!(@memo, id: params.require(:checklist_id), checked: checked)
     @memo.save(validate: false)
-    html = render_to_string(partial: "memos/show_content", locals: { memo: @memo }, formats: [ :html ])
-    render turbo_stream: turbo_stream.replace(helpers.dom_id(@memo), html: html)
+    render_show_content_turbo_stream
   rescue MemoChecklist::Error => e
     render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def update_directory
+    authorize @memo, :update?
+    dir = policy_scope(MemoDirectory).find(params.require(:memo_directory_id))
+    if dir.root? || dir.top_level_bucket?
+      render json: { error: "Home / Share / Public の直下には保存できません" }, status: :unprocessable_entity
+      return
+    end
+
+    apply_directory_change!(@memo, dir)
+    render_show_content_turbo_stream
+  rescue ActiveRecord::RecordNotFound
+    render json: { error: "ディレクトリが見つかりません" }, status: :not_found
+  rescue MemoRepository::Error => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def update_tags
+    authorize @memo, :update?
+    @memo.assign_tags_from_list(params.require(:tag_list))
+    @memo.save(validate: false)
+    @memo.touch
+    render_show_content_turbo_stream
   end
 
   def draft
@@ -295,6 +318,27 @@ class MemosController < ApplicationController
   def broadcast_updated_show_content
     html = render_to_string(partial: "memos/show_content", locals: { memo: @memo }, formats: [ :html ])
     @memo.broadcast_replace(html: html)
+  end
+
+  def render_show_content_turbo_stream
+    html = render_to_string(partial: "memos/show_content", locals: { memo: @memo }, formats: [ :html ])
+    render turbo_stream: turbo_stream.replace(helpers.dom_id(@memo), html: html)
+  end
+
+  def apply_directory_change!(memo, dir)
+    repo = MemoRepository.new
+    old_rel = repo.relative_path_for(memo)
+    old_abs = repo.absolute_path_for(memo)
+
+    memo.memo_directory = dir
+    memo.apply_storage_slug!
+
+    new_rel = repo.relative_path_for(memo)
+    if old_abs.exist? && old_rel.to_s != new_rel.to_s
+      repo.relocate_file!(from_relative: old_rel, to_relative: new_rel)
+    end
+
+    memo.save(validate: false)
   end
 
   # show は set_memo・authorize のあと未ログインでも全体公開のみ閲覧可。それ以外の action は通常どおり require_account。

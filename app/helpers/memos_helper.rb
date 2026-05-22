@@ -456,6 +456,25 @@ module MemosHelper
     Tag.order(:name).pluck(:id, :name).map { |id, name| { id: id, name: name } }
   end
 
+  def memo_show_metadata_stimulus_data(memo)
+    return {} unless policy(memo).update?
+
+    {
+      controller: "memo-show-metadata",
+      memo_show_metadata_directory_url_value: update_directory_memo_path(memo),
+      memo_show_metadata_tags_url_value: update_tags_memo_path(memo),
+      memo_show_metadata_tag_catalog_value: memo_tag_catalog_for_pills.to_json,
+      memo_show_metadata_memo_id_value: memo.id
+    }
+  end
+
+  def memo_show_content_tag_options(memo)
+    { id: dom_id(memo) }.tap do |opts|
+      data = memo_show_metadata_stimulus_data(memo)
+      opts[:data] = data if data.present?
+    end
+  end
+
   # 編集フォーム用：下線のみのコンパクト入力
   def memo_sidebar_search_input
     [

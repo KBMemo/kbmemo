@@ -25,6 +25,9 @@ application.register("memo-body-editor", MemoBodyEditorController)
 import MemoChecklistController from "./memo_checklist_controller"
 application.register("memo-checklist", MemoChecklistController)
 
+import MemoShowMetadataController from "./memo_show_metadata_controller"
+application.register("memo-show-metadata", MemoShowMetadataController)
+
 import BoardAddMemoController from "./board_add_memo_controller"
 application.register("board-add-memo", BoardAddMemoController)
 
