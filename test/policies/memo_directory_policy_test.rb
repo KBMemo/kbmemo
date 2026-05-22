@@ -23,4 +23,19 @@ class MemoDirectoryPolicyTest < ActiveSupport::TestCase
     assert MemoDirectoryPolicy.new(accounts(:one), work).update?
     assert_not MemoDirectoryPolicy.new(accounts(:one), memo_directories(:home)).update?
   end
+
+  test "destroy denied when subtree has memos or user lacks path access" do
+    empty = MemoDirectory.create!(parent: memo_directories(:home_u_one), path_segment: "policy-empty", label: "Policy empty")
+    assert MemoDirectoryPolicy.new(accounts(:one), empty).destroy?
+
+    Memo.create!(
+      account: accounts(:one),
+      memo_directory: empty,
+      title: "Block delete",
+      slug: "block-delete-policy-test",
+      body: "body"
+    )
+    assert_not MemoDirectoryPolicy.new(accounts(:one), empty).destroy?
+    assert_not MemoDirectoryPolicy.new(accounts(:two), empty).destroy?
+  end
 end

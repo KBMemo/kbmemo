@@ -1,0 +1,4 @@
+.flex.min-w-0.flex-1.items-center.gap-0.5
+  = link_to memos_path(memo_directory_id: dir.id), class: "#{memo_directory_nav_link_classes(dir)} min-w-0 flex-1 truncate", draggable: "false", data: drop_data do
+    span.truncate = dir.display_name
+  = render "memos/memo_directory_nav_actions", dir: dir

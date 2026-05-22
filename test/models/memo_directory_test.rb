@@ -60,4 +60,58 @@ class MemoDirectoryTest < ActiveSupport::TestCase
     assert_not work.valid?
     assert_includes work.errors[:parent_id].join, "配下"
   end
+
+  test "display_name uses label or path_segment not full_path" do
+    work = memo_directories(:work)
+    assert_equal "仕事", work.display_name
+
+    unlabeled = MemoDirectory.create!(parent: memo_directories(:public_u_one), path_segment: "asciidoc", label: "")
+    assert_equal "asciidoc", unlabeled.display_name
+    assert_equal "public/u-1/asciidoc", unlabeled.full_path
+  end
+
+  test "deletable is false when subtree has memos" do
+    empty = MemoDirectory.create!(parent: memo_directories(:home_u_one), path_segment: "empty", label: "Empty")
+    assert empty.deletable?
+
+    Memo.create!(
+      account: accounts(:one),
+      memo_directory: empty,
+      title: "Blocked delete",
+      slug: "blocked-delete-test",
+      body: "body"
+    )
+    assert_not empty.deletable?
+    assert empty.memos_in_subtree?
+  end
+
+  test "deletable is false when a board references the directory" do
+    empty = MemoDirectory.create!(parent: memo_directories(:home_u_one), path_segment: "board-dir", label: "Board dir")
+    Board.create!(account: accounts(:one), title: "Linked board", memo_directory: empty)
+
+    assert_not empty.deletable?
+    assert empty.boards_in_subtree?
+  end
+
+  test "deletable is false when child directories remain" do
+    empty = MemoDirectory.create!(parent: memo_directories(:home_u_one), path_segment: "parent", label: "Parent")
+    MemoDirectory.create!(parent: empty, path_segment: "nest", label: "Nest")
+
+    assert_not empty.deletable?
+    assert_not empty.memos_in_subtree?
+  end
+
+  test "delete_navigation_fallback prefers older then younger sibling then parent" do
+    parent = MemoDirectory.create!(parent: memo_directories(:home_u_one), path_segment: "nav-parent", label: "Nav parent")
+    first = MemoDirectory.create!(parent: parent, path_segment: "aaa", label: "First")
+    middle = MemoDirectory.create!(parent: parent, path_segment: "bbb", label: "Middle")
+    MemoDirectory.create!(parent: parent, path_segment: "ccc", label: "Last")
+
+    assert_equal first, middle.delete_navigation_fallback
+    assert_equal middle, first.delete_navigation_fallback
+
+    only_parent = MemoDirectory.create!(parent: memo_directories(:home_u_one), path_segment: "solo-parent", label: "Solo parent")
+    solo = MemoDirectory.create!(parent: only_parent, path_segment: "solo", label: "Solo")
+    assert_equal only_parent, solo.delete_navigation_fallback
+  end
 end

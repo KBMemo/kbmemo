@@ -41,6 +41,10 @@ module MemoSidebar
           @memo.tags.order(:name).first
         end
       end
+
+    @nav_open_directory_ids = Array(params[:nav_open_directory_ids]).filter_map do |id|
+      Integer(id, exception: false)
+    end
   end
 
   def redirect_memo_tag_sidebar_to_memo_tag

@@ -193,6 +193,9 @@ module MemosHelper
 
   # 現在選択ディレクトリが配下にあれば details を開く
   def memo_directory_nav_details_open?(directory)
+    if defined?(@nav_open_directory_ids) && @nav_open_directory_ids.include?(directory.id)
+      return true
+    end
     return true unless defined?(@current_memo_directory) && @current_memo_directory
 
     memo_directory_tree_details_open?(directory, @current_memo_directory)
@@ -212,7 +215,10 @@ module MemosHelper
   end
 
   def memo_directory_nav_details_attrs(directory)
-    attrs = { class: "memo-directory-nav-details group w-full min-w-0" }
+    attrs = {
+      class: "memo-directory-nav-details group w-full min-w-0",
+      data: { memo_directory_id: directory.id }
+    }
     attrs[:open] = true if memo_directory_nav_details_open?(directory)
     attrs
   end

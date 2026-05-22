@@ -26,6 +26,7 @@ class MemoDirectory < ApplicationRecord
   has_many :children, class_name: "MemoDirectory", foreign_key: :parent_id, inverse_of: :parent,
     dependent: :restrict_with_exception
   has_many :memos, inverse_of: :memo_directory, dependent: :restrict_with_exception
+  has_many :boards, inverse_of: :memo_directory, dependent: :restrict_with_exception
 
   validates :label, presence: true, allow_blank: true
   validates :full_path, presence: true, uniqueness: true
@@ -59,7 +60,7 @@ class MemoDirectory < ApplicationRecord
   def display_name
     return "ルート" if root?
 
-    label.presence || full_path.presence || path_segment
+    label.presence || path_segment.presence || full_path
   end
 
   # ルートから各階層のラベル（未設定時は path_segment）を / で連結（例: /Home/kensei）
@@ -80,16 +81,38 @@ class MemoDirectory < ApplicationRecord
   end
 
   def deletable?
-    return false if root?
-    return false if PROTECTED_BUCKET_PATHS.include?(full_path)
-    return false if full_path.match?(user_space_root_regex)
+    return false if protected_from_structure_changes?
+    return false if memos_in_subtree?
+    return false if boards_in_subtree?
+    return false if children.exists?
 
     true
   end
 
-  # 親の変更（ディレクトリの移動）が許されるか。保護パスは deletable? と同じ。
+  def memos_in_subtree?
+    Memo.exists?(memo_directory_id: subtree_directory_ids)
+  end
+
+  def boards_in_subtree?
+    Board.exists?(memo_directory_id: subtree_directory_ids)
+  end
+
+  # 削除後にサイドバーで表示を移す先（兄 → 弟 → 親の順）
+  def delete_navigation_fallback
+    par = parent || self.class.root
+    siblings = par.children.order(:full_path).to_a
+    index = siblings.index(self)
+    return par if index.nil?
+
+    return siblings[index - 1] if index.positive?
+    return siblings[index + 1] if index + 1 < siblings.length
+
+    par
+  end
+
+  # 親の変更（ディレクトリの移動）が許されるか。保護パスのみ不可（中身の有無は問わない）。
   def reparentable?
-    deletable?
+    !protected_from_structure_changes?
   end
 
   # 最上位（ルート）の直下か（home / share / public など）
@@ -135,6 +158,14 @@ class MemoDirectory < ApplicationRecord
   end
 
   private
+
+  def protected_from_structure_changes?
+    return true if root?
+    return true if PROTECTED_BUCKET_PATHS.include?(full_path)
+    return true if full_path.match?(user_space_root_regex)
+
+    false
+  end
 
   def parent_id_changed_for_validation?
     will_save_change_to_parent_id? || (new_record? && parent_id.present?)

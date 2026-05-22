@@ -3,7 +3,12 @@ import "../styles/application.css"
 import "@hotwired/turbo-rails"
 import "../../javascript/controllers"
 import { applyStoredPreviewSkin } from "../../javascript/adoc_editor/preview_skin.js"
-import { createIcons, BookOpen, CircleHelp, Copy, Eye, GripVertical, PanelLeftOpen } from "lucide"
+import {
+  applyOpenDirectoryIds,
+  loadOpenDirectoryIds,
+  syncOpenDirectoryIdsFromPanel
+} from "../../javascript/memo_directory_nav_open.js"
+import { createIcons, BookOpen, CircleHelp, Copy, Eye, GripVertical, PanelLeftOpen, Pencil, Plus, Trash2 } from "lucide"
 
 const renderLucideIcons = () => {
   createIcons({
@@ -13,7 +18,10 @@ const renderLucideIcons = () => {
       Copy,
       Eye,
       GripVertical,
-      PanelLeftOpen
+      PanelLeftOpen,
+      Pencil,
+      Plus,
+      Trash2
     }
   })
 }
@@ -57,8 +65,12 @@ function restoreMemosEditorScroll() {
 
 document.addEventListener("turbo:before-stream-render", (event) => {
   const streamElement = event.target
+  const streamTarget = streamElement?.getAttribute?.("target")
   if (streamElement?.tagName === "TURBO-STREAM" && memoStreamTargetId(streamElement)) {
     captureMemosEditorScroll()
+  }
+  if (streamTarget === "memos_list_panel") {
+    syncOpenDirectoryIdsFromPanel()
   }
 
   const orig = event.detail?.render
@@ -68,8 +80,12 @@ document.addEventListener("turbo:before-stream-render", (event) => {
     const result = orig(streamElement)
     Promise.resolve(result).finally(() => {
       queueMicrotask(() => {
+        const target = streamElement?.getAttribute?.("target")
         if (memoStreamTargetId(streamElement)) {
           restoreMemosEditorScroll()
+        }
+        if (target === "memos_list_panel") {
+          applyOpenDirectoryIds(loadOpenDirectoryIds())
         }
         scheduleLucideIconsAfterStream()
       })

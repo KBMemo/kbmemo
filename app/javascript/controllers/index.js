@@ -46,6 +46,12 @@ application.register("memo-diagram-editor", MemoDiagramEditorController)
 import ExpandableHintController from "./expandable_hint_controller"
 application.register("expandable-hint", ExpandableHintController)
 
+import MemoDirectoryNavOpenController from "./memo_directory_nav_open_controller"
+application.register("memo-directory-nav-open", MemoDirectoryNavOpenController)
+
+import MemoDirectoryDialogController from "./memo_directory_dialog_controller"
+application.register("memo-directory-dialog", MemoDirectoryDialogController)
+
 import MemoDirectoryDndController from "./memo_directory_dnd_controller"
 application.register("memo-directory-dnd", MemoDirectoryDndController)
 

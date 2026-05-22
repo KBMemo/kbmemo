@@ -22,6 +22,11 @@ class MemoDirectoriesController < ApplicationController
       @memo_directory.parent = parent if parent
     end
     prepare_parent_options
+    if dialog_request?
+      @lock_parent = @memo_directory.parent.present?
+      render partial: "dialog_form", layout: false
+      return
+    end
   end
 
   def create
@@ -33,23 +38,42 @@ class MemoDirectoriesController < ApplicationController
       unless parent
         @memo_directory.errors.add(:parent_id, "指定できない親です")
         prepare_parent_options
-        render :new, status: :unprocessable_entity
+        if dialog_request?
+          @lock_parent = false
+          render_dialog_form_stream(status: :unprocessable_entity)
+        else
+          render :new, status: :unprocessable_entity
+        end
         return
       end
       @memo_directory.parent = parent
     end
     authorize @memo_directory
     if @memo_directory.save
-      redirect_to memo_directories_path, notice: "ディレクトリを作成しました。"
+      if dialog_request?
+        flash.now[:notice] = "ディレクトリを作成しました。"
+        render_sidebar_refresh_stream
+      else
+        redirect_to memo_directories_path, notice: "ディレクトリを作成しました。"
+      end
     else
       prepare_parent_options
-      render :new, status: :unprocessable_entity
+      if dialog_request?
+        @lock_parent = @memo_directory.parent.present?
+        render_dialog_form_stream(status: :unprocessable_entity)
+      else
+        render :new, status: :unprocessable_entity
+      end
     end
   end
 
   def edit
     authorize @memo_directory
     prepare_parent_options
+    if dialog_request?
+      render partial: "dialog_form", layout: false
+      return
+    end
   end
 
   def update
@@ -66,7 +90,11 @@ class MemoDirectoriesController < ApplicationController
     if parent_changing && !@memo_directory.reparentable?
       flash.now[:alert] = "このディレクトリは移動できません。"
       prepare_parent_options
-      render :edit, status: :unprocessable_entity
+      if dialog_request?
+        render_dialog_form_stream(status: :unprocessable_entity)
+      else
+        render :edit, status: :unprocessable_entity
+      end
       return
     end
 
@@ -75,7 +103,11 @@ class MemoDirectoriesController < ApplicationController
       @memo_directory.assign_attributes(attrs)
       @memo_directory.errors.add(:parent_id, "指定できない親です")
       prepare_parent_options
-      render :edit, status: :unprocessable_entity
+      if dialog_request?
+        render_dialog_form_stream(status: :unprocessable_entity)
+      else
+        render :edit, status: :unprocessable_entity
+      end
       return
     end
 
@@ -100,39 +132,120 @@ class MemoDirectoriesController < ApplicationController
             repo.relocate_file!(from_relative: old, to_relative: nxt) if old.present? && old != nxt
           end
         rescue MemoRepository::Error => e
-          flash[:alert] = "ディレクトリは更新しましたが、Git 上のファイル移動に失敗しました: #{e.message}"
-          redirect_to memo_directories_path
+          if dialog_request?
+            flash.now[:alert] = "ディレクトリは更新しましたが、Git 上のファイル移動に失敗しました: #{e.message}"
+            render_sidebar_refresh_stream
+          else
+            flash[:alert] = "ディレクトリは更新しましたが、Git 上のファイル移動に失敗しました: #{e.message}"
+            redirect_to memo_directories_path
+          end
           return
         end
       end
 
-      redirect_to memo_directories_path, notice: "ディレクトリを更新しました。"
+      if dialog_request?
+        flash.now[:notice] = "ディレクトリを更新しました。"
+        render_sidebar_refresh_stream
+      else
+        redirect_to memo_directories_path, notice: "ディレクトリを更新しました。"
+      end
     else
       prepare_parent_options
-      render :edit, status: :unprocessable_entity
+      if dialog_request?
+        render_dialog_form_stream(status: :unprocessable_entity)
+      else
+        render :edit, status: :unprocessable_entity
+      end
     end
   end
 
   def destroy
     if @memo_directory.root?
       skip_authorization
-      redirect_to memo_directories_path, alert: "ルートは削除できません。", status: :see_other
+      respond_to_destroy_blocked("ルートは削除できません。")
+      return
+    end
+    unless @memo_directory.deletable?
+      skip_authorization
+      respond_to_destroy_blocked(delete_blocked_message(@memo_directory))
       return
     end
     authorize @memo_directory
-    unless @memo_directory.deletable?
-      redirect_to memo_directories_path, alert: "このディレクトリは削除できません。", status: :see_other
-      return
+
+    redirect_after_sidebar_delete = sidebar_delete_redirect_url if sidebar_delete_current_directory?
+
+    @memo_directory.destroy!
+
+    if sidebar_request?
+      flash.now[:notice] = "ディレクトリを削除しました。"
+      response.headers["X-Sidebar-Redirect"] = redirect_after_sidebar_delete if redirect_after_sidebar_delete
+      render_sidebar_refresh_stream
+    else
+      redirect_to memo_directories_path, notice: "ディレクトリを削除しました。", status: :see_other
     end
-    if @memo_directory.memos.exists?
-      redirect_to memo_directories_path, alert: "メモが残っているディレクトリは削除できません。", status: :see_other
-      return
-    end
-    @memo_directory.destroy
-    redirect_to memo_directories_path, notice: "ディレクトリを削除しました。", status: :see_other
+  rescue ActiveRecord::InvalidForeignKey, ActiveRecord::DeleteRestrictionError
+    respond_to_destroy_blocked("このディレクトリは削除できません。関連するデータが残っています。")
   end
 
   private
+
+  def dialog_request?
+    params[:dialog].present?
+  end
+
+  def sidebar_request?
+    params[:sidebar].present?
+  end
+
+  def sidebar_delete_current_directory?
+    sidebar_request? &&
+      params[:current_memo_directory_id].present? &&
+      params[:current_memo_directory_id].to_i == @memo_directory.id
+  end
+
+  def sidebar_delete_redirect_url
+    fallback = @memo_directory.delete_navigation_fallback
+    if params[:open_memo_id].present?
+      memo = policy_scope(Memo).find_by(id: params[:open_memo_id])
+      if memo
+        q = {}
+        q[:memo_directory_id] = fallback.id unless fallback.root?
+        return memo_path(memo, q)
+      end
+    end
+
+    fallback.root? ? memos_path : memos_path(memo_directory_id: fallback.id)
+  end
+
+  def respond_to_destroy_blocked(message)
+    if sidebar_request?
+      flash.now[:alert] = message
+      render_sidebar_refresh_stream(status: :unprocessable_entity)
+    else
+      redirect_to memo_directories_path, alert: message, status: :see_other
+    end
+  end
+
+  def render_sidebar_refresh_stream(status: :ok)
+    render turbo_stream: turbo_stream.replace("memos_list_panel", partial: "memos/list_panel"), status: status
+  end
+
+  def render_dialog_form_stream(status: :ok)
+    render turbo_stream: turbo_stream.update("memo_directory_dialog_body", partial: "memo_directories/dialog_form"),
+           status: status
+  end
+
+  def delete_blocked_message(directory)
+    if directory.memos_in_subtree?
+      "メモが残っているディレクトリは削除できません。"
+    elsif directory.boards_in_subtree?
+      "ボードの保存先に指定されているディレクトリは削除できません。"
+    elsif directory.children.exists?
+      "子ディレクトリが残っているため削除できません。"
+    else
+      "このディレクトリは削除できません。"
+    end
+  end
 
   def prepare_parent_options
     dirs = policy_scope(MemoDirectory).nav_ordered.to_a

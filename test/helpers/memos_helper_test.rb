@@ -225,6 +225,14 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes pairs.map(&:last), memo_directories(:home).id
   end
 
+  test "memo_directory_nav_details_open respects nav_open_directory_ids" do
+    @nav_open_directory_ids = [memo_directories(:public).id]
+    @current_memo_directory = memo_directories(:root)
+
+    assert memo_directory_nav_details_open?(memo_directories(:public))
+    assert_not memo_directory_nav_details_open?(memo_directories(:home))
+  end
+
   test "memo_directory_path_from_root_label joins segment labels from root" do
     home_u_one = memo_directories(:home_u_one)
     work = memo_directories(:work)

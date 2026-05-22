@@ -19,7 +19,12 @@ class MemoDirectoryPolicy < ApplicationPolicy
   end
 
   def destroy?
-    user.present? && record.deletable?
+    return false unless user
+    return false unless record.deletable?
+
+    return true if user.admin?
+
+    user_editable_directory_path?
   end
 
   private
