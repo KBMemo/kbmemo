@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>kbmemo Web クリップ ブックマークレット</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: system-ui, sans-serif;
+        line-height: 1.6;
+        color: #1a1a1a;
+        background: #fafafa;
+      }
+
+      body {
+        max-width: 42rem;
+        margin: 2rem auto;
+        padding: 0 1rem 3rem;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .lead {
+        color: #555;
+        margin-top: 0;
+      }
+
+      .bookmark {
+        display: inline-block;
+        margin: 1rem 0;
+        padding: 0.65rem 1rem;
+        border-radius: 999px;
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
+        color: #312e81;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: grab;
+      }
+
+      .bookmark:active {
+        cursor: grabbing;
+      }
+
+      ol {
+        padding-left: 1.25rem;
+      }
+
+      code,
+      pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.875rem;
+      }
+
+      pre {
+        overflow: auto;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>kbmemo Web クリップ</h1>
+    <p class="lead">
+      Web ページの選択範囲を、出典 URL・ページタイトル付きで kbmemo エディタへ貼り付けやすい形式でコピーします。
+    </p>
+
+    <p>
+      次のリンクをブックマークバーへドラッグしてください。
+    </p>
+    <a class="bookmark" id="kbmemo-clip-bookmarklet" href="#">kbmemo にコピー</a>
+
+    <h2>使い方</h2>
+    <ol>
+      <li>引用したい Web ページでテキストを選択</li>
+      <li>ブックマークバーの「kbmemo にコピー」をクリック</li>
+      <li>kbmemo のメモエディタ（ソース編集または WYSIWYG ソース）で <kbd>Ctrl+V</kbd></li>
+    </ol>
+
+    <h2>コピーされる内容</h2>
+    <ul>
+      <li><code>text/html</code> … 選択範囲 + 出典メタデータ（URL・タイトル）</li>
+      <li><code>text/plain</code> … プレーンテキスト</li>
+    </ul>
+    <p>
+      HTML 先頭の <code>&lt;!--kbmemo:{"url":"...","title":"..."}--&gt;</code> からページタイトルを読み取り、
+      末尾に <code>link:URL[出典: タイトル]</code> を自動追加します（出典ダイアログは表示されません）。
+    </p>
+
+    <h2>要件</h2>
+    <ul>
+      <li>Google Chrome 等、Clipboard API に対応したブラウザ</li>
+      <li>HTTPS ページ（<code>localhost</code> も可）</li>
+    </ul>
+
+    <h2>ソース</h2>
+    <p><a href="./kbmemo_clip.js"><code>kbmemo_clip.js</code></a>（読みやすい版）</p>
+    <p><a href="./kbmemo_clip.bookmarklet.js"><code>kbmemo_clip.bookmarklet.js</code></a>（ブックマーク用 1 行版）</p>
+    <pre id="source-preview">読み込み中…</pre>
+
+    <script>
+      ;(() => {
+        const link = document.getElementById('kbmemo-clip-bookmarklet')
+        const preview = document.getElementById('source-preview')
+
+        Promise.all([
+          fetch('./kbmemo_clip.js').then((response) => response.text()),
+          fetch('./kbmemo_clip.bookmarklet.js').then((response) => response.text()),
+        ])
+          .then(([source, bookmarklet]) => {
+            if (preview) preview.textContent = source.trim()
+
+            const code = bookmarklet.trim()
+            if (link) link.href = `javascript:${encodeURIComponent(code)}`
+          })
+          .catch(() => {
+            if (preview) preview.textContent = 'kbmemo_clip.js を読み込めませんでした。'
+          })
+      })()
+    </script>
+  </body>
+</html>

@@ -45,6 +45,10 @@ import { openDocumentSearchReplaceDialog } from './searchReplaceDialog.js'
 import { isModF } from './searchKeybindings.js'
 import { createWysiwygHistory, isModRedo, isModZ } from './wysiwygHistory.js'
 import { createWysiwygSourceExtensions } from './wysiwygSourceExtensions.js'
+import {
+  createWebPasteHandler,
+  insertTextIntoEditorView,
+} from './webPaste.js'
 
 const SPLIT_DEBOUNCE_MS = 300
 const SYNC_DEBOUNCE_MS = 400
@@ -66,6 +70,21 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
   /** @type {Map<string, object>} */
   const wikiLabelCache = new Map()
   let wikiLabelRefreshSeq = 0
+  const webPasteHandler = createWebPasteHandler({
+    insertText(text, view) {
+      if (view) {
+        insertTextIntoEditorView(view, text)
+        const host = view.dom.closest('.wysiwyg-source-editor')
+        const unit = host?.closest('.wysiwyg-unit')
+        if (host instanceof HTMLElement && unit instanceof HTMLElement) {
+          setUnitAdocSource(unit, getWysiwygSourceValue(host))
+          scheduleSync()
+        }
+        return
+      }
+      insertTextAtSelection(text)
+    },
+  })
 
   function previewHtmlForAdoc(adoc) {
     let processed = substituteDiagramsForPreview(adoc)
@@ -454,6 +473,19 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     activateSourceUnit(/** @type {HTMLElement} */ (unit))
   }
 
+  function insertTextAtSelection(text) {
+    const view = getActiveSourceView()
+    if (!view) return false
+
+    insertTextIntoEditorView(view, text)
+    const host = activeSourceUnit?.querySelector(':scope > .wysiwyg-source-editor')
+    if (host instanceof HTMLElement && activeSourceUnit) {
+      setUnitAdocSource(activeSourceUnit, getWysiwygSourceValue(host))
+      scheduleSync()
+    }
+    return true
+  }
+
   /**
    * @param {string} adoc
    * @returns {'start' | number | undefined}
@@ -694,6 +726,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
         scheduleSync()
       },
       onKeyDown: (event, view) => handleSourceKeydown(event, view, activateSourceUnit, getUnitText),
+      onPaste: webPasteHandler,
       onContextMenu: (event, view) => {
         void openWysiwygContextMenu(event, () => view)
       },
@@ -1010,6 +1043,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     wrapUnits,
     getActiveSourceView,
     ensureSourceEditable,
+    insertTextAtSelection,
     createDocumentSearchController,
     focus() {
       const firstUnit = editorEl.querySelector(':scope > .wysiwyg-unit')
@@ -1026,11 +1060,12 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
  * @param {string} source
  * @param {{ onChange: () => void, onKeyDown: (event: KeyboardEvent, view: import('@codemirror/view').EditorView) => boolean | void, onContextMenu?: (event: MouseEvent, view: import('@codemirror/view').EditorView) => void }} handlers
  */
-function createSourceEditorHost(source, { onChange, onKeyDown, onContextMenu, onModF, onUndo, onRedo }, extensions) {
+function createSourceEditorHost(source, { onChange, onKeyDown, onPaste, onContextMenu, onModF, onUndo, onRedo }, extensions) {
   return createWysiwygSourceEditor(source, {
     extensions,
     onChange: () => onChange(),
     onKeyDown,
+    onPaste,
     onContextMenu,
     onModF,
     onUndo,

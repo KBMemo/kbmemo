@@ -1,6 +1,10 @@
 import { Controller } from "@hotwired/stimulus"
 import "../adoc_editor/contextMenu.css"
 import { initEditorContextMenus } from "../adoc_editor/editorContextMenu.js"
+import {
+  createWebPasteHandler,
+  insertTextIntoEditorView,
+} from "../adoc_editor/webPaste.js"
 import { loadAsciidocExtensions } from "../memo_body_editor/asciidoc_extensions"
 import { wikiAutocompletion } from "../memo_body_editor/wiki_completion"
 import { listContinuationExtension } from "../memo_body_editor/list_continuation"
@@ -237,6 +241,9 @@ export default class extends Controller {
     const startDoc = textarea.value
     const editorHost = this
     const asciidocExts = await loadAsciidocExtensions()
+    this._webPasteHandler = createWebPasteHandler({
+      insertText: (text) => this.insertTextAtSelection(text),
+    })
 
     const state = EditorState.create({
       doc: startDoc,
@@ -258,7 +265,9 @@ export default class extends Controller {
             return editorHost.handleImageDrop(event)
           },
           paste(event) {
-            return editorHost.handleImagePaste(event)
+            if (editorHost.handleImagePaste(event)) return true
+            if (editorHost._webPasteHandler?.(event, editorHost.view)) return true
+            return false
           }
         })
       ]
@@ -696,6 +705,24 @@ export default class extends Controller {
     const { from, to } = this.view.state.selection.main
     if (from === to) return ""
     return this.view.state.doc.sliceString(from, to)
+  }
+
+  insertTextAtSelection(text) {
+    if (this._editMode === "wysiwyg" && this._wysiwygEditor?.insertTextAtSelection?.(text)) {
+      return
+    }
+
+    if (!this.view) return
+
+    insertTextIntoEditorView(this.view, text)
+
+    const textarea = this.fieldTarget
+    const next = this.view.state.doc.toString()
+    if (textarea.value !== next) {
+      textarea.value = next
+      textarea.dispatchEvent(new Event("input", { bubbles: true }))
+    }
+    this._livePreview?.scheduleRender()
   }
 
   async insertAtCursor(text) {

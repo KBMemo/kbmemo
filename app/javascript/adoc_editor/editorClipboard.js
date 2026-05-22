@@ -1,4 +1,12 @@
 import { redo, redoDepth, undo, undoDepth } from '@codemirror/commands'
+import { KBMEMO_CLIP_MIME, parseKbmemoClipJson } from './webPasteMetadata.js'
+import {
+  insertTextIntoEditorView,
+  resolveWebPasteContent,
+  textFromWebPasteResult,
+} from './webPaste.js'
+import { webHtmlToAsciidoc } from './asciidoc/webHtmlToAsciidoc.js'
+import { extractWebPasteMetadataFromHtml } from './webPasteHtmlMetadata.js'
 
 /**
  * @param {import('@codemirror/view').EditorView} view
@@ -70,22 +78,101 @@ export async function cutFromView(view) {
  * @param {import('@codemirror/view').EditorView} view
  */
 export async function pasteToView(view) {
-  let text = ''
-  try {
-    text = await navigator.clipboard.readText()
-  } catch {
+  const captured = await readClipboardForWebPaste()
+  if (captured?.adoc.trim()) {
+    const result = await resolveWebPasteContent(captured)
+    const text = textFromWebPasteResult(result)
+    if (text) {
+      insertTextIntoEditorView(view, text)
+      return
+    }
+  }
+
+  const plain = captured?.plain ?? await readPlainTextFromClipboard()
+  if (!plain) {
     view.focus()
     return
   }
 
-  if (!text) return
+  insertTextIntoEditorView(view, plain)
+}
 
-  const { from, to } = view.state.selection.main
-  view.dispatch({
-    changes: { from, to, insert: text },
-    selection: { anchor: from + text.length },
-  })
-  view.focus()
+/**
+ * @returns {Promise<{ html: string, plain: string, metadata: { url?: string, title?: string }, adoc: string } | null>}
+ */
+async function readClipboardForWebPaste() {
+  if (!navigator.clipboard.read) return null
+
+  try {
+    const items = await navigator.clipboard.read()
+    let html = ''
+    let plain = ''
+    /** @type {{ url?: string, title?: string }} */
+    let metadata = {}
+
+    for (const item of items) {
+      if (!html && item.types.includes('text/html')) {
+        html = await (await item.getType('text/html')).text()
+      }
+      if (!plain && item.types.includes('text/plain')) {
+        plain = await (await item.getType('text/plain')).text()
+      }
+      if (!metadata.url && item.types.includes(KBMEMO_CLIP_MIME)) {
+        const clip = parseKbmemoClipJson(await (await item.getType(KBMEMO_CLIP_MIME)).text())
+        if (clip) {
+          metadata = {
+            url: metadata.url || clip.url,
+            title: metadata.title || clip.title,
+          }
+        }
+      }
+      if (!metadata.url && item.types.includes('text/uri-list')) {
+        const uri = await (await item.getType('text/uri-list')).text()
+        const url = firstUriFromList(uri)
+        if (url) metadata = { ...metadata, url }
+      }
+    }
+
+    if (html.trim()) {
+      const fromHtml = extractWebPasteMetadataFromHtml(html)
+      metadata = {
+        url: metadata.url || fromHtml.url,
+        title: metadata.title || fromHtml.title,
+      }
+    }
+
+    if (!html.trim()) return plain || metadata.url ? { html, plain, metadata, adoc: '' } : null
+
+    return {
+      html,
+      plain,
+      metadata,
+      adoc: webHtmlToAsciidoc(html),
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * @returns {Promise<string>}
+ */
+async function readPlainTextFromClipboard() {
+  try {
+    return await navigator.clipboard.readText()
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * @param {string} raw
+ */
+function firstUriFromList(raw) {
+  return raw
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => line && !line.startsWith('#'))
 }
 
 /**

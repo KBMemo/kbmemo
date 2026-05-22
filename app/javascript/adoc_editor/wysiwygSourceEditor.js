@@ -26,9 +26,9 @@ export function isWysiwygSourceComposing(host) {
 
 /**
  * @param {string} source
- * @param {{ extensions?: import('@codemirror/state').Extension[], onChange?: (view: EditorView) => void, onKeyDown?: (event: KeyboardEvent, view: EditorView) => boolean | void, onContextMenu?: (event: MouseEvent, view: EditorView) => void, onModF?: (view: EditorView) => void, onUndo?: () => boolean, onRedo?: () => boolean }} [handlers]
+ * @param {{ extensions?: import('@codemirror/state').Extension[], onChange?: (view: EditorView) => void, onKeyDown?: (event: KeyboardEvent, view: EditorView) => boolean | void, onPaste?: (event: ClipboardEvent, view: EditorView) => boolean | void, onContextMenu?: (event: MouseEvent, view: EditorView) => void, onModF?: (view: EditorView) => void, onUndo?: () => boolean, onRedo?: () => boolean }} [handlers]
  */
-export function createWysiwygSourceEditor(source, { extensions = [], onChange, onKeyDown, onContextMenu, onModF, onUndo, onRedo } = {}) {
+export function createWysiwygSourceEditor(source, { extensions = [], onChange, onKeyDown, onPaste, onContextMenu, onModF, onUndo, onRedo } = {}) {
   const host = document.createElement('div')
   host.className = 'wysiwyg-source-editor'
 
@@ -63,6 +63,9 @@ export function createWysiwygSourceEditor(source, { extensions = [], onChange, o
           },
           keydown(event, view) {
             return onKeyDown?.(event, view) === true
+          },
+          paste(event, view) {
+            return onPaste?.(event, view) === true
           },
           contextmenu(event, view) {
             onContextMenu?.(event, view)
