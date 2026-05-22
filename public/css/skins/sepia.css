@@ -38,9 +38,52 @@
   background: transparent;
 }
 
+.asciidoctor.preview-skin-sepia blockquote,
+.asciidoctor.preview-skin-sepia .quoteblock {
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+  border-left: 3px solid #c4b498;
+  background: #ebe3d0;
+  border-radius: 0 4px 4px 0;
+}
+
 .asciidoctor.preview-skin-sepia .quoteblock blockquote,
 .asciidoctor.preview-skin-sepia .verseblock pre {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: #5c4f3d;
+  font-style: italic;
+  line-height: 1.75;
+}
+
+.asciidoctor.preview-skin-sepia blockquote {
+  color: #5c4f3d;
+  line-height: 1.65;
+}
+
+.asciidoctor.preview-skin-sepia .quoteblock blockquote::before {
+  color: #8b6914;
+}
+
+.asciidoctor.preview-skin-sepia .quoteblock > .title {
+  font-size: 0.875rem;
+  font-style: italic;
+  color: #8b6914;
+  margin: 0 0 0.5em;
+}
+
+.asciidoctor.preview-skin-sepia .quoteblock .attribution {
+  margin-top: 0.75em;
+  font-size: 0.9375rem;
+  font-style: italic;
+  color: #7a6a52;
+  text-align: right;
+}
+
+.asciidoctor.preview-skin-sepia .quoteblock .attribution cite {
+  color: inherit;
 }
 
 .asciidoctor.preview-skin-sepia table thead,

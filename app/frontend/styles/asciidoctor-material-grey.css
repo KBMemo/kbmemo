@@ -113,6 +113,67 @@
   color: var(--mg-primary);
 }
 
+.memo-body blockquote,
+.memo-body-editor__preview-content.asciidoctor blockquote,
+.memo-body-editor__wysiwyg-content.asciidoctor blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+  border-left: 3px solid var(--mg-primary);
+  background: #f5f5f5;
+  border-radius: 0 4px 4px 0;
+  color: var(--mg-text);
+  line-height: 1.65;
+}
+
+.memo-body .quoteblock,
+.memo-body-editor__preview-content.asciidoctor .quoteblock,
+.memo-body-editor__wysiwyg-content.asciidoctor .quoteblock {
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+  border-left: 3px solid var(--mg-primary);
+  background: #f5f5f5;
+  border-radius: 0 4px 4px 0;
+}
+
+.memo-body .quoteblock blockquote,
+.memo-body-editor__preview-content.asciidoctor .quoteblock blockquote,
+.memo-body-editor__wysiwyg-content.asciidoctor .quoteblock blockquote {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-style: italic;
+  line-height: 1.75;
+}
+
+.memo-body .quoteblock > .title,
+.memo-body-editor__preview-content.asciidoctor .quoteblock > .title,
+.memo-body-editor__wysiwyg-content.asciidoctor .quoteblock > .title {
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--mg-primary);
+  margin: 0 0 0.5em;
+}
+
+.memo-body .quoteblock .attribution,
+.memo-body-editor__preview-content.asciidoctor .quoteblock .attribution,
+.memo-body-editor__wysiwyg-content.asciidoctor .quoteblock .attribution {
+  margin-top: 0.75em;
+  font-size: 0.9375rem;
+  font-style: italic;
+  color: #616161;
+  text-align: right;
+}
+
+.memo-body .quoteblock .attribution cite,
+.memo-body-editor__preview-content.asciidoctor .quoteblock .attribution cite,
+.memo-body-editor__wysiwyg-content.asciidoctor .quoteblock .attribution cite {
+  font-style: italic;
+  color: inherit;
+}
+
 /* --- Phase 5d テーブル（メモ表示） --- */
 
 .memo-body .tableblock {

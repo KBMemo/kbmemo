@@ -373,7 +373,7 @@ export default class extends Controller {
     if (mode === "wysiwyg") {
       const source = this.view?.state.doc.toString() ?? this.fieldTarget.value
       await this.ensureWysiwygEditor()
-      this._wysiwygEditor.renderFromSource(source)
+      await this._wysiwygEditor.renderFromSource(source)
       this._wysiwygEditor.focus()
     }
 
@@ -705,7 +705,7 @@ export default class extends Controller {
       const sep = cur.length > 0 && !cur.endsWith("\n") ? "\n\n" : ""
       const next = cur + sep + text
       this.syncSourceFromWysiwyg(next)
-      this._wysiwygEditor.renderFromSource(next)
+      await this._wysiwygEditor.renderFromSource(next)
       this._wysiwygEditor.focus()
       return
     }

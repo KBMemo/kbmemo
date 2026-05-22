@@ -236,7 +236,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     isApplyingHistory = true
     void renderFromSourceInternal(normalizedSource).finally(() => {
       revealDocumentOffset(normalizedSource, restoreCursor ?? 0)
-      isApplyingHistory = false
+      finishRenderFromSource(normalizedSource)
     })
   }
 
@@ -304,6 +304,8 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     let offset = 0
 
     for (const unit of editorEl.querySelectorAll(':scope > .wysiwyg-unit')) {
+      if (unit.classList.contains('wysiwyg-unit--placeholder')) continue
+
       let text = ''
       if (unit.classList.contains('is-source')) {
         const host = unit.querySelector(':scope > .wysiwyg-source-editor')
@@ -550,10 +552,8 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
       setUnitAdocSource(wrapper, parsed.adoc)
 
       if (!parsed.adoc.trim()) {
-        const empty = document.createElement('div')
-        empty.className = 'paragraph'
-        empty.innerHTML = '<p></p>'
-        wrapper.append(empty)
+        wrapper.classList.add('wysiwyg-unit--placeholder')
+        appendEmptyParagraphPreview(wrapper)
       } else {
         renderUnitPreview(wrapper, parsed.adoc)
       }
@@ -573,8 +573,8 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     }
     history.reset(normalizeDocumentSource(source))
     isApplyingHistory = true
-    void renderFromSourceInternal(source).finally(() => {
-      isApplyingHistory = false
+    return renderFromSourceInternal(source).finally(() => {
+      finishRenderFromSource(source)
     })
   }
 
@@ -679,6 +679,8 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     }
     removeEmptyRenderedUnits(new Set([unit]))
 
+    unit.classList.remove('wysiwyg-unit--placeholder')
+
     const initialSource = source ?? getUnitAdocSource(unit) ?? unitToAsciidoc(unit, getMemoId?.()).trim()
     setUnitAdocSource(unit, initialSource)
     unit.replaceChildren()
@@ -731,6 +733,14 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     setUnitAdocSource(unit, adoc)
 
     if (!adoc.trim()) {
+      const units = editorEl.querySelectorAll(':scope > .wysiwyg-unit')
+      if (units.length <= 1) {
+        restoreEmptyParagraphPreview(unit)
+        if (activeSourceUnit === unit) {
+          activeSourceUnit = null
+        }
+        return
+      }
       removeEmptyUnit(unit)
       return
     }
@@ -761,6 +771,9 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
       activeSourceUnit = null
     }
     unit.remove()
+    if (editorEl.querySelectorAll(':scope > .wysiwyg-unit').length === 0) {
+      ensureEmptyDocumentEditable()
+    }
   }
 
   /**
@@ -933,6 +946,61 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
       deactivateSourceUnit(activeSourceUnit)
     }
     flattenAndWrapUnits(container)
+  }
+
+  function isEmptyDocumentSource(source) {
+    return !normalizeDocumentSource(source).trim()
+  }
+
+  /**
+   * @param {HTMLElement} wrapper
+   */
+  function appendEmptyParagraphPreview(wrapper) {
+    const empty = document.createElement('div')
+    empty.className = 'paragraph wysiwyg-empty-paragraph'
+    empty.innerHTML = '<p><br class="wysiwyg-empty-paragraph-marker" aria-hidden="true" /></p>'
+    wrapper.append(empty)
+  }
+
+  /**
+   * @param {HTMLElement} unit
+   */
+  function restoreEmptyParagraphPreview(unit) {
+    const host = unit.querySelector(':scope > .wysiwyg-source-editor')
+    if (host instanceof HTMLElement) {
+      destroyWysiwygSourceEditor(host)
+    }
+    unit.classList.remove('is-source')
+    unit.classList.add('wysiwyg-unit--placeholder')
+    unit.contentEditable = 'false'
+    unit.replaceChildren()
+    appendEmptyParagraphPreview(unit)
+    setUnitAdocSource(unit, '')
+  }
+
+  function ensureEmptyDocumentEditable() {
+    if (isRendering || isSwitchingUnit) return
+
+    let unit = editorEl.querySelector(':scope > .wysiwyg-unit')
+    if (!unit) {
+      unit = document.createElement('div')
+      unit.className = 'wysiwyg-unit wysiwyg-unit--placeholder'
+      unit.contentEditable = 'false'
+      setUnitAdocSource(unit, '')
+      appendEmptyParagraphPreview(unit)
+      editorEl.append(unit)
+    }
+
+    if (!unit.classList.contains('is-source')) {
+      activateSourceUnit(/** @type {HTMLElement} */ (unit), { caret: 'start' })
+    }
+  }
+
+  function finishRenderFromSource(source) {
+    isApplyingHistory = false
+    if (isEmptyDocumentSource(source)) {
+      ensureEmptyDocumentEditable()
+    }
   }
 
   return {

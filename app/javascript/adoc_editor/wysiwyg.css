@@ -68,6 +68,15 @@
   margin-bottom: 1rem;
 }
 
+.memo-body-editor__wysiwyg-content > .wysiwyg-unit--placeholder:not(.is-source) {
+  min-height: 2.5rem;
+  cursor: text;
+}
+
+.memo-body-editor__wysiwyg-content > .wysiwyg-unit--placeholder .wysiwyg-empty-paragraph p {
+  min-height: 1.5em;
+}
+
 .wysiwyg-source-editor {
   display: block;
   width: 100%;
