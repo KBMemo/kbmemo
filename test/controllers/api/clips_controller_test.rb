@@ -28,7 +28,9 @@ class Api::ClipsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "home/u-#{@account.id}/clippings", memo.memo_directory.full_path
     assert_equal "Article Title", memo.title
     assert_equal "https://example.com/article", memo.properties["source_url"]
-    assert_includes memo.body, "*Clip* body"
+    assert_includes memo.body, "*Clip*"
+    assert_not_includes memo.body, "____"
+    assert_not_includes memo.body, "<blockquote"
     assert_includes memo.body, "link:https://example.com/article"
     assert_equal edit_memo_path(memo), body["edit_path"]
   end

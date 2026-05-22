@@ -13,22 +13,29 @@ class ClipCreator
 
   def call
     metadata = WebPasteMetadata.extract(@html, url: @url, title: @title)
-    adoc = build_body(metadata)
-    raise Error, "本文が空です。" if adoc.blank?
 
     directory = MemoDirectory::UserSpace.clippings_directory(@account)
-    memo = Memo.new(account: @account, memo_directory: directory, body: adoc)
+    memo = Memo.new(account: @account, memo_directory: directory)
     memo.properties = clip_properties(metadata)
     apply_title!(memo, metadata)
     memo.save!
+
+    body = build_body(memo, metadata)
+    raise Error, "本文が空です。" if body.blank?
+
+    memo.update!(body: body)
     memo
   end
 
   private
 
-  def build_body(metadata)
-    adoc = WebHtmlToAsciidoc.convert(@html.to_s)
-    adoc = @plain.to_s.strip if adoc.blank?
+  def build_body(memo, metadata)
+    adoc = ClipAsciidocProcessor.call(
+      html: @html,
+      plain: @plain,
+      memo: memo,
+      source_url: metadata.url
+    )
     return "" if adoc.blank?
 
     metadata.url.present? ? WebPasteAttribution.append(adoc, metadata) : adoc
