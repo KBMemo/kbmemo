@@ -19,6 +19,8 @@ export default class extends Controller {
     "tagSuggestionsJson",
     "propertiesYaml",
     "directory",
+    "discardDraftButton",
+    "showMemoLink",
     "remoteNotice",
     "remoteNoticeText"
   ]
@@ -587,6 +589,19 @@ export default class extends Controller {
     }
     if (typeof data.file_committed === "boolean") {
       this.fileCommittedValue = data.file_committed
+    }
+    this.syncDraftActionsUi(data)
+  }
+
+  syncDraftActionsUi(data) {
+    if (typeof data.display_as_draft !== "boolean") return
+
+    if (this.hasDiscardDraftButtonTarget) {
+      this.discardDraftButtonTarget.classList.toggle("hidden", !data.display_as_draft)
+    }
+    if (this.hasShowMemoLinkTarget) {
+      const showVisible = this.fileCommittedValue && !data.display_as_draft
+      this.showMemoLinkTarget.classList.toggle("hidden", !showVisible)
     }
   }
 

@@ -341,6 +341,26 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "ドラフトを破棄"
   end
 
+  test "edit hides revert draft button until autosave marks memo as draft" do
+    memo = memos(:one)
+    t = 1.hour.ago.change(usec: 0)
+    memo.update_columns(file_committed_at: t, updated_at: t)
+
+    get edit_memo_url(memo)
+    assert_response :success
+    assert_select "#memo_form_actions button[data-memo-draft-target='discardDraftButton'].hidden"
+
+    patch draft_memo_url(memo),
+      params: { memo: { body: "= Changed\n\nx" } },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    assert_response :success
+    actions = response.body[/target="memo_form_actions"><template>(.*)<\/template>/m, 1]
+    assert actions, "expected memo_form_actions turbo stream"
+    assert_includes actions, "ドラフトを破棄"
+    assert_match(/data-memo-draft-target="discardDraftButton"/, actions)
+    assert_no_match(/data-memo-draft-target="discardDraftButton"[^>]*class="[^"]*\bhidden\b/, actions)
+  end
+
   test "draft can respond with turbo stream for title sync" do
     memo = memos(:one)
     patch draft_memo_url(memo),
@@ -351,6 +371,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "memo_title_field"
     assert_includes response.body, "memo_slug_field"
     assert_includes response.body, "memo_directory_field"
+    assert_includes response.body, "memo_form_actions"
   end
 
   test "draft turbo stream keeps memos_list_panel id so repeated saves refresh sidebar" do

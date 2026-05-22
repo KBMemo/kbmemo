@@ -1,0 +1,17 @@
+ruby:
+  discard_btn_class = "rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
+  discard_btn_class += " hidden" unless memo.display_as_draft?
+  show_link_class = "rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
+  show_link_class += " hidden" unless memo.file_committed_at.present? && !memo.display_as_draft?
+  commit_btn_class = "rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
+
+#memo_form_actions.mt-4.flex.justify-end.gap-2
+  - if memo.file_committed_at.present?
+    button type="button" class=discard_btn_class data-memo-draft-target="discardDraftButton" data-action="memo-draft#discardDraft" title="ドラフトの変更を破棄し、最後に Git へコミットした内容を読み込みます"
+      | ドラフトを破棄
+  = link_to "表示", memo_path(memo), class: show_link_class, data: { memo_draft_target: "showMemoLink" }
+  - if local_assigns[:f]
+    = f.submit "コミット", title: "ファイルへ保存して、Gitに記録", data: { memo_commit: true }, class: commit_btn_class
+  - else
+    button type="submit" form=dom_id(memo, :edit) title="ファイルへ保存して、Gitに記録" data-memo-commit="true" class=commit_btn_class
+      | コミット

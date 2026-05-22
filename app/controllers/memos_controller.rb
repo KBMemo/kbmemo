@@ -196,6 +196,11 @@ class MemosController < ApplicationController
               partial: "memos/directory_field",
               locals: { memo: @memo }
             ),
+            turbo_stream.replace(
+              "memo_form_actions",
+              partial: "memos/form_actions",
+              locals: { memo: @memo, f: nil }
+            ),
             turbo_stream.replace("memos_list_panel", partial: "memos/list_panel")
           ]
         end
@@ -207,7 +212,8 @@ class MemosController < ApplicationController
             title_unfilled: @memo.title_unfilled?,
             slug: @memo.slug,
             slug_manual: @memo.slug_manual,
-            file_committed: @memo.file_committed_at.present?
+            file_committed: @memo.file_committed_at.present?,
+            display_as_draft: @memo.display_as_draft?
           }
         end
       end

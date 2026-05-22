@@ -6,6 +6,7 @@ import { isTableAttrLine, isTableDelimiterLine } from '../../memo_body_editor/ta
 /** @typedef {{ adoc: string, startLine: number, endLine: number }} ParsedEditUnit */
 
 const PAIRED_BLOCK_DELIMITERS = ['----', '....', '====', '____', '****', '--', '+++']
+const BLOCK_ATTR_LINE = /^\[[^\]]+\]$/
 
 /**
  * Line ranges inside delimited AsciiDoc blocks (listing, literal, quote, …).
@@ -331,13 +332,38 @@ function visitBlocks(node, units, protectedRanges, lines) {
 }
 
 /**
+ * リスト直前のブロック属性（[%interactive] 等）とタイトル行をユニットに含める。
+ *
+ * @param {number} contentStartLine 0-based first list item line
+ * @param {string[]} lines
+ */
+function listUnitStartLine(contentStartLine, lines) {
+  let startLine = contentStartLine
+
+  while (startLine > 0) {
+    const prevTrimmed = lines[startLine - 1]?.trim() ?? ''
+    if (!prevTrimmed) break
+
+    if (BLOCK_ATTR_LINE.test(prevTrimmed) || BLOCK_TITLE_LINE.test(prevTrimmed)) {
+      startLine--
+      continue
+    }
+
+    break
+  }
+
+  return startLine
+}
+
+/**
  * @param {import('@asciidoctor/core').List} node
  * @param {ParsedEditUnit[]} units
  * @param {[number, number][]} protectedRanges
  * @param {string[]} lines
  */
 function pushListUnit(node, units, protectedRanges, lines) {
-  const startLine = (node.getLineNumber() ?? 1) - 1
+  const contentStartLine = (node.getLineNumber() ?? 1) - 1
+  const startLine = listUnitStartLine(contentStartLine, lines)
   const endLine = listBlockEndLine(node)
   if (isRangeInsideProtected(startLine, endLine, protectedRanges)) return
 
