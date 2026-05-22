@@ -4,7 +4,7 @@
  * 変更したら kbmemo_clip.bookmarklet.js も同期してください。
  *
  * 使い方:
- * 1. public/bookmarklets/index.html を開く
+ * 1. /bookmarklets/index.html を開く
  * 2. 「kbmemo にコピー」リンクをブックマークバーへドラッグ
  * 3. Web ページでテキストを選択 → ブックマークレット実行
  * 4. kbmemo エディタで Ctrl+V

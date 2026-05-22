@@ -38,4 +38,18 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_profile_path
     assert_not account.reload.openai_api_key_configured?
   end
+
+  test "signed-in user can generate and revoke clip api token" do
+    account = accounts(:one)
+    assert_not account.clip_api_token_configured?
+
+    post clip_api_token_profile_url
+    assert_redirected_to edit_profile_path
+    assert account.reload.clip_api_token_configured?
+    assert flash[:clip_api_token].start_with?("kbmemo_")
+
+    delete clip_api_token_profile_url
+    assert_redirected_to edit_profile_path
+    assert_not account.reload.clip_api_token_configured?
+  end
 end

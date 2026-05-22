@@ -11,7 +11,10 @@ Rails.application.routes.draw do
 
   root "memos#index"
 
-  resource :profile, only: %i[edit update]
+  resource :profile, only: %i[edit update] do
+    post :clip_api_token, action: :create_clip_api_token
+    delete :clip_api_token, action: :destroy_clip_api_token
+  end
 
   if Rails.env.development?
     mount LetterOpenerWeb::Engine, at: "/letter_opener"
@@ -75,5 +78,10 @@ Rails.application.routes.draw do
         get :source
       end
     end
+  end
+
+  namespace :api do
+    match "clips", to: "clips#options", via: :options
+    resources :clips, only: :create
   end
 end

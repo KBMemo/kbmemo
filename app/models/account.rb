@@ -2,17 +2,21 @@
 #
 # Table name: accounts
 #
-#  id             :integer          not null, primary key
-#  admin          :boolean          default(FALSE), not null
-#  email          :string           not null
-#  nickname       :string
-#  openai_api_key :text
-#  password_hash  :string
-#  status         :integer          default("unverified"), not null
+#  id                        :integer          not null, primary key
+#  admin                     :boolean          default(FALSE), not null
+#  clip_api_token_created_at :datetime
+#  clip_api_token_digest     :string
+#  clip_api_token_prefix     :string
+#  email                     :string           not null
+#  nickname                  :string
+#  openai_api_key            :text
+#  password_hash             :string
+#  status                    :integer          default("unverified"), not null
 #
 # Indexes
 #
-#  index_accounts_on_email  (email) UNIQUE WHERE status IN (1, 2)
+#  index_accounts_on_clip_api_token_digest  (clip_api_token_digest) UNIQUE
+#  index_accounts_on_email                  (email) UNIQUE WHERE status IN (1, 2)
 #
 class Account < ApplicationRecord
   include Rodauth::Rails.model
@@ -32,6 +36,42 @@ class Account < ApplicationRecord
 
   def openai_api_key_configured?
     openai_api_key.present?
+  end
+
+  def clip_api_token_configured?
+    clip_api_token_digest.present?
+  end
+
+  def generate_clip_api_token!
+    raw = "kbmemo_#{SecureRandom.urlsafe_base64(32)}"
+    update!(
+      clip_api_token_digest: self.class.digest_clip_api_token(raw),
+      clip_api_token_prefix: raw[0, 16],
+      clip_api_token_created_at: Time.current
+    )
+    raw
+  end
+
+  def revoke_clip_api_token!
+    update!(
+      clip_api_token_digest: nil,
+      clip_api_token_prefix: nil,
+      clip_api_token_created_at: nil
+    )
+  end
+
+  def self.find_by_clip_api_token(token)
+    digest = digest_clip_api_token(token)
+    return nil if digest.blank?
+
+    find_by(clip_api_token_digest: digest)
+  end
+
+  def self.digest_clip_api_token(token)
+    value = token.to_s.strip
+    return nil if value.blank?
+
+    Digest::SHA256.hexdigest(value)
   end
 
   # 画面表示用。未設定ならメールアドレスをそのまま使う。

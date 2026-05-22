@@ -3,17 +3,21 @@
 #
 # Table name: accounts
 #
-#  id             :integer          not null, primary key
-#  admin          :boolean          default(FALSE), not null
-#  email          :string           not null
-#  nickname       :string
-#  openai_api_key :text
-#  password_hash  :string
-#  status         :integer          default("unverified"), not null
+#  id                        :integer          not null, primary key
+#  admin                     :boolean          default(FALSE), not null
+#  clip_api_token_created_at :datetime
+#  clip_api_token_digest     :string
+#  clip_api_token_prefix     :string
+#  email                     :string           not null
+#  nickname                  :string
+#  openai_api_key            :text
+#  password_hash             :string
+#  status                    :integer          default("unverified"), not null
 #
 # Indexes
 #
-#  index_accounts_on_email  (email) UNIQUE WHERE status IN (1, 2)
+#  index_accounts_on_clip_api_token_digest  (clip_api_token_digest) UNIQUE
+#  index_accounts_on_email                  (email) UNIQUE WHERE status IN (1, 2)
 #
 one:
   id: 1

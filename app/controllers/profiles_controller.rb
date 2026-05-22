@@ -14,6 +14,19 @@ class ProfilesController < ApplicationController
     end
   end
 
+  def create_clip_api_token
+    @account = rodauth.rails_account
+    token = @account.generate_clip_api_token!
+    flash[:clip_api_token] = token
+    redirect_to edit_profile_path, notice: "クリップ API トークンを発行しました。再表示できないので控えてください。"
+  end
+
+  def destroy_clip_api_token
+    @account = rodauth.rails_account
+    @account.revoke_clip_api_token!
+    redirect_to edit_profile_path, notice: "クリップ API トークンを無効化しました。"
+  end
+
   private
 
   def profile_params

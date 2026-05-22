@@ -24,6 +24,11 @@
         margin-bottom: 0.5rem;
       }
 
+      h2 {
+        font-size: 1.125rem;
+        margin-top: 2rem;
+      }
+
       .lead {
         color: #555;
         margin-top: 0;
@@ -46,7 +51,13 @@
         cursor: grabbing;
       }
 
-      ol {
+      .bookmark.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      ol,
+      ul {
         padding-left: 1.25rem;
       }
 
@@ -63,64 +74,262 @@
         background: #fff;
         border: 1px solid #e5e7eb;
       }
+
+      .field {
+        margin-top: 1rem;
+      }
+
+      .field label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+
+      .field input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0.55rem 0.75rem;
+        border: 1px solid #d4d4d8;
+        border-radius: 8px;
+        font: inherit;
+      }
+
+      .field input.mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.8125rem;
+      }
+
+      .field p {
+        margin: 0.35rem 0 0;
+        font-size: 0.8125rem;
+        color: #666;
+      }
+
+      .panel {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 12px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+      }
+
+      .note {
+        font-size: 0.875rem;
+        color: #666;
+      }
+
+      .hidden {
+        display: none;
+      }
     </style>
   </head>
   <body>
     <h1>kbmemo Web クリップ</h1>
     <p class="lead">
-      Web ページの選択範囲を、出典 URL・ページタイトル付きで kbmemo エディタへ貼り付けやすい形式でコピーします。
+      Web ページの選択範囲を kbmemo へ取り込みます。クリップボード経由と API 直保存の 2 方式があります。
     </p>
 
-    <p>
-      次のリンクをブックマークバーへドラッグしてください。
+    <h2>API 直保存（おすすめ）</h2>
+    <p class="note">
+      選択範囲を <code>home/u-&lt;id&gt;/clippings</code> に直接保存します。プロフィールで発行したクリップ API トークンが必要です。
     </p>
+
+    <div class="panel">
+      <div class="field">
+        <label for="kbmemo-base-url">kbmemo の URL</label>
+        <input id="kbmemo-base-url" type="url" placeholder="https://kbmemo.example.com" autocomplete="url" />
+        <p>末尾の <code>/</code> は不要です。</p>
+      </div>
+      <div class="field">
+        <label for="kbmemo-api-token">クリップ API トークン</label>
+        <input
+          id="kbmemo-api-token"
+          class="mono"
+          type="password"
+          placeholder="kbmemo_…"
+          autocomplete="off"
+        />
+        <p>
+          <a href="/profile/edit">プロフィール</a>
+          で発行した <code>kbmemo_...</code> をそのまま貼り付けてください（ページ URL や
+          <code>/bookmarklets/index.html</code> ではありません）。
+        </p>
+        <p id="kbmemo-token-error" class="text-xs text-red-700 hidden"></p>
+      </div>
+
+      <p>次のリンクをブックマークバーへドラッグしてください。</p>
+      <a class="bookmark disabled" id="kbmemo-clip-api-bookmarklet" href="#">kbmemo に保存</a>
+    </div>
+
+    <h3>使い方</h3>
+    <ol>
+      <li>引用したい Web ページでテキストを選択</li>
+      <li>ブックマークバーの「kbmemo に保存」をクリック</li>
+      <li>保存完了後、必要ならメモを新しいタブで開く</li>
+    </ol>
+
+    <h2>クリップボード経由</h2>
+    <p class="note">kbmemo エディタで Ctrl+V して貼り付ける方式です。API トークンは不要です。</p>
+    <p>次のリンクをブックマークバーへドラッグしてください。</p>
     <a class="bookmark" id="kbmemo-clip-bookmarklet" href="#">kbmemo にコピー</a>
 
-    <h2>使い方</h2>
+    <h3>使い方</h3>
     <ol>
       <li>引用したい Web ページでテキストを選択</li>
       <li>ブックマークバーの「kbmemo にコピー」をクリック</li>
       <li>kbmemo のメモエディタ（ソース編集または WYSIWYG ソース）で <kbd>Ctrl+V</kbd></li>
     </ol>
 
-    <h2>コピーされる内容</h2>
+    <h2>送信される内容</h2>
     <ul>
-      <li><code>text/html</code> … 選択範囲 + 出典メタデータ（URL・タイトル）</li>
-      <li><code>text/plain</code> … プレーンテキスト</li>
+      <li><code>html</code> … 選択範囲 + 出典メタデータ（URL・タイトル）</li>
+      <li><code>plain</code> … プレーンテキスト（HTML 変換のフォールバック）</li>
+      <li><code>url</code> / <code>title</code> … ページ URL とタイトル</li>
     </ul>
     <p>
-      HTML 先頭の <code>&lt;!--kbmemo:{"url":"...","title":"..."}--&gt;</code> からページタイトルを読み取り、
-      末尾に <code>link:URL[出典: タイトル]</code> を自動追加します（出典ダイアログは表示されません）。
+      HTML 先頭の <code>&lt;!--kbmemo:{"url":"...","title":"..."}--&gt;</code> からメタデータを読み取り、
+      サーバー側で AsciiDoc に変換して <code>link:URL[出典: タイトル]</code> を末尾に追加します。
     </p>
 
     <h2>要件</h2>
     <ul>
-      <li>Google Chrome 等、Clipboard API に対応したブラウザ</li>
-      <li>HTTPS ページ（<code>localhost</code> も可）</li>
+      <li>Google Chrome 等、<code>fetch</code> に対応したブラウザ</li>
+      <li>HTTPS ページ（API 直保存は HTTP ページからでも kbmemo へ POST 可能）</li>
+      <li>API 直保存: kbmemo 側で CORS を許可済み（<code>Access-Control-Allow-Origin: *</code>）</li>
+      <li>
+        HTTPS の Web ページから kbmemo へ POST する場合、kbmemo も
+        <strong>HTTPS</strong>
+        である必要があります（<code>http://localhost</code> へは Mixed Content でブロックされます）
+      </li>
     </ul>
 
     <h2>ソース</h2>
-    <p><a href="./kbmemo_clip.js"><code>kbmemo_clip.js</code></a>（読みやすい版）</p>
-    <p><a href="./kbmemo_clip.bookmarklet.js"><code>kbmemo_clip.bookmarklet.js</code></a>（ブックマーク用 1 行版）</p>
+    <ul>
+      <li><a href="./kbmemo_clip_api.js"><code>kbmemo_clip_api.js</code></a>（API 直 POST・読みやすい版）</li>
+      <li><a href="./kbmemo_clip_api.bookmarklet.js"><code>kbmemo_clip_api.bookmarklet.js</code></a>（API 直 POST・1 行版）</li>
+      <li><a href="./kbmemo_clip.js"><code>kbmemo_clip.js</code></a>（クリップボード・読みやすい版）</li>
+      <li><a href="./kbmemo_clip.bookmarklet.js"><code>kbmemo_clip.bookmarklet.js</code></a>（クリップボード・1 行版）</li>
+    </ul>
     <pre id="source-preview">読み込み中…</pre>
 
     <script>
       ;(() => {
-        const link = document.getElementById('kbmemo-clip-bookmarklet')
+        const STORAGE_BASE = 'kbmemo_clip_base_url'
+        const STORAGE_TOKEN = 'kbmemo_clip_api_token'
+
+        const baseInput = document.getElementById('kbmemo-base-url')
+        const tokenInput = document.getElementById('kbmemo-api-token')
+        const tokenError = document.getElementById('kbmemo-token-error')
+        const apiLink = document.getElementById('kbmemo-clip-api-bookmarklet')
+        const clipLink = document.getElementById('kbmemo-clip-bookmarklet')
         const preview = document.getElementById('source-preview')
 
-        Promise.all([
-          fetch('./kbmemo_clip.js').then((response) => response.text()),
-          fetch('./kbmemo_clip.bookmarklet.js').then((response) => response.text()),
-        ])
-          .then(([source, bookmarklet]) => {
-            if (preview) preview.textContent = source.trim()
+        const defaultBase = `${window.location.origin}`
 
-            const code = bookmarklet.trim()
-            if (link) link.href = `javascript:${encodeURIComponent(code)}`
+        if (baseInput) {
+          baseInput.value = localStorage.getItem(STORAGE_BASE) || defaultBase
+        }
+        if (tokenInput) {
+          tokenInput.value = localStorage.getItem(STORAGE_TOKEN) || ''
+        }
+
+        function normalizeBase(value) {
+          const stripped = (value || '').trim().replace(/^["']+|["']+$/g, '').replace(/\/$/, '')
+          if (!stripped) return ''
+
+          try {
+            return new URL(stripped).origin
+          } catch {
+            return ''
+          }
+        }
+
+        function validateBase(baseUrl) {
+          if (!baseUrl) return 'kbmemo の URL を入力してください。'
+          return ''
+        }
+
+        const TOKEN_RE = /^kbmemo_[A-Za-z0-9_-]+$/
+
+        function buildApiBookmarklet(template, baseUrl, token) {
+          const code = template
+            .replace('__KBMEMO_BASE__', JSON.stringify(baseUrl))
+            .replace('__KBMEMO_TOKEN__', JSON.stringify(token))
+          return `javascript:${encodeURIComponent(code)}`
+        }
+
+        function validateToken(token) {
+          if (!token) return 'API トークンを入力してください。'
+          if (!TOKEN_RE.test(token)) {
+            return 'API トークンはプロフィールで発行した kbmemo_... を入力してください。'
+          }
+          return ''
+        }
+
+        function updateApiBookmarklet(template) {
+          const baseUrl = normalizeBase(baseInput?.value)
+          const token = (tokenInput?.value || '').trim().replace(/^["']+|["']+$/g, '')
+          const baseMessage = validateBase(baseUrl)
+          const tokenMessage = validateToken(token)
+          const ready = Boolean(baseUrl && token && !baseMessage && !tokenMessage)
+
+          if (baseInput) {
+            localStorage.setItem(STORAGE_BASE, baseUrl)
+            if (baseInput.value.trim() !== baseUrl) baseInput.value = baseUrl
+          }
+          if (tokenInput && token && !tokenMessage) {
+            localStorage.setItem(STORAGE_TOKEN, token)
+            if (tokenInput.value.trim() !== token) tokenInput.value = token
+          }
+
+          if (tokenError) {
+            const message = baseMessage || tokenMessage
+            tokenError.textContent = message
+            tokenError.classList.toggle('hidden', !message)
+          }
+
+          if (!apiLink) return
+
+          if (ready) {
+            apiLink.href = buildApiBookmarklet(template, baseUrl, token)
+            apiLink.classList.remove('disabled')
+            apiLink.title = ''
+          } else {
+            apiLink.href = '#'
+            apiLink.classList.add('disabled')
+            apiLink.title = baseMessage || tokenMessage || 'kbmemo URL と API トークンを入力してください'
+          }
+        }
+
+        const templateUrl = new URL('kbmemo_clip_api.bookmarklet.js', window.location.href).href
+
+        Promise.all([
+          fetch(templateUrl).then((response) => {
+            if (!response.ok) throw new Error(`template fetch failed: ${response.status}`)
+            return response.text()
+          }),
+          fetch(new URL('kbmemo_clip.js', window.location.href)).then((response) => response.text()),
+          fetch(new URL('kbmemo_clip.bookmarklet.js', window.location.href)).then((response) => response.text()),
+        ])
+          .then(([apiTemplate, clipSource, clipBookmarklet]) => {
+            const template = apiTemplate.trim()
+            if (!template.includes('__KBMEMO_BASE__') || !template.includes('__KBMEMO_TOKEN__')) {
+              throw new Error('invalid bookmarklet template')
+            }
+
+            if (preview) preview.textContent = clipSource.trim()
+
+            const update = () => updateApiBookmarklet(template)
+            baseInput?.addEventListener('input', update)
+            tokenInput?.addEventListener('input', update)
+            update()
+
+            const clipCode = clipBookmarklet.trim()
+            if (clipLink) clipLink.href = `javascript:${encodeURIComponent(clipCode)}`
           })
           .catch(() => {
-            if (preview) preview.textContent = 'kbmemo_clip.js を読み込めませんでした。'
+            if (preview) preview.textContent = 'ブックマークレットを読み込めませんでした。'
           })
       })()
     </script>

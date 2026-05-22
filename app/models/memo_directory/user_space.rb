@@ -38,6 +38,20 @@ class MemoDirectory
         MemoDirectory.find_by!(full_path: "home/u-#{id}")
       end
 
+      # 初回クリップ時に home/u-{id}/clippings を自動作成する。
+      def clippings_directory(account)
+        account = account.is_a?(Account) ? account : Account.find(account)
+        ensure_for_account!(account)
+
+        fp = "home/u-#{account.id}/clippings"
+        MemoDirectory.find_by(full_path: fp) ||
+          MemoDirectory.create!(
+            parent: default_home_directory(account),
+            path_segment: "clippings",
+            label: "クリップ"
+          )
+      end
+
       # db:seed 用: ルート直下に残った旧フラットディレクトリを先頭ユーザーの home 配下へ移す
       def reconcile_legacy_flat_directories!
         return unless Account.exists?

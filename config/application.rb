@@ -1,6 +1,7 @@
 require_relative "boot"
 
 require "rails/all"
+require_relative "../lib/api_cors_middleware"
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
@@ -29,5 +30,7 @@ module Kbmemo
       "MEMO_GIT_WORK_TREE",
       Rails.root.join("storage", "memo_git_worktree").to_s
     )
+
+    config.middleware.insert_before 0, ApiCorsMiddleware
   end
 end
