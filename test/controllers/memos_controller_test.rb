@@ -481,11 +481,12 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
-  test "edit shows wiki link copy button on directory field" do
+  test "edit shows sidebar open button on directory field" do
     get edit_memo_url(memos(:one))
     assert_response :success
-    assert_select "#memo_directory_field button[aria-label='Wiki リンクをコピー']"
-    assert_includes response.body, "memo-wiki-link-copy"
+    assert_select "#memo_directory_field button[aria-label='サイドバーでこのディレクトリを表示']"
+    assert_includes response.body, "memo-directory-sidebar-open"
+    assert_includes response.body, "panel-left-open"
   end
 
   test "show renders wiki link to another memo in body" do
@@ -510,6 +511,33 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, memo.slug
     assert_select "a[href=?]", memo_path(memo, memo_directory_id: memo.memo_directory_id),
       text: memo.memo_directory.labeled_path_from_root
+  end
+
+  test "sidebar shows open memo directory path and syncs directory tab without query param" do
+    memo = memos(:one)
+    dir = memo.memo_directory
+
+    get edit_memo_url(memo)
+    assert_response :success
+    assert_select "#memos_list_panel a[href=?]", edit_memo_path(memo, memo_directory_id: dir.id),
+      text: dir.labeled_path_from_root
+    assert_includes response.body, %(href="/memos?memo_directory_id=#{dir.id}"><span class="truncate">仕事</span></a>)
+  end
+
+  test "sidebar shows open memo directory path on search tab without syncing directory nav" do
+    memo = memos(:one)
+    dir = memo.memo_directory
+    memo.update_columns(title: "SidebarDirDisplay", body: "body")
+
+    get edit_memo_url(memo, sidebar_view: "search", q: "SidebarDirDisplay")
+    assert_response :success
+    assert_select "#memos_list_panel a[href=?]", edit_memo_path(memo, memo_directory_id: dir.id),
+      text: dir.labeled_path_from_root
+    assert_select "a", text: "ディレクトリ" do |links|
+      href = links.first["href"]
+      assert_match %r{/memos/#{memo.id}/edit}, href
+      assert_not_includes href, "memo_directory_id=#{dir.id}"
+    end
   end
 
   test "show displays board link when memo is on kanban board" do

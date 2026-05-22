@@ -3,7 +3,7 @@ import "../styles/application.css"
 import "@hotwired/turbo-rails"
 import "../../javascript/controllers"
 import { applyStoredPreviewSkin } from "../../javascript/adoc_editor/preview_skin.js"
-import { createIcons, BookOpen, CircleHelp, Copy, Eye, GripVertical } from "lucide"
+import { createIcons, BookOpen, CircleHelp, Copy, Eye, GripVertical, PanelLeftOpen } from "lucide"
 
 const renderLucideIcons = () => {
   createIcons({
@@ -12,7 +12,8 @@ const renderLucideIcons = () => {
       CircleHelp,
       Copy,
       Eye,
-      GripVertical
+      GripVertical,
+      PanelLeftOpen
     }
   })
 }

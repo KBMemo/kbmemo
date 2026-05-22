@@ -8,6 +8,13 @@ ruby:
       = link_to "ディレクトリ", memos_sidebar_directory_tab_path, class: memo_sidebar_view_tab_classes("directory"), draggable: "false"
       = link_to "タグ", memos_sidebar_tag_tab_path, class: memo_sidebar_view_tab_classes("tag"), draggable: "false"
       = link_to "検索", memos_sidebar_search_tab_path, class: memo_sidebar_view_tab_classes("search"), draggable: "false"
+    - if (open_memo = memo_sidebar_open_memo) && (dir = open_memo.memo_directory) && !dir.root?
+      .mb-2.min-w-0.text-sm.text-zinc-500
+        span.sr-only 保存先
+        = link_to memo_directory_path_from_root_label(dir),
+          memo_sidebar_open_memo_path(open_memo, memo_directory_id: dir.id),
+          class: "block truncate underline decoration-zinc-300 hover:text-zinc-800",
+          title: "サイドバーでこのディレクトリを表示"
     - if @sidebar_view == "directory"
       - nav_dir_children = memo_directory_nav_children_index(@memo_directories_for_nav || [])
       ul.mb-2.space-y-0.5

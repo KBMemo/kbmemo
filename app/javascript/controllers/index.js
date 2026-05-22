@@ -49,6 +49,9 @@ application.register("memo-directory-dnd", MemoDirectoryDndController)
 import MemoDirectoryParentPickerController from "./memo_directory_parent_picker_controller"
 application.register("memo-directory-parent-picker", MemoDirectoryParentPickerController)
 
+import MemoDirectorySidebarOpenController from "./memo_directory_sidebar_open_controller"
+application.register("memo-directory-sidebar-open", MemoDirectorySidebarOpenController)
+
 import MemoDraftController from "./memo_draft_controller"
 application.register("memo-draft", MemoDraftController)
 
@@ -64,9 +67,6 @@ application.register("memo-search", MemoSearchController)
 
 import MemoSidebarController from "./memo_sidebar_controller"
 application.register("memo-sidebar", MemoSidebarController)
-
-import MemoWikiLinkCopyController from "./memo_wiki_link_copy_controller"
-application.register("memo-wiki-link-copy", MemoWikiLinkCopyController)
 
 import UserMenuController from "./user_menu_controller"
 application.register("user-menu", UserMenuController)

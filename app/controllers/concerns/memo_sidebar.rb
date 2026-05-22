@@ -27,6 +27,8 @@ module MemoSidebar
         policy_scope(MemoDirectory).find_by(id: params[:memo_directory_id]) || MemoDirectory.root
       elsif %w[new create].include?(action_name) && instance_variable_defined?(:@memo) && @memo&.memo_directory && !@memo.memo_directory.root?
         @memo.memo_directory
+      elsif memo_show_or_edit_action? && @sidebar_view == "directory" && instance_variable_defined?(:@memo) && @memo&.memo_directory && !@memo.memo_directory.root?
+        @memo.memo_directory
       else
         MemoDirectory.root
       end
