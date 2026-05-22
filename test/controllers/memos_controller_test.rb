@@ -289,6 +289,51 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes repo.absolute_path_for(memo).read, "Git integration"
   end
 
+  test "commit from show persists current db memo to git" do
+    memo = memos(:one)
+    t = 1.hour.ago.change(usec: 0)
+    memo.update_columns(
+      file_committed_at: t,
+      updated_at: t + 1.minute,
+      body: "= Changed on show\n\nParagraph."
+    )
+    assert memo.reload.display_as_draft?
+
+    patch commit_memo_path(memo)
+    assert_redirected_to memo_path(memo)
+    follow_redirect!
+    assert_select "#flash-live.fixed"
+    assert_select "[data-flash-notice-target='message']", text: /Git に記録/
+    assert_select "button[aria-label='メッセージを閉じる'][data-action='flash-notice#dismiss']"
+    memo.reload
+    assert_not memo.display_as_draft?
+    repo = MemoRepository.new
+    assert_includes repo.absolute_path_for(memo).read, "Changed on show"
+  end
+
+  test "show displays commit button when memo is draft" do
+    memo = memos(:one)
+    t = 1.hour.ago.change(usec: 0)
+    memo.update_columns(file_committed_at: t, updated_at: t + 1.minute, body: "= Draft body\n\nx")
+
+    get memo_path(memo)
+    assert_response :success
+    assert_select "form[action=?][method=?]", commit_memo_path(memo), "post" do
+      assert_select "input[name=_method][value=patch]", count: 1
+      assert_select "button[type=submit]", text: "コミット"
+    end
+  end
+
+  test "show hides commit button when memo is committed" do
+    memo = memos(:two)
+    t = 1.hour.ago.change(usec: 0)
+    memo.update_columns(file_committed_at: t, updated_at: t)
+
+    get memo_path(memo)
+    assert_response :success
+    assert_select "form[action=?]", commit_memo_path(memo), count: 0
+  end
+
   test "revert_draft restores memo fields from last git commit" do
     memo = memos(:one)
     repo = MemoRepository.new
@@ -359,6 +404,23 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes actions, "ドラフトを破棄"
     assert_match(/data-memo-draft-target="discardDraftButton"/, actions)
     assert_no_match(/data-memo-draft-target="discardDraftButton"[^>]*class="[^"]*\bhidden\b/, actions)
+  end
+
+  test "draft turbo stream keeps commit submit inside memo form" do
+    memo = memos(:one)
+    get edit_memo_url(memo)
+    assert_response :success
+
+    patch draft_memo_url(memo),
+      params: { memo: { body: "= Changed\n\nx" } },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    assert_response :success
+
+    actions = response.body[/target="memo_form_actions"><template>(.*)<\/template>/m, 1]
+    assert actions, "expected memo_form_actions turbo stream"
+    assert_match(/data-memo-commit="true"/, actions)
+    assert_match(/type="submit"/, actions)
+    assert_no_match(/form="edit_memo_/, actions)
   end
 
   test "draft can respond with turbo stream for title sync" do

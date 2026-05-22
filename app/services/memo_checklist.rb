@@ -47,8 +47,6 @@ class MemoChecklist
     end
 
     @memo.properties = @memo.properties.merge("checkboxes" => rows)
-    inject_missing_ids!(items, rows)
-    @memo.body = @lines.join("\n")
     rows
   end
 
@@ -56,18 +54,16 @@ class MemoChecklist
     id = id.to_s
     raise Error, "チェックリスト id が空です" if id.blank?
 
-    sync_properties_from_body! unless body_ids_match_properties?
+    rows = Array(@memo.properties["checkboxes"])
+    row_index = rows.find_index { |row| row["id"].to_s == id }
+    raise Error, "チェックリスト id が見つかりません: #{id}" unless row_index
 
-    item = parse_interactive_items.find { |entry| entry.id == id }
+    items = parse_interactive_items
+    item = items[row_index] || items.find { |entry| entry.id == id }
     raise Error, "チェックリスト id が見つかりません: #{id}" unless item
 
     marker = checked ? "x" : " "
-    line = @lines[item.line_index]
-    @lines[item.line_index] = line.sub(CHECKLIST_ITEM) do
-      indent = Regexp.last_match(1)
-      label = Regexp.last_match(3).sub(ID_SUFFIX, "").strip
-      "#{indent}* [#{marker}] #{label} ##{id}"
-    end
+    @lines[item.line_index] = update_checklist_marker(@lines[item.line_index], marker)
     @memo.body = @lines.join("\n")
     sync_properties_from_body!
   end
@@ -77,14 +73,6 @@ class MemoChecklist
   def clear_checkboxes!
     props = @memo.properties.except("checkboxes")
     @memo.properties = props
-  end
-
-  def body_ids_match_properties?
-    items = parse_interactive_items
-    return true if items.empty?
-
-    props = Array(@memo.properties["checkboxes"])
-    items.size == props.size && items.all?(&:id) && items.map(&:id) == props.map { |r| r["id"].to_s }
   end
 
   def parse_interactive_items
@@ -144,13 +132,11 @@ class MemoChecklist
     end
   end
 
-  def inject_missing_ids!(items, rows)
-    items.each_with_index do |item, index|
-      row = rows[index]
-      next if item.id == row["id"]
-
-      line = @lines[item.line_index]
-      @lines[item.line_index] = line.sub(ID_SUFFIX, "").rstrip + " ##{row["id"]}"
+  def update_checklist_marker(line, marker)
+    line.sub(CHECKLIST_ITEM) do
+      indent = Regexp.last_match(1)
+      rest = Regexp.last_match(3)
+      "#{indent}* [#{marker}] #{rest.rstrip}"
     end
   end
 end

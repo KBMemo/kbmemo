@@ -48,12 +48,6 @@ html
             = link_to "送信メール", "/letter_opener", class: "text-zinc-500 hover:text-zinc-800", target: "_blank", rel: "noopener"
           = link_to "新規メモ", new_memo_path_with_current_directory, class: "rounded-md bg-zinc-900 px-3 py-1.5 font-medium text-white hover:bg-zinc-800"
     main.mx-auto.w-full.px-4 class=(wide_content_layout? ? "max-w-[1800px] py-6" : "max-w-3xl py-8")
-      #flash-live data-flash-notice-target="live"
-      - flash.each do |level, message|
-        - next if message.blank?
-        - alert_classes = (level.to_sym == :notice) ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"
-        p.mb-4.rounded-md.border.px-3.py-2.text-sm class=alert_classes role="status"
-          = message
       - if memos_wide_layout?
         div[class="hidden" aria-hidden="true"]
           = yield
@@ -87,3 +81,4 @@ html
                   = yield :memo_ai_sidebar
       - else
         = yield
+    = render "shared/flash_toasts"

@@ -10,8 +10,5 @@ ruby:
     button type="button" class=discard_btn_class data-memo-draft-target="discardDraftButton" data-action="memo-draft#discardDraft" title="ドラフトの変更を破棄し、最後に Git へコミットした内容を読み込みます"
       | ドラフトを破棄
   = link_to "表示", memo_path(memo), class: show_link_class, data: { memo_draft_target: "showMemoLink" }
-  - if local_assigns[:f]
-    = f.submit "コミット", title: "ファイルへ保存して、Gitに記録", data: { memo_commit: true }, class: commit_btn_class
-  - else
-    button type="submit" form=dom_id(memo, :edit) title="ファイルへ保存して、Gitに記録" data-memo-commit="true" class=commit_btn_class
-      | コミット
+  button type="submit" title="ファイルへ保存して、Gitに記録" data-memo-commit="true" class=commit_btn_class
+    | コミット

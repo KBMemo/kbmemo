@@ -28,7 +28,11 @@ div id=dom_id(memo)
               span.text-zinc-400 aria-hidden="true" ·
               span.font-mono.text-xs.text-zinc-600 = memo.slug
     .flex.flex-shrink-0.flex-wrap.items-center.gap-2
-      = link_to "編集", edit_memo_path(memo), class: "rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+      - if memo.display_as_draft? && policy(memo).update?
+        = button_to "コミット", commit_memo_path(memo), method: :patch, title: "ファイルへ保存して、Gitに記録", class: "rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+        = link_to "編集", edit_memo_path(memo), class: "rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+      - else
+        = link_to "編集", edit_memo_path(memo), class: "rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
       = button_to "削除", memo_path(memo), method: :delete, form: { data: { turbo_confirm: "このメモを削除しますか？" } }, class: "rounded-md border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
 
   - if memo.tags.any?

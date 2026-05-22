@@ -51,5 +51,20 @@ class MemosControllerChecklistTest < ActionDispatch::IntegrationTest
     @memo.reload
     assert @memo.properties["checkboxes"].find { |r| r["id"] == id }["checked"]
     assert_includes @memo.body, "* [x] TODO1"
+    assert_not_includes @memo.body, "##{id}"
+  end
+
+  test "checklist_toggle turbo stream includes commit button for draft memo" do
+    t = 1.hour.ago.change(usec: 0)
+    @memo.update_columns(file_committed_at: t, updated_at: t)
+    id = @memo.properties["checkboxes"].first["id"]
+
+    patch checklist_toggle_memo_path(@memo),
+      params: { checklist_id: id, checked: true },
+      headers: { Accept: "text/vnd.turbo-stream.html" }
+
+    assert_response :success
+    assert_includes response.body, commit_memo_path(@memo)
+    assert_includes response.body, ">コミット<"
   end
 end

@@ -34,6 +34,7 @@ class MemoPolicy < ApplicationPolicy
 
   # member route `draft` → verify_authorized は draft? を参照する
   alias draft? update?
+  alias commit? update?
   alias revert_draft? update?
   alias ai_chat? update?
 

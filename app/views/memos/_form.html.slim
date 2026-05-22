@@ -147,5 +147,5 @@ ruby:
           data: { memo_draft_target: "body", memo_body_editor_target: "field", action: "input->memo-draft#bodyInput compositionend->memo-draft#bodyInput blur->memo-draft#bodyInput" }
 
   - if memo.persisted?
-    = render "memos/form_actions", memo: memo, f: f
+    = render "memos/form_actions", memo: memo
 

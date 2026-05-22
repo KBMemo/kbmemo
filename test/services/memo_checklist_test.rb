@@ -24,8 +24,8 @@ class MemoChecklistTest < ActiveSupport::TestCase
     assert_equal "TODO2", rows[1]["label"]
     assert_equal true, rows[1]["checked"]
     assert rows[0]["id"].present?
-    assert_includes @memo.body, "##{rows[0]["id"]}"
     assert_equal rows, @memo.properties["checkboxes"]
+    assert_not_includes @memo.body, "##{rows[0]["id"]}"
   end
 
   test "toggle updates body and properties" do
@@ -35,7 +35,8 @@ class MemoChecklistTest < ActiveSupport::TestCase
     MemoChecklist.toggle!(@memo, id: id, checked: true)
 
     assert @memo.properties["checkboxes"].find { |r| r["id"] == id }["checked"]
-    assert_includes @memo.body, "* [x] TODO1 ##{id}"
+    assert_includes @memo.body, "* [x] TODO1"
+    assert_not_includes @memo.body, "##{id}"
   end
 
   test "preserves custom id suffix in body" do

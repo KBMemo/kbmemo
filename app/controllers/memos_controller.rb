@@ -1,5 +1,5 @@
 class MemosController < ApplicationController
-  prepend_before_action :set_memo, only: %i[show edit update destroy draft revert_draft checklist_toggle]
+  prepend_before_action :set_memo, only: %i[show edit update destroy draft commit revert_draft checklist_toggle]
   before_action :set_memo_groups_for_form, only: %i[new create edit update]
   include MemoSidebar
 
@@ -86,48 +86,27 @@ class MemosController < ApplicationController
 
   def update
     authorize @memo
-    repo = MemoRepository.new
-    old_rel = repo.relative_path_for(@memo)
-    old_abs = repo.absolute_path_for(@memo)
-    old_assets_rel = repo.assets_dir_relative_for(@memo)
-
     unless assign_memo_fields(@memo)
       render :edit, status: :unprocessable_entity
       return
     end
 
-    @memo.apply_title_from_body_rules!
-    @memo.apply_slug_from_title_rules!
+    commit_memo!(redirect_path: memo_path(@memo))
+  rescue MemoRepository::Error => e
+    flash.now[:alert] = e.message
+    render :edit, status: :unprocessable_entity
+  end
 
-    unless @memo.valid?
-      render :edit, status: :unprocessable_entity
+  def commit
+    authorize @memo, :commit?
+    unless @memo.display_as_draft?
+      redirect_to memo_path(@memo)
       return
     end
 
-    new_rel = repo.relative_path_for(@memo)
-    new_assets_rel = repo.assets_dir_relative_for(@memo)
-
-    begin
-      if old_abs.exist? && old_rel.to_s != new_rel.to_s
-        repo.relocate_path!(from_relative: old_rel, to_relative: new_rel)
-      end
-      if old_assets_rel.to_s != new_assets_rel.to_s && repo.root.join(old_assets_rel).directory?
-        repo.relocate_path!(from_relative: old_assets_rel, to_relative: new_assets_rel)
-      end
-      repo.write_and_commit!(@memo)
-    rescue MemoRepository::Error => e
-      flash.now[:alert] = e.message
-      render :edit, status: :unprocessable_entity
-      return
-    end
-
-    if @memo.save
-      @memo.update_column(:file_committed_at, @memo.updated_at)
-      broadcast_updated_show_content
-      redirect_to memo_path(@memo), notice: "ファイルへ保存し、Git に記録しました。"
-    else
-      render :edit, status: :unprocessable_entity
-    end
+    commit_memo!(redirect_path: memo_path(@memo), failure_render: nil)
+  rescue MemoRepository::Error => e
+    redirect_to memo_path(@memo), alert: e.message
   end
 
   def destroy
@@ -199,7 +178,7 @@ class MemosController < ApplicationController
             turbo_stream.replace(
               "memo_form_actions",
               partial: "memos/form_actions",
-              locals: { memo: @memo, f: nil }
+              locals: { memo: @memo }
             ),
             turbo_stream.replace("memos_list_panel", partial: "memos/list_panel")
           ]
@@ -276,6 +255,43 @@ class MemosController < ApplicationController
   private
 
   # Turbo の broadcast が ApplicationController.render 経由だと rodauth が無く memo_html が失敗するので、同一リクエストで HTML を組み立ててから送る。
+  def commit_memo!(redirect_path:, failure_render: :edit)
+    @memo.apply_title_from_body_rules!
+    @memo.apply_slug_from_title_rules!
+
+    unless @memo.valid?
+      if failure_render
+        render failure_render, status: :unprocessable_entity
+      else
+        redirect_to edit_memo_path(@memo), alert: @memo.errors.full_messages.join(" ")
+      end
+      return
+    end
+
+    write_memo_to_git!
+    @memo.save!
+    @memo.update_column(:file_committed_at, @memo.updated_at)
+    broadcast_updated_show_content
+    redirect_to redirect_path, notice: "ファイルへ保存し、Git に記録しました。"
+  end
+
+  def write_memo_to_git!
+    repo = MemoRepository.new
+    old_rel = repo.relative_path_for(@memo)
+    old_abs = repo.absolute_path_for(@memo)
+    old_assets_rel = repo.assets_dir_relative_for(@memo)
+    new_rel = repo.relative_path_for(@memo)
+    new_assets_rel = repo.assets_dir_relative_for(@memo)
+
+    if old_abs.exist? && old_rel.to_s != new_rel.to_s
+      repo.relocate_path!(from_relative: old_rel, to_relative: new_rel)
+    end
+    if old_assets_rel.to_s != new_assets_rel.to_s && repo.root.join(old_assets_rel).directory?
+      repo.relocate_path!(from_relative: old_assets_rel, to_relative: new_assets_rel)
+    end
+    repo.write_and_commit!(@memo)
+  end
+
   def broadcast_updated_show_content
     html = render_to_string(partial: "memos/show_content", locals: { memo: @memo }, formats: [ :html ])
     @memo.broadcast_replace(html: html)
