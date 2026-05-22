@@ -1,6 +1,6 @@
 = 本番デプロイ手順（Ubuntu 24.04 + nginx）
 
-KBMemo サイトを本番サーバー（**kbmemo.org**）へデプロイする手順です。
+KBMemo サイトを本番サーバー（**https://kbmemo.net**）へデプロイする手順です。
 
 == 前提条件（本番環境）
 
@@ -14,13 +14,13 @@ KBMemo サイトを本番サーバー（**kbmemo.org**）へデプロイする�
 
 |アプリ配置先 |**`/home/kensei/sites/kbmemo`**
 
-|公開 URL |**https://kbmemo.org**（`www.kbmemo.org` も許可する想定）
+|公開 URL |**https://kbmemo.net**（`www.kbmemo.net` も許可する想定）
 
 |アプリ実行ユーザー |`kensei`（配置パスと一致）
 
 |データベース |**SQLite**（`storage/production*.sqlite3`）。単一 VPS 構成の既定
 
-|DNS |`kbmemo.org`（必要なら `www`）の A/AAAA を本サーバー IP に向ける
+|DNS |`kbmemo.net`（必要なら `www`）の A/AAAA を本サーバー IP に向ける
 |===
 
 * デプロイ方式は **ネイティブ（systemd + Puma/Thruster）** です。nginx が TLS 終端とプロキシを担当し、Rails は **localhost のみ** で待ち受けます。
@@ -34,12 +34,13 @@ KBMemo サイトを本番サーバー（**kbmemo.org**）へデプロイする�
 
 [source,text]
 ----
-[ブラウザ] --HTTPS:443--> [nginx @ kbmemo.org]
+[ブラウザ] --HTTPS:443--> [nginx @ kbmemo.net]
                               |
-                              | proxy_pass http://127.0.0.1:3000
+                              | proxy_pass http://kbmemo (upstream → localhost:3007)
+                              |   /cable … WebSocket (Action Cable / Turbo Streams)
                               v
                     [/home/kensei/sites/kbmemo]
-                    Thruster + Puma (PORT=3000, SOLID_QUEUE_IN_PUMA)
+                    Thruster + Puma (PORT=3007, SOLID_QUEUE_IN_PUMA)
                     SQLite x4 → storage/production*.sqlite3
                     memo_git_worktree/  (storage 配下)
                               |
@@ -119,11 +120,11 @@ nginx 経由の HTTPS では、次を有効にし、ホスト名を合わせま�
 config.assume_ssl = true
 config.force_ssl = true
 
-config.action_mailer.default_url_options = { host: "kbmemo.org", protocol: "https" }
+config.action_mailer.default_url_options = { host: "kbmemo.net", protocol: "https" }
 
 config.hosts = [
-  "kbmemo.org",
-  "www.kbmemo.org"
+  "kbmemo.net",
+  "www.kbmemo.net"
 ]
 ----
 
@@ -162,7 +163,7 @@ OpenAI API キー BYOK 用の **Active Record Encryption 3 変数** は別物で
 ----
 cat > /home/kensei/sites/kbmemo/.env.production <<'EOF'
 RAILS_ENV=production
-PORT=3000
+PORT=3007
 
 RAILS_MASTER_KEY=<config/master.key と同じ値>
 
@@ -272,7 +273,7 @@ bundle exec rails console
 
 [source,ruby]
 ----
-email = "admin@kbmemo.org"
+email = "admin@kbmemo.net"
 password = "強いパスワード"   # 8 文字以上
 
 account = Account.create!(
@@ -292,7 +293,7 @@ account = Account.create!(
 Account.find_by!(email: "既存@example.com").update!(admin: true, status: :verified)
 ----
 
-管理画面: https://kbmemo.org/admin（要ログイン + `admin: true`）
+管理画面: https://kbmemo.net/admin（要ログイン + `admin: true`）
 
 == systemd（アプリ常駐）
 
@@ -301,7 +302,7 @@ Account.find_by!(email: "既存@example.com").update!(admin: true, status: :veri
 [source,ini]
 ----
 [Unit]
-Description=KBMemo (kbmemo.org)
+Description=KBMemo (kbmemo.net)
 After=network.target
 
 [Service]
@@ -329,43 +330,76 @@ WantedBy=multi-user.target
 sudo systemctl daemon-reload
 sudo systemctl enable --now kbmemo
 sudo systemctl status kbmemo
-curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/up
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3007/up
 ----
 
 `/up` が `200` であることを確認してから nginx を設定します。
 
 == nginx バーチャルホスト
 
-=== サイト設定
+Turbo Streams（Action Cable）は **`wss://kbmemo.net/cable`** へ WebSocket 接続します。nginx で `Upgrade` / `Connection` をプロキシしないと接続に失敗します。
 
-`/etc/nginx/sites-available/kbmemo.org`:
+=== WebSocket 用 `map`（1 回だけ）
+
+`/etc/nginx/nginx.conf` の `http { }` 内、`include /etc/nginx/sites-enabled/*;` の **前** に追加します。
 
 [source,nginx]
 ----
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+----
+
+=== サイト設定
+
+`/etc/nginx/sites-available/kbmemo.net`:
+
+[source,nginx]
+----
+upstream kbmemo {
+    server localhost:3007;
+}
+
 server {
     listen 80;
     listen [::]:80;
-    server_name kbmemo.org www.kbmemo.org;
+    server_name kbmemo.net www.kbmemo.net;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name kbmemo.org www.kbmemo.org;
+    server_name kbmemo.net www.kbmemo.net;
 
-    ssl_certificate     /etc/letsencrypt/live/kbmemo.org/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/kbmemo.org/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/kbmemo.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/kbmemo.net/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
-    access_log /var/log/nginx/kbmemo.org.access.log;
-    error_log  /var/log/nginx/kbmemo.org.error.log;
+    access_log /var/log/nginx/kbmemo.net.access.log;
+    error_log  /var/log/nginx/kbmemo.net.error.log;
 
     client_max_body_size 50M;
 
+    # Action Cable (Turbo Streams) — WebSocket
+    location /cable {
+        proxy_pass http://kbmemo;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        $connection_upgrade;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_read_timeout 86400;
+        proxy_send_timeout 86400;
+    }
+
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://kbmemo;
         proxy_http_version 1.1;
         proxy_set_header Host              $host;
         proxy_set_header X-Real-IP         $remote_addr;
@@ -378,11 +412,24 @@ server {
 
 [source,bash]
 ----
-sudo ln -sf /etc/nginx/sites-available/kbmemo.org /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/kbmemo.net /etc/nginx/sites-enabled/
 sudo nginx -t
-sudo certbot --nginx -d kbmemo.org -d www.kbmemo.org
+sudo certbot --nginx -d kbmemo.net -d www.kbmemo.net
 sudo systemctl reload nginx
-curl -fsS https://kbmemo.org/up
+curl -fsS https://kbmemo.net/up
+----
+
+=== `/cable` の確認
+
+[source,bash]
+----
+# 101 Switching Protocols が返れば nginx → Puma の WebSocket プロキシは OK
+curl -i -N \
+  -H "Connection: Upgrade" \
+  -H "Upgrade: websocket" \
+  -H "Sec-WebSocket-Version: 13" \
+  -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+  https://kbmemo.net/cable
 ----
 
 == Kroki（図機能・任意）
@@ -425,12 +472,12 @@ config.logger = ActiveSupport::TaggedLogging.logger(STDOUT)
 
 === nginx ログ
 
-* アクセス: `/var/log/nginx/kbmemo.org.access.log`
-* エラー: `/var/log/nginx/kbmemo.org.error.log`
+* アクセス: `/var/log/nginx/kbmemo.net.access.log`
+* エラー: `/var/log/nginx/kbmemo.net.error.log`
 
 [source,bash]
 ----
-sudo tail -f /var/log/nginx/kbmemo.org.error.log
+sudo tail -f /var/log/nginx/kbmemo.net.error.log
 ----
 
 === `log/production.log` をファイルで残したい場合
@@ -451,7 +498,7 @@ bundle exec rails db:migrate
 bundle exec rails assets:precompile
 
 sudo systemctl restart kbmemo
-curl -fsS https://kbmemo.org/up
+curl -fsS https://kbmemo.net/up
 ----
 
 新規アカウント追加後に `home/u-{id}` が無い場合は、<<memo-directory-bootstrap>> の runner の `Account.find_each` 部分だけ再実行してください。
@@ -462,10 +509,11 @@ curl -fsS https://kbmemo.org/up
 |===
 |項目 |確認
 
-|ヘルスチェック |`curl -fsS https://kbmemo.org/up`
-|アプリ直結 |`curl -fsS http://127.0.0.1:3000/up`
-|ログイン |https://kbmemo.org/login
-|管理画面 |https://kbmemo.org/admin（管理者のみ）
+|ヘルスチェック |`curl -fsS https://kbmemo.net/up`
+|アプリ直結 |`curl -fsS http://127.0.0.1:3007/up`
+|WebSocket |`wss://kbmemo.net/cable`（ブラウザ DevTools → Network → WS、または上記 curl）
+|ログイン |https://kbmemo.net/login
+|管理画面 |https://kbmemo.net/admin（管理者のみ）
 |メモ |作成・編集、`storage/memo_git_worktree/` に作業ツリー
 |図 |Mermaid 保存 → Kroki
 |===
@@ -491,7 +539,7 @@ SQLite は可能ならメンテナンス時間にコピーするか、ファイ�
 |状態 |`sudo systemctl status kbmemo`
 |アプリログ（追跡） |`sudo journalctl -u kbmemo -f`
 |Rails コンソール |`cd /home/kensei/sites/kbmemo && set -a && source .env.production && set +a && bundle exec rails console`
-|nginx ログ |`tail -f /var/log/nginx/kbmemo.org.error.log`
+|nginx ログ |`tail -f /var/log/nginx/kbmemo.net.error.log`
 |===
 
 == トラブルシューティング
@@ -501,7 +549,8 @@ SQLite は可能ならメンテナンス時間にコピーするか、ファイ�
 |症状 |対処
 
 |`log/production.log` が無い |正常。<<logging-journal>> を参照
-|502 Bad Gateway |`systemctl status kbmemo`、`journalctl -u kbmemo -n 50`、`curl http://127.0.0.1:3000/up`
+|502 Bad Gateway |`systemctl status kbmemo`、`journalctl -u kbmemo -n 50`、`curl http://127.0.0.1:3007/up`
+|WebSocket / Turbo が更新されない |nginx に `map $http_upgrade` と `location /cable` があるか、`curl -i -N … https://kbmemo.net/cable` で `101` になるか確認
 |Blocked host |`production.rb` の `config.hosts`
 |リダイレクトループ |`assume_ssl` / `force_ssl` と nginx の `X-Forwarded-Proto`
 |`MemoDirectory.root` NotFound |<<memo-directory-bootstrap>> を実行
