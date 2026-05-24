@@ -8,12 +8,13 @@
   "devDependencies": {
     "@hotwired/stimulus": "^3.2.2",
     "@tailwindcss/vite": "^4.2.4",
+    "happy-dom": "^20.9.0",
     "tailwindcss": "^4.2.4",
     "tsup": "^8.5.0",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4",
     "vite": "^8.0.10",
-    "vite-plugin-ruby": "^5.2.1"
+    "vite-plugin-ruby": "^5.2.1",
+    "vitest": "^3.2.4"
   },
   "scripts": {
     "build:packages": "npm run build --workspace @kbmemo/adoc-kbmemo --workspace @kbmemo/adoc-codemirror --workspace @kbmemo/adoc-preview --workspace @kbmemo/adoc-wysiwyg --workspace @kbmemo/adoc-editor",
@@ -24,11 +25,6 @@
     "verify:publish": "node scripts/verify-publish-readiness.mjs"
   },
   "dependencies": {
-    "@kbmemo/adoc-codemirror": "*",
-    "@kbmemo/adoc-editor": "*",
-    "@kbmemo/adoc-kbmemo": "*",
-    "@kbmemo/adoc-preview": "*",
-    "@kbmemo/adoc-wysiwyg": "*",
     "@asciidoctor/core": "^3.0.4",
     "@codemirror/autocomplete": "^6.20.2",
     "@codemirror/commands": "^6.10.3",
@@ -37,10 +33,15 @@
     "@codemirror/state": "^6.6.0",
     "@codemirror/view": "^6.43.0",
     "@hotwired/turbo-rails": "^8.0.23",
+    "@kbmemo/adoc-codemirror": "*",
+    "@kbmemo/adoc-editor": "*",
+    "@kbmemo/adoc-kbmemo": "*",
+    "@kbmemo/adoc-preview": "*",
+    "@kbmemo/adoc-wysiwyg": "*",
     "codemirror": "^6.0.2",
-    "highlight.js": "^11.11.1",
     "codemirror-lang-mermaid": "^0.5.0",
     "font-awesome": "^4.7.0",
+    "highlight.js": "^11.11.1",
     "katex": "^0.16.11",
     "lucide": "^1.14.0",
     "stimulus-use": "^0.52.3"

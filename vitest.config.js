@@ -13,6 +13,7 @@ export default defineConfig({
       '@kbmemo/adoc-preview': path.join(packagesDir, 'adoc-preview/index.js'),
       '@kbmemo/adoc-wysiwyg': path.join(packagesDir, 'adoc-wysiwyg/index.js'),
       '@kbmemo/adoc-editor': path.join(packagesDir, 'adoc-editor/index.js'),
+      '@kbmemo/test-fixtures': path.join(rootDir, 'test/fixtures/asciidoc/index.js'),
     },
   },
   test: {

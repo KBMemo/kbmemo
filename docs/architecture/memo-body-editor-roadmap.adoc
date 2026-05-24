@@ -378,6 +378,8 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 * `npm run publish:packages -- --dry-run` — publish 前チェック（本番は `NPM_PUBLISH_REGISTRY` を設定）
 * `npm run verify:consumer` — tarball を別ディレクトリに `npm install` して `@kbmemo/adoc-editor` を smoke  import
 * `npm run verify:publish` — 公開前メタデータ検証（バージョン・依存 pin・`private` 解除）
+* `test/fixtures/asciidoc/syntax-quick-reference.adoc` — クイックリファレンス全記法フィクスチャ（パッケージテスト・手動確認用）
+* `docs/architecture/asciidoc-syntax-coverage-roadmap.adoc` — 全記法対応ロードマップ（未実装記法の追跡）
 * `examples/adoc-editor-demo/` — ソース + ライブプレビューの最小デモ（`npm run dev --workspace adoc-editor-demo`）
 * `app/services/memo_wiki_link_labels.rb` — リンク WYSIWYG 用ラベル API（`GET /memos/wiki_link_labels`）
 * `app/javascript/controllers/memo_draft_controller.js` — ドラフト保存（正の同期先）

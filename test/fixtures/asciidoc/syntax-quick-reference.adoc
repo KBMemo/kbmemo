@@ -1,0 +1,739 @@
+= AsciiDoc Syntax Quick Reference (KBMemo fixture)
+Author Name <author@example.org>
+v1.0, 2026-05-25
+:toc:
+:experimental:
+:source-highlighter: highlightjs
+:stem: latexmath
+:imagesdir: ./assets
+:allow-uri-read:
+:homepage: https://example.org
+
+// Canonical fixture derived from the AsciiDoc Syntax Quick Reference.
+// https://docs.asciidoctor.org/asciidoc/latest/syntax-quick-reference/
+//
+// Section markers use `// kbmemo:syntax-ref:<id>` for coverage tracking in tests and roadmap.
+
+// kbmemo:syntax-ref:document-header
+This fixture exercises AsciiDoc constructs for package tests and manual editor verification.
+
+// === Paragraphs ===
+
+// kbmemo:syntax-ref:paragraphs
+Paragraphs don't require special markup in AsciiDoc.
+A paragraph is defined by one or more consecutive lines of text.
+Line breaks within a paragraph are not displayed.
+
+Leave at least one empty line to begin a new paragraph.
+
+// kbmemo:syntax-ref:paragraphs-literal
+A normal paragraph.
+
+ A literal paragraph.
+ One or more consecutive lines indented by at least one space.
+
+ The text is shown in a fixed-width (typically monospace) font.
+ The lines are preformatted (i.e., as formatted in the source).
+ Spaces and newlines,
+ like the ones in this sentence,
+ are preserved.
+
+// kbmemo:syntax-ref:paragraphs-hardbreaks
+Roses are red, +
+violets are blue.
+
+[%hardbreaks]
+A ruby is red.
+Java is black.
+
+// kbmemo:syntax-ref:paragraphs-lead
+[.lead]
+This text will be styled as a lead paragraph (i.e., larger font).
+
+This paragraph will not be.
+
+// === Text formatting ===
+
+// kbmemo:syntax-ref:text-formatting-constrained
+It has *strong* significance to me.
+
+I _cannot_ stress this enough.
+
+Type `OK` to accept.
+
+That *_really_* has to go.
+
+Can't pick one? Let's use them `*_all_*`.
+
+// kbmemo:syntax-ref:text-formatting-unconstrained
+**C**reate, **R**ead, **U**pdate, and **D**elete (CRUD)
+
+That's fan__freakin__tastic!
+
+Don't pass generic ``Object``s to methods that accept ``String``s!
+
+It was Beatle**__mania__**!
+
+// kbmemo:syntax-ref:text-formatting-highlight
+Mark my words, #automation is essential#.
+
+##Mark##up refers to text that contains formatting ##mark##s.
+
+Where did all the [.underline]#cores# go?
+
+We need [.line-through]#ten# twenty VMs.
+
+A [.myrole]#custom role# must be fulfilled by the theme.
+
+// kbmemo:syntax-ref:text-formatting-super-sub
+^super^script
+
+~sub~script
+
+// kbmemo:syntax-ref:text-formatting-smart-quotes
+"`double curved quotes`"
+
+'`single curved quotes`'
+
+Olaf's desk was a mess.
+
+A ``std::vector``'s size is the number of items it contains.
+
+All of the werewolves`' desks were a mess.
+
+Olaf had been with the company since the `'00s.
+
+// === Links ===
+
+// kbmemo:syntax-ref:links-autolink
+https://asciidoctor.org - automatic!
+
+https://asciidoctor.org[Asciidoctor]
+
+devel@discuss.example.org
+
+mailto:devel@discuss.example.org[Discuss]
+
+mailto:join@discuss.example.org[Subscribe,Subscribe me,I want to join!]
+
+// kbmemo:syntax-ref:links-attributes
+https://chat.asciidoc.org[Discuss AsciiDoc,role=external,window=_blank]
+
+https://chat.asciidoc.org[Discuss AsciiDoc^]
+
+// kbmemo:syntax-ref:links-special-chars
+link:++https://example.org/?q=[a b]++[URL with special characters]
+
+https://example.org/?q=%5Ba%20b%5D[URL with special characters]
+
+// kbmemo:syntax-ref:links-relative
+link:index.html[Docs]
+
+// kbmemo:syntax-ref:links-unc
+link:\\server\share\whitepaper.pdf[Whitepaper]
+
+// kbmemo:syntax-ref:links-anchors
+[[bookmark-a]]Inline anchors make arbitrary content referenceable.
+
+[#bookmark-b]#Inline anchors can be applied to a phrase like this one.#
+
+anchor:bookmark-c[]Use a cross reference to link to this location.
+
+[[bookmark-d,last paragraph]]The xreflabel attribute will be used as link text in the cross-reference link.
+
+// kbmemo:syntax-ref:links-xref
+See <<paragraphs>> to learn how to write paragraphs.
+
+Learn how to organize the document into <<section-titles,sections>>.
+
+// kbmemo:syntax-ref:links-interdoc
+Refer to xref:other-document.adoc#section-b[Section B of Document B] for more information.
+
+If you never return from xref:other-document.adoc[Document B], we'll send help.
+
+// === Section titles ===
+
+// kbmemo:syntax-ref:sections-article
+== Level 1 Section Title
+
+=== Level 2 Section Title
+
+==== Level 3 Section Title
+
+===== Level 4 Section Title
+
+====== Level 5 Section Title
+
+== Another Level 1 Section Title
+
+// kbmemo:syntax-ref:sections-discrete
+[discrete]
+=== I'm an independent heading!
+
+This paragraph is its sibling, not its child.
+
+// kbmemo:syntax-ref:sections-book
+[source,asciidoc]
+----
+= Level 0 Section Title (Part)
+
+== Level 1 Section Title in Part
+
+= Another Level 0 Section Title (Part)
+----
+
+// `:doctype: book` が必要。上は listing 内の参照用サンプル。
+
+// === Includes ===
+
+// kbmemo:syntax-ref:includes
+include::basics.adoc[]
+
+include::installation.adoc[]
+
+include::filename.txt[tag=definition]
+
+include::filename.txt[lines=5..10]
+
+include::https://raw.githubusercontent.com/asciidoctor/asciidoctor/main/README.adoc[]
+
+// === Lists ===
+
+// kbmemo:syntax-ref:lists-unordered
+* List item
+** Nested list item
+*** Deeper nested list item
+* List item
+ ** Another nested list item
+* List item
+
+// kbmemo:syntax-ref:lists-ordered
+. Step 1
+. Step 2
+.. Step 2a
+.. Step 2b
+. Step 3
+
+// kbmemo:syntax-ref:lists-checklist
+* [*] checked
+* [x] also checked
+* [ ] not checked
+* normal list item
+
+// kbmemo:syntax-ref:lists-description
+First term:: The description can be placed on the same line
+as the term.
+Second term::
+Description of the second term.
+The description can also start on its own line.
+
+// kbmemo:syntax-ref:lists-qanda
+[qanda]
+What is the answer?::
+This is the answer.
+
+Are cameras allowed?::
+Are backpacks allowed?::
+No.
+
+// kbmemo:syntax-ref:lists-mixed
+Operating Systems::
+  Linux:::
+    . Fedora
+      * Desktop
+    . Ubuntu
+      * Desktop
+      * Server
+  BSD:::
+    . FreeBSD
+    . NetBSD
+
+Cloud Providers::
+  PaaS:::
+    . OpenShift
+    . CloudBees
+  IaaS:::
+    . Amazon EC2
+    . Rackspace
+
+// kbmemo:syntax-ref:lists-complex
+* Every list item has at least one paragraph of content,
+  which may be wrapped, even using a hanging indent.
++
+Additional paragraphs or blocks are adjoined by putting
+a list continuation on a line adjacent to both blocks.
++
+list continuation:: a plus sign (`+`) on a line by itself
+
+* A literal paragraph does not require a list continuation.
+
+ $ cd projects/my-book
+
+* AsciiDoc lists may contain any compound content.
++
+|===
+|Column 1, Header Row |Column 2, Header Row
+
+|Column 1, Row 1
+|Column 2, Row 1
+|===
+
+// === Images ===
+
+// kbmemo:syntax-ref:images-block
+image::sunset.jpg[]
+
+image::sunset.jpg[Sunset]
+
+.A mountain sunset
+[#img-sunset,caption="Figure 1: ",link=https://www.example.com/photos/sunset]
+image::sunset.jpg[Sunset,200,100]
+
+image::https://asciidoctor.org/images/octocat.jpg[GitHub mascot]
+
+// kbmemo:syntax-ref:images-inline
+Click image:play.png[] to get the party started.
+
+Click image:pause.png[title=Pause] when you need a break.
+
+// kbmemo:syntax-ref:images-positioning
+image:sunset.jpg[Sunset,150,150,role=right] What a beautiful sunset!
+
+// kbmemo:syntax-ref:images-data-uri
+:data-uri:
+
+// === Audio / Video ===
+
+// kbmemo:syntax-ref:audio
+audio::ocean-waves.wav[]
+
+audio::ocean-waves.wav[start=60,opts=autoplay]
+
+// kbmemo:syntax-ref:video
+video::video-file.mp4[]
+
+video::video-file.mp4[width=640,start=60,opts=autoplay]
+
+video::RvRhUHTV_8k[youtube]
+
+video::67480300[vimeo]
+
+// === Keyboard / Menu / Button macros ===
+
+// kbmemo:syntax-ref:macros-kbd-menu-btn
+|===
+|Shortcut |Purpose
+
+|kbd:[F11]
+|Toggle fullscreen
+
+|kbd:[Ctrl+T]
+|Open a new tab
+|===
+
+To save the file, select menu:File[Save].
+
+Select menu:View[Zoom > Reset] to reset the zoom level to the default setting.
+
+Press the btn:[OK] button when you are finished.
+
+Select a file in the file navigator and click btn:[Open].
+
+// === Literals and source code ===
+
+// kbmemo:syntax-ref:literals-inline
+Output literal monospace text, such as `+{backtick}+` or `+http://localhost:8080+`, by enclosing the text in a pair of pluses surrounded by a pair of backticks.
+
+// kbmemo:syntax-ref:literals-paragraph
+Normal line.
+
+ Indent line by one space to create a literal line.
+
+Normal line.
+
+// kbmemo:syntax-ref:literals-block
+....
+error: 1954 Forbidden search
+absolutely fatal: operation lost in the dodecahedron of doom
+
+Would you like to try again? y/n
+....
+
+// kbmemo:syntax-ref:listing
+.Gemfile.lock
+----
+GEM
+  remote: https://rubygems.org/
+  specs:
+    asciidoctor (2.0.15)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  asciidoctor (~> 2.0.15)
+----
+
+// kbmemo:syntax-ref:source-highlight
+.Some Ruby code
+[source,ruby]
+----
+require 'sinatra'
+
+get '/hi' do
+  "Hello World!"
+end
+----
+
+// kbmemo:syntax-ref:source-callouts
+[source,ruby]
+----
+require 'sinatra' // <1>
+
+get '/hi' do // <2>
+  "Hello World!" // <3>
+end
+----
+<1> Library import
+<2> URL mapping
+<3> HTTP response body
+
+// kbmemo:syntax-ref:source-include
+[,ruby]
+----
+include::app.rb[]
+----
+
+// kbmemo:syntax-ref:source-paragraph
+[source,xml]
+<meta name="viewport"
+  content="width=device-width, initial-scale=1.0">
+
+This is normal content.
+
+// === Admonitions ===
+
+// kbmemo:syntax-ref:admonitions-paragraph
+NOTE: An admonition draws the reader's attention to auxiliary information.
+
+IMPORTANT: Don't forget the children!
+
+TIP: Look for the warp zone under the bridge.
+
+CAUTION: Slippery when wet.
+
+WARNING: The software you're about to use is untested.
+
+// kbmemo:syntax-ref:admonitions-block
+[NOTE]
+====
+An admonition block may contain compound content.
+
+.A list
+- one
+- two
+- three
+
+Another paragraph.
+====
+
+// === More delimited blocks ===
+
+// kbmemo:syntax-ref:blocks-sidebar
+.Optional Title
+****
+Sidebars are used to visually separate auxiliary bits of content
+that supplement the main text.
+****
+
+// kbmemo:syntax-ref:blocks-example
+====
+Here's a sample AsciiDoc document:
+
+----
+= Title of Document
+Doc Writer
+:toc:
+
+This guide provides...
+----
+
+The document header is useful, but not required.
+====
+
+// kbmemo:syntax-ref:blocks-blockquote
+[quote,Abraham Lincoln,Address delivered at the dedication of the Cemetery at Gettysburg]
+____
+Four score and seven years ago our fathers brought forth
+on this continent a new nation...
+____
+
+[quote,Albert Einstein]
+A person who never made a mistake never tried anything new.
+
+____
+A person who never made a mistake never tried anything new.
+____
+
+// kbmemo:syntax-ref:blocks-open
+--
+An open block can be an anonymous container,
+or it can masquerade as any other block.
+--
+
+[source]
+--
+puts "I'm a source block!"
+--
+
+// kbmemo:syntax-ref:blocks-passthrough
+++++
+<p>
+Content in a passthrough block is passed to the output unprocessed.
+</p>
+++++
+
+// kbmemo:syntax-ref:blocks-subs
+:release-version: 2.4.3
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+  <groupId>org.asciidoctor</groupId>
+  <artifactId>asciidoctorj</artifactId>
+  <version>{release-version}</version>
+</dependency>
+----
+
+// === Tables ===
+
+// kbmemo:syntax-ref:tables-basic
+.Table Title
+|===
+|Column 1, Header Row |Column 2, Header Row
+
+|Cell in column 1, row 1
+|Cell in column 2, row 1
+
+|Cell in column 1, row 2
+|Cell in column 2, row 2
+|===
+
+// kbmemo:syntax-ref:tables-header-cols
+[%header,cols=2*]
+|===
+|Name of Column 1
+|Name of Column 2
+
+|Cell in column 1, row 1
+|Cell in column 2, row 1
+
+|Cell in column 1, row 2
+|Cell in column 2, row 2
+|===
+
+// kbmemo:syntax-ref:tables-asciidoc-cells
+[cols="2,2,5a"]
+|===
+|Firefox
+|Browser
+|Mozilla Firefox is an open source web browser.
+
+It's designed for:
+
+* standards compliance
+* performance
+* portability
+
+https://getfirefox.com[Get Firefox]!
+|===
+
+// kbmemo:syntax-ref:tables-csv
+,===
+Artist,Track,Genre
+
+Baauer,Harlem Shake,Hip Hop
+,===
+
+[%header,format=csv]
+|===
+Artist,Track,Genre
+Baauer,Harlem Shake,Hip Hop
+The Lumineers,Ho Hey,Folk Rock
+|===
+
+// kbmemo:syntax-ref:tables-dsv
+:===
+Artist:Track:Genre
+
+Robyn:Indestructible:Dance
+:===
+
+// kbmemo:syntax-ref:tables-formatted
+[cols="e,m,^,>s",width="25%"]
+|===
+|1 >s|2 |3 |4
+^|5 2.2+^.^|6 .3+<.>m|7
+^|8
+|9 2+>|10
+|===
+
+// === IDs, roles, options, comments ===
+
+// kbmemo:syntax-ref:ids-roles-options
+[#goals.incremental]
+* Goal 1
+* Goal 2
+
+[id="goals-formal",role="incremental"]
+* Goal 1 (formal)
+* Goal 2 (formal)
+
+[#null-values]
+== Primitive types and null values
+
+[#id-name.role-name]`monospace text`
+
+[#free-world.goals]*free the world*
+
+[%header%footer%autowidth]
+|===
+|Header A |Header B
+|Footer A |Footer B
+|===
+
+// kbmemo:syntax-ref:comments
+// A single-line comment
+
+////
+A multi-line comment.
+
+Notice it's a delimited block.
+////
+
+// === Breaks ===
+
+// kbmemo:syntax-ref:breaks-thematic
+before
+
+'''
+
+after
+
+// kbmemo:syntax-ref:breaks-page
+<<<
+
+// === Attributes and substitutions ===
+
+// kbmemo:syntax-ref:attributes
+:url-home: https://asciidoctor.org
+:link-docs: https://asciidoctor.org/docs[documentation]
+:summary: AsciiDoc is a mature, plain-text document format.
+:checkedbox: pass:normal[{startsb}&#10004;{endsb}]
+
+Check out {url-home}[Asciidoctor]!
+
+{summary}
+
+Be sure to read the {link-docs} too!
+
+{checkedbox} That's done!
+
+// kbmemo:syntax-ref:attributes-counter
+.Parts{counter2:index:0}
+|===
+|Part Id |Description
+
+|PX-{counter:index}
+|Description of PX-{index}
+
+|PX-{counter:index}
+|Description of PX-{index}
+|===
+
+// kbmemo:syntax-ref:text-replacements
+(C) (R) (TM) -- ... -> => <- <= Sam's
+
+// kbmemo:syntax-ref:escaping
+In /items/\{id}, the id attribute isn't replaced.
+
+\*Stars* isn't displayed as bold text.
+
+\https://example.org isn't converted into an active link.
+
+// kbmemo:syntax-ref:passthrough-inline
+A word or phrase between single pluses, such as +/user/{id}+,
+is not substituted.
+
++++<del>strike this</del>+++ is marked as deleted.
+
+pass:[<del>strike this</del>] is also marked as deleted.
+
+// === Bibliography ===
+
+// kbmemo:syntax-ref:bibliography
+_The Pragmatic Programmer_ <<pp>> should be required reading for all developers.
+
+[bibliography]
+== References
+
+* [[[pp]]] Andy Hunt & Dave Thomas. The Pragmatic Programmer. Addison-Wesley. 1999.
+
+// === Footnotes ===
+
+// kbmemo:syntax-ref:footnotes
+A statement.footnote:[Clarification about this statement.]
+
+A bold statement!footnote:disclaimer[Opinions are my own.]
+
+Another bold statement.footnote:disclaimer[]
+
+// === Markdown compatibility ===
+
+// kbmemo:syntax-ref:markdown-headings
+## Markdown-style Level 2
+
+### Markdown-style Level 3
+
+// kbmemo:syntax-ref:markdown-fenced
+```ruby
+require 'sinatra'
+
+get '/hi' do
+  "Hello World!"
+end
+```
+
+// kbmemo:syntax-ref:markdown-blockquote
+> I hold it that a little rebellion now and then is a good thing,
+> and as necessary in the political world as storms in the physical.
+> -- Thomas Jefferson, Papers of Thomas Jefferson: Volume 11
+
+// kbmemo:syntax-ref:markdown-thematic
+---
+
+- - -
+
+***
+
+* * *
+
+// === KBMemo extensions (not in quick reference) ===
+
+// kbmemo:syntax-ref:kbmemo-wiki
+Wiki link: [[syntax-fixture-demo]]
+
+AsciiDoc link: link:/memos/1[Memo one]
+
+// kbmemo:syntax-ref:kbmemo-diagram
+diagram::sample.mmd[]
+
+// kbmemo:syntax-ref:kbmemo-math
+Inline STEM: stem:[E=mc^2]
+
+Inline LaTeX: latexmath:[\int_0^1 x^2 dx]
+
+[stem]
+++++
+\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
+++++
