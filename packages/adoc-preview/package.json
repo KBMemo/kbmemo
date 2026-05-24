@@ -7,6 +7,27 @@
     ".": "./index.js",
     "./preview_hljs.css": "./preview_hljs.css"
   },
+  "publishConfig": {
+    "access": "restricted",
+    "exports": {
+      ".": "./dist/index.js",
+      "./preview_hljs.css": "./dist/preview_hljs.css",
+      "./styles.css": "./dist/index.css"
+    }
+  },
+  "files": [
+    "dist",
+    "index.js",
+    "preview.js",
+    "preview_math.js",
+    "preview_assets.js",
+    "preview_hljs.css",
+    "live_preview.js"
+  ],
+  "scripts": {
+    "build": "tsup && cp preview_hljs.css dist/",
+    "prepack": "npm run build"
+  },
   "dependencies": {
     "@kbmemo/adoc-codemirror": "*",
     "@kbmemo/adoc-kbmemo": "*"

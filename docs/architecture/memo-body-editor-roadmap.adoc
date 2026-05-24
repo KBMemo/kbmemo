@@ -372,6 +372,7 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 * `packages/adoc-wysiwyg/wysiwyg.js` — ブロック単位 WYSIWYG エディタ
 * `packages/adoc-preview/live_preview.js` — ライブ HTML プレビュー
 * `packages/adoc-kbmemo/hostConfig.js` — CSRF・URL・スクロールルート等の HostConfig
+* `npm run build:packages` — workspace パッケージの ESM ビルド（`tsup` → `packages/*/dist/`、publish 用）
 * `app/services/memo_wiki_link_labels.rb` — リンク WYSIWYG 用ラベル API（`GET /memos/wiki_link_labels`）
 * `app/javascript/controllers/memo_draft_controller.js` — ドラフト保存（正の同期先）
 * `app/services/memo_wiki_completions.rb` — 補完候補 API

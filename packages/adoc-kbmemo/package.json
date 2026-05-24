@@ -6,6 +6,24 @@
   "exports": {
     ".": "./index.js"
   },
+  "publishConfig": {
+    "access": "restricted",
+    "exports": {
+      ".": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "index.js",
+    "hostConfig.js",
+    "kbmemo_host.js",
+    "wysiwyg_source_extensions.js",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepack": "npm run build"
+  },
   "peerDependencies": {
     "@codemirror/autocomplete": "^6.20.2",
     "@codemirror/state": "^6.6.0",

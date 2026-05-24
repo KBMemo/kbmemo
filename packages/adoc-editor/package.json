@@ -6,6 +6,20 @@
   "exports": {
     ".": "./index.js"
   },
+  "publishConfig": {
+    "access": "restricted",
+    "exports": {
+      ".": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "index.js"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepack": "npm run build"
+  },
   "dependencies": {
     "@kbmemo/adoc-codemirror": "*",
     "@kbmemo/adoc-preview": "*",

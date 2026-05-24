@@ -8,6 +8,24 @@
     "./wysiwyg.css": "./wysiwyg.css",
     "./contextMenu.css": "./contextMenu.css"
   },
+  "publishConfig": {
+    "access": "restricted",
+    "exports": {
+      ".": "./dist/index.js",
+      "./wysiwyg.css": "./dist/wysiwyg.css",
+      "./contextMenu.css": "./dist/contextMenu.css"
+    }
+  },
+  "files": [
+    "dist",
+    "index.js",
+    "*.js",
+    "*.css"
+  ],
+  "scripts": {
+    "build": "tsup && cp wysiwyg.css contextMenu.css dist/",
+    "prepack": "npm run build"
+  },
   "dependencies": {
     "@kbmemo/adoc-codemirror": "*",
     "@kbmemo/adoc-kbmemo": "*",
