@@ -377,6 +377,7 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 * `npm run pack:packages` — ビルド後に `npm pack --dry-run` で tarball 内容を検証
 * `npm run publish:packages -- --dry-run` — publish 前チェック（本番は `NPM_PUBLISH_REGISTRY` を設定）
 * `npm run verify:consumer` — tarball を別ディレクトリに `npm install` して `@kbmemo/adoc-editor` を smoke  import
+* `npm run verify:publish` — 公開前メタデータ検証（バージョン・依存 pin・`private` 解除）
 * `examples/adoc-editor-demo/` — ソース + ライブプレビューの最小デモ（`npm run dev --workspace adoc-editor-demo`）
 * `app/services/memo_wiki_link_labels.rb` — リンク WYSIWYG 用ラベル API（`GET /memos/wiki_link_labels`）
 * `app/javascript/controllers/memo_draft_controller.js` — ドラフト保存（正の同期先）
@@ -417,3 +418,12 @@ configureVanillaHost({ memoBase: '/memos' })
 * KBMemo 本体向け拡張は `@kbmemo/adoc-kbmemo` の `configureKbmemoHost` / `createKbmemoWysiwygSourceExtensions`
 * Rails + Stimulus 接続は site 側アダプタ（`memo_body_editor_controller.js`, `adoc_editor/mount.js`）に残す
 * レジストリ設定は `.npmrc.example` を参照
+* `packages/README.md` — パッケージ一覧と publish 手順
+* `npm run verify:publish` — バージョン整合・`private` 解除・依存 pin を CI で検証
+
+== npm パッケージ — レジストリ公開（Phase 5）
+
+* 初回リリースライン: `@kbmemo/adoc-*` **0.1.0**（全パッケージ同一バージョン）
+* workspace 依存は publish 向けに `"0.1.0"` で pin（開発は npm workspaces がリンク）
+* 本番 publish: `NPM_PUBLISH_REGISTRY` + `NPM_TOKEN` を設定し `npm run publish:packages`
+* GitHub Actions: `Publish npm packages` workflow（デフォルト dry-run、`NPM_PUBLISH_*` secrets 要）

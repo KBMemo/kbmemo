@@ -79,6 +79,9 @@ jobs:
       - name: Verify tarball consumer install
         run: npm run verify:consumer
 
+      - name: Verify publish metadata
+        run: npm run verify:publish
+
   test:
     runs-on: ubuntu-latest
 

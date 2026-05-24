@@ -1,7 +1,7 @@
 {
   "name": "@kbmemo/adoc-wysiwyg",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Block-based AsciiDoc WYSIWYG editor built on CodeMirror 6.",
   "type": "module",
   "exports": {
     ".": "./dist/index.js",
@@ -10,6 +10,11 @@
   },
   "publishConfig": {
     "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitea.artif.org/Artif.org/kbmemo_site.git",
+    "directory": "packages/adoc-wysiwyg"
   },
   "files": [
     "dist",
@@ -20,9 +25,9 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@kbmemo/adoc-codemirror": "*",
-    "@kbmemo/adoc-kbmemo": "*",
-    "@kbmemo/adoc-preview": "*"
+    "@kbmemo/adoc-codemirror": "0.1.0",
+    "@kbmemo/adoc-kbmemo": "0.1.0",
+    "@kbmemo/adoc-preview": "0.1.0"
   },
   "peerDependencies": {
     "@codemirror/commands": "^6.10.3",

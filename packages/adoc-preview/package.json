@@ -1,7 +1,7 @@
 {
   "name": "@kbmemo/adoc-preview",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Live AsciiDoc HTML preview for CodeMirror-based editors.",
   "type": "module",
   "exports": {
     ".": "./dist/index.js",
@@ -9,6 +9,11 @@
   },
   "publishConfig": {
     "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitea.artif.org/Artif.org/kbmemo_site.git",
+    "directory": "packages/adoc-preview"
   },
   "files": [
     "dist",
@@ -19,8 +24,8 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@kbmemo/adoc-codemirror": "*",
-    "@kbmemo/adoc-kbmemo": "*"
+    "@kbmemo/adoc-codemirror": "0.1.0",
+    "@kbmemo/adoc-kbmemo": "0.1.0"
   },
   "peerDependencies": {
     "highlight.js": "^11.11.1",

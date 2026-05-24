@@ -20,7 +20,8 @@
     "test:packages": "vitest run",
     "pack:packages": "npm run build:packages && node scripts/verify-package-tarballs.mjs",
     "publish:packages": "npm run build:packages && node scripts/publish-packages.mjs",
-    "verify:consumer": "node scripts/verify-consumer-install.mjs"
+    "verify:consumer": "node scripts/verify-consumer-install.mjs",
+    "verify:publish": "node scripts/verify-publish-readiness.mjs"
   },
   "dependencies": {
     "@kbmemo/adoc-codemirror": "*",

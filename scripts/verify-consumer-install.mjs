@@ -5,15 +5,12 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..')
+import {
+  KBMEMO_PACKAGE_VERSION,
+  KBMEMO_WORKSPACES,
+} from './package-workspaces.mjs'
 
-const WORKSPACES = [
-  '@kbmemo/adoc-kbmemo',
-  '@kbmemo/adoc-codemirror',
-  '@kbmemo/adoc-preview',
-  '@kbmemo/adoc-wysiwyg',
-  '@kbmemo/adoc-editor',
-]
+const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 const PEER_DEPENDENCIES = {
   '@asciidoctor/core': '^3.0.4',
@@ -31,7 +28,7 @@ mkdirSync(packDir)
 /** @type {Record<string, string>} */
 const packed = {}
 
-for (const workspace of WORKSPACES) {
+for (const workspace of KBMEMO_WORKSPACES) {
   const output = execFileSync(
     'npm',
     ['pack', '--json', '--pack-destination', packDir, '--ignore-scripts', '--workspace', workspace],

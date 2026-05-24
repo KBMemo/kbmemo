@@ -1,13 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
-
-const WORKSPACES = [
-  '@kbmemo/adoc-kbmemo',
-  '@kbmemo/adoc-codemirror',
-  '@kbmemo/adoc-preview',
-  '@kbmemo/adoc-wysiwyg',
-  '@kbmemo/adoc-editor',
-]
+import { KBMEMO_WORKSPACES } from './package-workspaces.mjs'
 
 const REQUIRED_PATHS = {
   '@kbmemo/adoc-kbmemo': ['dist/index.js'],
@@ -17,7 +10,7 @@ const REQUIRED_PATHS = {
   '@kbmemo/adoc-editor': ['dist/index.js'],
 }
 
-for (const workspace of WORKSPACES) {
+for (const workspace of KBMEMO_WORKSPACES) {
   const output = execFileSync(
     'npm',
     ['pack', '--dry-run', '--json', '--ignore-scripts', '--workspace', workspace],

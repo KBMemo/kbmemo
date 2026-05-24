@@ -1,13 +1,18 @@
 {
   "name": "@kbmemo/adoc-codemirror",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "AsciiDoc CodeMirror 6 highlighting and edit-unit parsing via Asciidoctor.",
   "type": "module",
   "exports": {
     ".": "./dist/index.js"
   },
   "publishConfig": {
     "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitea.artif.org/Artif.org/kbmemo_site.git",
+    "directory": "packages/adoc-codemirror"
   },
   "files": [
     "dist",
@@ -19,8 +24,7 @@
     "test": "vitest run --config ../../vitest.config.js packages/adoc-codemirror"
   },
   "dependencies": {
-    "@kbmemo/adoc-kbmemo": "*",
-    "@kbmemo/adoc-wysiwyg": "*"
+    "@kbmemo/adoc-kbmemo": "0.1.0"
   },
   "peerDependencies": {
     "@asciidoctor/core": "^3.0.4",

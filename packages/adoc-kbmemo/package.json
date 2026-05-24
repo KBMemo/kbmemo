@@ -1,13 +1,18 @@
 {
   "name": "@kbmemo/adoc-kbmemo",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "KBMemo-specific AsciiDoc editor extensions (wiki links, diagrams, math, HostConfig).",
   "type": "module",
   "exports": {
     ".": "./dist/index.js"
   },
   "publishConfig": {
     "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitea.artif.org/Artif.org/kbmemo_site.git",
+    "directory": "packages/adoc-kbmemo"
   },
   "files": [
     "dist",
