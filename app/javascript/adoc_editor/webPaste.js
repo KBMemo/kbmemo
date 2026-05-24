@@ -1,4 +1,4 @@
-import { webHtmlToAsciidoc } from './asciidoc/webHtmlToAsciidoc.js'
+import { webHtmlToAsciidoc } from '@kbmemo/adoc-codemirror'
 import { appendWebPasteAttribution } from './webPasteAttribution.js'
 import { extractWebPasteMetadata } from './webPasteMetadata.js'
 import { promptWebPasteSource } from './webPasteDialog.js'

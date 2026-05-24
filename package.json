@@ -1,6 +1,9 @@
 {
   "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "devDependencies": {
     "@hotwired/stimulus": "^3.2.2",
     "@tailwindcss/vite": "^4.2.4",
@@ -9,6 +12,8 @@
     "vite-plugin-ruby": "^5.2.1"
   },
   "dependencies": {
+    "@kbmemo/adoc-codemirror": "*",
+    "@kbmemo/adoc-editor": "*",
     "@asciidoctor/core": "^3.0.4",
     "@codemirror/autocomplete": "^6.20.2",
     "@codemirror/commands": "^6.10.3",

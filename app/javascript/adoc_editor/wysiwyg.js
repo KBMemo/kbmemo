@@ -1,5 +1,4 @@
-import { asciidocBlockToHtml } from './asciidoc/blockConvert.js'
-import { unitToAsciidoc } from './asciidoc/htmlToAsciidoc.js'
+import { asciidocBlockToHtml, unitToAsciidoc } from '@kbmemo/adoc-codemirror'
 import { normalizeMemoImagePathsInSource } from '../memo_body_editor/image_syntax.js'
 import { substituteDiagramsForPreview } from '../memo_body_editor/diagram_substitute.js'
 import {
@@ -14,7 +13,7 @@ import {
   getTableParagraphSplit,
   parseEditUnitsFromSource,
   shouldSplitEditUnits,
-} from './asciidoc/parseEditUnits.js'
+} from '@kbmemo/adoc-codemirror'
 import { renderPreviewHtml } from './preview.js'
 import {
   createWysiwygSourceEditor,

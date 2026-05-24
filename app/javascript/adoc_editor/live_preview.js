@@ -1,4 +1,4 @@
-import { refreshPreview } from "./asciidoc/parseSession.js"
+import { refreshPreview } from '@kbmemo/adoc-codemirror'
 import { renderPreviewHtml } from "./preview.js"
 import { initPreviewSkinSelect } from "./preview_skin.js"
 

@@ -1,0 +1,14 @@
+{
+  "name": "@kbmemo/adoc-editor",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  },
+  "dependencies": {
+    "@kbmemo/adoc-codemirror": "*",
+    "@kbmemo/adoc-preview": "*",
+    "@kbmemo/adoc-wysiwyg": "*"
+  }
+}

@@ -1,4 +1,4 @@
-import { stripKbmemoMetadataFromHtml } from '../webPasteHtmlMetadata.js'
+import { stripKbmemoMetadataFromHtml } from '@kbmemo/adoc-editor-internal/webPasteHtmlMetadata.js'
 
 const BLOCK_CONTAINER_TAGS = new Set([
   'address', 'article', 'aside', 'blockquote', 'details', 'div', 'dl', 'fieldset',

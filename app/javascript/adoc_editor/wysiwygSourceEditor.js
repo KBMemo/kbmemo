@@ -1,7 +1,7 @@
 import { EditorState } from '@codemirror/state'
 import { EditorView, ViewPlugin } from '@codemirror/view'
 import { search } from '@codemirror/search'
-import { asciidocHighlight } from './asciidoc/codemirror.js'
+import { asciidocHighlight } from '@kbmemo/adoc-codemirror'
 import { createModFKeymap } from './searchKeybindings.js'
 import { isModRedo, isModZ } from './wysiwygHistory.js'
 

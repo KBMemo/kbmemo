@@ -1,7 +1,7 @@
 import "highlight.js/styles/github.min.css"
 import "./preview_hljs.css"
 
-import { highlightPreviewCode } from "./asciidoc/codeHighlight.js"
+import { highlightPreviewCode } from '@kbmemo/adoc-codemirror'
 import { resolvePreviewImages } from "./preview_assets.js"
 import { renderPreviewMath } from "./preview_math.js"
 

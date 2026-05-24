@@ -5,7 +5,7 @@ import {
   resolveWebPasteContent,
   textFromWebPasteResult,
 } from './webPaste.js'
-import { webHtmlToAsciidoc } from './asciidoc/webHtmlToAsciidoc.js'
+import { webHtmlToAsciidoc } from '@kbmemo/adoc-codemirror'
 import { extractWebPasteMetadataFromHtml } from './webPasteHtmlMetadata.js'
 
 /**
