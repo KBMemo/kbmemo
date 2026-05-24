@@ -1,7 +1,7 @@
 import { loadDocument } from './instance.js'
-import { BLOCK_TITLE_LINE } from '@kbmemo/memo-body-editor/code_block_syntax.js'
-import { extractStemBlockUnitsFromLines } from '@kbmemo/memo-body-editor/math_syntax.js'
-import { isTableAttrLine, isTableDelimiterLine } from '@kbmemo/memo-body-editor/table_syntax.js'
+import { BLOCK_TITLE_LINE } from '@kbmemo/adoc-kbmemo'
+import { extractStemBlockUnitsFromLines } from '@kbmemo/adoc-kbmemo'
+import { isTableAttrLine, isTableDelimiterLine } from '@kbmemo/adoc-kbmemo'
 
 /** @typedef {{ adoc: string, startLine: number, endLine: number }} ParsedEditUnit */
 

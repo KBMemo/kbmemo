@@ -1,8 +1,8 @@
-import { Decoration, MatchDecorator, ViewPlugin } from "@codemirror/view"
+import { Decoration, MatchDecorator, ViewPlugin } from '@codemirror/view'
 
 const wikiLinkMatcher = new MatchDecorator({
   regexp: /\[\[[^\]|]+?(?:\|[^\]]+?)?\]\]/g,
-  decoration: Decoration.mark({ class: "cm-memo-wiki-link" })
+  decoration: Decoration.mark({ class: 'cm-memo-wiki-link' }),
 })
 
 const wikiLinkHighlight = ViewPlugin.fromClass(
@@ -15,11 +15,11 @@ const wikiLinkHighlight = ViewPlugin.fromClass(
       this.decorations = wikiLinkMatcher.updateDeco(update, this.decorations)
     }
   },
-  { decorations: (v) => v.decorations }
+  { decorations: (v) => v.decorations },
 )
 
 /** Asciidoctor AST ハイライト + KBMemo 固有の wiki リンク装飾（初回 connect 時に別チャンク読み込み） */
 export async function loadAsciidocExtensions() {
-  const { asciidocHighlight } = await import("../adoc_editor/mount.js")
+  const { asciidocHighlight } = await import('@kbmemo/adoc-codemirror')
   return [...asciidocHighlight, wikiLinkHighlight]
 }

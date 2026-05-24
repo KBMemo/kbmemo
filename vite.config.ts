@@ -9,7 +9,7 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url))
 export default defineConfig({
   resolve: {
     alias: {
-      '@kbmemo/memo-body-editor': path.resolve(rootDir, 'app/javascript/memo_body_editor'),
+      '@kbmemo/adoc-kbmemo': path.resolve(rootDir, 'packages/adoc-kbmemo'),
       '@kbmemo/adoc-editor-internal': path.resolve(rootDir, 'app/javascript/adoc_editor'),
     },
   },

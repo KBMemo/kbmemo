@@ -3,6 +3,7 @@ import "./contextMenu.css"
 
 import { createWysiwygEditor } from "./wysiwyg.js"
 import { applyPreviewSkin, getStoredSkinId } from "./preview_skin.js"
+import { createKbmemoWysiwygSourceExtensions } from "@kbmemo/adoc-kbmemo"
 
 const LEGACY_ASCIIDOCTOR_LINK_ID = "kbmemo-adoc-preview-base"
 
@@ -27,6 +28,7 @@ export function createMemoWysiwygEditor({ editorEl, paneEl, getMemoId, getWikiCo
     paneEl,
     getMemoId,
     getWikiConfig,
+    sourceExtensions: createKbmemoWysiwygSourceExtensions({ getWikiConfig, getMemoId }),
     onSourceChange,
   })
 }

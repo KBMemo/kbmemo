@@ -1,5 +1,6 @@
 import { autocompletion, startCompletion } from "@codemirror/autocomplete"
 import { EditorView } from "@codemirror/view"
+import { getCsrfToken } from '../hostConfig.js'
 
 /** [[ と ]]（または | より前）に挟まれたスラッグ文字列全体 */
 function wikiSlugSpan(text, innerStart, closeIdx) {
@@ -73,7 +74,7 @@ async function fetchWikiCompletions(url, memoId, query) {
   endpoint.searchParams.set("q", query)
   if (memoId) endpoint.searchParams.set("memo_id", String(memoId))
 
-  const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content")
+  const token = getCsrfToken()
   const seq = ++fetchSeq
   const res = await fetch(endpoint, {
     headers: {

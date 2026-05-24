@@ -1,11 +1,12 @@
 import { asciidocBlockToHtml, unitToAsciidoc } from '@kbmemo/adoc-codemirror'
-import { normalizeMemoImagePathsInSource } from '../memo_body_editor/image_syntax.js'
-import { substituteDiagramsForPreview } from '../memo_body_editor/diagram_substitute.js'
 import {
+  getScrollRoot,
+  normalizeMemoImagePathsInSource,
+  substituteDiagramsForPreview,
   ensureWikiLinkLabelsInCache,
   extractWikiLinkTargets,
   substituteWikiLinksForPreview,
-} from '../memo_body_editor/wiki_link_substitute.js'
+} from '@kbmemo/adoc-kbmemo'
 import {
   getActiveUnitIndex,
   getCaretOffsetInUnit,
@@ -54,9 +55,9 @@ const SYNC_DEBOUNCE_MS = 400
 
 /**
  * @param {HTMLElement} editorEl
- * @param {{ onSourceChange: (source: string) => void, paneEl?: HTMLElement | null, getMemoId?: () => string | null | undefined, getWikiConfig?: () => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null } }} options
+ * @param {{ onSourceChange: (source: string) => void, paneEl?: HTMLElement | null, getMemoId?: () => string | null | undefined, getWikiConfig?: () => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null }, sourceExtensions?: import('@codemirror/state').Extension[] }} options
  */
-export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoId, getWikiConfig }) {
+export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoId, getWikiConfig, sourceExtensions = [] }) {
   let syncTimer
   let splitTimer
   let isRendering = false
@@ -65,7 +66,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
   let activeSourceUnit = null
   const history = createWysiwygHistory()
   let isApplyingHistory = false
-  const wikiExtensions = createWysiwygSourceExtensions({ getWikiConfig, getMemoId })
+  const wikiExtensions = createWysiwygSourceExtensions({ sourceExtensions, getWikiConfig })
   /** @type {Map<string, object>} */
   const wikiLabelCache = new Map()
   let wikiLabelRefreshSeq = 0
@@ -622,7 +623,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
   const SCROLL_INTO_VIEW_PADDING_PX = 24
 
   function getEditorScrollContainer() {
-    const scrollRoot = document.getElementById('memos_editor_scroll')
+    const scrollRoot = getScrollRoot()
     if (scrollRoot?.contains(editorEl)) return scrollRoot
 
     let node = editorEl.parentElement

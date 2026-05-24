@@ -1,3 +1,5 @@
+import { getCsrfToken, wikiMemoLinkPath } from '../hostConfig.js'
+
 /** MemoWikiLinks と同じ [[target]] / [[target|label]] パターン */
 export const WIKI_LINK_PATTERN = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g
 
@@ -70,7 +72,7 @@ export function substituteWikiLinksForPreview(source, labels) {
         if (entry?.resolved && entry.memo_id != null) {
           const linkLabel =
             customLabel || (entry.slug ? (entry.display ?? target) : target)
-          return `link:/memos/${entry.memo_id}[${escapeAsciidocLinkText(linkLabel)}]`
+          return `link:${wikiMemoLinkPath(entry.memo_id)}[${escapeAsciidocLinkText(linkLabel)}]`
         }
 
         return `[.memo-wiki-broken]#${escapeAsciidocUnquoted(displayLabel)}#`
@@ -98,7 +100,7 @@ export async function fetchWikiLinkLabelsMap(url, memoId, targets) {
     endpoint.searchParams.append('targets[]', target)
   }
 
-  const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+  const token = getCsrfToken()
   const seq = ++fetchSeq
   const res = await fetch(endpoint.toString(), {
     headers: {

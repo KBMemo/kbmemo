@@ -1,7 +1,9 @@
 import { loadDocument } from './instance.js'
 import { computeHighlights } from './highlight.js'
-import { substituteDiagramsForPreview } from '@kbmemo/memo-body-editor/diagram_substitute.js'
-import { normalizeMemoImagePathsInSource } from '@kbmemo/memo-body-editor/image_syntax.js'
+import {
+  normalizeMemoImagePathsInSource,
+  substituteDiagramsForPreview,
+} from '@kbmemo/adoc-kbmemo'
 
 /** @typedef {{ from: number, to: number, className: string }} HighlightSpan */
 /** @typedef {{ source: string, doc: import('@asciidoctor/core').Document, html: string | null, highlights: HighlightSpan[] }} ParseCache */

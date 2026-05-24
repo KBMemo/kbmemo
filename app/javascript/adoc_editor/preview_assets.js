@@ -1,4 +1,4 @@
-import { memoAssetRelativePath, memoAssetSrc } from "../memo_body_editor/image_syntax"
+import { memoAssetRelativePath, memoAssetSrc } from "@kbmemo/adoc-kbmemo"
 
 /**
  * @param {ParentNode} container

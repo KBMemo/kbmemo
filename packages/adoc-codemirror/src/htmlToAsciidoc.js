@@ -1,5 +1,5 @@
-import { diagramMacroPathFromSvgRelative } from '@kbmemo/memo-body-editor/diagram_syntax.js'
-import { memoAssetRelativePath } from '@kbmemo/memo-body-editor/image_syntax.js'
+import { diagramMacroPathFromSvgRelative } from '@kbmemo/adoc-kbmemo'
+import { memoAssetRelativePath } from '@kbmemo/adoc-kbmemo'
 import { getUnitAdocSource } from '@kbmemo/adoc-editor-internal/wysiwyg_unit_source.js'
 
 /**

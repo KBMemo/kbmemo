@@ -5,9 +5,13 @@ import {
   createWebPasteHandler,
   insertTextIntoEditorView,
 } from "../adoc_editor/webPaste.js"
-import { loadAsciidocExtensions } from "../memo_body_editor/asciidoc_extensions"
-import { wikiAutocompletion } from "../memo_body_editor/wiki_completion"
-import { listContinuationExtension } from "../memo_body_editor/list_continuation"
+import { loadAsciidocExtensions } from "../adoc_editor/kbmemo_asciidoc_extensions"
+import {
+  configureKbmemoHost,
+  listContinuationExtension,
+  resetHostConfig,
+  wikiAutocompletion,
+} from "@kbmemo/adoc-kbmemo"
 
 const ACCEPTED_IMAGE_TYPE = /^image\/(png|jpeg|gif|webp|svg\+xml)$/i
 const ACCEPTED_IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i
@@ -146,6 +150,8 @@ export default class extends Controller {
 
   async connect() {
     if (!this.hasHostTarget || !this.hasFieldTarget) return
+
+    configureKbmemoHost()
 
     const [{ EditorView, basicSetup }, { EditorState }] = await Promise.all([
       import("codemirror"),
@@ -474,6 +480,7 @@ export default class extends Controller {
   disconnect() {
     this._unbindInsertEvent()
     this._unbindDragDrop()
+    resetHostConfig()
     this._wysiwygEditor?.flush()
     this._wysiwygEditor = null
     this._livePreview?.destroy()
