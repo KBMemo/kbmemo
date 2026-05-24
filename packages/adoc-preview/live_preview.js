@@ -1,6 +1,5 @@
 import { refreshPreview } from '@kbmemo/adoc-codemirror'
-import { renderPreviewHtml } from "./preview.js"
-import { initPreviewSkinSelect } from "./preview_skin.js"
+import { renderPreviewHtml } from './preview.js'
 
 const PREVIEW_DEBOUNCE_MS = 300
 
@@ -10,9 +9,10 @@ const PREVIEW_DEBOUNCE_MS = 300
  * @param {HTMLSelectElement | null} [options.skinSelectEl]
  * @param {() => string | null | undefined} options.getMemoId
  * @param {() => string} options.getSource
+ * @param {(selectEl: HTMLSelectElement, previewEl: HTMLElement) => void} [options.initPreviewSkinSelect]
  */
-export function createLivePreview({ previewEl, skinSelectEl, getMemoId, getSource }) {
-  if (skinSelectEl) {
+export function createLivePreview({ previewEl, skinSelectEl, getMemoId, getSource, initPreviewSkinSelect }) {
+  if (skinSelectEl && initPreviewSkinSelect) {
     initPreviewSkinSelect(skinSelectEl, previewEl)
   }
 
@@ -43,6 +43,6 @@ export function createLivePreview({ previewEl, skinSelectEl, getMemoId, getSourc
     renderNow,
     destroy() {
       clearTimeout(timer)
-    }
+    },
   }
 }

@@ -1,6 +1,5 @@
 /**
  * Umbrella entry for AsciiDoc editor packages.
- * Phase 1: re-exports @kbmemo/adoc-codemirror; preview/WYSIWYG mount points stay in site adoc_editor/.
  */
 export {
   asciidocHighlight,
@@ -20,3 +19,7 @@ export {
   parseEditUnitsFromSource,
   shouldSplitEditUnits,
 } from '@kbmemo/adoc-codemirror'
+
+export { createLivePreview, renderPreviewHtml } from '@kbmemo/adoc-preview'
+
+export { createWysiwygEditor, createWysiwygSourceExtensions } from '@kbmemo/adoc-wysiwyg'

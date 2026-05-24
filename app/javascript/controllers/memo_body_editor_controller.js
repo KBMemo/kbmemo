@@ -1,13 +1,14 @@
 import { Controller } from "@hotwired/stimulus"
-import "../adoc_editor/contextMenu.css"
-import { initEditorContextMenus } from "../adoc_editor/editorContextMenu.js"
+import "@kbmemo/adoc-wysiwyg/contextMenu.css"
+import { initEditorContextMenus } from "@kbmemo/adoc-wysiwyg"
 import {
   createWebPasteHandler,
   insertTextIntoEditorView,
-} from "../adoc_editor/webPaste.js"
+} from "@kbmemo/adoc-wysiwyg"
 import { loadAsciidocExtensions } from "../adoc_editor/kbmemo_asciidoc_extensions"
 import {
   configureKbmemoHost,
+  getCsrfToken,
   listContinuationExtension,
   resetHostConfig,
   wikiAutocompletion,
@@ -658,7 +659,7 @@ export default class extends Controller {
 
     this.clearUploadError()
 
-    const token = document.querySelector('meta[name="csrf-token"]')?.content
+    const token = getCsrfToken()
     const inserted = []
     let failed = null
 

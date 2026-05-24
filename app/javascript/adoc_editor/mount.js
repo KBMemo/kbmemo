@@ -1,13 +1,18 @@
-/**
- * KBMemo 向け adoc_editor 統合の入口。
- * Phase A: AST ベースのシンタックスハイライト（@kbmemo/adoc-codemirror）。
- * Phase B 以降: ライブプレビュー・WYSIWYG をここからマウントする。
- */
+import { createLivePreview as createLivePreviewCore } from '@kbmemo/adoc-preview'
+import { initPreviewSkinSelect } from './preview_skin.js'
+
+/** @param {Parameters<typeof createLivePreviewCore>[0]} options */
+export function createLivePreview(options) {
+  return createLivePreviewCore({
+    ...options,
+    initPreviewSkinSelect: options.initPreviewSkinSelect ?? initPreviewSkinSelect,
+  })
+}
+
 export {
   asciidocHighlight,
   refreshHighlights,
   refreshPreview,
   clearParseCache,
 } from '@kbmemo/adoc-codemirror'
-export { createLivePreview } from "./live_preview.js"
-export { createMemoWysiwygEditor } from "./wysiwyg_mount.js"
+export { createMemoWysiwygEditor } from './wysiwyg_mount.js'

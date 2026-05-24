@@ -10,7 +10,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@kbmemo/adoc-kbmemo': path.resolve(rootDir, 'packages/adoc-kbmemo'),
-      '@kbmemo/adoc-editor-internal': path.resolve(rootDir, 'app/javascript/adoc_editor'),
     },
   },
   plugins: [

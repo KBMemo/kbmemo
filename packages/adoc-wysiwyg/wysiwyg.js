@@ -15,7 +15,7 @@ import {
   parseEditUnitsFromSource,
   shouldSplitEditUnits,
 } from '@kbmemo/adoc-codemirror'
-import { renderPreviewHtml } from './preview.js'
+import { renderPreviewHtml } from '@kbmemo/adoc-preview'
 import {
   createWysiwygSourceEditor,
   destroyWysiwygSourceEditor,

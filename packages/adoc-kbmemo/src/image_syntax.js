@@ -1,5 +1,7 @@
 /** AsciiDoc 画像マクロ（`image::` / `image:`）のパス正規化 */
 
+import { memoAssetSrc as buildMemoAssetSrc, memoAssetViewUrl as buildMemoAssetViewUrl } from '../hostConfig.js'
+
 const IMAGE_MACRO_RE = /image::([^\[\]\s]+)(\[[^\]]*\])?|image:([^\[\]\s]+)(\[[^\]]*\])/g
 
 const MEMO_ASSET_URL_RE = /^\/memos\/(\d+)\/assets\/(.+)$/i
@@ -75,15 +77,10 @@ export function memoAssetSrc(memoId, filename) {
   if (!memoId || !filename?.trim()) return null
   const relative = memoAssetRelativePath(memoId, filename.trim())
   if (!relative) return null
-  const path = relative
-    .split("/")
-    .map((seg) => encodeURIComponent(seg))
-    .join("/")
-  return `/memos/${encodeURIComponent(String(memoId))}/assets/${path}`
+  return buildMemoAssetSrc(memoId, relative)
 }
 
 /** 拡大縮小ビューア（/assets/.../view） */
 export function memoAssetViewUrl(memoId, filename) {
-  const src = memoAssetSrc(memoId, filename)
-  return src ? `${src}/view` : null
+  return buildMemoAssetViewUrl(memoAssetSrc(memoId, filename))
 }

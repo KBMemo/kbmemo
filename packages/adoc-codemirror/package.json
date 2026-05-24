@@ -7,7 +7,8 @@
     ".": "./index.js"
   },
   "dependencies": {
-    "@kbmemo/adoc-kbmemo": "*"
+    "@kbmemo/adoc-kbmemo": "*",
+    "@kbmemo/adoc-wysiwyg": "*"
   },
   "peerDependencies": {
     "@asciidoctor/core": "^3.0.4",

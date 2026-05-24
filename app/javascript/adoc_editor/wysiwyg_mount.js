@@ -1,11 +1,11 @@
-import "./wysiwyg.css"
-import "./contextMenu.css"
+import '@kbmemo/adoc-wysiwyg/wysiwyg.css'
+import '@kbmemo/adoc-wysiwyg/contextMenu.css'
 
-import { createWysiwygEditor } from "./wysiwyg.js"
-import { applyPreviewSkin, getStoredSkinId } from "./preview_skin.js"
-import { createKbmemoWysiwygSourceExtensions } from "@kbmemo/adoc-kbmemo"
+import { createWysiwygEditor } from '@kbmemo/adoc-wysiwyg'
+import { applyPreviewSkin, getStoredSkinId } from './preview_skin.js'
+import { createKbmemoWysiwygSourceExtensions } from '@kbmemo/adoc-kbmemo'
 
-const LEGACY_ASCIIDOCTOR_LINK_ID = "kbmemo-adoc-preview-base"
+const LEGACY_ASCIIDOCTOR_LINK_ID = 'kbmemo-adoc-preview-base'
 
 /** 旧実装が head に載せたグローバル asciidoctor.css を除去する */
 function removeLegacyGlobalStylesheet() {

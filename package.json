@@ -15,6 +15,8 @@
     "@kbmemo/adoc-codemirror": "*",
     "@kbmemo/adoc-editor": "*",
     "@kbmemo/adoc-kbmemo": "*",
+    "@kbmemo/adoc-preview": "*",
+    "@kbmemo/adoc-wysiwyg": "*",
     "@asciidoctor/core": "^3.0.4",
     "@codemirror/autocomplete": "^6.20.2",
     "@codemirror/commands": "^6.10.3",

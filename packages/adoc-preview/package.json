@@ -4,9 +4,15 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./index.js"
+    ".": "./index.js",
+    "./preview_hljs.css": "./preview_hljs.css"
   },
   "dependencies": {
-    "@kbmemo/adoc-codemirror": "*"
+    "@kbmemo/adoc-codemirror": "*",
+    "@kbmemo/adoc-kbmemo": "*"
+  },
+  "peerDependencies": {
+    "highlight.js": "^11.11.1",
+    "katex": "^0.16.11"
   }
 }

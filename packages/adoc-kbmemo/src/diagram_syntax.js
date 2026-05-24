@@ -1,5 +1,11 @@
 /** AsciiDoc `diagram::` マクロ（MemoDiagram / MemoDiagramMacro と同じ規則） */
 
+import {
+  diagramEditUrl as buildDiagramEditUrl,
+  diagramSourceUrl as buildDiagramSourceUrl,
+  diagramViewUrl as buildDiagramViewUrl,
+} from '../hostConfig.js'
+
 const BLOCK_DIAGRAM_LINE = /^(\s*)diagram::([^\[\]]+?)(\[[^\]]*\])?\s*$/
 const DIAGRAM_MACRO_RE = /diagram::([^\[\]]+?)(\[[^\]]*\])?/g
 
@@ -57,22 +63,22 @@ export function diagramDiagramKey(macroPath) {
 
 export function diagramEditUrl(memoId, macroPath) {
   const key = diagramDiagramKey(macroPath)
-  if (!memoId || !key) return null
-  return `/memos/${encodeURIComponent(String(memoId))}/diagrams/${encodeURIComponent(key)}/edit`
+  if (!key) return null
+  return buildDiagramEditUrl(memoId, key)
 }
 
 /** ソースをシンタックスハイライト付きで表示するビューア */
 export function diagramSourceUrl(memoId, macroPath) {
   const key = diagramDiagramKey(macroPath)
-  if (!memoId || !key) return null
-  return `/memos/${encodeURIComponent(String(memoId))}/diagrams/${encodeURIComponent(key)}/source`
+  if (!key) return null
+  return buildDiagramSourceUrl(memoId, key)
 }
 
 /** SVG を拡大縮小できる別ウィンドウ用ビューア */
 export function diagramViewUrl(memoId, macroPath) {
   const key = diagramDiagramKey(macroPath)
-  if (!memoId || !key) return null
-  return `/memos/${encodeURIComponent(String(memoId))}/diagrams/${encodeURIComponent(key)}/view`
+  if (!key) return null
+  return buildDiagramViewUrl(memoId, key)
 }
 
 export function diagramExclusionRanges(text, lineFrom) {

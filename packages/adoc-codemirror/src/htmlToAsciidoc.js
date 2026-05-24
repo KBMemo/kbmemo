@@ -1,6 +1,6 @@
 import { diagramMacroPathFromSvgRelative } from '@kbmemo/adoc-kbmemo'
 import { memoAssetRelativePath } from '@kbmemo/adoc-kbmemo'
-import { getUnitAdocSource } from '@kbmemo/adoc-editor-internal/wysiwyg_unit_source.js'
+import { getUnitAdocSource } from '@kbmemo/adoc-wysiwyg'
 
 /**
  * Convert Asciidoctor HTML5 output (preview body) back to AsciiDoc.

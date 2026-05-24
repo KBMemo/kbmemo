@@ -4,9 +4,19 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./index.js"
+    ".": "./index.js",
+    "./wysiwyg.css": "./wysiwyg.css",
+    "./contextMenu.css": "./contextMenu.css"
   },
   "dependencies": {
-    "@kbmemo/adoc-codemirror": "*"
+    "@kbmemo/adoc-codemirror": "*",
+    "@kbmemo/adoc-kbmemo": "*",
+    "@kbmemo/adoc-preview": "*"
+  },
+  "peerDependencies": {
+    "@codemirror/commands": "^6.10.3",
+    "@codemirror/search": "^6.5.11",
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.43.0"
   }
 }
