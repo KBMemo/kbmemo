@@ -4,25 +4,16 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./index.js",
-    "./preview_hljs.css": "./preview_hljs.css"
+    ".": "./dist/index.js",
+    "./preview_hljs.css": "./dist/preview_hljs.css",
+    "./styles.css": "./dist/index.css"
   },
   "publishConfig": {
-    "access": "restricted",
-    "exports": {
-      ".": "./dist/index.js",
-      "./preview_hljs.css": "./dist/preview_hljs.css",
-      "./styles.css": "./dist/index.css"
-    }
+    "access": "restricted"
   },
   "files": [
     "dist",
-    "index.js",
-    "preview.js",
-    "preview_math.js",
-    "preview_assets.js",
-    "preview_hljs.css",
-    "live_preview.js"
+    "package.json"
   ],
   "scripts": {
     "build": "tsup && cp preview_hljs.css dist/",

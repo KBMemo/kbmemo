@@ -10,11 +10,15 @@
     "tailwindcss": "^4.2.4",
     "tsup": "^8.5.0",
     "typescript": "^5.9.2",
+    "vitest": "^3.2.4",
     "vite": "^8.0.10",
     "vite-plugin-ruby": "^5.2.1"
   },
   "scripts": {
-    "build:packages": "npm run build --workspace @kbmemo/adoc-kbmemo --workspace @kbmemo/adoc-codemirror --workspace @kbmemo/adoc-preview --workspace @kbmemo/adoc-wysiwyg --workspace @kbmemo/adoc-editor"
+    "build:packages": "npm run build --workspace @kbmemo/adoc-kbmemo --workspace @kbmemo/adoc-codemirror --workspace @kbmemo/adoc-preview --workspace @kbmemo/adoc-wysiwyg --workspace @kbmemo/adoc-editor",
+    "test:packages": "vitest run",
+    "pack:packages": "npm run build:packages && node scripts/verify-package-tarballs.mjs",
+    "publish:packages": "npm run build:packages && node scripts/publish-packages.mjs"
   },
   "dependencies": {
     "@kbmemo/adoc-codemirror": "*",

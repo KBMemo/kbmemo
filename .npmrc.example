@@ -1,0 +1,2 @@
+@kbmemo:registry=${NPM_PUBLISH_REGISTRY}
+//${NPM_PUBLISH_REGISTRY_HOST}/:_authToken=${NPM_TOKEN}

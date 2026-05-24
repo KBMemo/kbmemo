@@ -67,6 +67,15 @@ jobs:
       - name: Build npm workspace packages
         run: npm run build:packages
 
+      - name: Test npm workspace packages
+        run: npm run test:packages
+
+      - name: Verify npm pack contents
+        run: node scripts/verify-package-tarballs.mjs
+
+      - name: Dry-run npm publish
+        run: npm run publish:packages -- --dry-run
+
   test:
     runs-on: ubuntu-latest
 

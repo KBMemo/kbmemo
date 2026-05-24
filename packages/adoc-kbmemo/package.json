@@ -4,25 +4,19 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./index.js"
+    ".": "./dist/index.js"
   },
   "publishConfig": {
-    "access": "restricted",
-    "exports": {
-      ".": "./dist/index.js"
-    }
+    "access": "restricted"
   },
   "files": [
     "dist",
-    "index.js",
-    "hostConfig.js",
-    "kbmemo_host.js",
-    "wysiwyg_source_extensions.js",
-    "src"
+    "package.json"
   ],
   "scripts": {
     "build": "tsup",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "test": "vitest run --config ../../vitest.config.js packages/adoc-kbmemo"
   },
   "peerDependencies": {
     "@codemirror/autocomplete": "^6.20.2",

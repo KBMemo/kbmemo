@@ -4,23 +4,16 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./index.js",
-    "./wysiwyg.css": "./wysiwyg.css",
-    "./contextMenu.css": "./contextMenu.css"
+    ".": "./dist/index.js",
+    "./wysiwyg.css": "./dist/wysiwyg.css",
+    "./contextMenu.css": "./dist/contextMenu.css"
   },
   "publishConfig": {
-    "access": "restricted",
-    "exports": {
-      ".": "./dist/index.js",
-      "./wysiwyg.css": "./dist/wysiwyg.css",
-      "./contextMenu.css": "./dist/contextMenu.css"
-    }
+    "access": "restricted"
   },
   "files": [
     "dist",
-    "index.js",
-    "*.js",
-    "*.css"
+    "package.json"
   ],
   "scripts": {
     "build": "tsup && cp wysiwyg.css contextMenu.css dist/",

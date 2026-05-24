@@ -4,17 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./index.js"
+    ".": "./dist/index.js"
   },
   "publishConfig": {
-    "access": "restricted",
-    "exports": {
-      ".": "./dist/index.js"
-    }
+    "access": "restricted"
   },
   "files": [
     "dist",
-    "index.js"
+    "package.json"
   ],
   "scripts": {
     "build": "tsup",
