@@ -1,3 +1,5 @@
+import 'highlight.js/styles/github.min.css'
+import '@kbmemo/adoc-preview/preview_hljs.css'
 import { createLivePreview as createLivePreviewCore } from '@kbmemo/adoc-preview'
 import { initPreviewSkinSelect } from './preview_skin.js'
 

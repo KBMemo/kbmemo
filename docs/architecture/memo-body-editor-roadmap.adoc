@@ -376,6 +376,8 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 * `npm run test:packages` — Vitest（`packages/adoc-codemirror/test/` 等）
 * `npm run pack:packages` — ビルド後に `npm pack --dry-run` で tarball 内容を検証
 * `npm run publish:packages -- --dry-run` — publish 前チェック（本番は `NPM_PUBLISH_REGISTRY` を設定）
+* `npm run verify:consumer` — tarball を別ディレクトリに `npm install` して `@kbmemo/adoc-editor` を smoke  import
+* `examples/adoc-editor-demo/` — ソース + ライブプレビューの最小デモ（`npm run dev --workspace adoc-editor-demo`）
 * `app/services/memo_wiki_link_labels.rb` — リンク WYSIWYG 用ラベル API（`GET /memos/wiki_link_labels`）
 * `app/javascript/controllers/memo_draft_controller.js` — ドラフト保存（正の同期先）
 * `app/services/memo_wiki_completions.rb` — 補完候補 API
@@ -390,3 +392,28 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 * `app/javascript/controllers/memo_draft_controller.js` — ドラフト・マルチタブ `BroadcastChannel`
 * `app/frontend/entrypoints/application.js` — Turbo Stream 後のスクロール復元
 * `app/controllers/memos_controller.rb` — `wiki_completions`, `draft`
+
+== npm パッケージ — 他プロジェクトからの利用
+
+[source,javascript]
+----
+import { EditorState } from '@codemirror/state'
+import { EditorView } from '@codemirror/view'
+import { basicSetup } from 'codemirror'
+import {
+  asciidocHighlight,
+  configureVanillaHost,
+  createLivePreview,
+  createWysiwygEditor,
+  createWysiwygSourceExtensions,
+} from '@kbmemo/adoc-editor'
+import 'highlight.js/styles/github.min.css'
+import '@kbmemo/adoc-preview/preview_hljs.css'
+import '@kbmemo/adoc-wysiwyg/wysiwyg.css'
+
+configureVanillaHost({ memoBase: '/memos' })
+----
+
+* KBMemo 本体向け拡張は `@kbmemo/adoc-kbmemo` の `configureKbmemoHost` / `createKbmemoWysiwygSourceExtensions`
+* Rails + Stimulus 接続は site 側アダプタ（`memo_body_editor_controller.js`, `adoc_editor/mount.js`）に残す
+* レジストリ設定は `.npmrc.example` を参照

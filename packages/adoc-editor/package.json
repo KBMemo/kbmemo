@@ -19,7 +19,19 @@
   },
   "dependencies": {
     "@kbmemo/adoc-codemirror": "*",
+    "@kbmemo/adoc-kbmemo": "*",
     "@kbmemo/adoc-preview": "*",
     "@kbmemo/adoc-wysiwyg": "*"
+  },
+  "peerDependencies": {
+    "@asciidoctor/core": "^3.0.4",
+    "@codemirror/autocomplete": "^6.20.2",
+    "@codemirror/commands": "^6.10.3",
+    "@codemirror/search": "^6.5.11",
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.43.0",
+    "codemirror": "^6.0.2",
+    "highlight.js": "^11.11.1",
+    "katex": "^0.16.11"
   }
 }

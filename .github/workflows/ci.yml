@@ -76,6 +76,9 @@ jobs:
       - name: Dry-run npm publish
         run: npm run publish:packages -- --dry-run
 
+      - name: Verify tarball consumer install
+        run: npm run verify:consumer
+
   test:
     runs-on: ubuntu-latest
 

@@ -5,8 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./dist/index.js",
-    "./preview_hljs.css": "./dist/preview_hljs.css",
-    "./styles.css": "./dist/index.css"
+    "./preview_hljs.css": "./dist/preview_hljs.css"
   },
   "publishConfig": {
     "access": "restricted"

@@ -2,7 +2,8 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/*"
   ],
   "devDependencies": {
     "@hotwired/stimulus": "^3.2.2",
@@ -18,7 +19,8 @@
     "build:packages": "npm run build --workspace @kbmemo/adoc-kbmemo --workspace @kbmemo/adoc-codemirror --workspace @kbmemo/adoc-preview --workspace @kbmemo/adoc-wysiwyg --workspace @kbmemo/adoc-editor",
     "test:packages": "vitest run",
     "pack:packages": "npm run build:packages && node scripts/verify-package-tarballs.mjs",
-    "publish:packages": "npm run build:packages && node scripts/publish-packages.mjs"
+    "publish:packages": "npm run build:packages && node scripts/publish-packages.mjs",
+    "verify:consumer": "node scripts/verify-consumer-install.mjs"
   },
   "dependencies": {
     "@kbmemo/adoc-codemirror": "*",

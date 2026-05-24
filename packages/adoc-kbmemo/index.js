@@ -6,6 +6,7 @@ export {
   wikiMemoLinkPath,
 } from './hostConfig.js'
 export { configureKbmemoHost } from './kbmemo_host.js'
+export { configureVanillaHost } from './vanilla_host.js'
 export { createKbmemoWysiwygSourceExtensions } from './wysiwyg_source_extensions.js'
 
 export { BLOCK_TITLE_LINE, scanCodeBlocks, codeBlockByLine } from './src/code_block_syntax.js'
