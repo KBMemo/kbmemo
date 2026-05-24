@@ -492,6 +492,18 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'data-memo-draft-target="directory"'
     assert_select "button[disabled][title*='コミット']", text: "画像を挿入"
     assert_select "input[data-memo-body-editor-target='imageInput']", count: 0
+    assert_select "#memo_form_actions button", text: "削除", count: 0
+    assert_select "#memo_form_actions button[data-memo-commit='true']", count: 0
+  end
+
+  test "edit uncommitted memo shows delete and commit actions" do
+    memo = memos(:one)
+    memo.update_column(:file_committed_at, nil)
+    get edit_memo_url(memo)
+    assert_response :success
+    assert_select "#memo_form_actions button", text: "削除"
+    assert_select "#memo_form_actions button[data-memo-commit='true']", text: "コミット"
+    assert_select "#memo_form_actions button", text: "ドラフトを破棄", count: 0
   end
 
   test "edit disables image insert when memo not committed to git" do
