@@ -5,7 +5,7 @@ import { isTableAttrLine, isTableDelimiterLine } from '@kbmemo/adoc-kbmemo'
 
 /** @typedef {{ adoc: string, startLine: number, endLine: number }} ParsedEditUnit */
 
-const PAIRED_BLOCK_DELIMITERS = ['----', '....', '====', '____', '****', '--', '+++']
+const PAIRED_BLOCK_DELIMITERS = ['++++', '////', '----', '....', '====', '____', '****', '--', '+++']
 const BLOCK_ATTR_LINE = /^\[[^\]]+\]$/
 const ADMONITION_LABEL_LINE = /^(NOTE|TIP|IMPORTANT|WARNING|CAUTION):/
 
@@ -301,6 +301,24 @@ function dedupeContainedUnits(units) {
 }
 
 /**
+ * @param {import('@asciidoctor/core').Block} node
+ * @param {string[]} lines
+ */
+function blockUnitSource(node, lines) {
+  const startLine = (node.getLineNumber() ?? 1) - 1
+  const blockSource = node.getSource?.() ?? ''
+  const endLine = startLine + Math.max(0, blockSource.split('\n').length - 1)
+  const raw = lines.slice(startLine, endLine + 1).join('\n')
+  const firstLine = lines[startLine]?.trim() ?? ''
+
+  if (/^include::/.test(firstLine)) {
+    return raw
+  }
+
+  return blockSource
+}
+
+/**
  * @param {import('@asciidoctor/core').Document | import('@asciidoctor/core').Section | import('@asciidoctor/core').Block | import('@asciidoctor/core').List} node
  * @param {ParsedEditUnit[]} units
  * @param {[number, number][]} protectedRanges
@@ -354,7 +372,7 @@ function visitBlocks(node, units, protectedRanges, lines) {
     return
   }
 
-  units.push({ adoc: blockSource, startLine, endLine })
+  units.push({ adoc: blockUnitSource(node, lines), startLine, endLine })
 }
 
 /**
@@ -447,6 +465,7 @@ function isEditUnitHardStop(trimmed) {
   if (/^image::/.test(trimmed)) return true
   if (/^audio::/.test(trimmed)) return true
   if (/^video::/.test(trimmed)) return true
+  if (/^include::/.test(trimmed)) return true
   if (BLOCK_ATTR_LINE.test(trimmed)) return true
   if (BLOCK_TITLE_LINE.test(trimmed)) return true
   if (/^\/\//.test(trimmed)) return true

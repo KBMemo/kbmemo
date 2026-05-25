@@ -5,6 +5,10 @@ import { highlightCode } from './codeHighlight.js'
 /** @typedef {{ from: number, to: number, className: string }} HighlightSpan */
 
 const ADMONITION_LABELS = ['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION']
+const BLOCK_DELIMITER_LINES = new Set([
+  '----', '....', '====', '____', '****', '--', '+++', '++++', '////',
+])
+const ADMONITION_ATTR_LINE = /^\[(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$/
 
 const INLINE_CAPABLE = new Set([
   'paragraph',
@@ -67,6 +71,11 @@ export function computeHighlights(source, doc = null) {
 
     if (context === 'table') {
       highlightTable(block, source, lineStarts, spans, claimedLines)
+      continue
+    }
+
+    if (context === 'thematic_break' || context === 'page_break') {
+      highlightBreakBlock(block, source, lineStarts, spans, claimedLines, context)
       continue
     }
 
@@ -144,6 +153,7 @@ function highlightInlinesWithAsciidoctor(node, text, baseOffset, spans) {
   highlightMediaMacrosInText(text, baseOffset, spans, searchFrom)
   highlightHardBreaksInText(text, baseOffset, spans)
   highlightSourceAnchorsInText(text, baseOffset, spans, searchFrom)
+  highlightSupplementalInText(text, baseOffset, spans, searchFrom)
 }
 
 function highlightSection(block, source, lineStarts, spans, claimedLines) {
@@ -176,6 +186,13 @@ function highlightInlineBlock(block, doc, source, lineStarts, spans, claimedLine
     const line = startLine + i
     const { from, to } = lineRange(lineStarts, line, source.length)
     const text = source.slice(from, to)
+
+    if (/^include::/.test(text)) {
+      addSpan(spans, from, to, 'adoc-include')
+      claimLine(claimedLines, line)
+      continue
+    }
+
     highlightInlinesWithAsciidoctor(block, text, from, spans)
     claimLine(claimedLines, line)
   }
@@ -275,6 +292,24 @@ function highlightMediaBlock(block, source, lineStarts, spans, claimedLines, med
 
   const { from, to } = lineRange(lineStarts, line, source.length)
   highlightMediaMacrosInText(source.slice(from, to), from, spans, 0, mediaType)
+  claimLine(claimedLines, line)
+}
+
+/**
+ * @param {import('@asciidoctor/core').Block} block
+ * @param {string} source
+ * @param {number[]} lineStarts
+ * @param {HighlightSpan[]} spans
+ * @param {Set<number>} claimedLines
+ * @param {'thematic_break' | 'page_break'} breakType
+ */
+function highlightBreakBlock(block, source, lineStarts, spans, claimedLines, breakType) {
+  const line = block.getLineNumber()
+  if (!line) return
+
+  const className = breakType === 'thematic_break' ? 'adoc-thematic-break' : 'adoc-page-break'
+  const { from, to } = lineRange(lineStarts, line, source.length)
+  addSpan(spans, from, to, className)
   claimLine(claimedLines, line)
 }
 
@@ -382,6 +417,78 @@ function highlightSourceAnchorsInText(text, baseOffset, spans, fromIndex = 0) {
   }
 }
 
+/**
+ * @param {string} text
+ * @param {number} baseOffset
+ * @param {HighlightSpan[]} spans
+ * @param {number} fromIndex
+ */
+function highlightSupplementalInText(text, baseOffset, spans, fromIndex = 0) {
+  highlightAttributeReferencesInText(text, baseOffset, spans, fromIndex)
+  highlightPassthroughInText(text, baseOffset, spans, fromIndex)
+}
+
+/**
+ * @param {string} text
+ * @param {number} baseOffset
+ * @param {HighlightSpan[]} spans
+ * @param {number} fromIndex
+ */
+function highlightAttributeReferencesInText(text, baseOffset, spans, fromIndex = 0) {
+  const pattern = /\{[^{}\n]+\}/g
+  pattern.lastIndex = fromIndex
+  let match
+  while ((match = pattern.exec(text)) !== null) {
+    addSpan(spans, baseOffset + match.index, baseOffset + match.index + match[0].length, 'adoc-attribute-ref')
+  }
+}
+
+/**
+ * @param {string} text
+ * @param {number} baseOffset
+ * @param {HighlightSpan[]} spans
+ * @param {number} fromIndex
+ */
+function highlightPassthroughInText(text, baseOffset, spans, fromIndex = 0) {
+  const patterns = [
+    /pass:\[[^\]]*\]/g,
+    /\+\+\+[^+\n]*\+\+\+/g,
+    /\+(?:\\.|[^+\n])+\+/g,
+  ]
+
+  for (const pattern of patterns) {
+    pattern.lastIndex = fromIndex
+    let match
+    while ((match = pattern.exec(text)) !== null) {
+      addSpan(spans, baseOffset + match.index, baseOffset + match.index + match[0].length, 'adoc-passthrough')
+    }
+  }
+}
+
+/**
+ * @param {string[]} lines
+ * @param {number} lineIndex 0-based
+ */
+function isDocumentHeaderLine(text, lines, lineIndex) {
+  if (lineIndex < 1) return false
+  if (!/^=\s+\S/.test(lines[0]?.trim() ?? '')) return false
+
+  const trimmed = text.trim()
+  if (!trimmed || /^:[\w-]+(?:[\w-]*):/.test(trimmed)) return false
+
+  for (let index = 1; index < lineIndex; index++) {
+    const previous = lines[index]?.trim() ?? ''
+    if (!previous) return false
+    if (/^:[\w-]+(?:[\w-]*):/.test(previous)) return false
+  }
+
+  if (/^v\d/.test(trimmed) || /^\d+(?:\.\d+)+,/.test(trimmed)) return true
+  if (/<[^>\s]+@[^>\s]+>/.test(trimmed)) return true
+  if (lineIndex === 1) return true
+
+  return false
+}
+
 function highlightAdmonition(block, doc, source, lineStarts, spans, claimedLines) {
   const startLine = block.getLineNumber()
   const style = block.getStyle?.()
@@ -425,6 +532,7 @@ function highlightTable(block, source, lineStarts, spans, claimedLines) {
       addSpan(spans, from, to, 'adoc-delimiter')
     } else if (/^\|/.test(text)) {
       addSpan(spans, from, to, 'adoc-table')
+      highlightSupplementalInText(text, from, spans, 0)
     } else {
       break
     }
@@ -457,13 +565,48 @@ function highlightUnclaimedLines(doc, source, lineStarts, spans, claimedLines) {
 
     if (!text.trim()) continue
 
-    if (/^\/\/(?::|[^:])/.test(text) || text.startsWith('////')) {
+    if (text.trim() === '////') {
+      i = highlightCommentBlock(lines, i, lineStarts, source.length, spans) - 1
+      continue
+    }
+
+    if (/^\/\/(?::|[^:])/.test(text)) {
       addSpan(spans, from, to, 'adoc-comment')
+      continue
+    }
+
+    if (/^include::/.test(text)) {
+      addSpan(spans, from, to, 'adoc-include')
+      continue
+    }
+
+    if (isDocumentHeaderLine(text, lines, i)) {
+      addSpan(spans, from, to, 'adoc-document-header')
+      continue
+    }
+
+    if (text.trim() === "'''") {
+      addSpan(spans, from, to, 'adoc-thematic-break')
+      continue
+    }
+
+    if (text.trim() === '<<<') {
+      addSpan(spans, from, to, 'adoc-page-break')
+      continue
+    }
+
+    if (BLOCK_DELIMITER_LINES.has(text.trim())) {
+      addSpan(spans, from, to, 'adoc-delimiter')
       continue
     }
 
     if (/^:[\w-]+(?:[\w-]*):/.test(text)) {
       addSpan(spans, from, to, 'adoc-attribute')
+      continue
+    }
+
+    if (ADMONITION_ATTR_LINE.test(text.trim())) {
+      addSpan(spans, from, to, 'adoc-admonition-label')
       continue
     }
 
@@ -491,6 +634,30 @@ function highlightUnclaimedLines(doc, source, lineStarts, spans, claimedLines) {
 
     highlightInlinesWithAsciidoctor(doc, text, from, spans)
   }
+}
+
+/**
+ * @param {string[]} lines
+ * @param {number} openIndex 0-based opening `////` line
+ * @param {number[]} lineStarts
+ * @param {number} sourceLength
+ * @param {HighlightSpan[]} spans
+ * @returns {number} next line index to continue from (0-based, exclusive)
+ */
+function highlightCommentBlock(lines, openIndex, lineStarts, sourceLength, spans) {
+  let closeIndex = openIndex + 1
+  while (closeIndex < lines.length && lines[closeIndex].trim() !== '////') {
+    closeIndex++
+  }
+
+  const endIndex = closeIndex < lines.length ? closeIndex : openIndex
+  for (let index = openIndex; index <= endIndex; index++) {
+    const line = index + 1
+    const { from, to } = lineRange(lineStarts, line, sourceLength)
+    addSpan(spans, from, to, 'adoc-comment')
+  }
+
+  return endIndex + 1
 }
 
 function mergeSpans(spans) {

@@ -43,7 +43,7 @@
 |===
 |syntax-ref id |HL |EU |PV |WL |WY |SV |メモ
 
-|document-header |△ |— |✓ |— |— |✓ |author/revision 行は表示のみ
+|document-header |✓ |— |✓ |— |— |✓ |author/revision 行 HL
 |paragraphs |✓ |✓ |✓ |— |✓ |✓ |
 |paragraphs-literal |✓ |△ |✓ |— |— |✓ |インデント literal 行
 |paragraphs-hardbreaks |✓ |— |✓ |— |— |✓ |`+` / `[%hardbreaks]`
@@ -64,7 +64,7 @@
 |sections-article |✓ |✓ |✓ |✓ |✓ |✓ |
 |sections-book |— |— |✓ |— |— |✓ |`:doctype: book`
 |sections-discrete |— |— |✓ |— |— |✓ |`[discrete]`
-|includes |— |— |△ |— |— |△ |パス解決・safe mode
+|includes |✓ |✓ |△ |— |— |△ |パス解決・safe mode
 |lists-unordered |✓ |✓ |✓ |✓ |✓ |✓ |5a 対応
 |lists-ordered |✓ |✓ |✓ |✓ |✓ |✓ |
 |lists-checklist |— |✓ |✓ |— |— |✓ |`[*]` / `[x]`
@@ -88,28 +88,28 @@
 |source-include |— |— |△ |— |— |△ |
 |source-paragraph |— |— |✓ |— |— |✓ |
 |admonitions-paragraph |✓ |✓ |✓ |✓ |✓ |✓ |5b
-|admonitions-block |— |✓ |✓ |— |— |✓ |`[NOTE]====`
+|admonitions-block |✓ |✓ |✓ |— |— |✓ |`[NOTE]====`
 |blocks-sidebar |— |✓ |✓ |— |△ |✓ |`****`
 |blocks-example |— |✓ |✓ |— |△ |✓ |
 |blocks-blockquote |— |✓ |✓ |— |△ |✓ |
 |blocks-open |— |✓ |✓ |— |△ |✓ |`--`
-|blocks-passthrough |— |— |✓ |— |— |✓ |`++++`
+|blocks-passthrough |✓ |✓ |✓ |— |— |✓ |`++++`
 |blocks-subs |— |— |✓ |— |— |✓ |`subs=attributes+`
 |tables-basic |✓ |✓ |✓ |— |✓ |✓ |5d pipe 表
 |tables-header-cols |— |△ |✓ |— |— |✓ |`%header` / `cols`
 |tables-asciidoc-cells |— |— |✓ |— |— |✓ |`a` 列
 |tables-csv |— |✓ |✓ |— |— |✓ |`,===` / `format=csv`
 |tables-dsv |— |✓ |✓ |— |— |✓ |`:===`
-|tables-formatted |— |— |✓ |— |— |✓ |セル結合
+|tables-formatted |△ |✓ |✓ |— |— |✓ |セル結合（EU のみ）
 |ids-roles-options |— |— |✓ |— |— |✓ |
-|comments |— |— |N/A |— |— |N/A |
-|breaks-thematic |— |— |✓ |— |— |✓ |`'''`
-|breaks-page |— |— |✓ |— |— |✓ |`<<<`
-|attributes |— |— |✓ |— |— |✓ |`:name:` / `{name}`
-|attributes-counter |— |— |✓ |— |— |✓ |
+|comments |✓ |— |N/A |— |— |N/A |
+|breaks-thematic |✓ |— |✓ |— |— |✓ |`'''`
+|breaks-page |✓ |— |✓ |— |— |✓ |`<<<`
+|attributes |✓ |— |✓ |— |— |✓ |`:name:` / `{name}`
+|attributes-counter |✓ |— |✓ |— |— |✓ |
 |text-replacements |— |— |✓ |— |— |✓ |`(C)` / `--`
 |escaping |— |— |✓ |— |— |✓ |
-|passthrough-inline |— |— |✓ |— |— |✓ |`+++` / `pass:[]`
+|passthrough-inline |✓ |— |✓ |— |— |✓ |`+++` / `pass:[]`
 |bibliography |✓ |— |✓ |— |— |✓ |
 |footnotes |✓ |✓ |✓ |— |— |✓ |
 |markdown-headings |— |— |✓ |— |— |✓ |`##` 互換
@@ -158,11 +158,16 @@
 
 *テスト:* `packages/adoc-codemirror/test/phase_d_highlight.test.js`
 
-=== Phase E — 高度機能
+=== Phase E — 高度機能（HL / EU 第1段 完了）
 
-. include（タグ / 行 / URL）— safe mode 方針要決定
-. 属性置換・counter・passthrough の編集補助
-. 表セル結合・AsciiDoc セル内ブロックの WYSIWYG 往復
+. include 行の HL / EU — `adoc-include`、1 行 1 ユニット
+. 属性定義・参照・counter — `adoc-attribute` / `adoc-attribute-ref`
+. passthrough インライン / ブロック — `adoc-passthrough`、`++++` 区切り EU
+. コメントブロック・document header・区切り線 — `////` / author / `'''` / `<<<`
+. delimited admonition の区切り HL — `[NOTE]` + `====`
+
+*テスト:* `phase_e_highlight.test.js`、`phase_e_edit_units.test.js`
+*WY:* 表セル結合・AsciiDoc セル内ブロックの WYSIWYG 往復は未着手
 
 == 作業ルール
 
