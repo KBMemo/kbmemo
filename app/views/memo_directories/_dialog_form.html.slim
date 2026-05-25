@@ -1,3 +1,3 @@
 .max-w-md
-  h2.mb-4.text-lg.font-semibold.text-zinc-900 = @memo_directory.persisted? ? "ディレクトリを編集" : "子ディレクトリを追加"
+  h2.mb-4.text-lg.font-semibold.kb-text-primary = @memo_directory.persisted? ? "ディレクトリを編集" : "子ディレクトリを追加"
   = render "form", dialog: true, lock_parent: @lock_parent

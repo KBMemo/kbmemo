@@ -29,7 +29,7 @@ module AvatarsHelper
       url,
       alt: "#{label}のアバター",
       title: label,
-      class: ["inline-block rounded-full object-cover ring-1 ring-zinc-200 bg-zinc-50", extra_class].compact.join(" "),
+      class: ["inline-block rounded-full object-cover ring-1 ring-[var(--kb-border)] bg-[var(--kb-bg-subtle)]", extra_class].compact.join(" "),
       style: "width:#{size}px;height:#{size}px",
       loading: "lazy",
       decoding: "async"

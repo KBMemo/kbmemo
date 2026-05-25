@@ -30,22 +30,16 @@ module MemosHelper
   end
 
   def memo_sidebar_link_classes(key)
-    base = "block border-l-2 px-3 py-3 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2"
-    if memo_sidebar_selected?(key)
-      "#{base} border-l-zinc-900 bg-zinc-100 text-zinc-900"
-    else
-      "#{base} border-l-transparent hover:bg-zinc-50"
-    end
+    base = "kb-sidebar-link block border-l-2 px-3 py-3 text-sm transition #{kb_focus_ring}"
+    active = memo_sidebar_selected?(key) ? "is-active" : ""
+    [base, active].join(" ")
   end
 
   # メモ一覧の行（グリップ＋リンク）用。左ボーダーで選択中を示す。
   def memo_sidebar_memo_list_row_classes(memo_id)
-    base = "flex min-w-0 flex-1 items-stretch border-l-2 text-sm transition"
-    if memo_sidebar_selected?(memo_id)
-      "#{base} border-l-zinc-900 bg-zinc-100 text-zinc-900"
-    else
-      "#{base} border-l-transparent hover:bg-zinc-50"
-    end
+    base = "kb-sidebar-row flex min-w-0 flex-1 items-stretch border-l-2 text-sm transition"
+    active = memo_sidebar_selected?(memo_id) ? "is-active" : ""
+    [base, active].join(" ")
   end
 
   # 一覧のメモ行: ドラフト表示中は編集、確定のみ show へ（サイドバー表示モードをクエリで維持）
@@ -134,13 +128,9 @@ module MemosHelper
   end
 
   def memo_sidebar_view_tab_classes(mode)
-    base = "flex-1 rounded-md px-2 py-1.5 text-center text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+    base = "kb-sidebar-tab flex-1 rounded-md px-2 py-1.5 text-center text-xs font-medium transition #{kb_focus_ring}"
     active = defined?(@sidebar_view) && @sidebar_view == mode
-    if active
-      "#{base} bg-white text-zinc-900 shadow-sm"
-    else
-      "#{base} text-zinc-600 hover:text-zinc-900"
-    end
+    [base, active ? "is-active" : nil].compact.join(" ")
   end
 
   # 一覧左アイコン
@@ -206,11 +196,11 @@ module MemosHelper
   end
 
   def memo_directory_parent_picker_button_classes(selected:)
-    base = "w-full min-w-0 truncate rounded-md px-2 py-1.5 text-left text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+    base = "w-full min-w-0 truncate rounded-md px-2 py-1.5 text-left text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kb-border-strong)]"
     if selected
-      "#{base} bg-zinc-200 font-medium text-zinc-900"
+      "#{base} bg-[var(--kb-bg-muted)] font-medium kb-text-primary"
     else
-      "#{base} text-zinc-700 hover:bg-zinc-100"
+      "#{base} kb-text-secondary hover:bg-[var(--kb-bg-muted)]"
     end
   end
 
@@ -268,25 +258,17 @@ module MemosHelper
   end
 
   def memo_directory_nav_link_classes(directory)
-    base = "block rounded-md px-2 py-1.5 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+    base = "kb-sidebar-nav block rounded-md px-2 py-1.5 text-sm transition #{kb_focus_ring}"
     active = defined?(@sidebar_view) && @sidebar_view == "directory" &&
       defined?(@current_memo_directory) && @current_memo_directory&.id == directory.id
-    if active
-      "#{base} bg-zinc-200 font-medium text-zinc-900"
-    else
-      "#{base} text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-    end
+    [base, active ? "is-active" : nil].compact.join(" ")
   end
 
   def memo_tag_nav_link_classes(tag)
-    base = "block rounded-md px-2 py-1.5 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+    base = "kb-sidebar-nav block rounded-md px-2 py-1.5 text-sm transition #{kb_focus_ring}"
     active = defined?(@sidebar_view) && @sidebar_view == "tag" &&
       defined?(@current_tag) && @current_tag&.id == tag.id
-    if active
-      "#{base} bg-zinc-200 font-medium text-zinc-900"
-    else
-      "#{base} text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-    end
+    [base, active ? "is-active" : nil].compact.join(" ")
   end
 
   # Wiki リンク [[full_path/slug]] の path 部分（slug のみのときは slug だけ）
@@ -448,9 +430,8 @@ module MemosHelper
   # タグ行のインライン入力（チップの右に伸びる）
   def memo_form_tag_input_inline
     [
-      "min-w-[6rem] flex-1 border-0 border-b-0 bg-transparent px-0 py-0.5",
-      "text-sm text-zinc-900 shadow-none placeholder:text-zinc-400",
-      "focus:outline-none focus:ring-0"
+      "kb-field-inline min-w-[6rem] flex-1 border-0 border-b-0 bg-transparent px-0 py-0.5",
+      "text-sm shadow-none focus:outline-none focus:ring-0"
     ].join(" ")
   end
 
@@ -483,10 +464,7 @@ module MemosHelper
 
   # 編集フォーム用：下線のみのコンパクト入力
   def memo_sidebar_search_input
-    [
-      "block w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900",
-      "placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-0"
-    ].join(" ")
+    "kb-input block w-full min-w-0 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-0 focus:border-[var(--kb-accent)]"
   end
 
   MEMO_ASSET_URL_PATH = %r{\A/memos/(\d+)/assets/(.+)\z}
@@ -585,29 +563,22 @@ module MemosHelper
   end
 
   def memo_form_underline_input(extra_classes = "")
-    [
-      "block w-full border-0 border-b border-zinc-300 rounded-none bg-transparent px-0 py-1.5",
-      "text-zinc-900 shadow-none placeholder:text-zinc-400",
-      "focus:border-zinc-900 focus:outline-none focus:ring-0",
-      extra_classes
-    ].reject(&:blank?).join(" ")
+    kb_underline_input(extra_classes)
   end
 
   def memo_form_underline_properties_textarea(memo)
     err = memo.errors[:properties_yaml].any?
-    border = err ? "border-red-500 focus:border-red-600" : "border-zinc-300 focus:border-zinc-900"
+    border = err ? "border-red-500 focus:border-red-600" : "border-[var(--kb-border-strong)] focus:border-[var(--kb-accent)]"
     [
-      "block w-full border-0 border-b #{border} rounded-none bg-transparent px-0 py-1.5 min-h-[5rem]",
-      "font-mono text-sm leading-relaxed text-zinc-900 resize-y shadow-none placeholder:text-zinc-400",
-      "focus:outline-none focus:ring-0"
+      "kb-underline-input block w-full px-0 py-1.5 min-h-[5rem] border-0 border-b #{border}",
+      "font-mono text-sm leading-relaxed resize-y shadow-none focus:outline-none focus:ring-0"
     ].join(" ")
   end
 
   def memo_form_underline_body
     [
-      "block w-full border-0 border-b border-zinc-300 rounded-none bg-transparent px-0 py-2 min-h-[18rem]",
-      "font-mono text-sm leading-relaxed text-zinc-900 resize-y shadow-none placeholder:text-zinc-400",
-      "focus:border-zinc-900 focus:outline-none focus:ring-0"
+      "kb-underline-input block w-full px-0 py-2 min-h-[18rem]",
+      "font-mono text-sm leading-relaxed resize-y shadow-none focus:outline-none focus:ring-0"
     ].join(" ")
   end
 

@@ -6,17 +6,17 @@
           li = message
 
   div
-    = f.label :title, "ボード名", class: "mb-1 block text-sm font-medium text-zinc-800"
-    = f.text_field :title, required: true, class: "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+    = f.label :title, "ボード名", class: "#{kb_label} mb-1"
+    = f.text_field :title, required: true, class: kb_field_input_classes
 
   div
-    = f.label :memo_directory_id, "新規カードの保存先ディレクトリ", class: "mb-1 block text-sm font-medium text-zinc-800"
-    = f.collection_select :memo_directory_id, @memo_directory_options, :id, :label, { include_blank: "デフォルト（home/u-{id}）" }, class: "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-    p.mt-1.text-xs.text-zinc-500 ボード上から新規メモを作るときの Git 配置先です。
+    = f.label :memo_directory_id, "新規カードの保存先ディレクトリ", class: "#{kb_label} mb-1"
+    = f.collection_select :memo_directory_id, @memo_directory_options, :id, :label, { include_blank: "デフォルト（home/u-{id}）" }, class: kb_field_input_classes
+    p.mt-1.text-xs.kb-text-muted ボード上から新規メモを作るときの Git 配置先です。
 
   .flex.flex-wrap.items-center.gap-3
-    = f.submit submit_label, class: "rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+    = f.submit submit_label, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }
     - if board.persisted?
-      = link_to "キャンセル", board_path(board), class: "text-sm text-zinc-600 hover:text-zinc-900"
+      = link_to "キャンセル", board_path(board), class: "kb-chrome-link text-sm"
     - else
-      = link_to "キャンセル", boards_path, class: "text-sm text-zinc-600 hover:text-zinc-900"
+      = link_to "キャンセル", boards_path, class: "kb-chrome-link text-sm"

@@ -45,16 +45,16 @@ export default class extends Controller {
   _renderResults(items) {
     if (!this.hasResultsTarget) return
     if (!items.length) {
-      this.resultsTarget.innerHTML = '<p class="px-3 py-2 text-sm text-zinc-500">該当するメモがありません</p>'
+      this.resultsTarget.innerHTML = '<p class="px-3 py-2 text-sm kb-text-muted">該当するメモがありません</p>'
       return
     }
 
     this.resultsTarget.innerHTML = items
       .map((item) => {
         const tags = (item.tags || []).slice(0, 3).join(", ")
-        const tagLine = tags ? `<span class="text-zinc-400"> · ${this._escape(tags)}</span>` : ""
-        return `<button type="button" class="block w-full border-b border-zinc-100 px-3 py-2 text-left text-sm hover:bg-zinc-50" data-action="board-add-memo#add" data-memo-id="${item.id}">
-          <span class="font-medium text-zinc-900">${this._escape(item.title)}</span>${tagLine}
+        const tagLine = tags ? `<span class="kb-text-subtle"> · ${this._escape(tags)}</span>` : ""
+        return `<button type="button" class="block w-full border-b kb-border px-3 py-2 text-left text-sm kb-hover-row" data-action="board-add-memo#add" data-memo-id="${item.id}">
+          <span class="font-medium kb-text-primary">${this._escape(item.title)}</span>${tagLine}
         </button>`
       })
       .join("")

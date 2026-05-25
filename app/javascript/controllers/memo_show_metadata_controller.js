@@ -142,8 +142,8 @@ export default class extends Controller {
       )
       const navigable = Boolean(tagEntry?.id && this.hasMemoIdValue)
       pill.className = [
-        "inline-flex max-w-full items-center gap-1 rounded-full bg-white pl-3 pr-1 py-1 text-sm text-zinc-700 ring-1 ring-zinc-200",
-        navigable ? "cursor-pointer hover:bg-zinc-50" : ""
+        "kb-tag-pill-link inline-flex max-w-full items-center gap-1 pl-3 pr-1 py-1",
+        navigable ? "cursor-pointer" : ""
       ]
         .filter(Boolean)
         .join(" ")
@@ -164,7 +164,7 @@ export default class extends Controller {
       const remove = document.createElement("button")
       remove.type = "button"
       remove.className =
-        "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+        "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full kb-text-subtle hover:bg-[var(--kb-bg-muted)] hover:kb-text-secondary"
       remove.setAttribute("aria-label", `${label} を外す`)
       remove.setAttribute("data-action", "click->memo-show-metadata#removeTagFromParam")
       remove.setAttribute("data-memo-show-metadata-tag-index-param", String(index))

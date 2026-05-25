@@ -1,18 +1,18 @@
 - card_dom_id = dom_id(memo, :board_card)
 article.rounded-md.border.kb-border.p-3.shadow-sm.hover:opacity-95[id=card_dom_id data-theme-slot="kanban-card" data-board-kanban-dnd-target="card" data-memo-id=memo.id data-column-id=column.id data-position=memo.kanban_position draggable="true" data-action="dragstart->board-kanban-dnd#cardDragStart dragend->board-kanban-dnd#cardDragEnd"]
   .flex.items-start.gap-2
-    button.mt-0.5.cursor-grab.text-zinc-400.hover:text-zinc-600[type="button" aria-label="ドラッグ" data-action="mousedown->board-kanban-dnd#prepareDrag" tabindex="-1"]
+    button.mt-0.5.cursor-grab.kb-text-subtle.hover:kb-text-secondary[type="button" aria-label="ドラッグ" data-action="mousedown->board-kanban-dnd#prepareDrag" tabindex="-1"]
       | ⋮⋮
     .min-w-0.flex-1
       = link_to memo.title, memo_path(memo), class: "block font-medium kb-text-primary hover:opacity-80 line-clamp-2", data: { turbo: false }
       - progress = kanban_card_checklist_progress(memo)
       - if progress
-        p.mt-1.text-xs.text-zinc-500 チェックリスト #{progress}
+        p.mt-1.text-xs.kb-text-muted チェックリスト #{progress}
       - if memo.tags.any?
         .mt-2.flex.flex-wrap.gap-1
           - memo.tags.first(3).each do |tag|
-            span class="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-600" = tag.name
+            span class="rounded bg-[var(--kb-bg-muted)] px-1.5 py-0.5 text-[10px] kb-text-secondary" = tag.name
           - if memo.tags.size > 3
-            span class="text-[10px] text-zinc-400" = "+#{memo.tags.size - 3}"
-      p class="mt-2 text-[10px] text-zinc-400" = l(memo.updated_at, format: :short)
-    = button_to "外す", board_board_card_path(board, memo), method: :delete, form: { data: { turbo_confirm: "ボードから外しますか？メモ自体は削除されません。" } }, class: "shrink-0 text-[10px] text-zinc-400 hover:text-red-600", title: "ボードから外す"
+            span class="text-[10px] kb-text-subtle" = "+#{memo.tags.size - 3}"
+      p class="mt-2 text-[10px] kb-text-subtle" = l(memo.updated_at, format: :short)
+    = button_to "外す", board_board_card_path(board, memo), method: :delete, form: { data: { turbo_confirm: "ボードから外しますか？メモ自体は削除されません。" } }, class: "shrink-0 text-[10px] kb-text-subtle hover:text-red-600", title: "ボードから外す"

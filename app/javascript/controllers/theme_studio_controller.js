@@ -194,7 +194,7 @@ export default class extends Controller {
 
       const labelEl = document.createElement("label")
       labelEl.textContent = label
-      labelEl.className = "text-sm text-zinc-600"
+      labelEl.className = "text-sm kb-text-secondary"
 
       const inputWrap = document.createElement("div")
       inputWrap.className = "flex items-center gap-2"
@@ -211,7 +211,7 @@ export default class extends Controller {
         const textInput = document.createElement("input")
         textInput.type = "text"
         textInput.value = value
-        textInput.className = "flex-1 font-mono text-xs border border-zinc-300 rounded px-2 py-1"
+        textInput.className = "flex-1 font-mono text-xs kb-input rounded px-2 py-1"
         textInput.dataset.property = key
         textInput.addEventListener("change", () => {
           this.updateProperty(key, textInput.value, element)
@@ -226,7 +226,7 @@ export default class extends Controller {
         const textInput = document.createElement("input")
         textInput.type = "text"
         textInput.value = value
-        textInput.className = "w-full font-mono text-xs border border-zinc-300 rounded px-2 py-1"
+        textInput.className = "w-full font-mono text-xs kb-input rounded px-2 py-1"
         textInput.dataset.property = key
         textInput.addEventListener("change", () => {
           this.updateProperty(key, textInput.value, element)
@@ -295,7 +295,7 @@ export default class extends Controller {
         row.className = "theme-studio-token-row grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center"
 
         const label = document.createElement("span")
-        label.className = "font-mono text-xs text-zinc-600 truncate"
+        label.className = "font-mono text-xs kb-text-secondary truncate"
         label.textContent = name
         label.title = name
 
@@ -342,7 +342,7 @@ export default class extends Controller {
         const link = document.createElement("a")
         link.href = `/themes/studio?theme=${encodeURIComponent(theme.id)}`
         link.textContent = theme.label
-        link.className = "text-zinc-800 hover:underline truncate"
+        link.className = "kb-chrome-link hover:underline truncate"
 
         const del = document.createElement("button")
         del.type = "button"

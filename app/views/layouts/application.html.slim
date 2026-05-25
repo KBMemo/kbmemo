@@ -9,6 +9,8 @@ html data-kb-theme="default" data-kb-theme-base="default"
     meta[name="mobile-web-app-capable" content="yes"]
     = csrf_meta_tags
     = csp_meta_tag
+    - if kb_theme_sync_enabled?
+      meta name="kbmemo-theme-sync" content="true"
     = yield :head
     - # Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!)
     - #= tag.link rel: "manifest", href: pwa_manifest_path(format: :json)
@@ -18,7 +20,9 @@ html data-kb-theme="default" data-kb-theme-base="default"
     = vite_client_tag
     = vite_javascript_tag "application"
     script type="text/javascript"
-      | (function(){try{var r=localStorage.getItem("kbmemo_themes_v1");if(!r)return;var s=JSON.parse(r);if(!s.activeThemeId)return;document.documentElement.dataset.kbTheme=s.activeThemeId;var c=(s.customThemes||[]).find(function(t){return t.id===s.activeThemeId});document.documentElement.dataset.kbThemeBase=c&&c.baseTheme?c.baseTheme:s.activeThemeId;}catch(e){}})();
+      | window.__KBMEMO_ACCOUNT_THEME__ = #{raw kb_account_theme_json};
+    script type="text/javascript"
+      | (function(){try{var a=window.__KBMEMO_ACCOUNT_THEME__;if(a&&a.active_theme_id){localStorage.setItem("kbmemo_themes_v1",JSON.stringify({activeThemeId:a.active_theme_id,customThemes:(a.custom_themes||[]).map(function(t){return{id:t.id,label:t.label,baseTheme:t.base_theme,variables:t.variables||{},rules:t.rules||[]};}})}));}var r=localStorage.getItem("kbmemo_themes_v1");if(!r)return;var s=JSON.parse(r);if(!s.activeThemeId)return;document.documentElement.dataset.kbTheme=s.activeThemeId;var c=(s.customThemes||[]).find(function(t){return t.id===s.activeThemeId});document.documentElement.dataset.kbThemeBase=c&&c.baseTheme?c.baseTheme:s.activeThemeId;}catch(e){}})();
   body.kb-chrome-body.min-h-screen data-theme-slot="app-body" data-controller="flash-notice"
     header.kb-chrome-header data-theme-slot="app-header"
       nav.mx-auto.flex.w-full.flex-wrap.items-center.justify-between.gap-3.px-4.py-3 class=(wide_content_layout? ? "max-w-[1800px]" : "max-w-3xl")
@@ -62,19 +66,19 @@ html data-kb-theme="default" data-kb-theme-base="default"
               span[data-memo-sidebar-target="toggleLabelMobile"] 折りたたむ
             .flex.min-h-0.flex-1.flex-col.overflow-hidden[data-memo-sidebar-target="body"]
               = render "memos/list_panel"
-          button.hidden.md:flex.fixed.z-30.h-8.w-5.items-center.justify-center.rounded-sm.bg-transparent.text-base.leading-none.text-zinc-400.hover:bg-zinc-100/90.hover:text-zinc-600[type="button" data-memo-sidebar-target="toggleButton" data-action="memo-sidebar#toggle" aria-expanded="true" aria-controls="memos_list_panel" title="メモ一覧サイドバーを折りたたむ"]
+          button class=kb_sidebar_toggle_btn type="button" data-memo-sidebar-target="toggleButton" data-action="memo-sidebar#toggle" aria-expanded="true" aria-controls="memos_list_panel" title="メモ一覧サイドバーを折りたたむ"
             span.select-none.tracking-tighter[aria-hidden="true" data-memo-sidebar-target="toggleGlyph"] ««
             span.sr-only メモ一覧サイドバー
-          .hidden.shrink-0.self-stretch.w-2.cursor-col-resize.bg-transparent.transition-colors.hover:bg-zinc-400.active:bg-zinc-500.md:block.z-10[role="separator" aria-orientation="vertical" aria-label="サイドバーの幅を変更" title="ドラッグして幅を変更" tabindex="-1" data-memo-sidebar-target="resizer" data-action="pointerdown->memo-sidebar#resizerPointerDown"]
+          div class=kb_resizer role="separator" aria-orientation="vertical" aria-label="サイドバーの幅を変更" title="ドラッグして幅を変更" tabindex="-1" data-memo-sidebar-target="resizer" data-action="pointerdown->memo-sidebar#resizerPointerDown"
           section[class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"]
             div#memos_editor_scroll[class="flex-1 overflow-y-auto px-4 py-5 md:px-8"]
               = yield :memos_editor
           - if content_for?(:memo_ai_sidebar)
             div class="flex min-h-0 shrink-0 max-md:w-full max-md:max-h-[min(42vh,360px)] max-md:flex-col md:h-full md:max-h-full md:flex-row md:items-stretch md:overflow-hidden" data-controller="memo-ai-sidebar" data-memo-ai-sidebar-storage-key-value="kbmemo_memo_ai_sidebar_v1"
-              button.hidden.md:flex.fixed.z-30.h-8.w-5.items-center.justify-center.rounded-sm.bg-transparent.text-base.leading-none.text-zinc-400.hover:bg-zinc-100/90.hover:text-zinc-600[type="button" data-memo-ai-sidebar-target="toggleButton" data-action="memo-ai-sidebar#toggle" aria-expanded="true" aria-controls="memo_ai_sidebar_panel" title="AI パネルを折りたたむ"]
+              button class=kb_sidebar_toggle_btn type="button" data-memo-ai-sidebar-target="toggleButton" data-action="memo-ai-sidebar#toggle" aria-expanded="true" aria-controls="memo_ai_sidebar_panel" title="AI パネルを折りたたむ"
                 span.select-none.tracking-tighter[aria-hidden="true" data-memo-ai-sidebar-target="toggleGlyph"] »»
                 span.sr-only AI パネル
-              .hidden.shrink-0.self-stretch.w-2.cursor-col-resize.bg-transparent.transition-colors.hover:bg-zinc-400.active:bg-zinc-500.md:block.z-10[role="separator" aria-orientation="vertical" aria-label="AI パネルの幅を変更" title="ドラッグして幅を変更" tabindex="-1" data-memo-ai-sidebar-target="resizer" data-action="pointerdown->memo-ai-sidebar#resizerPointerDown"]
+              div class=kb_resizer role="separator" aria-orientation="vertical" aria-label="AI パネルの幅を変更" title="ドラッグして幅を変更" tabindex="-1" data-memo-ai-sidebar-target="resizer" data-action="pointerdown->memo-ai-sidebar#resizerPointerDown"
               #memo_ai_sidebar_shell.kb-chrome-panel[class="flex max-md:w-full min-h-0 flex-shrink-0 flex-col overflow-hidden border-t transition-[width,max-height] duration-200 ease-out md:max-h-full md:h-full md:border-t-0 md:border-l md:border-b-0" data-theme-slot="memo-sidebar" data-memo-ai-sidebar-target="shell"]
                 button.kb-chrome-muted-bar.flex.w-full.shrink-0.items-center.justify-center.gap-2.border-b.px-2.py-2.text-left.text-xs.font-medium.md:hidden[type="button" data-memo-ai-sidebar-target="toggleButtonMobile" data-action="memo-ai-sidebar#toggle" aria-expanded="true" aria-controls="memo_ai_sidebar_panel"]
                   span.text-sm.leading-none.tabular-nums[aria-hidden="true" data-memo-ai-sidebar-target="toggleGlyphMobile"] »»

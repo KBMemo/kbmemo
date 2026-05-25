@@ -123,7 +123,7 @@ export default class extends Controller {
     if (!this.hasMessagesTarget) return
 
     if (this.history.length === 0) {
-      this.messagesTarget.innerHTML = `<p class="text-xs text-zinc-500">メモの執筆・推敲を手伝います。送信すると本文の抜粋が OpenAI に送られます。</p>`
+      this.messagesTarget.innerHTML = `<p class="text-xs kb-text-muted">メモの執筆・推敲を手伝います。送信すると本文の抜粋が OpenAI に送られます。</p>`
       return
     }
 
@@ -131,9 +131,9 @@ export default class extends Controller {
       .map((entry) => {
         const isUser = entry.role === "user"
         const label = isUser ? "あなた" : "AI"
-        const bubble = isUser ? "bg-zinc-100 text-zinc-900" : "bg-emerald-50 text-emerald-950"
+        const bubble = isUser ? "bg-[var(--kb-bg-muted)] kb-text-primary" : "bg-emerald-50 text-emerald-950"
         const escaped = this.escapeHtml(entry.content).replace(/\n/g, "<br>")
-        return `<div class="mb-3"><p class="mb-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500">${label}</p><div class="rounded-md px-2 py-1.5 text-xs leading-relaxed ${bubble}">${escaped}</div></div>`
+        return `<div class="mb-3"><p class="mb-0.5 text-[10px] font-medium uppercase tracking-wide kb-text-muted">${label}</p><div class="rounded-md px-2 py-1.5 text-xs leading-relaxed ${bubble}">${escaped}</div></div>`
       })
       .join("")
 

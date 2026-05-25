@@ -1,18 +1,18 @@
 <%= form_with url: rodauth.remember_path, method: :post, data: { turbo: false }, class: "w-full max-w-sm" do |form| %>
   <fieldset class="mb-6 space-y-2">
     <div class="flex items-center space-x-2">
-      <%= form.radio_button rodauth.remember_param, rodauth.remember_remember_param_value, id: "remember-remember", class: "border-zinc-300 text-zinc-900 focus:ring-zinc-500" %>
-      <%= form.label "remember-remember", rodauth.remember_remember_label, class: "text-sm text-zinc-800" %>
+      <%= form.radio_button rodauth.remember_param, rodauth.remember_remember_param_value, id: "remember-remember", class: "kb-border kb-text-primary focus:ring-[var(--kb-accent)]" %>
+      <%= form.label "remember-remember", rodauth.remember_remember_label, class: "text-sm kb-text-primary" %>
     </div>
     <div class="flex items-center space-x-2">
-      <%= form.radio_button rodauth.remember_param, rodauth.remember_forget_param_value, id: "remember-forget", class: "border-zinc-300 text-zinc-900 focus:ring-zinc-500" %>
-      <%= form.label "remember-forget", rodauth.remember_forget_label, class: "text-sm text-zinc-800" %>
+      <%= form.radio_button rodauth.remember_param, rodauth.remember_forget_param_value, id: "remember-forget", class: "kb-border kb-text-primary focus:ring-[var(--kb-accent)]" %>
+      <%= form.label "remember-forget", rodauth.remember_forget_label, class: "text-sm kb-text-primary" %>
     </div>
     <div class="flex items-center space-x-2">
-      <%= form.radio_button rodauth.remember_param, rodauth.remember_disable_param_value, id: "remember-disable", class: "border-zinc-300 text-zinc-900 focus:ring-zinc-500" %>
-      <%= form.label "remember-disable", rodauth.remember_disable_label, class: "text-sm text-zinc-800" %>
+      <%= form.radio_button rodauth.remember_param, rodauth.remember_disable_param_value, id: "remember-disable", class: "kb-border kb-text-primary focus:ring-[var(--kb-accent)]" %>
+      <%= form.label "remember-disable", rodauth.remember_disable_label, class: "text-sm kb-text-primary" %>
     </div>
   </fieldset>
 
-  <%= form.submit rodauth.remember_button, class: "w-full cursor-pointer rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2" %>
+  <%= form.submit rodauth.remember_button, class: kb_auth_submit_classes %>
 <% end %>

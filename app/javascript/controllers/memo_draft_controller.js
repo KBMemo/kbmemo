@@ -305,8 +305,8 @@ export default class extends Controller {
       )
       const navigable = Boolean(tagEntry?.id && this.hasMemoIdValue)
       pill.className = [
-        "inline-flex max-w-full items-center gap-1 rounded-full bg-white pl-3 pr-1 py-1 text-sm text-zinc-700 ring-1 ring-zinc-200",
-        navigable ? "cursor-pointer hover:bg-zinc-50" : ""
+        "kb-tag-pill-link inline-flex max-w-full items-center gap-1 pl-3 pr-1 py-1",
+        navigable ? "cursor-pointer" : ""
       ]
         .filter(Boolean)
         .join(" ")
@@ -318,7 +318,7 @@ export default class extends Controller {
       }
       const text = document.createElement("span")
       text.className = navigable
-        ? "min-w-0 truncate underline decoration-zinc-300"
+        ? "min-w-0 truncate underline decoration-[var(--kb-border-strong)]"
         : "min-w-0 truncate"
       text.textContent = label
       pill.appendChild(text)
@@ -329,7 +329,7 @@ export default class extends Controller {
       btn.setAttribute("data-action", "click->memo-draft#removeTagFromParam")
       btn.setAttribute("data-memo-draft-tag-index-param", String(index))
       btn.className =
-        "shrink-0 rounded p-0.5 text-base leading-none text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+        "shrink-0 rounded p-0.5 text-base leading-none kb-text-subtle hover:bg-[var(--kb-bg-muted)] hover:kb-text-secondary"
       btn.textContent = "×"
       pill.appendChild(btn)
 

@@ -1,28 +1,28 @@
 - content_for :title, "カンバン"
 
 .mb-6.flex.flex-wrap.items-end.justify-between.gap-3
-  h1.text-xl.font-semibold.text-zinc-900 カンバン
-  = link_to "新規ボード", new_board_path, class: "rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+  h1 class=kb_page_title カンバン
+  = link_to "新規ボード", new_board_path, class: "kb-chrome-btn-primary px-3 py-1.5 text-sm", data: { theme_slot: "btn-primary" }
 
 - if @boards.any?
   .overflow-x-auto
-    table class="w-full min-w-[640px] border-collapse text-sm"
-      thead.border-b.border-zinc-200.text-left.text-xs.uppercase.text-zinc-500
+    table class="#{kb_table} min-w-[640px]"
+      thead class=kb_table_head
         tr
           th.py-2.pr-3 ボード名
           th.py-2.pr-3.text-right カード数
           th.py-2.pr-3 更新日時
           th.py-2
-      tbody.divide-y.divide-zinc-100
+      tbody
         - @boards.each do |board|
           tr
             td.py-2.pr-3
-              = link_to board.title, board_path(board), class: "font-medium text-zinc-900 underline decoration-zinc-300 hover:text-zinc-700"
-            td.py-2.pr-3.text-right.tabular-nums.text-zinc-600 = @board_memo_counts[board.id].to_i
-            td.py-2.pr-3.text-zinc-600 = l(board.updated_at, format: :short)
+              = link_to board.title, board_path(board), class: kb_link_table
+            td.py-2.pr-3.text-right.tabular-nums.kb-text-secondary = @board_memo_counts[board.id].to_i
+            td.py-2.pr-3.kb-text-secondary = l(board.updated_at, format: :short)
             td.py-2.text-right
-              = link_to "編集", edit_board_path(board), class: "text-zinc-600 hover:text-zinc-900"
+              = link_to "編集", edit_board_path(board), class: "kb-chrome-link"
               = " · "
               = button_to "削除", board_path(board), method: :delete, form: { data: { turbo_confirm: "「#{board.title}」を削除しますか？載っているメモは残ります。" } }, class: "inline text-red-600 hover:text-red-800"
 - else
-  p.text-sm.text-zinc-500 ボードがありません。新規ボードを作成してください。
+  p.text-sm.kb-text-muted ボードがありません。新規ボードを作成してください。

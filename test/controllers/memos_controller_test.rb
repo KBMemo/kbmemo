@@ -37,7 +37,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     get edit_memo_url(m, memo_directory_id: dir.id)
     assert_response :success
     assert_select "a[href=?]", edit_memo_path(m, memo_directory_id: dir.id)
-    assert_includes response.body, "bg-zinc-200 font-medium text-zinc-900"
+    assert_includes response.body, "kb-sidebar-nav"
+    assert_includes response.body, "is-active"
     assert_includes response.body, m.title
     assert_not_includes response.body, "検索結果"
   end
@@ -146,8 +147,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     list_panel = response.body[/target="memos_list_panel"><template>(.*)<\/template>/m, 1]
     assert list_panel, "expected memos_list_panel turbo stream"
     assert_includes list_panel, %(href="/memos?memo_directory_id=#{work.id}"><span class="truncate">仕事</span></a>)
-    assert_includes list_panel, "bg-zinc-200 font-medium text-zinc-900"
-    assert_not_includes list_panel, %(href="/memos?memo_directory_id=#{share_u1.id}" class="block rounded-md px-2 py-1.5 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 bg-zinc-200)
+    assert_includes list_panel, "is-active"
+    assert_not_includes list_panel, %(href="/memos?memo_directory_id=#{share_u1.id}" class="kb-sidebar-nav block rounded-md px-2 py-1.5 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kb-border-strong)] focus-visible:ring-offset-2 is-active)
   end
 
   test "draft rejects top level bucket as memo directory" do

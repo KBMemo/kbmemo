@@ -2,31 +2,31 @@
 
 div data-controller="theme-studio" data-theme-studio-editing-theme-id-value=(@editing_theme_id || "")
   .mb-6
-    h1.text-2xl.font-semibold.text-zinc-900 テーマ作成
+    h1.text-2xl.font-semibold.kb-text-primary テーマ作成
     p.mt-2.text-sm.kb-text-secondary
       | 表示・編集・カンバンのサンプルで見た目を確認し、Design モードで要素をクリックして CSS 変数を調整できます。
-      | テーマはブラウザの localStorage に保存されます。JSON のエクスポート／インポートにも対応しています。
+      | テーマは localStorage とアカウントに保存され、端末間で同期されます。JSON のエクスポート／インポートにも対応しています。
 
   .theme-studio-layout
     aside.theme-studio-sidebar.space-y-4
       div
-        label.block.text-sm.font-medium.text-zinc-800 for="theme_name" テーマ名
-        input#theme_name.mt-1.w-full.rounded.border.border-zinc-300.px-2.py-1.text-sm type="text" value="新しいテーマ" data-theme-studio-target="themeName" data-action="input->theme-studio#themeNameChanged"
+        label.block.text-sm.font-medium.kb-text-primary for="theme_name" テーマ名
+        input#theme_name.mt-1.w-full.rounded.border.kb-border.px-2.py-1.text-sm type="text" value="新しいテーマ" data-theme-studio-target="themeName" data-action="input->theme-studio#themeNameChanged"
 
       div
-        label.block.text-sm.font-medium.text-zinc-800 for="theme_base" ベーステーマ
-        select#theme_base.mt-1.w-full.rounded.border.border-zinc-300.px-2.py-1.text-sm data-theme-studio-target="baseTheme" data-action="change->theme-studio#baseThemeChanged"
+        label.block.text-sm.font-medium.kb-text-primary for="theme_base" ベーステーマ
+        select#theme_base.mt-1.w-full.rounded.border.kb-border.px-2.py-1.text-sm data-theme-studio-target="baseTheme" data-action="change->theme-studio#baseThemeChanged"
           option value="default" Default
           option value="dark" Dark
           option value="sepia" Sepia
           option value="minimal" Minimal
 
       div
-        p.text-sm.font-medium.text-zinc-800 CSS 変数
+        p.text-sm.font-medium.kb-text-primary CSS 変数
         .mt-2.max-h-64.space-y-2.overflow-y-auto data-theme-studio-target="tokenList"
 
       div
-        p.text-sm.font-medium.text-zinc-800 保存済みカスタムテーマ
+        p.text-sm.font-medium.kb-text-primary 保存済みカスタムテーマ
         ul.mt-2.space-y-1 data-theme-studio-target="customThemeList"
 
       .flex.flex-wrap.gap-2
@@ -37,7 +37,7 @@ div data-controller="theme-studio" data-theme-studio-editing-theme-id-value=(@ed
         button.kb-chrome-btn-secondary type="button" data-action="theme-studio#triggerImport" インポート
         input.hidden type="file" accept="application/json,.json" data-theme-studio-target="importFile" data-action="change->theme-studio#importTheme"
 
-      p.text-xs.text-zinc-500 data-theme-studio-target="status"
+      p.text-xs.kb-text-muted data-theme-studio-target="status"
 
     div
       .theme-studio-preview
@@ -57,6 +57,6 @@ div data-controller="theme-studio" data-theme-studio-editing-theme-id-value=(@ed
             = render "themes/sample_kanban"
 
       .theme-studio-inspector
-        p.text-sm.font-medium.text-zinc-800 選択中の要素
+        p.text-sm.font-medium.kb-text-primary 選択中の要素
         p.mt-1.theme-studio-selected-label data-theme-studio-target="selectorLabel" 要素をクリックして選択
         .mt-3.space-y-2 data-theme-studio-target="propertyFields"

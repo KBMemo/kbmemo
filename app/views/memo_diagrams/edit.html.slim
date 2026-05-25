@@ -5,15 +5,15 @@
 div.w-full
   .flex.flex-wrap.items-start.justify-between.gap-2
     div
-      h1.text-lg.font-semibold.text-zinc-900 ダイアグラム編集
-      p.mt-1.text-sm.text-zinc-600
+      h1.text-lg.font-semibold.kb-text-primary ダイアグラム編集
+      p.mt-1.text-sm.kb-text-secondary
         | #{@engine} ·
-        code.text-zinc-700= @source_relative
+        code.kb-text-secondary= @source_relative
     .flex.flex-wrap.gap-2
-      = link_to "メモに戻る", edit_memo_path(@memo), class: "rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50", target: "_blank", rel: "noopener"
-      = link_to "メモを表示", memo_path(@memo), class: "rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50", target: "_blank", rel: "noopener"
+      = link_to "メモに戻る", edit_memo_path(@memo), class: "rounded-md border kb-border bg-white px-3 py-1.5 text-sm font-medium kb-text-primary kb-hover-row", target: "_blank", rel: "noopener"
+      = link_to "メモを表示", memo_path(@memo), class: "rounded-md border kb-border bg-white px-3 py-1.5 text-sm font-medium kb-text-primary kb-hover-row", target: "_blank", rel: "noopener"
 
-  .mt-4.rounded-md.border.border-zinc-200.bg-zinc-50.px-3.py-2.text-sm.text-zinc-700
+  .mt-4.rounded-md.border.kb-border.bg-[var(--kb-bg-muted)].px-3.py-2.text-sm.kb-text-secondary
     | 本文への挿入:
     code.ml-1= asciidoc
     | （保存後にメモへコミットすると Git に記録されます）
@@ -24,20 +24,20 @@ div.w-full
       data-memo-diagram-editor-engine-value=@engine.to_s
       data-memo-diagram-editor-preview-url-value=preview_memo_diagram_path(@memo, diagram_key)
     ]
-      .memo-diagram-editor.rounded-md.border.border-zinc-300.bg-white
-        label#diagram-source-label.block.border-b.border-zinc-200.bg-zinc-50.px-3.py-2.text-sm.font-medium.text-zinc-700 for="source" ソース
+      .memo-diagram-editor.rounded-md.border.kb-border.bg-white
+        label#diagram-source-label.block.border-b.kb-border.bg-[var(--kb-bg-muted)].px-3.py-2.text-sm.font-medium.kb-text-secondary for="source" ソース
         textarea#source.sr-only name="source" required=true tabindex="-1" autocomplete="off" data-memo-diagram-editor-target="field"
           = @source
         div.memo-diagram-editor__host.relative[data-memo-diagram-editor-target="host"]
 
-      .memo-diagram-editor-preview.rounded-md.border.border-zinc-300.bg-white
-        .border-b.border-zinc-200.bg-zinc-50.px-3.py-2.text-sm.font-medium.text-zinc-700 プレビュー
-        p.hidden.px-3.py-2.text-xs.text-zinc-500 data-memo-diagram-editor-target="previewLoading"
+      .memo-diagram-editor-preview.rounded-md.border.kb-border.bg-white
+        .border-b.kb-border.bg-[var(--kb-bg-muted)].px-3.py-2.text-sm.font-medium.kb-text-secondary プレビュー
+        p.hidden.px-3.py-2.text-xs.kb-text-muted data-memo-diagram-editor-target="previewLoading"
           | 生成中…
         p.hidden.px-3.py-2.text-sm.text-red-600 data-memo-diagram-editor-target="previewError"
         .memo-diagram-editor-preview__canvas.flex.min-h-96.items-start.justify-center.p-4 data-memo-diagram-editor-target="preview"
 
-    p.text-xs.text-zinc-500
+    p.text-xs.kb-text-muted
       | 保存すると Kroki で SVG を生成し、
       code= @source_relative.sub(/\.[^.]+$/, ".svg")
       | に書き込みます。編集中のプレビューは保存前の内容を Kroki で描画したものです。メモ表示では
@@ -45,5 +45,5 @@ div.w-full
       | としてプレビューされます。
 
     .flex.gap-2
-      = f.submit "保存して SVG を更新", class: "rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-      = link_to "キャンセル", edit_memo_path(@memo), class: "rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+      = f.submit "保存して SVG を更新", class: "kb-chrome-btn-primary px-4 py-2 text-sm"
+      = link_to "キャンセル", edit_memo_path(@memo), class: "rounded-md border kb-border bg-white px-4 py-2 text-sm font-medium kb-text-primary kb-hover-row"

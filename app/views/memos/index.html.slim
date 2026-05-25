@@ -2,6 +2,6 @@
 
 - content_for :memos_editor do
   div[class="flex min-h-[min(50vh,28rem)] flex-col items-center justify-center px-4 py-12 text-center md:min-h-0"]
-    p.max-w-sm.text-sm.leading-relaxed.text-zinc-600
+    p.max-w-sm.text-sm.leading-relaxed.kb-text-secondary
       | 左の一覧からメモを選ぶか、新規メモで作成できます。
-    = link_to "新規メモ", new_memo_path_with_current_directory, class: "mt-6 inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+    = link_to "新規メモ", new_memo_path_with_current_directory, class: "mt-6 inline-flex kb-chrome-btn-primary px-4 py-2 text-sm"

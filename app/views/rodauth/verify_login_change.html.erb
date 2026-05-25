@@ -1,3 +1,3 @@
 <%= form_with url: rodauth.verify_login_change_path, method: :post, data: { turbo: false }, class: "w-full max-w-sm" do |form| %>
-  <%= form.submit rodauth.verify_login_change_button, class: "w-full cursor-pointer rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2" %>
+  <%= form.submit rodauth.verify_login_change_button, class: kb_auth_submit_classes %>
 <% end %>

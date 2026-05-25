@@ -3,30 +3,30 @@
 - content_for :memos_editor do
   .max-w-3xl
     .mb-6.flex.flex-wrap.items-end.justify-between.gap-3
-      h1.text-xl.font-semibold.text-zinc-900 タグ
-      = link_to "タグを統合…", merge_tags_path, class: "rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
-    p.mb-4.text-sm.leading-relaxed.text-zinc-600
+      h1 class=kb_page_title タグ
+      = link_to "タグを統合…", merge_tags_path, class: "kb-chrome-btn-secondary px-3 py-1.5 text-sm"
+    p.mb-4.text-sm.leading-relaxed.kb-text-secondary
       | メモに付いているタグの一覧です。名前の変更・未使用タグの削除・似たタグの統合ができます。
     - if @tags.any?
-      table.w-full.border-collapse.text-sm
-        thead.border-b.border-zinc-200.text-left.text-xs.uppercase.text-zinc-500
+      table class=kb_table
+        thead class=kb_table_head
           tr
             th.py-2.pr-3 名前
             th.py-2.pr-3.text-right メモ数
             th.py-2
-        tbody.divide-y.divide-zinc-100
+        tbody
           - @tags.each do |tag|
             - count = @tag_counts[tag.id].to_i
             tr
-              td.py-2.pr-3.text-zinc-800
-                = link_to tag.name, memos_path(sidebar_view: "tag", tag_id: tag.id), class: "font-medium text-zinc-900 underline decoration-zinc-300 hover:text-zinc-700"
-              td.py-2.pr-3.text-right.tabular-nums.text-zinc-600 = count
+              td.py-2.pr-3
+                = link_to tag.name, memos_path(sidebar_view: "tag", tag_id: tag.id), class: kb_link_table
+              td.py-2.pr-3.text-right.tabular-nums.kb-text-secondary = count
               td.py-2.text-right
-                = link_to "編集", edit_tag_path(tag), class: "text-zinc-600 hover:text-zinc-900"
+                = link_to "編集", edit_tag_path(tag), class: "kb-chrome-link"
                 = " · "
-                = link_to "統合へ", merge_tags_path(from_tag_id: tag.id), class: "text-zinc-600 hover:text-zinc-900"
+                = link_to "統合へ", merge_tags_path(from_tag_id: tag.id), class: "kb-chrome-link"
                 - if count.zero?
                   = " · "
                   = button_to "削除", tag_path(tag), method: :delete, form: { data: { turbo_confirm: "「#{tag.name}」を削除しますか？" } }, class: "text-red-600 hover:text-red-800"
     - else
-      p.text-sm.text-zinc-500 タグがありません。
+      p.text-sm.kb-text-muted タグがありません。

@@ -4,39 +4,39 @@
   data-controller="diagram-svg-viewer"
   data-diagram-svg-viewer-src-value=@asset_url
 ]
-  header.flex.shrink-0.flex-wrap.items-center.justify-between.gap-2.border-b.border-zinc-200.bg-white.px-4.py-3.md:sticky.md:top-0.md:z-20
+  header.flex.shrink-0.flex-wrap.items-center.justify-between.gap-2.border-b.kb-border.bg-white.px-4.py-3.md:sticky.md:top-0.md:z-20
     div
-      h1.text-sm.font-semibold.text-zinc-900 画像
-      p.mt-0.5.text-xs.text-zinc-600
-        code.text-zinc-700= @asset_relative
+      h1.text-sm.font-semibold.kb-text-primary 画像
+      p.mt-0.5.text-xs.kb-text-secondary
+        code.kb-text-secondary= @asset_relative
     .flex.flex-wrap.items-center.gap-2
-      button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-800.hover:bg-zinc-50[
+      button.rounded-md.border.kb-border.bg-white.px-2.py-1.text-xs.font-medium.kb-text-primary.kb-hover-row[
         type="button"
         data-action="diagram-svg-viewer#zoomOut"
         title="縮小"
       ]
         | −
-      button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-800.hover:bg-zinc-50[
+      button.rounded-md.border.kb-border.bg-white.px-2.py-1.text-xs.font-medium.kb-text-primary.kb-hover-row[
         type="button"
         data-action="diagram-svg-viewer#resetZoom"
         title="100%"
         data-diagram-svg-viewer-target="scaleLabel"
       ]
         | 100%
-      button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-800.hover:bg-zinc-50[
+      button.rounded-md.border.kb-border.bg-white.px-2.py-1.text-xs.font-medium.kb-text-primary.kb-hover-row[
         type="button"
         data-action="diagram-svg-viewer#zoomIn"
         title="拡大"
       ]
         | ＋
-      button.rounded-md.border.border-zinc-300.bg-white.px-2.py-1.text-xs.font-medium.text-zinc-800.hover:bg-zinc-50[
+      button.rounded-md.border.kb-border.bg-white.px-2.py-1.text-xs.font-medium.kb-text-primary.kb-hover-row[
         type="button"
         data-action="diagram-svg-viewer#fitToWindow"
         title="画面に合わせる"
       ]
         | 画面に合わせる
-      = link_to "元ファイル", @asset_url, class: "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-800 hover:bg-zinc-50", target: "_blank", rel: "noopener"
-      = link_to "メモに戻る", edit_memo_path(@memo), class: "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-800 hover:bg-zinc-50"
+      = link_to "元ファイル", @asset_url, class: "rounded-md border kb-border bg-white px-2 py-1 text-xs font-medium kb-text-primary kb-hover-row", target: "_blank", rel: "noopener"
+      = link_to "メモに戻る", edit_memo_path(@memo), class: "rounded-md border kb-border bg-white px-2 py-1 text-xs font-medium kb-text-primary kb-hover-row"
   .diagram-svg-viewer__stage.flex.min-h-0.flex-1.items-center.justify-center.overflow-hidden.p-4[
     data-diagram-svg-viewer-target="stage"
     data-action="wheel->diagram-svg-viewer#wheel:prevent pointerdown->diagram-svg-viewer#pointerDown pointermove->diagram-svg-viewer#pointerMove pointerup->diagram-svg-viewer#pointerUp pointercancel->diagram-svg-viewer#pointerUp"

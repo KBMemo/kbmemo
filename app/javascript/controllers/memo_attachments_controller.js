@@ -89,7 +89,7 @@ export default class extends Controller {
 
       if (this.hasPanelTarget && this.panelTarget.querySelectorAll("[data-memo-attachments-target='row']").length === 0) {
         const empty = document.createElement("p")
-        empty.className = "px-1 py-2 text-xs text-zinc-500"
+        empty.className = "px-1 py-2 text-xs kb-text-muted"
         empty.textContent = "添付ファイルはありません"
         this.panelTarget.appendChild(empty)
       }

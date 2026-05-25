@@ -1,10 +1,10 @@
 <%= form_with url: rodauth.logout_path, method: :post, data: { turbo: false }, class: "w-full max-w-sm" do |form| %>
   <% if rodauth.features.include?(:active_sessions) %>
     <div class="mb-6 flex items-center space-x-2">
-      <%= form.check_box rodauth.global_logout_param, id: "global-logout", class: "rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500", include_hidden: false %>
-      <%= form.label "global-logout", rodauth.global_logout_label, class: "text-sm text-zinc-800" %>
+      <%= form.check_box rodauth.global_logout_param, id: "global-logout", class: "rounded kb-border kb-text-primary focus:ring-[var(--kb-accent)]", include_hidden: false %>
+      <%= form.label "global-logout", rodauth.global_logout_label, class: "text-sm kb-text-primary" %>
     </div>
   <% end %>
 
-  <%= form.submit rodauth.logout_button, class: "w-full cursor-pointer rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-800 shadow-sm hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2" %>
+  <%= form.submit rodauth.logout_button, class: "kb-chrome-btn-secondary w-full cursor-pointer px-4 py-2.5 #{kb_focus_ring}" %>
 <% end %>

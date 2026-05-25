@@ -14,6 +14,7 @@
 #  openai_api_key            :text
 #  password_hash             :string
 #  status                    :integer          default("unverified"), not null
+#  theme_preference          :json             not null
 #
 # Indexes
 #

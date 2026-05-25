@@ -10,12 +10,12 @@ ruby:
 li.mb-0.5.min-w-0
   - if has_children
     = tag.details(**memo_directory_nav_details_attrs(dir)) do
-      summary.flex.min-w-0.cursor-pointer.list-none.items-center.gap-1.rounded-md.px-1.py-0.text-zinc-500.hover:bg-zinc-50.memo-directory-nav-summary
-        span aria-hidden="true" class="shrink-0 text-[10px] leading-none text-zinc-400 transition-transform select-none group-open:rotate-90" ▶
+      summary.flex.min-w-0.cursor-pointer.list-none.items-center.gap-1.rounded-md.px-1.py-0.kb-text-muted.kb-hover-row.memo-directory-nav-summary
+        span aria-hidden="true" class="shrink-0 text-[10px] leading-none kb-text-subtle transition-transform select-none group-open:rotate-90" ▶
         = render "memos/memo_directory_nav_row", dir: dir, drop_data: drop_data
-      ul.mt-0.5.space-y-0.5.border-l.border-zinc-200.pl-2.ml-2
+      ul.mt-0.5.space-y-0.5.border-l.kb-border.pl-2.ml-2
         - children.each do |child|
           = render "memos/memo_directory_nav_branch", dir: child, by_parent: by_parent
   - else
-    .flex.min-w-0.items-center.gap-1.rounded-md.px-1.py-0.hover:bg-zinc-50
+    .flex.min-w-0.items-center.gap-1.rounded-md.px-1.py-0.kb-hover-row
       = render "memos/memo_directory_nav_row", dir: dir, drop_data: drop_data

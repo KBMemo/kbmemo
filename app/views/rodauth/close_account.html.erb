@@ -1,8 +1,8 @@
 <%= form_with url: rodauth.close_account_path, method: :post, data: { turbo: false }, class: "w-full max-w-sm" do |form| %>
   <% if rodauth.close_account_requires_password? %>
     <div class="mb-6">
-      <%= form.label "password", rodauth.password_label, class: "block text-sm font-semibold text-zinc-800" %>
-      <%= form.password_field rodauth.password_param, value: "", id: "password", autocomplete: rodauth.password_field_autocomplete_value, required: true, class: "mt-2 text-sm w-full px-3 py-2 border rounded-md bg-white text-zinc-900 #{rodauth.field_error(rodauth.password_param) ? "border-red-600 focus:border-red-600 focus:ring-1 focus:ring-red-500" : "border-zinc-300 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500" }", aria: ({ invalid: true, describedby: "password_error_message" } if rodauth.field_error(rodauth.password_param)) %>
+      <%= form.label "password", rodauth.password_label, class: kb_label %>
+      <%= form.password_field rodauth.password_param, value: "", id: "password", autocomplete: rodauth.password_field_autocomplete_value, required: true, class: kb_auth_field_classes(error: rodauth.field_error(rodauth.password_param)), aria: ({ invalid: true, describedby: "password_error_message" } if rodauth.field_error(rodauth.password_param)) %>
       <%= content_tag(:span, rodauth.field_error(rodauth.password_param), class: "block mt-1 text-red-600 text-xs", id: "password_error_message") if rodauth.field_error(rodauth.password_param) %>
     </div>
   <% end %>

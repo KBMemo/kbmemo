@@ -18,35 +18,35 @@ ruby:
 
   - unless @memo_directory.persisted?
     div
-      = f.label :path_segment, "識別子（Git 上のフォルダ名）", class: "mb-1 block text-sm font-medium text-zinc-800"
+      = f.label :path_segment, "識別子（Git 上のフォルダ名）", class: "mb-1 block text-sm font-medium kb-text-primary"
       = f.text_field :path_segment, autocomplete: "off", placeholder: "work", class: memo_form_underline_input("font-mono text-sm")
-      p.mt-1.text-xs.text-zinc-500 英小文字・数字・ハイフンのみ。作成後は変更できません。
+      p.mt-1.text-xs.kb-text-muted 英小文字・数字・ハイフンのみ。作成後は変更できません。
 
   - if @memo_directory.persisted? && @memo_directory.root?
     / ルートの親は変更不可
   - elsif lock_parent && @memo_directory.parent
     = f.hidden_field :parent_id, value: @memo_directory.parent_id
-    .text-sm.text-zinc-700
-      span.font-medium.text-zinc-800 親ディレクトリ：
+    .text-sm.kb-text-secondary
+      span.font-medium.kb-text-primary 親ディレクトリ：
       = memo_directory_path_from_root_label(@memo_directory.parent)
   - elsif @memo_directory.parent_selectable?
     div
       = render "parent_picker", f: f
-      p.mt-1.text-xs.text-zinc-500 一覧・Git 上の階層が変わります。Home / Share / Public の直下には移動できません。
+      p.mt-1.text-xs.kb-text-muted 一覧・Git 上の階層が変わります。Home / Share / Public の直下には移動できません。
   - elsif @memo_directory.parent
-    .text-sm.text-zinc-700
-      span.font-medium.text-zinc-800 親ディレクトリ：
+    .text-sm.kb-text-secondary
+      span.font-medium.kb-text-primary 親ディレクトリ：
       = memo_directory_path_from_root_label(@memo_directory.parent)
-      p.mt-1.text-xs.text-zinc-500 最上位直下のフォルダは親を変更できません。
+      p.mt-1.text-xs.kb-text-muted 最上位直下のフォルダは親を変更できません。
 
   div
-    = f.label :label, "ラベル（一覧表示名）", class: "mb-1 block text-sm font-medium text-zinc-800"
+    = f.label :label, "ラベル（一覧表示名）", class: "mb-1 block text-sm font-medium kb-text-primary"
     = f.text_field :label, autocomplete: "off", class: memo_form_underline_input
-    p.mt-1.text-xs.text-zinc-500 未入力のときは識別子を表示します（ルート以外）。
+    p.mt-1.text-xs.kb-text-muted 未入力のときは識別子を表示します（ルート以外）。
 
   .flex.gap-3.pt-2
-    = f.submit(@memo_directory.persisted? ? "更新" : "作成", class: "rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800")
+    = f.submit(@memo_directory.persisted? ? "更新" : "作成", class: "kb-chrome-btn-primary px-4 py-2 text-sm")
     - if dialog_mode
-      button type="button" class="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50" data-action="click->memo-directory-dialog#cancel" キャンセル
+      button type="button" class="rounded-md border kb-border bg-white px-4 py-2 text-sm font-medium kb-text-primary kb-hover-row" data-action="click->memo-directory-dialog#cancel" キャンセル
     - else
-      = link_to "一覧へ", memo_directories_path, class: "rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+      = link_to "一覧へ", memo_directories_path, class: "rounded-md border kb-border bg-white px-4 py-2 text-sm font-medium kb-text-primary kb-hover-row"

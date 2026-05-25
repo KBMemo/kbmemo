@@ -10,6 +10,7 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   get "themes/studio", to: "themes#studio", as: :theme_studio
+  resource :theme, only: %i[show update], controller: "themes", defaults: { format: :json }
 
   root "memos#index"
 

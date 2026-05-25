@@ -1,18 +1,18 @@
 .flex.items-start.gap-2
   .shrink-0.pt-0.5
     = gravatar_image_tag(memo.account, size: 28, extra_class: "select-none")
-  span.inline-flex.shrink-0.pt-0.5.text-zinc-400 title=memo_list_state_icon_title(memo)
+  span.inline-flex.shrink-0.pt-0.5.kb-text-subtle title=memo_list_state_icon_title(memo)
     span.sr-only = memo_list_state_icon_title(memo)
     i.h-4.w-4 aria-hidden="true" data-lucide=memo_list_state_lucide_name(memo)
   .min-w-0.flex-1
     .flex.items-start.justify-between.gap-2
-      span.min-w-0.flex-1.font-medium.leading-snug.text-zinc-900 = memo.title
-      time.flex-shrink-0.text-xs.text-zinc-400 datetime=memo.updated_at.iso8601
+      span.min-w-0.flex-1.font-medium.leading-snug.kb-text-primary = memo.title
+      time.flex-shrink-0.text-xs.kb-text-subtle datetime=memo.updated_at.iso8601
         = memo.updated_at.strftime("%m/%d %H:%M")
     - if memo.tags.any?
       ul.mt-1.5.flex.flex-wrap.gap-1
         - memo.tags.take(4).each do |tag|
-          li[class="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600"] = tag.name
+          li[class="rounded bg-[var(--kb-bg-muted)] px-1.5 py-0.5 text-[11px] kb-text-secondary"] = tag.name
         - if memo.tags.size > 4
-          li[class="text-[11px] text-zinc-400"]
+          li[class="text-[11px] kb-text-subtle"]
             | …

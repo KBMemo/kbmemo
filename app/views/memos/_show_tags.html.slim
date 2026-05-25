@@ -8,7 +8,7 @@ ruby:
 - if editable
   .mb-6
     = hidden_field_tag "memo_show_tag_list", memo.tags.map(&:name).join(", "), data: { memo_show_metadata_target: "tagList" }
-    div class="flex min-h-9 flex-wrap items-center gap-2 border-0 border-b border-zinc-300 pb-1 pt-0.5 focus-within:border-zinc-900"
+    div class=kb_tag_input_row
       div.flex.flex-wrap.items-center.gap-2 data-memo-show-metadata-target="tagPills"
       = text_field_tag "memo_show_tag_input", "", id: "memo_show_tag_input_#{memo.id}", autocomplete: "off", placeholder: "タグを入力", list: list_id, class: memo_form_tag_input_inline, aria: { label: "タグ" }, data: { memo_show_metadata_target: "tagInput", action: "keydown->memo-show-metadata#tagInputKeydown change->memo-show-metadata#tagInputChange input->memo-show-metadata#tagInputInput" }
     datalist id=list_id
@@ -20,5 +20,5 @@ ruby:
       li
         = link_to tag.name,
           memo_sidebar_open_memo_path(memo, sidebar_view: "tag", tag_id: tag.id),
-          class: "inline-block rounded-full bg-white px-3 py-1 text-sm text-zinc-700 ring-1 ring-zinc-200 underline decoration-zinc-300 hover:bg-zinc-50 hover:text-zinc-900",
+          class: "inline-block rounded-full bg-white px-3 py-1 text-sm kb-text-secondary ring-1 ring-[var(--kb-border)] underline decoration-[var(--kb-border-strong)] kb-hover-row hover:kb-text-primary",
           title: "サイドバーでこのタグを表示"

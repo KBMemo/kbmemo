@@ -179,12 +179,12 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 }
 
 .memo-body-editor__mode-tab:hover {
-  color: #18181b;
+  color: var(--kb-text-primary);
 }
 
 .memo-body-editor__mode-tab.is-active {
-  background: #fff;
-  color: #18181b;
+  background: var(--kb-bg-surface);
+  color: var(--kb-text-primary);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
 
@@ -192,7 +192,7 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   display: none;
   flex-direction: column;
   border-bottom: 1px solid var(--kb-border);
-  background: #fff;
+  background: var(--kb-bg-surface);
 }
 
 .memo-body-editor--wysiwyg-mode .memo-body-editor__wysiwyg-pane {

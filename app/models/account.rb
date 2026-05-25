@@ -12,6 +12,7 @@
 #  openai_api_key            :text
 #  password_hash             :string
 #  status                    :integer          default("unverified"), not null
+#  theme_preference          :json             not null
 #
 # Indexes
 #
@@ -20,6 +21,7 @@
 #
 class Account < ApplicationRecord
   include Rodauth::Rails.model
+  include AccountThemePreference
   enum :status, { unverified: 1, verified: 2, closed: 3 }
 
   encrypts :openai_api_key
