@@ -374,6 +374,7 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 * `packages/adoc-kbmemo/hostConfig.js` — CSRF・URL・スクロールルート等の HostConfig
 * `npm run build:packages` — workspace パッケージの ESM ビルド（`tsup` → `packages/*/dist/`、publish 用）
 * `npm run test:packages` — Vitest（`packages/adoc-codemirror/test/` 等）
+* `npm run report:syntax-coverage` — 全 syntax-ref セクションの HL / EU 計測レポート
 * `npm run pack:packages` — ビルド後に `npm pack --dry-run` で tarball 内容を検証
 * `npm run publish:packages -- --dry-run` — publish 前チェック（本番は `NPM_PUBLISH_REGISTRY` を設定）
 * `npm run verify:consumer` — tarball を別ディレクトリに `npm install` して `@kbmemo/adoc-editor` を smoke  import

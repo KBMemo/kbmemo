@@ -25,6 +25,11 @@ npm run verify:publish
 
 AsciiDoc syntax coverage fixture: `test/fixtures/asciidoc/syntax-quick-reference.adoc` (see `docs/architecture/asciidoc-syntax-coverage-roadmap.adoc`).
 
+```bash
+npm run test:packages
+npm run report:syntax-coverage
+```
+
 Site dev uses Vite aliases to package sources (`vite.config.ts`). Published tarballs use `dist/`.
 
 ## Registry publish (Gitea npm)

@@ -9,6 +9,7 @@ import {
 import {
   SYNTAX_QUICK_REFERENCE,
   SYNTAX_QUICK_REFERENCE_IDS,
+  SYNTAX_QUICK_REFERENCE_SECTIONS,
 } from '@kbmemo/test-fixtures'
 
 describe('syntax-quick-reference.adoc fixture', () => {
@@ -30,4 +31,46 @@ describe('syntax-quick-reference.adoc fixture', () => {
     expect(units.length).toBeGreaterThan(10)
     expect(units.every((unit) => typeof unit.adoc === 'string')).toBe(true)
   })
+
+  it('parses highlights for every syntax-ref section', () => {
+    clearParseCache()
+    const failures = []
+
+    for (const section of SYNTAX_QUICK_REFERENCE_SECTIONS) {
+      try {
+        refreshHighlights(section.adoc)
+      } catch (error) {
+        failures.push({ id: section.id, layer: 'HL', error })
+      }
+    }
+
+    expect(failures, formatSectionFailures(failures)).toEqual([])
+  })
+
+  it('splits edit units for every syntax-ref section', () => {
+    const failures = []
+
+    for (const section of SYNTAX_QUICK_REFERENCE_SECTIONS) {
+      try {
+        const units = parseEditUnitsFromSource(section.adoc)
+        if (!units.every((unit) => typeof unit.adoc === 'string')) {
+          failures.push({ id: section.id, layer: 'EU', error: 'invalid unit shape' })
+        }
+      } catch (error) {
+        failures.push({ id: section.id, layer: 'EU', error })
+      }
+    }
+
+    expect(failures, formatSectionFailures(failures)).toEqual([])
+  })
 })
+
+/** @param {{ id: string, layer: string, error: unknown }[]} failures */
+function formatSectionFailures(failures) {
+  return failures
+    .map(({ id, layer, error }) => {
+      const message = error instanceof Error ? error.message : String(error)
+      return `${id} (${layer}): ${message}`
+    })
+    .join('\n')
+}

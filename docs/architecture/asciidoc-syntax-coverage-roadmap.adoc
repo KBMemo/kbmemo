@@ -7,7 +7,8 @@
 
 *フィクスチャ:* `test/fixtures/asciidoc/syntax-quick-reference.adoc`（各節に `// kbmemo:syntax-ref:<id>` マーカー）
 *ブランチ:* `feature/asciidoc-syntax-coverage`（未対応記法の実装用）
-*テスト:* `npm run test:packages`（フィクスチャのハイライト / edit unit smoke）
+*テスト:* `npm run test:packages`（フィクスチャの HL / EU smoke、fixture↔roadmap 同期）
+*計測:* `npm run report:syntax-coverage`（全 syntax-ref セクションの HL / EU 件数レポート）
 
 == レイヤの定義
 
@@ -122,11 +123,14 @@
 
 == フェーズ計画（全記法対応）
 
-=== Phase A — フィクスチャと計測（本ブランチ）
+=== Phase A — フィクスチャと計測（完了）
 
-* `syntax-quick-reference.adoc` 作成
-* Vitest smoke（HL + EU が例外なく通ること）
-* 本ロードマップでギャップ可視化
+. `syntax-quick-reference.adoc` 作成（76 `syntax-ref` マーカー）
+. Vitest smoke — 全文書 + セクション別 HL / EU、`syntax_coverage_sync`（fixture ↔ roadmap 同期）
+. 本ロードマップでギャップ可視化（HL / EU / PV / WL / WY / SV 対応表）
+. `npm run report:syntax-coverage` — CLI 計測レポート（`--write` で `tmp/syntax-coverage-report.json`）
+
+*成果物:* `test/fixtures/asciidoc/`、`packages/adoc-codemirror/test/syntax_*`、`scripts/report-syntax-coverage.mjs`
 
 === Phase B — ブロック境界の拡張（EU / WY 優先）
 
