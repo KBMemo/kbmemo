@@ -40,8 +40,13 @@ export function computeHighlights(source, doc = null) {
       continue
     }
 
-    if (context === 'listing' || context === 'literal') {
+    if (context === 'listing') {
       highlightListing(block, source, lineStarts, spans, claimedLines)
+      continue
+    }
+
+    if (context === 'literal') {
+      highlightLiteralBlock(block, source, lineStarts, spans, claimedLines)
       continue
     }
 
@@ -131,6 +136,8 @@ function highlightInlinesWithAsciidoctor(node, text, baseOffset, spans) {
   }
 
   highlightImageMacrosInText(text, baseOffset, spans, searchFrom)
+  highlightHardBreaksInText(text, baseOffset, spans)
+  highlightSourceAnchorsInText(text, baseOffset, spans, searchFrom)
 }
 
 function highlightSection(block, source, lineStarts, spans, claimedLines) {
@@ -227,6 +234,18 @@ function highlightListing(block, source, lineStarts, spans, claimedLines) {
   }
 }
 
+function highlightLiteralBlock(block, source, lineStarts, spans, claimedLines) {
+  const startLine = block.getLineNumber()
+  const contentLines = block.getSourceLines() || []
+
+  for (let i = 0; i < contentLines.length; i++) {
+    const line = startLine + i
+    const { from, to } = lineRange(lineStarts, line, source.length)
+    addSpan(spans, from, to, 'adoc-literal')
+    claimLine(claimedLines, line)
+  }
+}
+
 function highlightImageBlock(block, source, lineStarts, spans, claimedLines) {
   const line = block.getLineNumber()
   if (!line) return
@@ -263,6 +282,41 @@ function highlightImageMacrosInText(text, baseOffset, spans, fromIndex = 0) {
         baseOffset + match.index + match[0].length,
         'adoc-image-alt',
       )
+    }
+  }
+}
+
+/**
+ * @param {string} text
+ * @param {number} baseOffset
+ * @param {HighlightSpan[]} spans
+ */
+function highlightHardBreaksInText(text, baseOffset, spans) {
+  const match = text.match(/\s\+$/)
+  if (!match) return
+  addSpan(spans, baseOffset + text.length - 1, baseOffset + text.length, 'adoc-hardbreak')
+}
+
+/**
+ * @param {string} text
+ * @param {number} baseOffset
+ * @param {HighlightSpan[]} spans
+ * @param {number} fromIndex
+ */
+function highlightSourceAnchorsInText(text, baseOffset, spans, fromIndex = 0) {
+  const patterns = [
+    { regex: /\[\[[^\],]+\]\]/g, className: 'adoc-anchor' },
+    { regex: /\[#[^,\]]+(?:,[^\]]+)?\]/g, className: 'adoc-anchor' },
+    { regex: /anchor:[^\[]+\[\]/g, className: 'adoc-anchor' },
+    { regex: /xref:[^\[]+\[[^\]]*\]/g, className: 'adoc-xref' },
+    { regex: /<<[^>]+>>/g, className: 'adoc-xref' },
+  ]
+
+  for (const { regex, className } of patterns) {
+    regex.lastIndex = fromIndex
+    let match
+    while ((match = regex.exec(text)) !== null) {
+      addSpan(spans, baseOffset + match.index, baseOffset + match.index + match[0].length, className)
     }
   }
 }

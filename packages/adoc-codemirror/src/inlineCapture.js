@@ -53,6 +53,13 @@ export function inlineClassName(inline) {
       case 'monospaced':
       case 'passthrough':
         return 'adoc-monospace'
+      case 'mark':
+      case 'unquoted':
+        return 'adoc-highlight'
+      case 'superscript':
+        return 'adoc-superscript'
+      case 'subscript':
+        return 'adoc-subscript'
       default:
         return 'adoc-inline'
     }
@@ -63,7 +70,9 @@ export function inlineClassName(inline) {
       case 'link':
         return 'adoc-link'
       case 'xref':
-        return 'adoc-macro'
+        return 'adoc-xref'
+      case 'ref':
+        return 'adoc-anchor'
       default:
         return 'adoc-link'
     }
@@ -92,6 +101,45 @@ export function findInlineMarkup(blockText, inline, fromIndex = 0) {
     }
   }
 
+  if (inline.context === 'anchor') {
+    return findAnchorMarkup(blockText, inline, fromIndex)
+  }
+
+  return null
+}
+
+/**
+ * @param {string} blockText
+ * @param {CapturedInline} inline
+ * @param {number} fromIndex
+ */
+function findAnchorMarkup(blockText, inline, fromIndex) {
+  const slice = blockText.slice(fromIndex)
+
+  if (inline.type === 'ref') {
+    const refMatch = slice.match(/^(?:\[\[[^\],]+\]\]|anchor:[^\[]+\[\])/)
+    if (refMatch) {
+      return { from: fromIndex, to: fromIndex + refMatch[0].length }
+    }
+  }
+
+  if (inline.type === 'xref' && inline.text) {
+    const label = `[${inline.text}]`
+    const labelIndex = blockText.indexOf(label, fromIndex)
+    if (labelIndex >= 0) {
+      const before = blockText.slice(fromIndex, labelIndex)
+      const xrefStart = before.lastIndexOf('xref:')
+      if (xrefStart >= 0) {
+        return { from: fromIndex + xrefStart, to: labelIndex + label.length }
+      }
+
+      const angleMatch = before.match(/<<[^>]*$/)
+      if (angleMatch) {
+        return { from: fromIndex + before.length - angleMatch[0].length, to: labelIndex + label.length }
+      }
+    }
+  }
+
   return null
 }
 
@@ -102,7 +150,7 @@ export function findInlineMarkup(blockText, inline, fromIndex = 0) {
  */
 function markupPatterns(inline, text) {
   if (inline.context === 'quoted') {
-    return quotedPatterns(inline.type, text)
+    return quotedPatterns(inline.type, text, inline.attributes)
   }
 
   if (inline.context === 'anchor') {
@@ -128,19 +176,33 @@ function markupPatterns(inline, text) {
 /**
  * @param {string | undefined} type
  * @param {string} text
+ * @param {Record<string, unknown> | undefined} attributes
  */
-function quotedPatterns(type, text) {
+function quotedPatterns(type, text, attributes = {}) {
   switch (type) {
     case 'strong':
       return [`**${text}**`, `*${text}*`]
     case 'emphasis':
       return [`__${text}__`, `_${text}_`]
     case 'monospaced':
-      return [`\`${text}\``, `+${text}+`]
+      return [`\`${text}\``, `\`\`${text}\`\``, `+${text}+`]
     case 'passthrough':
       return [`+${text}+`, `\`${text}\``]
+    case 'mark':
+      return [`#${text}#`]
+    case 'superscript':
+      return [`^${text}^`]
+    case 'subscript':
+      return [`~${text}~`]
+    case 'unquoted': {
+      const role = attributes?.role
+      if (typeof role === 'string' && role.length > 0) {
+        return [`[.${role}]#${text}#`, `#${text}#`]
+      }
+      return [`#${text}#`]
+    }
     default:
-      return [`*${text}*`, `_${text}_`, `\`${text}\``]
+      return [`*${text}*`, `_${text}_`, `\`${text}\``, `#${text}#`]
   }
 }
 
@@ -165,6 +227,7 @@ function anchorPatterns(inline, text) {
     return unique([
       `<<${ref},${text}>>`,
       `<<${ref}>>`,
+      text ? `<<${ref},${text}>>` : null,
       `xref:${ref}[${text}]`,
     ])
   }
