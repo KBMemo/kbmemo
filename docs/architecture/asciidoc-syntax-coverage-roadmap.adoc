@@ -67,10 +67,10 @@
 |includes |— |— |△ |— |— |△ |パス解決・safe mode
 |lists-unordered |✓ |✓ |✓ |✓ |✓ |✓ |5a 対応
 |lists-ordered |✓ |✓ |✓ |✓ |✓ |✓ |
-|lists-checklist |— |— |✓ |— |— |✓ |`[*]` / `[x]`
-|lists-description |— |△ |✓ |— |— |✓ |`term:: desc`
-|lists-qanda |— |— |✓ |— |— |✓ |`[qanda]`
-|lists-mixed |— |△ |✓ |— |— |✓ |入れ子定義リスト
+|lists-checklist |— |✓ |✓ |— |— |✓ |`[*]` / `[x]`
+|lists-description |— |✓ |✓ |— |— |✓ |`term:: desc`
+|lists-qanda |— |✓ |✓ |— |— |✓ |`[qanda]`
+|lists-mixed |— |✓ |✓ |— |— |✓ |入れ子定義リスト
 |lists-complex |— |△ |✓ |— |— |✓ |list continuation + 表
 |images-block |△ |✓ |△ |— |△ |✓ |5f / アセット URL
 |images-inline |— |— |✓ |— |— |✓ |
@@ -88,18 +88,18 @@
 |source-include |— |— |△ |— |— |△ |
 |source-paragraph |— |— |✓ |— |— |✓ |
 |admonitions-paragraph |✓ |✓ |✓ |✓ |✓ |✓ |5b
-|admonitions-block |— |△ |✓ |— |— |✓ |`[NOTE]====`
-|blocks-sidebar |— |— |✓ |— |— |✓ |`****`
-|blocks-example |— |— |✓ |— |— |✓ |
-|blocks-blockquote |— |— |✓ |— |— |✓ |
-|blocks-open |— |— |✓ |— |— |✓ |`--`
+|admonitions-block |— |✓ |✓ |— |— |✓ |`[NOTE]====`
+|blocks-sidebar |— |✓ |✓ |— |△ |✓ |`****`
+|blocks-example |— |✓ |✓ |— |△ |✓ |
+|blocks-blockquote |— |✓ |✓ |— |△ |✓ |
+|blocks-open |— |✓ |✓ |— |△ |✓ |`--`
 |blocks-passthrough |— |— |✓ |— |— |✓ |`++++`
 |blocks-subs |— |— |✓ |— |— |✓ |`subs=attributes+`
 |tables-basic |✓ |✓ |✓ |— |✓ |✓ |5d pipe 表
 |tables-header-cols |— |△ |✓ |— |— |✓ |`%header` / `cols`
 |tables-asciidoc-cells |— |— |✓ |— |— |✓ |`a` 列
-|tables-csv |— |— |✓ |— |— |✓ |`,===` / `format=csv`
-|tables-dsv |— |— |✓ |— |— |✓ |`:===`
+|tables-csv |— |✓ |✓ |— |— |✓ |`,===` / `format=csv`
+|tables-dsv |— |✓ |✓ |— |— |✓ |`:===`
 |tables-formatted |— |— |✓ |— |— |✓ |セル結合
 |ids-roles-options |— |— |✓ |— |— |✓ |
 |comments |— |— |N/A |— |— |N/A |
@@ -132,12 +132,15 @@
 
 *成果物:* `test/fixtures/asciidoc/`、`packages/adoc-codemirror/test/syntax_*`、`scripts/report-syntax-coverage.mjs`
 
-=== Phase B — ブロック境界の拡張（EU / WY 優先）
+=== Phase B — ブロック境界の拡張（EU 完了 / WY 第1段）
 
-. 定義リスト・qanda・checklist の edit unit 境界
-. `[NOTE]====` 等 delimited admonition
-. sidebar / example / blockquote / open block
-. CSV / DSV 表（表示は SV 正、EU はソース単位維持で可）
+. 定義リスト・qanda・checklist の edit unit 境界 — `pushDlistUnit` / `dlistEndLine`
+. `[NOTE]====` 等 delimited admonition — 区切りブロック + preamble（タイトル行）
+. sidebar / example / blockquote / open block — delimited preamble + paragraph quote 復元
+. CSV / DSV 表 — `isTableDelimiterLine` に `,===` / `:===` 追加（EU はソース単位）
+
+*テスト:* `packages/adoc-codemirror/test/phase_b_edit_units.test.js`
+*WY:* `quoteblock` / `sidebarblock` / `exampleblock` は flatten 対象。セル編集は Phase E。
 
 === Phase C — インラインと HL 拡張
 

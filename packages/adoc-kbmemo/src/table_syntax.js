@@ -1,7 +1,9 @@
 import { BLOCK_TITLE_LINE, codeBlockByLine, scanCodeBlocks, SOURCE_ATTR_LINE } from "./code_block_syntax"
 
-/** AsciiDoc テーブル区切り（|===） */
+/** AsciiDoc テーブル区切り（|=== / ,=== / :===） */
 export const TABLE_DELIM = /^\|={3,}\s*$/
+export const CSV_TABLE_DELIM = /^,={3,}\s*$/
+export const DSV_TABLE_DELIM = /^:={3,}\s*$/
 
 /** テーブル属性行（[cols=…] / [options=header] 等。source は除外） */
 export function isTableAttrLine(text) {
@@ -10,7 +12,12 @@ export function isTableAttrLine(text) {
 }
 
 export function isTableDelimiterLine(text) {
-  return TABLE_DELIM.test(text.trim())
+  const trimmed = text.trim()
+  return (
+    TABLE_DELIM.test(trimmed)
+    || CSV_TABLE_DELIM.test(trimmed)
+    || DSV_TABLE_DELIM.test(trimmed)
+  )
 }
 
 /** テーブル行（| で始まる。区切り行は除く） */
@@ -150,7 +157,7 @@ export function scanTableBlocks(doc, skipLine = () => false) {
     }
 
     const trimmed = doc.line(lineNo).text.trim()
-    if (!TABLE_DELIM.test(trimmed)) {
+    if (!isTableDelimiterLine(trimmed)) {
       lineNo++
       continue
     }
@@ -172,7 +179,7 @@ export function scanTableBlocks(doc, skipLine = () => false) {
     while (lineNo <= doc.lines) {
       if (skipLine(lineNo)) break
       const nextTrimmed = doc.line(lineNo).text.trim()
-      if (TABLE_DELIM.test(nextTrimmed)) {
+      if (isTableDelimiterLine(nextTrimmed)) {
         block.endLine = lineNo
         block.closeLine = lineNo
         blocks.push(block)

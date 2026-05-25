@@ -7,6 +7,32 @@ import { isTableAttrLine, isTableDelimiterLine } from '@kbmemo/adoc-kbmemo'
 
 const PAIRED_BLOCK_DELIMITERS = ['----', '....', '====', '____', '****', '--', '+++']
 const BLOCK_ATTR_LINE = /^\[[^\]]+\]$/
+const ADMONITION_LABEL_LINE = /^(NOTE|TIP|IMPORTANT|WARNING|CAUTION):/
+
+/**
+ * @param {string[]} lines
+ * @param {number} delimLineIndex 0-based
+ */
+function parseDelimitedPreambleStartLine(lines, delimLineIndex) {
+  let lineIndex = delimLineIndex - 1
+  /** @type {number[]} */
+  const preambleLines = []
+
+  while (lineIndex >= 0) {
+    const trimmed = lines[lineIndex].trim()
+    if (!trimmed) break
+
+    if (BLOCK_ATTR_LINE.test(trimmed) || BLOCK_TITLE_LINE.test(trimmed)) {
+      preambleLines.push(lineIndex)
+      lineIndex--
+      continue
+    }
+
+    break
+  }
+
+  return preambleLines.length > 0 ? Math.min(...preambleLines) : delimLineIndex
+}
 
 /**
  * Line ranges inside delimited AsciiDoc blocks (listing, literal, quote, …).
@@ -20,20 +46,10 @@ function getDelimitedLineRanges(lines) {
   let index = 0
 
   while (index < lines.length) {
-    let start = index
-    const trimmed = lines[index].trim()
-
-    if (/^\[[^\]]+\]$/.test(trimmed) && index + 1 < lines.length) {
-      const nextTrimmed = lines[index + 1].trim()
-      if (PAIRED_BLOCK_DELIMITERS.includes(nextTrimmed)) {
-        start = index
-        index++
-      }
-    }
-
     const delimiter = lines[index]?.trim()
     if (delimiter && PAIRED_BLOCK_DELIMITERS.includes(delimiter)) {
       const openLine = index
+      const startLine = parseDelimitedPreambleStartLine(lines, openLine)
       let closeLine = openLine
       let scan = openLine + 1
 
@@ -49,7 +65,7 @@ function getDelimitedLineRanges(lines) {
         closeLine = lines.length - 1
       }
 
-      ranges.push([start, closeLine])
+      ranges.push([startLine, closeLine])
       index = closeLine + 1
       continue
     }
@@ -314,6 +330,16 @@ function visitBlocks(node, units, protectedRanges, lines) {
     return
   }
 
+  if (ctx === 'dlist') {
+    pushDlistUnit(node, units, protectedRanges, lines)
+    return
+  }
+
+  if (ctx === 'quote') {
+    pushQuoteUnit(node, units, protectedRanges, lines)
+    return
+  }
+
   if (ctx === 'admonition') {
     pushAdmonitionUnit(node, units, protectedRanges, lines)
     return
@@ -406,6 +432,167 @@ function listItemEndLine(item) {
   }
 
   return endLine
+}
+
+/**
+ * @param {string} trimmed
+ */
+function isEditUnitHardStop(trimmed) {
+  if (!trimmed) return false
+  if (trimmed === '[qanda]') return false
+  if (/^=+\s/.test(trimmed)) return true
+  if (PAIRED_BLOCK_DELIMITERS.includes(trimmed)) return true
+  if (isTableDelimiterLine(trimmed)) return true
+  if (ADMONITION_LABEL_LINE.test(trimmed)) return true
+  if (/^image::/.test(trimmed)) return true
+  if (/^audio::/.test(trimmed)) return true
+  if (/^video::/.test(trimmed)) return true
+  if (BLOCK_ATTR_LINE.test(trimmed)) return true
+  if (BLOCK_TITLE_LINE.test(trimmed)) return true
+  if (/^\/\//.test(trimmed)) return true
+  return false
+}
+
+/**
+ * @param {string} text
+ */
+function isDlistContentLine(text) {
+  const trimmed = text.trim()
+  if (!trimmed) return false
+  if (trimmed === '[qanda]') return true
+  if (/::/.test(trimmed)) return true
+  if (trimmed === '+') return true
+  if (/^[*.\[]/.test(trimmed)) return true
+  return false
+}
+
+/**
+ * @param {string} text
+ */
+function isDlistContinuationLine(text) {
+  return /^\s+\S/.test(text)
+}
+
+/**
+ * @param {string[]} lines
+ * @param {number} startLine 0-based
+ */
+function dlistEndLine(lines, startLine) {
+  let endLine = startLine
+  let inDlist = false
+
+  for (let index = startLine; index < lines.length; index++) {
+    const text = lines[index]
+    const trimmed = text.trim()
+
+    if (trimmed === '') {
+      endLine = index
+      continue
+    }
+
+    if (trimmed === '[qanda]') {
+      endLine = index
+      continue
+    }
+
+    if (isDlistContentLine(text) || isDlistContinuationLine(text)) {
+      inDlist = true
+      endLine = index
+      continue
+    }
+
+    if (inDlist && !isEditUnitHardStop(trimmed)) {
+      endLine = index
+      continue
+    }
+
+    if (isEditUnitHardStop(trimmed)) break
+
+    break
+  }
+
+  return endLine
+}
+
+/**
+ * @param {number} contentStartLine 0-based first dlist line
+ * @param {string[]} lines
+ */
+function dlistUnitStartLine(contentStartLine, lines) {
+  let startLine = contentStartLine
+
+  while (startLine > 0) {
+    const prevTrimmed = lines[startLine - 1]?.trim() ?? ''
+    if (!prevTrimmed) break
+
+    if (prevTrimmed === '[qanda]' || BLOCK_ATTR_LINE.test(prevTrimmed)) {
+      startLine--
+      continue
+    }
+
+    break
+  }
+
+  return startLine
+}
+
+/**
+ * @param {import('@asciidoctor/core').Block} node
+ * @param {ParsedEditUnit[]} units
+ * @param {[number, number][]} protectedRanges
+ * @param {string[]} lines
+ */
+function pushDlistUnit(node, units, protectedRanges, lines) {
+  const contentStartLine = (node.getLineNumber() ?? 1) - 1
+  const startLine = dlistUnitStartLine(contentStartLine, lines)
+  const endLine = dlistEndLine(lines, startLine)
+  if (isRangeInsideProtected(startLine, endLine, protectedRanges)) return
+
+  units.push({
+    adoc: lines.slice(startLine, endLine + 1).join('\n'),
+    startLine,
+    endLine,
+  })
+}
+
+/**
+ * @param {import('@asciidoctor/core').Block} node
+ * @param {ParsedEditUnit[]} units
+ * @param {[number, number][]} protectedRanges
+ * @param {string[]} lines
+ */
+function pushQuoteUnit(node, units, protectedRanges, lines) {
+  const { adoc, startLine, endLine } = quoteUnitFromNode(node, lines)
+  if (!adoc.trim()) return
+  if (isRangeInsideProtected(startLine, endLine, protectedRanges)) return
+
+  units.push({ adoc, startLine, endLine })
+}
+
+/**
+ * @param {import('@asciidoctor/core').Block} node
+ * @param {string[]} lines
+ */
+function quoteUnitFromNode(node, lines) {
+  const contentStartLine = (node.getLineNumber() ?? 1) - 1
+  const content = node.getSource?.() ?? ''
+  const style = node.getStyle?.()
+
+  if (style === 'quote') {
+    const prevTrimmed = contentStartLine > 0 ? lines[contentStartLine - 1]?.trim() : ''
+    if (prevTrimmed.startsWith('[quote')) {
+      const startLine = contentStartLine - 1
+      const endLine = contentStartLine + Math.max(0, content.split('\n').length - 1)
+      return {
+        adoc: lines.slice(startLine, endLine + 1).join('\n'),
+        startLine,
+        endLine,
+      }
+    }
+  }
+
+  const endLine = contentStartLine + Math.max(0, content.split('\n').length - 1)
+  return { adoc: content, startLine: contentStartLine, endLine }
 }
 
 /**
