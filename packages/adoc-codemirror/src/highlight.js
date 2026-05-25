@@ -181,6 +181,8 @@ function highlightInlineBlock(block, doc, source, lineStarts, spans, claimedLine
   const startLine = block.getLineNumber()
   const blockSource = block.getSource?.() ?? ''
   const lines = block.getSourceLines?.() || (blockSource ? [blockSource] : [])
+  const role = block.getAttribute?.('role') ?? block.getRole?.()
+  const isLead = role === 'lead'
 
   for (let i = 0; i < lines.length; i++) {
     const line = startLine + i
@@ -193,7 +195,11 @@ function highlightInlineBlock(block, doc, source, lineStarts, spans, claimedLine
       continue
     }
 
-    highlightInlinesWithAsciidoctor(block, text, from, spans)
+    if (isLead) {
+      addSpan(spans, from, to, 'adoc-lead')
+    }
+
+    highlightLineContent(doc, text, from, spans)
     claimLine(claimedLines, line)
   }
 }
@@ -244,7 +250,10 @@ function highlightListing(block, source, lineStarts, spans, claimedLines) {
       addSpan(spans, contentStart + span.from, contentStart + span.to, span.className)
     }
     for (let i = 0; i < contentLines.length; i++) {
-      claimLine(claimedLines, startLine + 1 + i)
+      const line = startLine + 1 + i
+      const { from, to } = lineRange(lineStarts, line, source.length)
+      highlightSourceCalloutsInText(source.slice(from, to), from, spans)
+      claimLine(claimedLines, line)
     }
     return
   }
@@ -424,8 +433,142 @@ function highlightSourceAnchorsInText(text, baseOffset, spans, fromIndex = 0) {
  * @param {number} fromIndex
  */
 function highlightSupplementalInText(text, baseOffset, spans, fromIndex = 0) {
+  highlightEscapesInText(text, baseOffset, spans, fromIndex)
+  highlightAutolinksInText(text, baseOffset, spans, fromIndex)
+  highlightTextReplacementsInText(text, baseOffset, spans, fromIndex)
   highlightAttributeReferencesInText(text, baseOffset, spans, fromIndex)
   highlightPassthroughInText(text, baseOffset, spans, fromIndex)
+  highlightSourceCalloutsInText(text, baseOffset, spans, fromIndex)
+}
+
+/**
+ * @param {import('@asciidoctor/core').AbstractNode} node
+ * @param {string} text
+ * @param {number} baseOffset
+ * @param {HighlightSpan[]} spans
+ */
+function highlightLineContent(node, text, baseOffset, spans) {
+  if (highlightChecklistInText(text, baseOffset, spans, node)) return
+  if (highlightDlistInText(text, baseOffset, spans, node)) return
+  highlightInlinesWithAsciidoctor(node, text, baseOffset, spans)
+}
+
+/**
+ * @param {string} text
+ * @param {number} baseOffset
+ * @param {HighlightSpan[]} spans
+ * @param {import('@asciidoctor/core').AbstractNode} node
+ */
+function highlightChecklistInText(text, baseOffset, spans, node) {
+  const match = text.match(/^(\[[ xX*]\])(\s+)(.*)$/)
+  if (!match) return false
+
+  addSpan(spans, baseOffset, baseOffset + match[1].length, 'adoc-checklist-marker')
+  const contentFrom = baseOffset + match[1].length + match[2].length
+  highlightInlinesWithAsciidoctor(node, match[3], contentFrom, spans)
+  return true
+}
+
+/**
+ * @param {string} text
+ * @param {number} baseOffset
+ * @param {HighlightSpan[]} spans
+ * @param {import('@asciidoctor/core').AbstractNode} node
+ */
+function highlightDlistInText(text, baseOffset, spans, node) {
+  const match = text.match(/^(.+?)(::+)(\s*)(.*)$/)
+  if (!match || match[2].length < 2) return false
+
+  const termEnd = baseOffset + match[1].length
+  const markerEnd = termEnd + match[2].length
+  addSpan(spans, baseOffset, termEnd, 'adoc-dlist-term')
+  addSpan(spans, termEnd, markerEnd, 'adoc-dlist-marker')
+
+  if (match[4]) {
+    highlightInlinesWithAsciidoctor(node, match[4], markerEnd + match[3].length, spans)
+  }
+
+  return true
+}
+
+/**
+ * @param {string} text
+ * @param {number} baseOffset
+ * @param {HighlightSpan[]} spans
+ * @param {number} fromIndex
+ */
+function highlightEscapesInText(text, baseOffset, spans, fromIndex = 0) {
+  const pattern = /\\./g
+  pattern.lastIndex = fromIndex
+  let match
+  while ((match = pattern.exec(text)) !== null) {
+    addSpan(spans, baseOffset + match.index, baseOffset + match.index + match[0].length, 'adoc-escape')
+  }
+}
+
+/**
+ * @param {string} text
+ * @param {number} baseOffset
+ * @param {HighlightSpan[]} spans
+ * @param {number} fromIndex
+ */
+function highlightAutolinksInText(text, baseOffset, spans, fromIndex = 0) {
+  const patterns = [
+    /(?<!\\)https?:\/\/[^\s\[\]<]+/g,
+    /(?<!\\)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+  ]
+
+  for (const pattern of patterns) {
+    pattern.lastIndex = fromIndex
+    let match
+    while ((match = pattern.exec(text)) !== null) {
+      addSpan(spans, baseOffset + match.index, baseOffset + match.index + match[0].length, 'adoc-link')
+    }
+  }
+}
+
+/**
+ * @param {string} text
+ * @param {number} baseOffset
+ * @param {HighlightSpan[]} spans
+ * @param {number} fromIndex
+ */
+function highlightTextReplacementsInText(text, baseOffset, spans, fromIndex = 0) {
+  const patterns = [
+    /\(C\)/g,
+    /\(R\)/g,
+    /\(TM\)/g,
+    /\.{3}/g,
+    /(?<!\\)--(?!>)/g,
+    /->/g,
+    /=>/g,
+    /<-/g,
+    /<=(?!=)/g,
+    />=/g,
+  ]
+
+  for (const pattern of patterns) {
+    pattern.lastIndex = fromIndex
+    let match
+    while ((match = pattern.exec(text)) !== null) {
+      addSpan(spans, baseOffset + match.index, baseOffset + match.index + match[0].length, 'adoc-replacement')
+    }
+  }
+}
+
+/**
+ * @param {string} text
+ * @param {number} baseOffset
+ * @param {HighlightSpan[]} spans
+ * @param {number} fromIndex
+ */
+function highlightSourceCalloutsInText(text, baseOffset, spans, fromIndex = 0) {
+  const pattern = /<(\d+)>/g
+  pattern.lastIndex = fromIndex
+  let match
+  while ((match = pattern.exec(text)) !== null) {
+    addSpan(spans, baseOffset + match.index, baseOffset + match.index + match[0].length, 'adoc-callout')
+  }
 }
 
 /**
@@ -439,6 +582,7 @@ function highlightAttributeReferencesInText(text, baseOffset, spans, fromIndex =
   pattern.lastIndex = fromIndex
   let match
   while ((match = pattern.exec(text)) !== null) {
+    if (match.index > 0 && text[match.index - 1] === '\\') continue
     addSpan(spans, baseOffset + match.index, baseOffset + match.index + match[0].length, 'adoc-attribute-ref')
   }
 }
@@ -610,8 +754,29 @@ function highlightUnclaimedLines(doc, source, lineStarts, spans, claimedLines) {
       continue
     }
 
+    if (text.trim() === '[qanda]') {
+      addSpan(spans, from, to, 'adoc-qanda-label')
+      continue
+    }
+
+    if (/^\.(\S.*)$/.test(text.trim()) && !text.trim().startsWith('..')) {
+      addSpan(spans, from, to, 'adoc-block-title')
+      continue
+    }
+
     if (/^\[.*\]$/.test(text)) {
       addSpan(spans, from, to, 'adoc-block-attribute')
+      continue
+    }
+
+    if (/^#{1,6}\s+\S/.test(text)) {
+      const marker = text.match(/^#+/)[0]
+      const level = Math.min(marker.length, 6) - 1
+      const match = text.match(/^(#+)\s+(.*)$/)
+      if (match) {
+        addSpan(spans, from, from + match[1].length, `adoc-heading-marker adoc-h${level}`)
+        addSpan(spans, from + match[0].length - match[2].length, to, `adoc-heading adoc-h${level}`)
+      }
       continue
     }
 
@@ -628,11 +793,15 @@ function highlightUnclaimedLines(doc, source, lineStarts, spans, claimedLines) {
     const listMatch = text.match(/^(\s*(?:\d+\.|[a-zA-Z]\.|[ixvmIXVM]+\)|[*\-+.]+)\s+)(.*)$/)
     if (listMatch) {
       addSpan(spans, from, from + listMatch[1].length, 'adoc-list-marker')
-      highlightInlinesWithAsciidoctor(doc, listMatch[2], from + listMatch[1].length, spans)
+      highlightLineContent(doc, listMatch[2], from + listMatch[1].length, spans)
       continue
     }
 
-    highlightInlinesWithAsciidoctor(doc, text, from, spans)
+    if (highlightDlistInText(text, from, spans, doc)) {
+      continue
+    }
+
+    highlightLineContent(doc, text, from, spans)
   }
 }
 

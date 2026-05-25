@@ -6,7 +6,7 @@
 本ドキュメントは link:https://docs.asciidoctor.org/asciidoc/latest/syntax-quick-reference/[AsciiDoc Syntax Quick Reference] を正とし、KBMemo エディタ各レイヤの対応状況と未実装の優先順位を管理する。
 
 *フィクスチャ:* `test/fixtures/asciidoc/syntax-quick-reference.adoc`（各節に `// kbmemo:syntax-ref:<id>` マーカー）
-*ブランチ:* `feature/asciidoc-syntax-coverage`（未対応記法の実装用）
+*ブランチ:* `feature/asciidoc-syntax-coverage-phase-f`（未対応記法の実装用）
 *テスト:* `npm run test:packages`（フィクスチャの HL / EU smoke、fixture↔roadmap 同期）
 *計測:* `npm run report:syntax-coverage`（全 syntax-ref セクションの HL / EU 件数レポート）
 
@@ -47,30 +47,30 @@
 |paragraphs |✓ |✓ |✓ |— |✓ |✓ |
 |paragraphs-literal |✓ |△ |✓ |— |— |✓ |インデント literal 行
 |paragraphs-hardbreaks |✓ |— |✓ |— |— |✓ |`+` / `[%hardbreaks]`
-|paragraphs-lead |— |— |✓ |— |— |✓ |`[.lead]`
+|paragraphs-lead |✓ |— |✓ |— |— |✓ |`[.lead]`
 |text-formatting-constrained |✓ |✓ |✓ |✓ |△ |✓ |WYSIWYG 往復は限定
 |text-formatting-unconstrained |✓ |△ |✓ |△ |— |✓ |`**` / `__` 等
 |text-formatting-highlight |✓ |— |✓ |— |— |✓ |`#mark#` / role
 |text-formatting-super-sub |✓ |— |✓ |— |— |✓ |`^` / `~`
 |text-formatting-smart-quotes |— |— |✓ |— |— |✓ |
-|links-autolink |△ |✓ |✓ |— |△ |✓ |mailto / URL
-|links-attributes |— |— |✓ |— |— |✓ |
-|links-special-chars |— |— |✓ |— |— |✓ |`link:++...++`
-|links-relative |— |— |✓ |— |— |✓ |
-|links-unc |— |— |✓ |— |— |✓ |
+|links-autolink |✓ |✓ |✓ |— |△ |✓ |mailto / URL
+|links-attributes |✓ |— |✓ |— |— |✓ |
+|links-special-chars |✓ |— |✓ |— |— |✓ |`link:++...++`
+|links-relative |✓ |— |✓ |— |— |✓ |
+|links-unc |✓ |— |✓ |— |— |✓ |
 |links-anchors |✓ |— |✓ |— |— |✓ |`[[...]]` / `anchor:`
 |links-xref |✓ |— |✓ |— |△ |✓ |`<<...>>`
 |links-interdoc |✓ |— |△ |— |— |△ |ファイル参照
 |sections-article |✓ |✓ |✓ |✓ |✓ |✓ |
 |sections-book |— |— |✓ |— |— |✓ |`:doctype: book`
-|sections-discrete |— |— |✓ |— |— |✓ |`[discrete]`
+|sections-discrete |✓ |— |✓ |— |— |✓ |`[discrete]`
 |includes |✓ |✓ |△ |— |— |△ |パス解決・safe mode
 |lists-unordered |✓ |✓ |✓ |✓ |✓ |✓ |5a 対応
 |lists-ordered |✓ |✓ |✓ |✓ |✓ |✓ |
-|lists-checklist |— |✓ |✓ |— |— |✓ |`[*]` / `[x]`
-|lists-description |— |✓ |✓ |— |— |✓ |`term:: desc`
-|lists-qanda |— |✓ |✓ |— |— |✓ |`[qanda]`
-|lists-mixed |— |✓ |✓ |— |— |✓ |入れ子定義リスト
+|lists-checklist |✓ |✓ |✓ |— |— |✓ |`[*]` / `[x]`
+|lists-description |✓ |✓ |✓ |— |— |✓ |`term:: desc`
+|lists-qanda |✓ |✓ |✓ |— |— |✓ |`[qanda]`
+|lists-mixed |✓ |✓ |✓ |— |— |✓ |入れ子定義リスト
 |lists-complex |— |△ |✓ |— |— |✓ |list continuation + 表
 |images-block |△ |✓ |△ |— |△ |✓ |5f / アセット URL
 |images-inline |✓ |— |✓ |— |— |✓ |
@@ -84,35 +84,35 @@
 |literals-block |✓ |✓ |✓ |— |— |✓ |`....`
 |listing |✓ |✓ |✓ |— |✓ |✓ |5c
 |source-highlight |✓ |✓ |✓ |— |✓ |✓ |
-|source-callouts |— |— |✓ |— |— |✓ |`<1>` 脚注
+|source-callouts |✓ |— |✓ |— |— |✓ |`<1>` 脚注
 |source-include |— |— |△ |— |— |△ |
 |source-paragraph |— |— |✓ |— |— |✓ |
 |admonitions-paragraph |✓ |✓ |✓ |✓ |✓ |✓ |5b
 |admonitions-block |✓ |✓ |✓ |— |— |✓ |`[NOTE]====`
-|blocks-sidebar |— |✓ |✓ |— |△ |✓ |`****`
-|blocks-example |— |✓ |✓ |— |△ |✓ |
-|blocks-blockquote |— |✓ |✓ |— |△ |✓ |
-|blocks-open |— |✓ |✓ |— |△ |✓ |`--`
+|blocks-sidebar |✓ |✓ |✓ |— |△ |✓ |`****`
+|blocks-example |✓ |✓ |✓ |— |△ |✓ |
+|blocks-blockquote |✓ |✓ |✓ |— |△ |✓ |
+|blocks-open |✓ |✓ |✓ |— |△ |✓ |`--`
 |blocks-passthrough |✓ |✓ |✓ |— |— |✓ |`++++`
 |blocks-subs |— |— |✓ |— |— |✓ |`subs=attributes+`
 |tables-basic |✓ |✓ |✓ |— |✓ |✓ |5d pipe 表
-|tables-header-cols |— |△ |✓ |— |— |✓ |`%header` / `cols`
+|tables-header-cols |✓ |△ |✓ |— |— |✓ |`%header` / `cols`
 |tables-asciidoc-cells |— |— |✓ |— |— |✓ |`a` 列
 |tables-csv |— |✓ |✓ |— |— |✓ |`,===` / `format=csv`
 |tables-dsv |— |✓ |✓ |— |— |✓ |`:===`
 |tables-formatted |△ |✓ |✓ |— |— |✓ |セル結合（EU のみ）
-|ids-roles-options |— |— |✓ |— |— |✓ |
+|ids-roles-options |✓ |— |✓ |— |— |✓ |
 |comments |✓ |— |N/A |— |— |N/A |
 |breaks-thematic |✓ |— |✓ |— |— |✓ |`'''`
 |breaks-page |✓ |— |✓ |— |— |✓ |`<<<`
 |attributes |✓ |— |✓ |— |— |✓ |`:name:` / `{name}`
 |attributes-counter |✓ |— |✓ |— |— |✓ |
-|text-replacements |— |— |✓ |— |— |✓ |`(C)` / `--`
-|escaping |— |— |✓ |— |— |✓ |
+|text-replacements |✓ |— |✓ |— |— |✓ |`(C)` / `--`
+|escaping |✓ |— |✓ |— |— |✓ |
 |passthrough-inline |✓ |— |✓ |— |— |✓ |`+++` / `pass:[]`
 |bibliography |✓ |— |✓ |— |— |✓ |
 |footnotes |✓ |✓ |✓ |— |— |✓ |
-|markdown-headings |— |— |✓ |— |— |✓ |`##` 互換
+|markdown-headings |✓ |— |✓ |— |— |✓ |`##` 互換
 |markdown-fenced |✓ |✓ |✓ |— |✓ |✓ |`` ``` ``
 |markdown-blockquote |— |— |✓ |— |— |✓ |
 |markdown-thematic |— |— |✓ |— |— |✓ |
@@ -168,6 +168,16 @@
 
 *テスト:* `phase_e_highlight.test.js`、`phase_e_edit_units.test.js`
 *WY:* 表セル結合・AsciiDoc セル内ブロックの WYSIWYG 往復は未着手
+
+=== Phase F — リスト・置換・Markdown 互換 HL（完了）
+
+. 定義リスト / qanda / checklist — `adoc-dlist-*` / `adoc-checklist-marker` / `adoc-qanda-label`
+. リンク autolink 補完 — ベア URL / メール、`adoc-link`
+. テキスト置換・エスケープ — `adoc-replacement` / `adoc-escape`
+. lead 段落・Markdown 見出し・ソース callout — `adoc-lead` / `#` 見出し / `adoc-callout`
+. ブロックタイトル — `adoc-block-title`（sidebar 等）
+
+*テスト:* `phase_f_highlight.test.js`
 
 == 作業ルール
 
