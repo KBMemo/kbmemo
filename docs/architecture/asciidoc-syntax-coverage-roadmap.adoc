@@ -73,12 +73,12 @@
 |lists-mixed |— |✓ |✓ |— |— |✓ |入れ子定義リスト
 |lists-complex |— |△ |✓ |— |— |✓ |list continuation + 表
 |images-block |△ |✓ |△ |— |△ |✓ |5f / アセット URL
-|images-inline |— |— |✓ |— |— |✓ |
-|images-positioning |— |— |✓ |— |— |✓ |`role=right` 等
+|images-inline |✓ |— |✓ |— |— |✓ |
+|images-positioning |✓ |— |✓ |— |— |✓ |`role=right` 等
 |images-data-uri |— |— |✓ |— |— |✓ |`:data-uri:`
-|audio |— |— |✓ |— |— |✓ |
-|video |— |— |✓ |— |— |✓ |YouTube / Vimeo
-|macros-kbd-menu-btn |— |— |✓ |— |— |✓ |`:experimental:`
+|audio |✓ |✓ |✓ |— |— |✓ |
+|video |✓ |✓ |✓ |— |— |✓ |YouTube / Vimeo
+|macros-kbd-menu-btn |✓ |✓ |✓ |— |— |✓ |`:experimental:`
 |literals-inline |✓ |— |✓ |— |— |✓ |`` `++` ++` ``
 |literals-paragraph |✓ |— |✓ |— |— |✓ |
 |literals-block |✓ |✓ |✓ |— |— |✓ |`....`
@@ -110,8 +110,8 @@
 |text-replacements |— |— |✓ |— |— |✓ |`(C)` / `--`
 |escaping |— |— |✓ |— |— |✓ |
 |passthrough-inline |— |— |✓ |— |— |✓ |`+++` / `pass:[]`
-|bibliography |— |— |✓ |— |— |✓ |
-|footnotes |— |— |✓ |— |— |✓ |
+|bibliography |✓ |— |✓ |— |— |✓ |
+|footnotes |✓ |✓ |✓ |— |— |✓ |
 |markdown-headings |— |— |✓ |— |— |✓ |`##` 互換
 |markdown-fenced |✓ |✓ |✓ |— |✓ |✓ |`` ``` ``
 |markdown-blockquote |— |— |✓ |— |— |✓ |
@@ -150,11 +150,13 @@
 
 *テスト:* `packages/adoc-codemirror/test/phase_c_highlight.test.js`、`inline_capture.test.js`
 
-=== Phase D — マクロとメディア
+=== Phase D — マクロとメディア（HL 完了）
 
-. audio / video / kbd / menu / btn
-. inline image + positioning role
-. footnote / bibliography（編集 UX はソース維持、PV/SV 優先）
+. audio / video / kbd / menu / btn — `highlightMediaMacrosInText` / `inlineCapture` 拡張
+. inline image + positioning role — 既存 `highlightImageMacrosInText`（インライン / alt 属性）
+. footnote / bibliography — `adoc-footnote` / xref・anchor HL（編集 UX はソース単位維持）
+
+*テスト:* `packages/adoc-codemirror/test/phase_d_highlight.test.js`
 
 === Phase E — 高度機能
 

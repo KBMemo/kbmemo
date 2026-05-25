@@ -55,6 +55,11 @@ export function computeHighlights(source, doc = null) {
       continue
     }
 
+    if (context === 'audio' || context === 'video') {
+      highlightMediaBlock(block, source, lineStarts, spans, claimedLines, context)
+      continue
+    }
+
     if (context === 'admonition') {
       highlightAdmonition(block, document, source, lineStarts, spans, claimedLines)
       continue
@@ -136,6 +141,7 @@ function highlightInlinesWithAsciidoctor(node, text, baseOffset, spans) {
   }
 
   highlightImageMacrosInText(text, baseOffset, spans, searchFrom)
+  highlightMediaMacrosInText(text, baseOffset, spans, searchFrom)
   highlightHardBreaksInText(text, baseOffset, spans)
   highlightSourceAnchorsInText(text, baseOffset, spans, searchFrom)
 }
@@ -256,6 +262,23 @@ function highlightImageBlock(block, source, lineStarts, spans, claimedLines) {
 }
 
 /**
+ * @param {import('@asciidoctor/core').Block} block
+ * @param {string} source
+ * @param {number[]} lineStarts
+ * @param {HighlightSpan[]} spans
+ * @param {Set<number>} claimedLines
+ * @param {'audio' | 'video'} mediaType
+ */
+function highlightMediaBlock(block, source, lineStarts, spans, claimedLines, mediaType) {
+  const line = block.getLineNumber()
+  if (!line) return
+
+  const { from, to } = lineRange(lineStarts, line, source.length)
+  highlightMediaMacrosInText(source.slice(from, to), from, spans, 0, mediaType)
+  claimLine(claimedLines, line)
+}
+
+/**
  * @param {string} text
  * @param {number} baseOffset
  * @param {HighlightSpan[]} spans
@@ -281,6 +304,44 @@ function highlightImageMacrosInText(text, baseOffset, spans, fromIndex = 0) {
         baseOffset + match.index + markerLength + match[1].length,
         baseOffset + match.index + match[0].length,
         'adoc-image-alt',
+      )
+    }
+  }
+}
+
+/**
+ * @param {string} text
+ * @param {number} baseOffset
+ * @param {HighlightSpan[]} spans
+ * @param {number} fromIndex
+ * @param {'audio' | 'video' | null} [mediaType]
+ */
+function highlightMediaMacrosInText(text, baseOffset, spans, fromIndex = 0, mediaType = null) {
+  const pattern = mediaType
+    ? new RegExp(`${mediaType}::([^\\[\\n]+)(\\[[^\\]]*\\])?`, 'g')
+    : /(?:audio|video)::([^\[\n]+)(\[[^\]]*\])?/g
+  pattern.lastIndex = fromIndex
+
+  let match
+  while ((match = pattern.exec(text)) !== null) {
+    const kind = mediaType ?? match[0].slice(0, match[0].indexOf('::'))
+    const markerLength = kind.length + 2
+    const markerClass = `adoc-${kind}-marker`
+    const targetClass = `adoc-${kind}-target`
+    const attrsClass = `adoc-${kind}-attrs`
+    addSpan(spans, baseOffset + match.index, baseOffset + match.index + markerLength, markerClass)
+    addSpan(
+      spans,
+      baseOffset + match.index + markerLength,
+      baseOffset + match.index + markerLength + match[1].length,
+      targetClass,
+    )
+    if (match[2]) {
+      addSpan(
+        spans,
+        baseOffset + match.index + markerLength + match[1].length,
+        baseOffset + match.index + match[0].length,
+        attrsClass,
       )
     }
   }

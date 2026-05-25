@@ -81,6 +81,7 @@ export function inlineClassName(inline) {
   if (inline.context === 'kbd') return 'adoc-kbd'
   if (inline.context === 'menu') return 'adoc-menu'
   if (inline.context === 'button') return 'adoc-button'
+  if (inline.context === 'footnote') return 'adoc-footnote'
 
   return 'adoc-inline'
 }
@@ -103,6 +104,10 @@ export function findInlineMarkup(blockText, inline, fromIndex = 0) {
 
   if (inline.context === 'anchor') {
     return findAnchorMarkup(blockText, inline, fromIndex)
+  }
+
+  if (inline.context === 'footnote') {
+    return findFootnoteMarkup(blockText, inline, fromIndex)
   }
 
   return null
@@ -144,6 +149,30 @@ function findAnchorMarkup(blockText, inline, fromIndex) {
 }
 
 /**
+ * @param {string} blockText
+ * @param {CapturedInline} inline
+ * @param {number} fromIndex
+ */
+function findFootnoteMarkup(blockText, inline, fromIndex) {
+  const patterns = footnotePatterns(inline)
+
+  for (const pattern of patterns) {
+    const index = blockText.indexOf(pattern, fromIndex)
+    if (index >= 0) {
+      return { from: index, to: index + pattern.length }
+    }
+  }
+
+  const slice = blockText.slice(fromIndex)
+  const generic = slice.match(/[!.]footnote(?::\w+)?(?:\[[^\]]*\])?/)
+  if (generic) {
+    return { from: fromIndex + generic.index, to: fromIndex + generic.index + generic[0].length }
+  }
+
+  return null
+}
+
+/**
  * @param {CapturedInline} inline
  * @param {string} text
  * @returns {string[]}
@@ -166,8 +195,12 @@ function markupPatterns(inline, text) {
   }
 
   if (inline.context === 'button') {
-    const label = buttonLabel(inline.attributes)
+    const label = inline.text ?? buttonLabel(inline.attributes)
     return label ? [`btn:[${label}]`] : []
+  }
+
+  if (inline.context === 'footnote') {
+    return footnotePatterns(inline)
   }
 
   return []
@@ -261,6 +294,31 @@ function menuPatterns(attributes) {
 
   const inner = [...submenus, menuitem].filter(Boolean).join(' > ')
   return [`menu:${menu}[${inner}]`]
+}
+
+/**
+ * @param {CapturedInline} inline
+ */
+function footnotePatterns(inline) {
+  const text = inline.text ?? ''
+  if (inline.type === 'xref' && text) {
+    return unique([
+      `footnote:${text}[]`,
+      `.footnote:${text}[]`,
+      `!footnote:${text}[]`,
+      `footnote:${text}[${text}]`,
+    ])
+  }
+
+  if (text) {
+    return unique([
+      `footnote:[${text}]`,
+      `.footnote:[${text}]`,
+      `!footnote:[${text}]`,
+    ])
+  }
+
+  return []
 }
 
 /**

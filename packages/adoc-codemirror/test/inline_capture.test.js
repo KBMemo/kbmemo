@@ -18,6 +18,7 @@ describe('inlineCapture Phase C markup', () => {
     expect(inlineClassName({ context: 'quoted', type: 'subscript' })).toBe('adoc-subscript')
     expect(inlineClassName({ context: 'anchor', type: 'ref' })).toBe('adoc-anchor')
     expect(inlineClassName({ context: 'anchor', type: 'xref' })).toBe('adoc-xref')
+    expect(inlineClassName({ context: 'footnote' })).toBe('adoc-footnote')
   })
 
   it('finds highlight and superscript markup', () => {
@@ -45,6 +46,20 @@ describe('inlineCapture Phase C markup', () => {
     expect(findInlineMarkup(interdoc.text, interdoc.inline)).toEqual({
       from: 9,
       to: 54,
+    })
+  })
+
+  it('finds btn and footnote markup', () => {
+    const button = inlineForBody('Press the btn:[OK] button.')
+    expect(findInlineMarkup(button.text, button.inline)).toEqual({
+      from: 10,
+      to: 18,
+    })
+
+    const footnote = inlineForBody('A statement.footnote:[Clarification about this statement.]')
+    expect(findInlineMarkup(footnote.text, footnote.inline)).toEqual({
+      from: 12,
+      to: 58,
     })
   })
 })
