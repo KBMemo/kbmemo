@@ -1,0 +1,62 @@
+- content_for :title, "テーマ作成"
+
+div data-controller="theme-studio" data-theme-studio-editing-theme-id-value=(@editing_theme_id || "")
+  .mb-6
+    h1.text-2xl.font-semibold.text-zinc-900 テーマ作成
+    p.mt-2.text-sm.kb-text-secondary
+      | 表示・編集・カンバンのサンプルで見た目を確認し、Design モードで要素をクリックして CSS 変数を調整できます。
+      | テーマはブラウザの localStorage に保存されます。JSON のエクスポート／インポートにも対応しています。
+
+  .theme-studio-layout
+    aside.theme-studio-sidebar.space-y-4
+      div
+        label.block.text-sm.font-medium.text-zinc-800 for="theme_name" テーマ名
+        input#theme_name.mt-1.w-full.rounded.border.border-zinc-300.px-2.py-1.text-sm type="text" value="新しいテーマ" data-theme-studio-target="themeName" data-action="input->theme-studio#themeNameChanged"
+
+      div
+        label.block.text-sm.font-medium.text-zinc-800 for="theme_base" ベーステーマ
+        select#theme_base.mt-1.w-full.rounded.border.border-zinc-300.px-2.py-1.text-sm data-theme-studio-target="baseTheme" data-action="change->theme-studio#baseThemeChanged"
+          option value="default" Default
+          option value="dark" Dark
+          option value="sepia" Sepia
+          option value="minimal" Minimal
+
+      div
+        p.text-sm.font-medium.text-zinc-800 CSS 変数
+        .mt-2.max-h-64.space-y-2.overflow-y-auto data-theme-studio-target="tokenList"
+
+      div
+        p.text-sm.font-medium.text-zinc-800 保存済みカスタムテーマ
+        ul.mt-2.space-y-1 data-theme-studio-target="customThemeList"
+
+      .flex.flex-wrap.gap-2
+        button.kb-chrome-btn-primary type="button" data-theme-slot="btn-primary" data-action="theme-studio#saveTheme" 保存
+        button.kb-chrome-btn-secondary type="button" data-action="theme-studio#applyTheme" 適用
+        button.kb-chrome-btn-secondary type="button" data-action="theme-studio#newTheme" 新規
+        button.kb-chrome-btn-secondary type="button" data-action="theme-studio#exportTheme" エクスポート
+        button.kb-chrome-btn-secondary type="button" data-action="theme-studio#triggerImport" インポート
+        input.hidden type="file" accept="application/json,.json" data-theme-studio-target="importFile" data-action="change->theme-studio#importTheme"
+
+      p.text-xs.text-zinc-500 data-theme-studio-target="status"
+
+    div
+      .theme-studio-preview
+        .theme-studio-preview-toolbar
+          button.theme-studio-tab.is-active type="button" data-sample-name="show" data-action="theme-studio#selectSample" 表示
+          button.theme-studio-tab type="button" data-sample-name="edit" data-action="theme-studio#selectSample" 編集
+          button.theme-studio-tab type="button" data-sample-name="kanban" data-action="theme-studio#selectSample" カンバン
+          button.ml-auto.rounded.border.border-blue-300.bg-blue-50.px-3.py-1.text-sm.font-medium.text-blue-800.hover:bg-blue-100 type="button" data-theme-studio-target="designToggle" data-action="theme-studio#toggleDesignMode" aria-pressed="false" Design モード: OFF
+
+        .theme-studio-preview-body
+          .theme-studio-highlight hidden="" data-theme-studio-target="highlight"
+          div data-theme-studio-target="samplePanel" data-sample-name="show" data-theme-studio-sample="" data-action="click->theme-studio#sampleClick mouseover->theme-studio#sampleMouseOver mouseout->theme-studio#sampleMouseOut"
+            = render "themes/sample_show"
+          div hidden="" data-theme-studio-target="samplePanel" data-sample-name="edit" data-theme-studio-sample="" data-action="click->theme-studio#sampleClick mouseover->theme-studio#sampleMouseOver mouseout->theme-studio#sampleMouseOut"
+            = render "themes/sample_edit"
+          div hidden="" data-theme-studio-target="samplePanel" data-sample-name="kanban" data-theme-studio-sample="" data-action="click->theme-studio#sampleClick mouseover->theme-studio#sampleMouseOver mouseout->theme-studio#sampleMouseOut"
+            = render "themes/sample_kanban"
+
+      .theme-studio-inspector
+        p.text-sm.font-medium.text-zinc-800 選択中の要素
+        p.mt-1.theme-studio-selected-label data-theme-studio-target="selectorLabel" 要素をクリックして選択
+        .mt-3.space-y-2 data-theme-studio-target="propertyFields"

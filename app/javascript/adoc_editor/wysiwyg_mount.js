@@ -2,7 +2,6 @@ import '@kbmemo/adoc-wysiwyg/wysiwyg.css'
 import '@kbmemo/adoc-wysiwyg/contextMenu.css'
 
 import { createWysiwygEditor } from '@kbmemo/adoc-wysiwyg'
-import { applyPreviewSkin, getStoredSkinId } from './preview_skin.js'
 import { createKbmemoWysiwygSourceExtensions } from '@kbmemo/adoc-kbmemo'
 
 const LEGACY_ASCIIDOCTOR_LINK_ID = 'kbmemo-adoc-preview-base'
@@ -22,7 +21,6 @@ function removeLegacyGlobalStylesheet() {
  */
 export function createMemoWysiwygEditor({ editorEl, paneEl, getMemoId, getWikiConfig, onSourceChange }) {
   removeLegacyGlobalStylesheet()
-  applyPreviewSkin(editorEl, getStoredSkinId())
 
   return createWysiwygEditor(editorEl, {
     paneEl,

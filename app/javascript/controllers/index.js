@@ -79,3 +79,6 @@ application.register("memo-sidebar", MemoSidebarController)
 
 import UserMenuController from "./user_menu_controller"
 application.register("user-menu", UserMenuController)
+
+import ThemeStudioController from "./theme_studio_controller"
+application.register("theme-studio", ThemeStudioController)

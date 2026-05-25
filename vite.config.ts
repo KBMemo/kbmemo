@@ -26,6 +26,10 @@ const workspaceAliases = [
     replacement: path.join(packagesDir, 'adoc-codemirror/index.js'),
   },
   {
+    find: '@kbmemo/adoc-preview/preview_hljs.css',
+    replacement: path.join(packagesDir, 'adoc-preview/preview_hljs.css'),
+  },
+  {
     find: '@kbmemo/adoc-preview',
     replacement: path.join(packagesDir, 'adoc-preview/index.js'),
   },

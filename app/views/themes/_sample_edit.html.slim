@@ -1,0 +1,18 @@
+.space-y-3
+  h1.text-2xl.font-semibold data-theme-slot="memo-title" サンプルメモ（編集）
+  .memo-body-editor.kb-card data-theme-slot="memo-editor"
+    .memo-body-editor__header.flex.items-center.gap-2.border-b.kb-border.kb-chrome-muted-bar.px-3.py-2
+      span.kb-chrome-btn-primary.rounded.px-2.py-1.text-xs.font-medium data-theme-slot="btn-primary" WYSIWYG
+      span.kb-chrome-btn-secondary.rounded.px-2.py-1.text-xs Source
+    .memo-body-editor__wysiwyg-content.memo-body.asciidoctor.p-6 data-theme-slot="memo-body"
+      h1 見出し
+      p
+        | 編集画面の WYSIWYG プレビュー領域のサンプルです。
+      ul
+        li リスト項目 1
+        li リスト項目 2
+    .memo-body-editor__preview.border-t.kb-border
+      .memo-body-editor__preview-toolbar
+        span.memo-body-editor__preview-label Preview
+      .memo-body-editor__preview-content.memo-body.asciidoctor.p-4
+        p ライブプレビュー領域のサンプルです。
