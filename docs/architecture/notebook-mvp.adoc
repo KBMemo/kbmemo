@@ -1,6 +1,60 @@
-= Notebook MVP
+= ノートブック機能 MVP 仕様
 
-テーマごとにメモを集め、用途に応じて公開・閲覧するためのコンテナです。
+このドキュメントは KBMemo におけるノートブック機能の **MVP（Phase 1）** の仕様を定義する。
+前提として、メモ本文の正は DB の AsciiDoc プレーン文字列であり、ノートブックは **表示順・階層・公開単位** のレイヤーとして DB に保持する（`AGENTS.md` 方針に従う）。
+
+== 背景・目的
+
+* プロダクト構成は「Kanban + Blog + Memo」だが、Blog / Manual 向けに **テーマごとにメモを束ねて公開・閲覧** するコンテナが必要。
+* ノートブックは既存 `Memo` をそのまま中身とし、Wiki リンク・タグ・公開範囲などの既存資産を活かす。
+* MVP では **独立した `/notebooks` 画面** を提供し、作成からメモ追加・ツリー編集・2 ペイン閲覧まで一連のワークフローを完結させる。
+
+== 確定した設計方針
+
+[cols="1,3"]
+|===
+|項目 |決定内容
+
+|中身
+|既存 `Memo` をそのままノートブックの条目とする（Memo = 条目の実体）
+
+|ノートブック
+|独立した `Notebook` モデル。`publication_kind` で Blog / Manual / 自分用ノートを区別
+
+|順序・階層
+|`notebook_memos.position`（兄弟間）と `parent_id`（自己参照ツリー）で管理
+
+|画面
+|ヘッダーナビから `/notebooks` へ遷移。**show はメモ画面と同様の全幅 2 ペイン**
+
+|所属
+|MVP では **1 メモは 1 ノートブックのみ**（`notebook_memos.memo_id` はグローバルユニーク）
+
+|公開
+|`notes` は常に非公開。`blog` / `manual` は `published_at` 設定後、ゲストも `show` 可（メモ単位の `MemoPolicy` は別途適用）
+|===
+
+== 用語
+
+[cols="1,3"]
+|===
+|用語 |定義
+
+|ノートブック（Notebook）
+|メモの集合と公開設定を持つコンテナ。所有者は `account_id`。
+
+|条目（NotebookMemo）
+|ノートブック内でのメモの **所属・表示順・階層** を表す中間レコード。実体の本文は `Memo`。
+
+|章タイトル（chapter_title）
+|ノートブック内での表示ラベル。未設定時は `Memo#title` を使用。
+
+|ルート条目
+|`parent_id` が NULL の `NotebookMemo`。ツリーの最上位。
+
+|未所属メモ
+|`notebook_memo` が存在しないメモ。ノートブック追加 UI の候補になる。
+|===
 
 == 種別（publication_kind）
 
@@ -8,27 +62,494 @@
 |===
 | 種別 | 用途 | 公開
 
-| `blog` | 記事一覧として公開 | `published_at` 設定後、未ログインでも閲覧可
-| `manual` | 目次付きドキュメント | 同上
+| `blog` | 記事一覧として公開 | `published_at` 設定後、未ログインでも `show` 可
+| `manual` | 目次付きドキュメント（ツリー表示） | 同上
 | `notes` | 自分用ノート | 常に非公開（オーナーのみ）
 |===
 
+enum 値: `blog=0`, `manual=1`, `notes=2`（デフォルト `notes`）。
+
 == データモデル
 
-* `notebooks` — オーナー（`account_id`）、タイトル、スラッグ、種別、説明、公開日時
-* `notebook_memos` — ノートブックとメモの中間（`position` で順序）。MVP では 1 メモは 1 ノートブックのみ
+=== `notebooks`
 
-メモ本文は既存の `memos.body`（AsciiDoc）のまま。ノートブックは **表示順と公開単位** のレイヤーです。
+[cols="1,1,3"]
+|===
+|カラム |型 |説明
 
-== 公開ルール（MVP）
+|`id`
+|integer PK
+|
 
-* Blog / Manual は「公開」ボタンで `published_at` を設定
-* ゲストは `NotebookPolicy::Scope` 経由で公開済み notebook の `show` のみ
-* 各メモの閲覧可否は引き続き `MemoPolicy`（`public_everyone` 等）が正
+|`account_id`
+|integer FK, NOT NULL
+|オーナー
 
-== 今後（Phase 2+）
+|`title`
+|string, NOT NULL
+|ノートブック名
 
-* 公開用スラッグ URL（`/pub/...`）
-* 章タイトル（`chapter_title`）の編集 UI
-* ノートブック単位の AsciiDoc エクスポート
-* メモを複数ノートブックに所属させる
+|`slug`
+|string, NOT NULL
+|アカウント内スラッグ（`(account_id, slug)` ユニーク）
+
+|`publication_kind`
+|integer, NOT NULL, default 2
+|Blog / Manual / Notes
+
+|`description`
+|text, NOT NULL, default `""`
+|説明文
+
+|`published_at`
+|datetime, NULL 可
+|NULL = 下書き。Blog / Manual の公開日時
+
+|`memo_directory_id`
+|integer FK, NULL 可
+|任意。将来の新規メモ作成デフォルト先（MVP では主にメタデータ）
+
+|`created_at` / `updated_at`
+|datetime
+|
+|===
+
+=== `notebook_memos`
+
+[cols="1,1,3"]
+|===
+|カラム |型 |説明
+
+|`id`
+|integer PK
+|
+
+|`notebook_id`
+|integer FK, NOT NULL
+|所属ノートブック
+
+|`memo_id`
+|integer FK, NOT NULL
+|紐づくメモ（**グローバルユニーク** → 1 メモ 1 ノートブック）
+
+|`parent_id`
+|integer FK, NULL 可
+|親条目（`notebook_memos.id` 自己参照）。NULL = ルート
+
+|`position`
+|integer, NOT NULL, default 0
+|同一 `parent_id` 配下の兄弟順（0 始まり）
+
+|`chapter_title`
+|string, NULL 可
+|ノートブック内表示名。NULL なら `Memo#title`
+
+|`created_at` / `updated_at`
+|datetime
+|
+|===
+
+制約・バリデーション:
+
+* `(notebook_id, memo_id)` ユニーク。
+* `(notebook_id, parent_id, position)` にインデックス（兄弟順の取得・更新用）。
+* `parent_id` は **同一 `notebook_id` 内** の条目のみ。自分自身や子孫を親にできない（循環禁止）。
+* `memo_id` のグローバルユニーク（`validates :memo_id, uniqueness: true`）により MVP では複数ノートブック所属不可。
+
+=== ER 概要
+
+[source]
+----
+Account 1--* Notebook
+Account 1--* Memo
+MemoDirectory 0..1-- Notebook   （memo_directory_id、任意）
+MemoDirectory 1--* Memo         （既存、本文・Git 配置の正）
+
+Notebook 1--* NotebookMemo
+Memo 0..1-- NotebookMemo        （MVP: 高々 1 件）
+NotebookMemo 0..1-- NotebookMemo  （parent_id、ツリー）
+----
+
+=== ER 図（PlantUML）
+
+[source,plantuml]
+----
+@startuml notebook-er
+skinparam linetype ortho
+
+entity accounts {
+  * id : INTEGER <<PK>>
+  --
+  email : VARCHAR <<UK>>
+}
+
+entity memo_directories {
+  * id : INTEGER <<PK>>
+  --
+  account_id : INTEGER <<FK>>
+}
+
+entity notebooks {
+  * id : INTEGER <<PK>>
+  --
+  account_id : INTEGER <<FK>>
+  memo_directory_id : INTEGER <<FK>>
+  title : VARCHAR
+  slug : VARCHAR
+  publication_kind : INTEGER
+  description : TEXT
+  published_at : DATETIME
+}
+
+entity notebook_memos {
+  * id : INTEGER <<PK>>
+  --
+  notebook_id : INTEGER <<FK>>
+  memo_id : INTEGER <<FK, UK>>
+  parent_id : INTEGER <<FK>>
+  position : INTEGER
+  chapter_title : VARCHAR
+}
+
+entity memos {
+  * id : INTEGER <<PK>>
+  --
+  account_id : INTEGER <<FK>>
+  memo_directory_id : INTEGER <<FK>>
+  title : VARCHAR
+  body : TEXT
+  visibility : INTEGER
+}
+
+accounts ||--o{ notebooks
+accounts ||--o{ memos
+memo_directories ||--o{ notebooks
+memo_directories ||--o{ memos
+notebooks ||--o{ notebook_memos
+memos ||--o| notebook_memos
+notebook_memos ||--o{ notebook_memos : parent
+@enduml
+----
+
+=== Git / 本文との関係
+
+* ノートブックの順序・階層・公開設定は **DB のみ** に保持し、`.adoc` や Git コミットメタデータには書かない。
+* メモ本文（AsciiDoc）・スラッグ・ディレクトリ配置は従来どおり `Memo` / `MemoRepository` が正とする。
+* ノートブックからメモを外しても（`NotebookMemo` 削除）、メモ本体・Git 上のファイルは削除しない。
+
+== 権限（Pundit）
+
+=== `NotebookPolicy`
+
+[cols="1,3"]
+|===
+|操作 |条件
+
+|一覧・作成
+|ログイン済み
+
+|表示（`show?`）
+|オーナー、または `guest_visible?`（公開済み Blog / Manual）
+
+|更新・削除・公開・メモ管理
+|オーナーのみ（`manage_memos?` = `update?`）
+
+|ゲスト
+|`NotebookPolicy::Scope` で `guest_visible` のみ参照可
+|===
+
+=== メモ操作
+
+* ノートブックへの追加・除外・ツリー DnD は `manage_memos?` が必要。追加対象メモは `MemoPolicy#update?` も必要。
+* show 画面のメモ一覧・本文は `MemoPolicy::Scope` でフィルタ。閲覧不可メモはツリーにも右ペインにも出さない。
+* 各メモの閲覧可否は引き続き `MemoPolicy`（`public_everyone` 等）が正。公開ノートブックでも非公開メモはゲストに見えない。
+
+== ルーティング
+
+[source,ruby]
+----
+resources :notebooks do
+  member do
+    patch :publish
+    patch :unpublish
+    patch :reorder_memos
+    get :available_memos
+  end
+
+  resources :notebook_memos, only: %i[create destroy], path: "memos"
+end
+----
+
+画面 URL:
+
+[cols="1,3"]
+|===
+|パス |用途
+
+|`GET /notebooks`
+|ノートブック一覧
+
+|`GET /notebooks/new`, `POST /notebooks`
+|作成
+
+|`GET /notebooks/:id`
+|2 ペイン本体（左: ツリー、右: 選択メモ）。`?memo_id=` で条目選択
+
+|`GET /notebooks/:id/edit`, `PATCH /notebooks/:id`, `DELETE /notebooks/:id`
+|編集・削除
+
+|`PATCH /notebooks/:id/publish`, `PATCH /notebooks/:id/unpublish`
+|公開 / 公開停止（`notes` 種別は拒否）
+
+|`POST /notebooks/:id/memos`
+|既存メモを追加（`memo_id`）
+
+|`DELETE /notebooks/:id/memos/:memo_id`
+|ノートブックから外す（メモ本体は削除しない）
+
+|`PATCH /notebooks/:id/reorder_memos`
+|ツリー DnD による `parent_id` / `position` 更新
+
+|`GET /notebooks/:id/available_memos`
+|追加候補メモの JSON 検索（将来のオートコンプリート用）
+|===
+
+== 画面仕様
+
+=== グローバルナビ
+
+* ヘッダーに「ノートブック」リンクを追加し、`/notebooks` へ遷移する。
+* 配置: 「メモ」「カンバン」と同列。
+
+=== ノートブック一覧（`/notebooks`）
+
+* 自分が所有するノートブックの一覧（タイトル、種別、メモ数、更新日時）。
+* 「新規ノートブック」ボタン。
+
+=== ノートブック show（`/notebooks/:id`）— 2 ペイン
+
+メモ show / edit と同様の **全幅ワークスペース**（`notebook_show_wide_layout?`）:
+
+* **左サイドバー**（折りたたみ・幅リサイズ対応、`memo-sidebar` Stimulus 再利用）:
+** ノートブック名・種別・公開状態
+** 一覧 / 編集リンク、公開・公開停止（オーナーのみ）
+** メモ追加フォーム（未所属メモの select、オーナーのみ）
+** メモツリー（`parent_id` + `position`）。選択中条目は `kb-sidebar-link.is-active`
+* **右ペイン**:
+** `?memo_id=` で指定したメモ、未指定時はルート先頭のメモを表示
+** `memos/show_content` パーシャルで本文表示（メモ show と同じ）
+** メモが無い場合は概要パネル（タイトル・説明・空状態メッセージ）
+
+ゲスト（公開 Blog / Manual）:
+
+* 左ツリーは閲覧可メモのみ。DnD・追加 UI なし。
+* 認証不要で `show` にアクセス可（`NotebooksController#require_authentication` の例外）。
+
+=== ノートブック編集（`/notebooks/:id/edit`）
+
+* タイトル、スラッグ、種別、説明、任意の `memo_directory_id`。
+* 含まれるメモのフラット一覧と「外す」操作（ツリー編集は show 左ペインで実施）。
+
+== 操作詳細
+
+=== ノートブック CRUD
+
+[cols="1,3"]
+|===
+|操作 |挙動
+
+|Create
+|`Notebook` 保存。種別デフォルト `notes`
+
+|Read
+|一覧・2 ペイン show
+
+|Update
+|title, slug, publication_kind, description, memo_directory_id
+
+|Delete
+|配下 `NotebookMemo` を cascade 削除。**メモ本体は削除しない**
+|===
+
+=== 公開
+
+* Blog / Manual: show 左ペインまたは edit から「公開」→ `Notebooks::Publish` で `published_at` 設定。
+* `notes`: 公開 UI なし（常にオーナーのみ）。
+* 「公開停止」で `published_at = NULL`。
+
+=== メモの追加・除外
+
+* **追加**: 未所属メモ（`notebook_memo` なし）のみ。`Notebooks::AddMemo` でルート末尾に `position` 採番。
+* 追加後 `redirect_to notebook_path(notebook, memo_id: memo.id)` で右ペインに表示。
+* **除外**: `Notebooks::RemoveMemo` で `NotebookMemo` 削除。子条目の `parent_id` は NULL に（`dependent: :nullify`）。
+
+=== ツリー DnD（順序・階層）
+
+カンバン DnD（`board-kanban-dnd`）と同パターン:
+
+* Stimulus `notebook-memo-tree` + HTML5 DnD（グリップアイコンからドラッグ）。
+* ドロップ位置:
+** 行の上 1/3 → 同階層・当該 position の前
+** 行の下 1/3 → 同階層・当該 position の後
+** 行の中央 1/3 → 当該条目の子として末尾
+** ルートリスト末尾 / 子リスト → 末尾に追加
+* `PATCH /notebooks/:id/reorder_memos`（JSON body）:
+
+[source,json]
+----
+{
+  "notebook_memo_id": 12,
+  "parent_id": 5,
+  "position": 0
+}
+----
+
+* `parent_id` 省略または null でルートへ移動。
+* サーバー: `Notebooks::MoveMemo` が兄弟の `position` を再採番。
+* レスポンス: Turbo Stream で `#notebook_memo_tree` を差し替え。
+
+=== 表示ラベル
+
+* ツリー・目次のラベル: `Notebook#display_label_for_memo` → `chapter_title` または `memo.title`。
+* MVP では `chapter_title` の編集 UI は未実装（DB カラムのみ）。
+
+== 既存機能との連携
+
+[cols="1,3"]
+|===
+|機能 |MVP での扱い
+
+|AsciiDoc 本文
+|右ペインで `show_content` 表示。編集はメモ画面へ
+
+|Wiki リンク / バックリンク
+|メモ単位で従来どおり
+
+|タグ / チェックリスト
+|メモの機能として右ペインに反映
+
+|visibility / MemoGroup
+|Policy どおり。ゲスト向け show でもメモ単位でフィルタ
+
+|MemoDirectory
+|メモの Git 配置先。ノートブックの `memo_directory_id` はメタデータ（将来のデフォルト先）
+
+|Git sync
+|ノートブック配置変更では Git コミットを発生させない
+
+|カンバン
+|独立。1 メモはボードとノートブックに **同時所属可**（ボードは `board_id`、ノートブックは `notebook_memos`）
+|===
+
+== 技術実装方針
+
+=== スタック
+
+* Rails 8, Rodauth, Pundit, Slim, Tailwind, Turbo, Stimulus, Vite。
+
+=== レイアウト
+
+* `ApplicationHelper#notebook_show_wide_layout?` — `notebooks#show` のみ wide。
+* `application.html.slim` にメモ wide レイアウトと並ぶ notebook ワークスペース分岐。
+* 左ペイン: `memo-sidebar`（storage key: `kbmemo_notebook_sidebar_v1`）。
+
+=== Slim / Tailwind
+
+* 角括弧付きユーティリティは `class="..."` で指定（`AGENTS.md`）。
+
+=== サービスオブジェクト
+
+* `Notebooks::AddMemo` — 条目追加。
+* `Notebooks::RemoveMemo` — 条目削除。
+* `Notebooks::MoveMemo` — ツリー DnD。
+* `Notebooks::Publish` — 公開（種別チェック含む）。
+* モジュール名は **`Notebooks`**（`Notebook` モデルとの定数衝突回避）。
+
+=== Stimulus
+
+* `notebook-memo-tree` — 左ペインの DnD。
+
+== MVP スコープ外（Phase 2 以降）
+
+* 公開用スラッグ URL（`/pub/:account/:notebook/...`）
+* `chapter_title` の編集 UI
+* ノートブック単位の AsciiDoc エクスポート（ツリー順で結合）
+* 1 メモの複数ノートブック所属（`memo_id` ユニーク制約の見直し）
+* Blog 種別の日付降順一覧ビュー（現在はツリー + 右ペインに統一）
+* ゲスト向け SEO / OGP
+* ノートブック共有（MemoGroup 連携）
+
+== 受け入れ条件（Acceptance Criteria）
+
+=== ノートブック
+
+* ログインユーザーがノートブックを作成でき、種別を選べる。
+* 一覧に自分のノートブックのみ表示される。
+* 削除しても含まれていたメモはメモ一覧に残る。
+
+=== show（2 ペイン）
+
+* 全幅 2 ペインで左にツリー、右にメモ本文が表示される。
+* ツリークリックで `?memo_id=` が変わり、右ペインが更新される。
+* サイドバーの折りたたみ・幅変更が動作する。
+
+=== ツリー編集
+
+* オーナーが DnD で順序・階層を変更でき、リロード後も保持される。
+* 自分の子孫の下へは移動できない。
+
+=== 公開
+
+* Blog / Manual を公開すると、ゲストが `show` にアクセスできる。
+* `notes` は公開できない。
+* ゲストには `public_everyone` 等で閲覧可なメモのみ表示される。
+
+=== 権限
+
+* 他人の非公開ノートブックは 404。
+* 更新権限のないメモは追加・DnD できない。
+
+== テスト方針
+
+=== モデル・サービス
+
+* `NotebookMemo` の親子バリデーション（同一 notebook、循環禁止）。
+* `Notebooks::MoveMemo` の position 再採番。
+* `Notebooks::Publish` の種別チェック。
+
+=== コントローラ・Policy
+
+* CRUD・公開・追加・除外・`reorder_memos` の認可。
+* ゲスト向け公開 notebook の show。
+
+=== 関連テストファイル
+
+* `test/controllers/notebooks_controller_test.rb`
+* `test/services/notebooks/publish_test.rb`
+* `test/services/notebooks/move_memo_test.rb`
+
+== 関連コード
+
+* `app/models/notebook.rb`, `app/models/notebook_memo.rb`
+* `app/controllers/notebooks_controller.rb`, `app/controllers/notebook_memos_controller.rb`
+* `app/policies/notebook_policy.rb`
+* `app/services/notebooks/`
+* `app/views/notebooks/` — `_sidebar_panel`, `_memo_tree*`, `show`
+* `app/javascript/controllers/notebook_memo_tree_controller.js`
+* `app/helpers/application_helper.rb` — `notebook_show_wide_layout?`
+* `docs/architecture/kanban-mvp.adoc` — 類似の DnD / wide レイアウトパターン
+
+== 変更履歴
+
+[cols="1,1,3"]
+|===
+|日付 |版 |内容
+
+|2026-05-26
+|0.1
+|MVP 初版（Notebook モデル・一覧・単列 show）
+
+|2026-05-26
+|0.2
+|2 ペイン show、ツリー階層（`parent_id`）、DnD、ER 図・仕様書拡充
+|===
