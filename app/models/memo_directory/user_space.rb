@@ -52,6 +52,19 @@ class MemoDirectory
           )
       end
 
+      # `home/u-{id}` 配下に segments 指定のディレクトリツリーを確保し、末端を返す。
+      def ensure_subdirectory!(account, *segments)
+        account = account.is_a?(Account) ? account : Account.find(account)
+        ensure_for_account!(account)
+        parent = default_home_directory(account)
+        segments.flatten.compact_blank.each do |seg|
+          fp = "#{parent.full_path}/#{seg}"
+          parent = MemoDirectory.find_by(full_path: fp) ||
+            MemoDirectory.create!(parent: parent, path_segment: seg, label: seg.tr("-", " ").humanize)
+        end
+        parent
+      end
+
       # db:seed 用: ルート直下に残った旧フラットディレクトリを先頭ユーザーの home 配下へ移す
       def reconcile_legacy_flat_directories!
         return unless Account.exists?

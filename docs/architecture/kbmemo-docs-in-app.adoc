@@ -174,15 +174,45 @@
 * **開発 doc**: Git `docs/` を正とし、KBMemo は **ミラー（読み取り UI）**。
 * **ヘルプ**: KBMemo を正とし、必要なら export で Git にバックアップ（Phase 2 以降で検討）。
 
-== Phase 1: `docs/` 同期 Rake（設計スケッチ）
+== Phase 1: `docs/` 同期 Rake（実装済み）
 
 === コマンド
 
 [source,bash]
 ----
 bin/rails kbmemo:docs:sync
-bin/rails kbmemo:docs:sync DRY_RUN=1
+DRY_RUN=1 bin/rails kbmemo:docs:sync
+KBMEMO_DOCS_SYNC_ACCOUNT_ID=1 bin/rails kbmemo:docs:sync
+KBMEMO_DOCS_SYNC_COMMIT=1 bin/rails kbmemo:docs:sync   # development のみ Git commit
 ----
+
+環境変数:
+
+[cols="1,3"]
+|===
+|変数 |説明
+
+|`DRY_RUN=1`
+|DB を更新せず、作成・更新予定のみ表示
+
+|`KBMEMO_DOCS_SYNC_ACCOUNT_ID`
+|同期先アカウント（省略時: 最初の admin、なければ id 最小）
+
+|`KBMEMO_DOCS_SYNC_VISIBILITY`
+|既定 `owner_read_write`（`group_read` 等も可）
+
+|`KBMEMO_DOCS_SYNC_MEMO_GROUP_ID`
+|`group_read` 系のとき必須
+
+|`KBMEMO_DOCS_SYNC_COMMIT=1`
+|同期後 `MemoRepository#write_and_commit!`（production ではスキップ）
+|===
+
+=== 実装
+
+* Rake: `lib/tasks/kbmemo_docs.rake`（`kbmemo:docs:sync`）
+* サービス: `app/services/kbmemo_docs/sync.rb`, `adoc_source.rb`
+* ディレクトリ: `MemoDirectory::UserSpace.ensure_subdirectory!` → `home/u-{id}/dev-docs/...`
 
 === 入力
 
@@ -202,13 +232,13 @@ bin/rails kbmemo:docs:sync DRY_RUN=1
 |ファイル先頭の `= Title` または front matter の `title`、なければ basename
 
 |slug
-|ファイル名（拡張子除く）を `Memo.normalize_slug_fragment` で正規化
+|`docs/` 相対パスを `-` 連結して正規化（例: `architecture-notebook-mvp`）。保存時に `-{memo_id}` が付く
 
 |body
-|front matter を除いた AsciiDoc 本文
+|front matter 除去後の AsciiDoc。先頭の `= Title` 行は title 抽出後に除去（表示重複回避）
 
 |visibility
-|既定 `group_read` または `owner_read_write`（環境変数で上書き）
+|既定 `owner_read_write`（環境変数で上書き）
 
 |tags
 |固定 `docs-sync` + パス由来タグ（例: `architecture`）
@@ -221,7 +251,7 @@ bin/rails kbmemo:docs:sync DRY_RUN=1
 
 * `properties.docs_sync.source_path` で既存メモを特定（なければ新規作成）。
 * 本文ハッシュが変わったときだけ `body` / `title` を更新。
-* **KBMemo 上で手編集した同期管理メモ** との衝突を避けるため、Phase 1 では **同期メモは read-only フラグ**（UI で編集ボタン非表示）を検討。
+* `properties.docs_sync.read_only` を `true` で付与（UI 側の編集抑止は Phase 1b）。
 * Git `MemoRepository` への write は、同期後にオプションで `write_and_commit!`（開発環境のみ推奨）。
 
 === やらないこと（Phase 1）
@@ -277,16 +307,15 @@ system/
 * <<notebook-mvp#_データモデル,データモデル>> 節
 ----
 
-* 同期 Rake は slug をファイル名と揃えるため、リンク先が安定する。
+* 同期 Rake は slug を `architecture-notebook-mvp-{id}` 形式にするため、Wiki リンクは stem（例: `[[architecture-notebook-mvp]]`）で参照する。
 * リポジトリ内の相対リンク（`xref:` 等）は KBMemo 上では機能しないため、同期時に **Wiki リンクへ変換する前処理** は Phase 1 では行わない（手動または将来タスク）。
 
-== 開発環境での使い方（Phase 0 手順）
+== 開発環境での使い方
 
-. 管理者アカウントでログイン。
-. `home/u-{id}/dev-docs/` 以下にディレクトリを作成。
-. `docs/architecture/notebook-mvp.adoc` 等を **メモ本文としてコピー**（title / slug をファイル名に合わせる）。
-. Notebook（manual）を作成し、メモをツリー順に追加。
-. 社内共有は `group_read`、ヘルプ試行は `public/u-{id}/help/` + `public_everyone`。
+. `DRY_RUN=1 bin/rails kbmemo:docs:sync` で対象ファイルを確認。
+. `bin/rails kbmemo:docs:sync` で `home/u-{admin}/dev-docs/` 以下にメモ upsert。
+. KBMemo 上でメモ一覧・Wiki リンク・Notebook 目次を確認。
+. （任意）Notebook（manual）を作成し、同期メモをツリー順に登録。
 
 == 関連ドキュメント
 
@@ -296,8 +325,10 @@ system/
 
 == 関連コード（現状）
 
+* `app/services/kbmemo_docs/` — 同期本体
+* `lib/tasks/kbmemo_docs.rake` — Rake タスク
 * `app/helpers/memos_helper.rb` — `memo_html`（Asciidoctor 変換）
-* `app/services/memo_repository.rb` — Git 作業ツリー
+* `app/services/memo_repository.rb` — Git 作業ツリー（任意 commit）
 * `app/policies/memo_directory_policy.rb` — ディレクトリスコープ
 * `app/policies/memo_policy.rb` — メモ閲覧・編集
 * `config/application.rb` — `memo_git_work_tree`
@@ -311,4 +342,8 @@ system/
 |2026-05-26
 |0.1
 |初版（方式比較、Phase 0–3 ロードマップ、同期 Rake / システムバケットの設計スケッチ）
+
+|2026-05-26
+|0.2
+|Phase 1 実装（`kbmemo:docs:sync`、`KbmemoDocs::Sync`）
 |===
