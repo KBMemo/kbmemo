@@ -44,6 +44,23 @@ class MemoWikiLinks
     out
   end
 
+  def self.extract_link_targets(text)
+    return [] if text.blank?
+
+    targets = []
+    in_fenced = false
+    text.each_line do |line|
+      if line.match?(/\A```/)
+        in_fenced = !in_fenced
+      elsif !in_fenced
+        line.scan(LINK_PATTERN) do
+          targets << Regexp.last_match(1).strip
+        end
+      end
+    end
+    targets.uniq
+  end
+
   private
 
   def replace_link(m)

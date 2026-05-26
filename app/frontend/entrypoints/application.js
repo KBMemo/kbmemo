@@ -8,7 +8,7 @@ import {
   loadOpenDirectoryIds,
   syncOpenDirectoryIdsFromPanel
 } from "../../javascript/memo_directory_nav_open.js"
-import { createIcons, BookOpen, CircleHelp, Copy, Eye, GripVertical, PanelLeftOpen, Pencil, Plus, Trash2 } from "lucide"
+import { createIcons, BookOpen, CircleHelp, Copy, Eye, GripVertical, Link2, PanelLeftOpen, Pencil, Plus, Trash2 } from "lucide"
 
 const renderLucideIcons = () => {
   createIcons({
@@ -18,6 +18,7 @@ const renderLucideIcons = () => {
       Copy,
       Eye,
       GripVertical,
+      Link2,
       PanelLeftOpen,
       Pencil,
       Plus,

@@ -298,6 +298,12 @@ module MemosHelper
     MemoAttachments.list(memo, body: body.presence || memo.body.to_s)
   end
 
+  def memo_backlink_memos(memo)
+    return [] unless memo.persisted?
+
+    MemoWikiBacklinks.new(target_memo: memo, scope: policy_scope(Memo)).call
+  end
+
   def memo_html(body, source_memo: nil)
     return "".html_safe if body.blank?
 

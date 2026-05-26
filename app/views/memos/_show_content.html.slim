@@ -73,3 +73,5 @@ ruby:
     - else
       .max-w-none
         == memo_html(memo.body, source_memo: memo)
+
+  = render "memos/show_backlinks", memo: memo

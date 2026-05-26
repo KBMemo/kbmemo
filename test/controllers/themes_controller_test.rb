@@ -49,6 +49,16 @@ class ThemesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, accounts(:one).theme_preference_payload["custom_themes"].size
   end
 
+  test "update ignores format and theme query params without unpermitted warnings" do
+    patch "#{theme_path(format: :json)}?theme=custom-query-id", params: {
+      active_theme_id: "minimal",
+      custom_themes: []
+    }, as: :json
+
+    assert_response :no_content
+    assert_equal "minimal", accounts(:one).reload.theme_active_id
+  end
+
   test "layout includes theme sync meta for signed-in user" do
     get memos_url
     assert_includes response.body, 'name="kbmemo-theme-sync"'

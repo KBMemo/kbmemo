@@ -29,7 +29,10 @@ class ThemesController < ApplicationController
   end
 
   def theme_params
-    params.permit(
+    payload = request.request_parameters
+    source = payload["theme"].is_a?(Hash) ? payload["theme"] : payload
+
+    ActionController::Parameters.new(source).permit(
       :active_theme_id,
       custom_themes: [
         :id,

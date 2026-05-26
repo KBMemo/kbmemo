@@ -598,6 +598,41 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, target.title
   end
 
+  test "show renders backlinks to memos linking to current memo" do
+    target = memos(:two)
+    source = memos(:one)
+    source.update_columns(
+      file_committed_at: 1.hour.ago,
+      body: "See [[#{target.title}]] for more."
+    )
+    MemoWikiLinkIndex.rebuild_for(source)
+    get memo_url(target)
+    assert_response :success
+    assert_includes response.body, "バックリンク"
+    assert_includes response.body, %(href="/memos/#{source.id}")
+    assert_includes response.body, source.title
+  end
+
+  test "edit renders backlinks to memos linking to current memo" do
+    target = memos(:two)
+    source = memos(:one)
+    source.update_columns(body: "See [[#{target.slug}]] for more.")
+    MemoWikiLinkIndex.rebuild_for(source)
+    get edit_memo_url(target)
+    assert_response :success
+    assert_includes response.body, "バックリンク"
+    assert_includes response.body, %(href="/memos/#{source.id}")
+    assert_includes response.body, source.title
+  end
+
+  test "show hides backlinks section when none exist" do
+    target = memos(:two)
+    target.update_columns(body: "= Solo")
+    get memo_url(target)
+    assert_response :success
+    assert_not_includes response.body, "バックリンク"
+  end
+
   test "show displays memo directory path in metadata" do
     memo = memos(:one)
     memo.update_columns(file_committed_at: 1.hour.ago)

@@ -48,6 +48,8 @@ class Memo < ApplicationRecord
 
   has_many :memo_tags, dependent: :destroy
   has_many :tags, through: :memo_tags
+  has_many :outgoing_wiki_links, class_name: "MemoWikiLink", foreign_key: :source_memo_id, dependent: :delete_all, inverse_of: :source_memo
+  has_many :incoming_wiki_links, class_name: "MemoWikiLink", foreign_key: :target_memo_id, dependent: :delete_all, inverse_of: :target_memo
 
   scope :on_kanban_board, -> { where.not(board_id: nil) }
   scope :available_for_board, -> { where(board_id: nil) }
@@ -83,6 +85,8 @@ class Memo < ApplicationRecord
   before_validation :prepare_slug_from_title_and_manual
   before_validation :normalize_slug_for_storage
   after_create :ensure_global_slug_suffix_after_create
+  after_commit :reindex_outgoing_wiki_links, on: %i[create update], if: :memo_wiki_links_need_outgoing_reindex?
+  after_commit :reindex_inbound_wiki_links, on: :update, if: :memo_wiki_links_need_inbound_reindex?
 
   # 保存時のスラッグ（パス用）。空は nil。MemoRepository のファイル名と揃える。
   def self.normalize_slug_fragment(value)
@@ -284,6 +288,25 @@ class Memo < ApplicationRecord
     return if slug.blank?
 
     target = self.class.global_slug_for(self.class.slug_stem(slug, memo_id: id), id)
-    update_column(:slug, target) if slug != target
+    return if slug == target
+
+    update_column(:slug, target)
+    MemoWikiLinkIndex.rebuild_inbound_for(self)
+  end
+
+  def memo_wiki_links_need_outgoing_reindex?
+    saved_change_to_body?
+  end
+
+  def memo_wiki_links_need_inbound_reindex?
+    saved_change_to_title? || saved_change_to_slug? || saved_change_to_memo_directory_id?
+  end
+
+  def reindex_outgoing_wiki_links
+    MemoWikiLinkIndex.rebuild_for(self)
+  end
+
+  def reindex_inbound_wiki_links
+    MemoWikiLinkIndex.rebuild_inbound_for(self)
   end
 end

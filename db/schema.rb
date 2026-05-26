@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_25_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_26_120000) do
   create_table "account_login_change_keys", force: :cascade do |t|
     t.datetime "deadline", null: false
     t.string "key", null: false
@@ -104,6 +104,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_25_120000) do
     t.index ["tag_id"], name: "index_memo_tags_on_tag_id"
   end
 
+  create_table "memo_wiki_links", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "source_memo_id", null: false
+    t.integer "target_memo_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["source_memo_id", "target_memo_id"], name: "index_memo_wiki_links_on_source_memo_id_and_target_memo_id", unique: true
+    t.index ["source_memo_id"], name: "index_memo_wiki_links_on_source_memo_id"
+    t.index ["target_memo_id"], name: "index_memo_wiki_links_on_target_memo_id"
+  end
+
   create_table "memos", force: :cascade do |t|
     t.integer "account_id", null: false
     t.integer "board_id"
@@ -149,6 +159,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_25_120000) do
   add_foreign_key "memo_group_memberships", "memo_groups"
   add_foreign_key "memo_tags", "memos"
   add_foreign_key "memo_tags", "tags"
+  add_foreign_key "memo_wiki_links", "memos", column: "source_memo_id", on_delete: :cascade
+  add_foreign_key "memo_wiki_links", "memos", column: "target_memo_id", on_delete: :cascade
   add_foreign_key "memos", "accounts"
   add_foreign_key "memos", "board_columns", column: "kanban_column_id"
   add_foreign_key "memos", "boards"
