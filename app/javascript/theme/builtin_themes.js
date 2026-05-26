@@ -1,3 +1,5 @@
+import { ADOC_TOKEN_DEFAULTS } from "./adoc_skin_tokens.js"
+
 /** @typedef {{ id: string, label: string, builtin: true }} BuiltinTheme */
 
 /** @type {BuiltinTheme[]} */
@@ -9,7 +11,7 @@ export const BUILTIN_THEMES = [
 ]
 
 /** @type {Record<string, Record<string, string>>} */
-export const THEME_TOKEN_DEFAULTS = {
+const KB_THEME_TOKEN_DEFAULTS = {
   default: {
     "--kb-bg-page": "#fafafa",
     "--kb-bg-surface": "#ffffff",
@@ -107,6 +109,14 @@ export const THEME_TOKEN_DEFAULTS = {
     "--kb-kanban-card-bg": "#ffffff",
   },
 }
+
+/** @type {Record<string, Record<string, string>>} */
+export const THEME_TOKEN_DEFAULTS = Object.fromEntries(
+  Object.keys(ADOC_TOKEN_DEFAULTS).map((baseId) => [
+    baseId,
+    { ...KB_THEME_TOKEN_DEFAULTS[baseId], ...ADOC_TOKEN_DEFAULTS[baseId] },
+  ])
+)
 
 /** @param {string} themeId */
 export function getBuiltinTheme(themeId) {

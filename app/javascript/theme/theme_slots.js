@@ -33,11 +33,68 @@ export const THEME_SLOTS = {
   },
   "memo-body": {
     label: "メモ本文",
-    tokens: ["--kb-memo-body-bg", "--kb-memo-body-text", "--kb-memo-body-border"],
+    tokens: ["--kb-memo-body-bg", "--kb-memo-body-text", "--kb-memo-body-border", "--mg-text", "--mg-surface"],
     properties: {
       "background-color": "--kb-memo-body-bg",
       color: "--kb-memo-body-text",
       "border-color": "--kb-memo-body-border",
+    },
+  },
+  "adoc-heading": {
+    label: "AsciiDoc 見出し (h1–h3)",
+    tokens: ["--mg-primary", "--mg-on-primary"],
+    properties: {
+      "background-color": "--mg-primary",
+      color: "--mg-on-primary",
+    },
+  },
+  "adoc-heading-sub": {
+    label: "AsciiDoc 小見出し (h4–h6)",
+    tokens: ["--mg-primary"],
+    properties: {
+      color: "--mg-primary",
+    },
+  },
+  "adoc-link": {
+    label: "AsciiDoc リンク",
+    tokens: ["--mg-link", "--mg-link-hover"],
+    properties: {
+      color: "--mg-link",
+    },
+  },
+  "adoc-code": {
+    label: "AsciiDoc コード",
+    tokens: ["--mg-code-bg", "--mg-text", "--mg-divider"],
+    properties: {
+      "background-color": "--mg-code-bg",
+      color: "--mg-text",
+      "border-color": "--mg-divider",
+    },
+  },
+  "adoc-blockquote": {
+    label: "AsciiDoc 引用",
+    tokens: ["--mg-primary", "--mg-blockquote-bg", "--mg-text"],
+    properties: {
+      "border-color": "--mg-primary",
+      "background-color": "--mg-blockquote-bg",
+      color: "--mg-text",
+    },
+  },
+  "adoc-admonition": {
+    label: "AsciiDoc Admonition",
+    tokens: ["--mg-tertiary", "--mg-primary", "--mg-secondary", "--mg-warning", "--mg-caution", "--mg-surface"],
+    properties: {
+      "background-color": "--mg-surface",
+      "border-color": "--mg-border",
+    },
+  },
+  "adoc-table": {
+    label: "AsciiDoc 表",
+    tokens: ["--mg-table-header-bg", "--mg-table-stripe-bg", "--mg-divider", "--mg-text"],
+    properties: {
+      "background-color": "--mg-table-header-bg",
+      color: "--mg-text",
+      "border-color": "--mg-divider",
     },
   },
   "memo-editor": {

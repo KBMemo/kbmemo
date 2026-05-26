@@ -17,6 +17,6 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['packages/**/test/**/*.test.js'],
+    include: ['packages/**/test/**/*.test.js', 'app/javascript/**/test/**/*.test.js'],
   },
 })

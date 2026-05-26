@@ -5,7 +5,18 @@ module ApplicationHelper
 
   # メモ一覧サイドバーなしで、ヘッダー・本文を広幅にする画面
   def wide_content_layout?
-    memos_wide_layout? || controller.controller_path.in?(%w[memo_diagrams boards])
+    memos_wide_layout? || controller.controller_path.in?(%w[memo_diagrams boards]) || theme_studio_layout?
+  end
+
+  def theme_studio_layout?
+    controller.controller_path == "themes" && controller.action_name == "studio"
+  end
+
+  def content_max_width_class
+    return "max-w-none" if theme_studio_layout?
+    return "max-w-[1800px]" if wide_content_layout?
+
+    "max-w-3xl"
   end
 
   def new_memo_path_with_current_directory

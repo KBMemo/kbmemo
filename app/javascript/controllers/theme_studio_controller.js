@@ -10,6 +10,16 @@ import {
   loadThemeStorage,
   upsertCustomTheme,
 } from "../theme/theme.js"
+import { adocSkinsYamlToVariables } from "../theme/adoc_skin_tokens.js"
+import {
+  findAsciiDoctorSkinPreset,
+} from "../theme/asciidoctor_skin_presets.js"
+import {
+  listTokenNames,
+  tokenMeta,
+  TOKEN_GROUP_FILTERS,
+} from "../theme/token_catalog.js"
+import { exportThemeYaml, parseThemeImport } from "../theme/theme_yaml.js"
 import {
   buildSelector,
   cssValueToHex,
@@ -34,12 +44,15 @@ export default class extends Controller {
     "designToggle",
     "status",
     "importFile",
+    "adocPreset",
+    "tokenFilterTabs",
   ]
 
   static values = {
     editingThemeId: String,
     sample: { type: String, default: "show" },
     designMode: { type: Boolean, default: false },
+    tokenFilter: { type: String, default: "all" },
   }
 
   connect() {
@@ -246,6 +259,7 @@ export default class extends Controller {
 
     if (variable) {
       this.draft.variables[variable] = value
+      this.syncMemoBodyFromAdoc(variable, value)
     } else {
       this.upsertRule(this.selectedSelector, property, value)
     }
@@ -288,46 +302,123 @@ export default class extends Controller {
   renderTokenList() {
     if (!this.hasTokenListTarget) return
 
-    const tokens = Object.entries(this.draft.variables).sort(([a], [b]) => a.localeCompare(b))
-    this.tokenListTarget.replaceChildren(
-      ...tokens.map(([name, value]) => {
-        const row = document.createElement("div")
-        row.className = "theme-studio-token-row grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center"
+    this.tokenListTarget.replaceChildren()
 
-        const label = document.createElement("span")
-        label.className = "font-mono text-xs kb-text-secondary truncate"
-        label.textContent = name
-        label.title = name
+    const names = listTokenNames(/** @type {"all" | "chrome" | "adoc"} */ (this.tokenFilterValue))
+    const grouped = TOKEN_GROUP_FILTERS.filter((group) => group.id !== "all")
+      .map((group) => ({
+        ...group,
+        tokens: names.filter((name) => tokenMeta(name).group === group.id),
+      }))
+      .filter((group) => group.tokens.length > 0)
 
-        const input = document.createElement("input")
-        input.type = "text"
-        input.value = value
-        input.addEventListener("change", () => {
-          this.draft.variables[name] = input.value
-          this.applyDraftPreview()
-        })
+    if (this.tokenFilterValue === "all") {
+      for (const group of grouped) {
+        this.tokenListTarget.append(this.buildTokenGroup(group.label, group.tokens))
+      }
+      return
+    }
 
-        if (/^#|^rgb/.test(value)) {
-          const color = document.createElement("input")
-          color.type = "color"
-          color.value = cssValueToHex(value)
-          color.addEventListener("input", () => {
-            input.value = color.value
-            this.draft.variables[name] = color.value
-            this.applyDraftPreview()
-          })
+    const active = grouped.find((group) => group.id === this.tokenFilterValue)
+    if (active) {
+      this.tokenListTarget.append(this.buildTokenGroup(active.label, active.tokens))
+    }
+  }
 
-          const wrap = document.createElement("div")
-          wrap.className = "flex items-center gap-2"
-          wrap.append(color, input)
-          row.append(label, wrap)
-        } else {
-          row.append(label, input)
-        }
+  /** @param {string} label @param {string[]} tokenNames */
+  buildTokenGroup(label, tokenNames) {
+    const section = document.createElement("section")
+    section.className = "theme-studio-token-group space-y-2"
 
-        return row
+    const heading = document.createElement("h3")
+    heading.className = "text-xs font-semibold uppercase tracking-wide kb-text-muted"
+    heading.textContent = label
+    section.append(heading)
+
+    for (const name of tokenNames) {
+      const value = this.draft.variables[name] ?? ""
+      section.append(this.buildTokenRow(name, value))
+    }
+
+    return section
+  }
+
+  /** @param {string} name @param {string} value */
+  buildTokenRow(name, value) {
+    const meta = tokenMeta(name)
+    const row = document.createElement("div")
+    row.className = "theme-studio-token-row grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center"
+
+    const label = document.createElement("span")
+    label.className = "font-mono text-xs kb-text-secondary truncate"
+    label.textContent = meta.label
+    label.title = `${meta.label}\n${name}`
+
+    const input = document.createElement("input")
+    input.type = "text"
+    input.value = value
+    input.className = "kb-input rounded px-2 py-1 text-xs font-mono"
+    input.addEventListener("change", () => {
+      this.draft.variables[name] = input.value
+      this.syncMemoBodyFromAdoc(name, input.value)
+      this.applyDraftPreview()
+    })
+
+    if (/^#|^rgb/.test(value)) {
+      const color = document.createElement("input")
+      color.type = "color"
+      color.value = cssValueToHex(value)
+      color.addEventListener("input", () => {
+        input.value = color.value
+        this.draft.variables[name] = color.value
+        this.syncMemoBodyFromAdoc(name, color.value)
+        this.applyDraftPreview()
       })
-    )
+
+      const wrap = document.createElement("div")
+      wrap.className = "flex items-center gap-2"
+      wrap.append(color, input)
+      row.append(label, wrap)
+    } else {
+      row.append(label, input)
+    }
+
+    return row
+  }
+
+  /** @param {string} name @param {string} value */
+  syncMemoBodyFromAdoc(name, value) {
+    if (name === "--mg-text") this.draft.variables["--kb-memo-body-text"] = value
+    if (name === "--mg-surface") this.draft.variables["--kb-memo-body-bg"] = value
+    if (name === "--mg-divider") this.draft.variables["--kb-memo-body-border"] = value
+  }
+
+  selectTokenFilter(event) {
+    const button = event.currentTarget
+    if (!(button instanceof HTMLButtonElement)) return
+
+    this.tokenFilterValue = button.dataset.filter ?? "all"
+    if (this.hasTokenFilterTabsTarget) {
+      this.tokenFilterTabsTarget.querySelectorAll(".theme-studio-filter-tab").forEach((tab) => {
+        tab.classList.toggle("is-active", tab === button)
+      })
+    }
+    this.renderTokenList()
+  }
+
+  adocPresetChanged() {
+    if (!this.hasAdocPresetTarget) return
+    const preset = findAsciiDoctorSkinPreset(this.adocPresetTarget.value)
+    if (!preset) return
+
+    const adocVars = adocSkinsYamlToVariables(preset.yaml)
+    this.draft.variables = { ...this.draft.variables, ...adocVars }
+    if (adocVars["--mg-text"]) this.draft.variables["--kb-memo-body-text"] = adocVars["--mg-text"]
+    if (adocVars["--mg-surface"]) this.draft.variables["--kb-memo-body-bg"] = adocVars["--mg-surface"]
+
+    this.applyDraftPreview()
+    this.renderTokenList()
+    this.setStatus(`${preset.label} プリセットを適用しました`)
   }
 
   renderCustomThemeList() {
@@ -400,14 +491,33 @@ export default class extends Controller {
       exportedAt: new Date().toISOString(),
       theme: this.draft,
     }
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" })
+    this.downloadText(
+      JSON.stringify(payload, null, 2),
+      `${this.draft.label.replace(/\s+/g, "-") || "kbmemo-theme"}.json`,
+      "application/json"
+    )
+    this.setStatus("JSON をエクスポートしました")
+  }
+
+  exportYaml() {
+    const yaml = exportThemeYaml(this.draft)
+    this.downloadText(
+      yaml,
+      `${this.draft.label.replace(/\s+/g, "-") || "kbmemo-theme"}.yml`,
+      "application/x-yaml"
+    )
+    this.setStatus("YAML をエクスポートしました（asciidoctor-skins 互換）")
+  }
+
+  /** @param {string} content @param {string} filename @param {string} mime */
+  downloadText(content, filename, mime) {
+    const blob = new Blob([content], { type: mime })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement("a")
     anchor.href = url
-    anchor.download = `${this.draft.label.replace(/\s+/g, "-") || "kbmemo-theme"}.json`
+    anchor.download = filename
     anchor.click()
     URL.revokeObjectURL(url)
-    this.setStatus("テーマをエクスポートしました")
   }
 
   importTheme(event) {
@@ -418,23 +528,23 @@ export default class extends Controller {
     const reader = new FileReader()
     reader.onload = () => {
       try {
-        const parsed = JSON.parse(String(reader.result))
-        const theme = parsed.theme ?? parsed
+        const imported = parseThemeImport(String(reader.result))
         this.draft = createCustomTheme({
-          id: theme.id,
-          label: theme.label ?? "インポートしたテーマ",
-          baseTheme: theme.baseTheme ?? "default",
-          variables: theme.variables ?? {},
-          rules: theme.rules ?? [],
+          id: imported.id,
+          label: imported.label ?? "インポートしたテーマ",
+          baseTheme: imported.baseTheme ?? "default",
+          variables: imported.variables ?? {},
+          rules: imported.rules ?? [],
         })
         if (this.hasThemeNameTarget) this.themeNameTarget.value = this.draft.label
         if (this.hasBaseThemeTarget) this.baseThemeTarget.value = this.draft.baseTheme
+        if (this.hasAdocPresetTarget) this.adocPresetTarget.value = ""
         this.applyDraftPreview()
         this.renderTokenList()
         this.clearSelection()
         this.setStatus("テーマをインポートしました")
       } catch {
-        this.setStatus("インポートに失敗しました（JSON 形式を確認してください）")
+        this.setStatus("インポートに失敗しました（JSON / YAML 形式を確認してください）")
       } finally {
         input.value = ""
       }

@@ -1,11 +1,14 @@
 .max-w-none
   article.memo-body.asciidoctor.kb-card.p-6 data-theme-slot="memo-body"
-    h1 サンプルメモ
+    h1 data-theme-slot="adoc-heading" サンプルメモ
     p
       | これはテーマプレビュー用の
       strong 表示
-      | サンプルです。AsciiDoc の見た目とメモカードのスタイルを確認できます。
-    .admonitionblock.note
+      | サンプルです。
+      = link_to "AsciiDoc リンク", "#", data: { theme_slot: "adoc-link" }
+    h2 data-theme-slot="adoc-heading" セクション見出し
+    p.kb-text-secondary 見出し・リンク・表・Admonition など asciidoctor-skins 互換の CSS 変数で調整できます。
+    .admonitionblock.note data-theme-slot="adoc-admonition"
       table
         tbody
           tr
@@ -13,12 +16,34 @@
               i.fa.icon-note[title="Note" aria-hidden="true"]
               | Note
             td.content
-              | テーマ作成ページでは Design モードで要素をクリックし、スタイルを編集できます。
-    pre
+              | Design モードで Admonition をクリックすると Note / Tip 等の色トークンを編集できます。
+    .admonitionblock.warning data-theme-slot="adoc-admonition"
+      table
+        tbody
+          tr
+            td.icon
+              i.fa.icon-warning[title="Warning" aria-hidden="true"]
+              | Warning
+            td.content
+              | Warning は --mg-warning トークンで調整します。
+    pre data-theme-slot="adoc-code"
       code
         | def hello
         |   puts "kbmemo"
         | end
-    blockquote
+    blockquote data-theme-slot="adoc-blockquote"
       p
         | 引用ブロックのサンプルテキストです。
+    table.tableblock data-theme-slot="adoc-table"
+      caption 表のキャプション
+      thead
+        tr
+          th 列 A
+          th 列 B
+      tbody
+        tr
+          td セル 1
+          td セル 2
+        tr
+          td セル 3
+          td セル 4

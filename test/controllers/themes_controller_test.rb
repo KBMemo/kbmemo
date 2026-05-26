@@ -15,7 +15,9 @@ class ThemesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "テーマ作成"
     assert_includes response.body, "Design モード"
+    assert_includes response.body, "AsciiDoc プリセット"
     assert_includes response.body, "data-controller=\"theme-studio\""
+    assert_match(/<main[^>]*max-w-none/, response.body)
   end
 
   test "guest cannot fetch theme preference" do

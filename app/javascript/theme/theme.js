@@ -42,6 +42,8 @@ function renderCustomThemeCss(themeId) {
   const custom = findCustomTheme(themeId)
   if (!custom) return ""
 
+  const rootSelector = `html[data-kb-theme="${custom.id}"]`
+
   const variableLines = Object.entries(custom.variables)
     .map(([name, value]) => `  ${name}: ${value};`)
     .join("\n")
@@ -55,7 +57,6 @@ function renderCustomThemeCss(themeId) {
     })
     .join("\n\n")
 
-  const rootSelector = `html[data-kb-theme="${custom.id}"]`
   const variableBlock = variableLines ? `${rootSelector} {\n${variableLines}\n}` : ""
 
   return [variableBlock, ruleBlocks].filter(Boolean).join("\n\n")

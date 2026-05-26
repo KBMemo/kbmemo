@@ -1,29 +1,43 @@
 - content_for :title, "テーマ作成"
 
-div data-controller="theme-studio" data-theme-studio-editing-theme-id-value=(@editing_theme_id || "")
+div data-controller="theme-studio" data-theme-studio-editing-theme-id-value=(@editing_theme_id || "") data-theme-studio-token-filter-value="all"
   .mb-6
     h1.text-2xl.font-semibold.kb-text-primary テーマ作成
     p.mt-2.text-sm.kb-text-secondary
       | 表示・編集・カンバンのサンプルで見た目を確認し、Design モードで要素をクリックして CSS 変数を調整できます。
-      | テーマは localStorage とアカウントに保存され、端末間で同期されます。JSON のエクスポート／インポートにも対応しています。
+      | AsciiDoc は asciidoctor-skins 互換の YAML（primarycolor 等）のインポート／エクスポートに対応しています。
 
   .theme-studio-layout
     aside.theme-studio-sidebar.space-y-4
       div
         label.block.text-sm.font-medium.kb-text-primary for="theme_name" テーマ名
-        input#theme_name.mt-1.w-full.rounded.border.kb-border.px-2.py-1.text-sm type="text" value="新しいテーマ" data-theme-studio-target="themeName" data-action="input->theme-studio#themeNameChanged"
+        input#theme_name class="#{kb_field_input_classes} mt-1 w-full rounded px-2 py-1" type="text" value="新しいテーマ" data-theme-studio-target="themeName" data-action="input->theme-studio#themeNameChanged"
 
       div
         label.block.text-sm.font-medium.kb-text-primary for="theme_base" ベーステーマ
-        select#theme_base.mt-1.w-full.rounded.border.kb-border.px-2.py-1.text-sm data-theme-studio-target="baseTheme" data-action="change->theme-studio#baseThemeChanged"
+        select#theme_base class="#{kb_field_input_classes} mt-1 w-full rounded px-2 py-1" data-theme-studio-target="baseTheme" data-action="change->theme-studio#baseThemeChanged"
           option value="default" Default
           option value="dark" Dark
           option value="sepia" Sepia
           option value="minimal" Minimal
 
       div
-        p.text-sm.font-medium.kb-text-primary CSS 変数
-        .mt-2.max-h-64.space-y-2.overflow-y-auto data-theme-studio-target="tokenList"
+        label.block.text-sm.font-medium.kb-text-primary for="adoc_preset" AsciiDoc プリセット
+        select#adoc_preset class="#{kb_field_input_classes} mt-1 w-full rounded px-2 py-1" data-theme-studio-target="adocPreset" data-action="change->theme-studio#adocPresetChanged"
+          option value="" （プリセットなし）
+          option value="material-grey" Material Grey
+          option value="dark" Dark
+          option value="clean" Clean
+          option value="tufte" Tufte
+
+      div
+        .flex.items-center.justify-between.gap-2
+          p.text-sm.font-medium.kb-text-primary CSS 変数
+          .theme-studio-filter-tabs data-theme-studio-target="tokenFilterTabs"
+            button.theme-studio-filter-tab.is-active type="button" data-filter="all" data-action="theme-studio#selectTokenFilter" すべて
+            button.theme-studio-filter-tab type="button" data-filter="chrome" data-action="theme-studio#selectTokenFilter" UI
+            button.theme-studio-filter-tab type="button" data-filter="adoc" data-action="theme-studio#selectTokenFilter" AsciiDoc
+        .mt-2.max-h-72.space-y-3.overflow-y-auto data-theme-studio-target="tokenList"
 
       div
         p.text-sm.font-medium.kb-text-primary 保存済みカスタムテーマ
@@ -33,13 +47,14 @@ div data-controller="theme-studio" data-theme-studio-editing-theme-id-value=(@ed
         button.kb-chrome-btn-primary type="button" data-theme-slot="btn-primary" data-action="theme-studio#saveTheme" 保存
         button.kb-chrome-btn-secondary type="button" data-action="theme-studio#applyTheme" 適用
         button.kb-chrome-btn-secondary type="button" data-action="theme-studio#newTheme" 新規
-        button.kb-chrome-btn-secondary type="button" data-action="theme-studio#exportTheme" エクスポート
+        button.kb-chrome-btn-secondary type="button" data-action="theme-studio#exportTheme" JSON
+        button.kb-chrome-btn-secondary type="button" data-action="theme-studio#exportYaml" YAML
         button.kb-chrome-btn-secondary type="button" data-action="theme-studio#triggerImport" インポート
-        input.hidden type="file" accept="application/json,.json" data-theme-studio-target="importFile" data-action="change->theme-studio#importTheme"
+        input.hidden type="file" accept="application/json,.json,application/x-yaml,text/yaml,text/x-yaml,.yml,.yaml" data-theme-studio-target="importFile" data-action="change->theme-studio#importTheme"
 
       p.text-xs.kb-text-muted data-theme-studio-target="status"
 
-    div
+    div.theme-studio-main
       .theme-studio-preview
         .theme-studio-preview-toolbar
           button.theme-studio-tab.is-active type="button" data-sample-name="show" data-action="theme-studio#selectSample" 表示
