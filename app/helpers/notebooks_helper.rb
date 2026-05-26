@@ -26,10 +26,20 @@ module NotebooksHelper
   end
 
   def notebook_memo_path_for_viewer(notebook, memo, viewer:)
-    if viewer && policy(memo).update?
-      edit_memo_path(memo)
-    else
-      memo_path(memo)
-    end
+    notebook_path(notebook, memo_id: memo.id)
+  end
+
+  def notebook_memo_tree_row_classes(entry, selected_memo:)
+    active = selected_memo&.id == entry.memo_id
+    base = "kb-sidebar-link block min-w-0 flex-1 truncate border-l-2 px-2 py-1.5 text-sm transition #{kb_focus_ring}"
+    [base, active ? "is-active" : ""].join(" ")
+  end
+
+  def notebook_tree_branch_open?(entry, by_parent, selected_memo_id)
+    return false unless selected_memo_id
+
+    return true if entry.memo_id == selected_memo_id
+
+    (by_parent[entry.id] || []).any? { |child| notebook_tree_branch_open?(child, by_parent, selected_memo_id) }
   end
 end

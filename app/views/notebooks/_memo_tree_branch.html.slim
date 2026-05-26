@@ -1,0 +1,32 @@
+ruby:
+  children = by_parent[entry.id] || []
+  has_children = children.any?
+  open = notebook_tree_branch_open?(entry, by_parent, selected_memo_id)
+  row_drop = if can_manage
+    {
+      dragover: "notebook-memo-tree#allowDrop",
+      dragenter: "notebook-memo-tree#dragEnterRow",
+      dragleave: "notebook-memo-tree#dragLeaveRow",
+      drop: "notebook-memo-tree#dropOnRow"
+    }
+  end
+  row_attrs = {
+    class: "mb-0.5 min-w-0",
+    data: {
+      notebook_memo_id: entry.id,
+      parent_id: entry.parent_id,
+      position: entry.position
+    }
+  }
+
+li *row_attrs
+  - if has_children
+    = tag.details(open: open, class: "group") do
+      summary.flex.min-w-0.list-none.items-center.gap-0.5.rounded-md.kb-hover-row.memo-directory-nav-summary
+        span aria-hidden="true" class="shrink-0 cursor-pointer text-[10px] leading-none kb-text-subtle transition-transform select-none group-open:rotate-90" ▶
+        = render "notebooks/memo_tree_row", entry: entry, can_manage: can_manage, row_drop: row_drop
+      ul.mt-0.5.space-y-0.5.border-l.kb-border.pl-2.ml-2 data-tree-children="" data-action=(can_manage ? "dragover->notebook-memo-tree#allowDrop drop->notebook-memo-tree#dropOnChildren" : nil)
+        - children.each do |child|
+          = render "notebooks/memo_tree_branch", entry: child, by_parent: by_parent, selected_memo_id: selected_memo_id, can_manage: can_manage
+  - else
+    = render "notebooks/memo_tree_row", entry: entry, can_manage: can_manage, row_drop: row_drop

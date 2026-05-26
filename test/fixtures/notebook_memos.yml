@@ -9,18 +9,21 @@
 #  updated_at    :datetime         not null
 #  memo_id       :integer          not null
 #  notebook_id   :integer          not null
+#  parent_id     :integer
 #
 # Indexes
 #
 #  index_notebook_memos_on_memo_id                   (memo_id)
 #  index_notebook_memos_on_notebook_id               (notebook_id)
 #  index_notebook_memos_on_notebook_id_and_memo_id   (notebook_id,memo_id) UNIQUE
-#  index_notebook_memos_on_notebook_id_and_position  (notebook_id,position)
+#  index_notebook_memos_on_notebook_parent_position  (notebook_id,parent_id,position)
+#  index_notebook_memos_on_parent_id                 (parent_id)
 #
 # Foreign Keys
 #
 #  memo_id      (memo_id => memos.id)
 #  notebook_id  (notebook_id => notebooks.id)
+#  parent_id    (parent_id => notebook_memos.id)
 #
 one_one:
   notebook: one

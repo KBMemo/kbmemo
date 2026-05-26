@@ -1,0 +1,13 @@
+.kb-card.p-6
+  h1.text-2xl.font-semibold.kb-text-primary = notebook.title
+  p.mt-2.text-sm.kb-text-secondary
+    = notebook_kind_label(notebook)
+    span.kb-text-subtle aria-hidden="true" ·
+    = notebook_status_label(notebook)
+  - if notebook.description.present?
+    p.mt-4.text-sm.kb-text-secondary = notebook.description
+  p.mt-6.text-sm.kb-text-muted
+    - if @can_manage
+      | 左の一覧からメモを選ぶか、編集画面からメモを追加してください。
+    - else
+      | 左の一覧からメモを選んでください。

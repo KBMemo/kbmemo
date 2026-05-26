@@ -56,6 +56,7 @@ Rails.application.routes.draw do
     member do
       patch :publish
       patch :unpublish
+      patch :reorder_memos
       get :available_memos
     end
 

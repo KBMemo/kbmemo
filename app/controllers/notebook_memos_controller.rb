@@ -12,7 +12,7 @@ class NotebookMemosController < ApplicationController
     authorize memo, :update?
 
     Notebooks::AddMemo.call(notebook: @notebook, memo: memo)
-    redirect_to @notebook, notice: "メモを追加しました。"
+    redirect_to notebook_path(@notebook, memo_id: memo.id), notice: "メモを追加しました。"
   rescue Notebooks::Error => e
     redirect_to edit_notebook_path(@notebook), alert: e.message
   rescue ActiveRecord::RecordNotFound

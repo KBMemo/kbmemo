@@ -77,6 +77,9 @@ application.register("memo-search", MemoSearchController)
 import MemoSidebarController from "./memo_sidebar_controller"
 application.register("memo-sidebar", MemoSidebarController)
 
+import NotebookMemoTreeController from "./notebook_memo_tree_controller"
+application.register("notebook-memo-tree", NotebookMemoTreeController)
+
 import UserMenuController from "./user_menu_controller"
 application.register("user-menu", UserMenuController)
 

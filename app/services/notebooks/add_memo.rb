@@ -16,7 +16,7 @@ module Notebooks
         raise Error, "このメモは既に別のノートブックに含まれています"
       end
 
-      position = @notebook.notebook_memos.maximum(:position).to_i + 1
+      position = @notebook.notebook_memos.where(parent_id: nil).maximum(:position).to_i + 1
       NotebookMemo.find_or_initialize_by(notebook: @notebook, memo: @memo).tap do |entry|
         entry.position = position if entry.new_record?
         entry.save!

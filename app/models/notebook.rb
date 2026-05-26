@@ -34,6 +34,8 @@ class Notebook < ApplicationRecord
   belongs_to :memo_directory, optional: true
 
   has_many :notebook_memos, -> { order(:position, :id) }, dependent: :destroy, inverse_of: :notebook
+  has_many :root_notebook_memos, -> { where(parent_id: nil).order(:position, :id) },
+    class_name: "NotebookMemo", inverse_of: :notebook
   has_many :memos, through: :notebook_memos
 
   enum :publication_kind, { blog: 0, manual: 1, notes: 2 }, default: :notes

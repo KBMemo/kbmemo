@@ -31,6 +31,28 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, memos(:one).title
     assert_includes response.body, memos(:two).title
+    assert_includes response.body, "notebook_memo_tree"
+    assert_includes response.body, "notebook_memo_panel"
+  end
+
+  test "show selects memo from query param" do
+    get notebook_url(notebooks(:one), memo_id: memos(:two).id)
+    assert_response :success
+    assert_includes response.body, memos(:two).title
+  end
+
+  test "reorder memos in tree" do
+    notebook = notebooks(:one)
+    entry = notebook_memos(:one_two)
+
+    patch reorder_memos_notebook_url(notebook), params: {
+      notebook_memo_id: entry.id,
+      parent_id: notebook_memos(:one_one).id,
+      position: 0
+    }, as: :json
+
+    assert_response :no_content
+    assert_equal notebook_memos(:one_one).id, entry.reload.parent_id
   end
 
   test "publish blog notebook" do
@@ -71,7 +93,7 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_difference -> { notebook.notebook_memos.count }, 1 do
       post notebook_notebook_memos_url(notebook), params: { memo_id: memo.id }
     end
-    assert_redirected_to notebook_url(notebook)
+    assert_redirected_to notebook_path(notebook, memo_id: memo.id)
   end
 
   test "cannot access other users notebook when unpublished" do

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_26_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_26_174134) do
   create_table "account_login_change_keys", force: :cascade do |t|
     t.datetime "deadline", null: false
     t.string "key", null: false
@@ -156,12 +156,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_160000) do
     t.datetime "created_at", null: false
     t.integer "memo_id", null: false
     t.integer "notebook_id", null: false
+    t.integer "parent_id"
     t.integer "position", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["memo_id"], name: "index_notebook_memos_on_memo_id"
     t.index ["notebook_id", "memo_id"], name: "index_notebook_memos_on_notebook_id_and_memo_id", unique: true
-    t.index ["notebook_id", "position"], name: "index_notebook_memos_on_notebook_id_and_position"
+    t.index ["notebook_id", "parent_id", "position"], name: "index_notebook_memos_on_notebook_parent_position"
     t.index ["notebook_id"], name: "index_notebook_memos_on_notebook_id"
+    t.index ["parent_id"], name: "index_notebook_memos_on_parent_id"
   end
 
   create_table "notebooks", force: :cascade do |t|
@@ -210,6 +212,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_160000) do
   add_foreign_key "memos", "memo_directories"
   add_foreign_key "memos", "memo_groups"
   add_foreign_key "notebook_memos", "memos"
+  add_foreign_key "notebook_memos", "notebook_memos", column: "parent_id"
   add_foreign_key "notebook_memos", "notebooks"
   add_foreign_key "notebooks", "accounts"
   add_foreign_key "notebooks", "memo_directories"
