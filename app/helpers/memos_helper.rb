@@ -62,6 +62,8 @@ module MemosHelper
       h[:sidebar_view] = "tag"
       tid = (@current_tag&.id || params[:tag_id]).presence
       h[:tag_id] = tid if tid
+    elsif defined?(@sidebar_view) && @sidebar_view == "history"
+      h[:sidebar_view] = "history"
     elsif defined?(@current_memo_directory) && @current_memo_directory && !@current_memo_directory.root?
       h[:memo_directory_id] = @current_memo_directory.id
     end
@@ -127,8 +129,16 @@ module MemosHelper
     end
   end
 
+  def memos_sidebar_history_tab_path
+    if (memo = memo_sidebar_open_memo)
+      return memo_sidebar_open_memo_path(memo, sidebar_view: "history")
+    end
+
+    memos_path(sidebar_view: "history")
+  end
+
   def memo_sidebar_view_tab_classes(mode)
-    base = "kb-sidebar-tab flex-1 rounded-md px-2 py-1.5 text-center text-xs font-medium transition #{kb_focus_ring}"
+    base = "kb-sidebar-tab min-w-0 flex-1 rounded-md px-1.5 py-1.5 text-center text-[11px] font-medium transition #{kb_focus_ring}"
     active = defined?(@sidebar_view) && @sidebar_view == mode
     [base, active ? "is-active" : nil].compact.join(" ")
   end

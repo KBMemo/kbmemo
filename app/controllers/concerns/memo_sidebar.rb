@@ -72,6 +72,8 @@ module MemoSidebar
         else
           base.none
         end
+      when "history"
+        MemoViewHistory.recent_memos_for(rodauth.rails_account, scope: base.unscope(:order))
       else
         base.where(memo_directory_id: @current_memo_directory.id)
       end
@@ -81,6 +83,7 @@ module MemoSidebar
     case params[:sidebar_view].to_s
     when "tag" then "tag"
     when "search" then "search"
+    when "history" then "history"
     else "directory"
     end
   end

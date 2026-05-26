@@ -3,6 +3,7 @@ class MemosController < ApplicationController
   before_action :set_memo_groups_for_form, only: %i[new create edit update]
   include MemoSidebar
 
+  after_action :record_memo_view_history, only: %i[show edit]
   after_action :verify_authorized
 
   def wiki_completions
@@ -346,6 +347,14 @@ class MemosController < ApplicationController
     return if action_name == "show"
 
     super
+  end
+
+  def record_memo_view_history
+    account = rodauth.rails_account
+    return unless account && @memo&.persisted?
+    return unless response.successful?
+
+    MemoViewHistory.record!(account: account, memo: @memo)
   end
 
   def set_memo_groups_for_form

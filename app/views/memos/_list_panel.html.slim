@@ -11,6 +11,7 @@ ruby:
       = link_to "ディレクトリ", memos_sidebar_directory_tab_path, class: memo_sidebar_view_tab_classes("directory"), draggable: "false"
       = link_to "タグ", memos_sidebar_tag_tab_path, class: memo_sidebar_view_tab_classes("tag"), draggable: "false"
       = link_to "検索", memos_sidebar_search_tab_path, class: memo_sidebar_view_tab_classes("search"), draggable: "false"
+      = link_to "履歴", memos_sidebar_history_tab_path, class: memo_sidebar_view_tab_classes("history"), draggable: "false"
     - if (open_memo = memo_sidebar_open_memo) && (dir = open_memo.memo_directory) && !dir.root?
       .mb-2.min-w-0.text-sm.kb-text-secondary
         span.sr-only 保存先
@@ -34,7 +35,7 @@ ruby:
       - else
         p.mb-2.text-xs.kb-text-secondary タグがまだありません。メモの編集画面でタグを付けられます。
       = link_to "タグを管理…", tags_path, class: "mb-2 inline-block text-xs kb-text-secondary underline decoration-[var(--kb-border-strong)] hover:text-[var(--kb-text-primary)]"
-    - else
+    - elsif @sidebar_view == "search"
       .mb-2 data-controller="memo-search"
         = form_tag memos_path, method: :get, class: "flex min-w-0 gap-1", data: { memo_search_target: "form", turbo: "false" } do
           = hidden_field_tag :sidebar_view, "search"
@@ -42,11 +43,15 @@ ruby:
           - if @memo_search_query.present?
             button.kb-chrome-btn-secondary.shrink-0.px-2.py-1.5.text-xs type="button" data-action="memo-search#clear" クリア
       p.mb-2.text-xs.kb-text-secondary タイトルと本文を横断して検索します。
+    - elsif @sidebar_view == "history"
+      p.mb-2.text-xs.kb-text-secondary 最近開いたメモを表示します（最大 #{MemoViewHistory::MAX_PER_ACCOUNT} 件）。
     .mb-2.flex.min-w-0.items-center.justify-between.gap-2
       - if @sidebar_view == "search" && @memo_search_query.present?
         p.truncate.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted
           | 検索結果
           span.ml-1.font-normal.normal-case.kb-text-subtle = "「#{h(@memo_search_query)}」"
+      - elsif @sidebar_view == "history"
+        p.truncate.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted 表示履歴
       - else
         p.truncate.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted メモ一覧
       - if @sidebar_view == "directory"
@@ -83,6 +88,8 @@ ruby:
             p 上の欄にキーワードを入力してください
         - elsif @sidebar_view == "tag"
           p このタグのメモはまだありません
+        - elsif @sidebar_view == "history"
+          p まだ表示履歴がありません
         - elsif defined?(@current_memo_directory) && @current_memo_directory&.root?
           p フォルダを選ぶとメモが表示されます
         - else

@@ -20,6 +20,30 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to memos_url(sidebar_view: "search", q: "hello")
   end
 
+  test "history tab lists recently viewed memos" do
+    one = memos(:one)
+    two = memos(:two)
+    get memo_url(two)
+    assert_response :success
+    travel 1.minute do
+      get memo_url(one)
+      assert_response :success
+    end
+
+    get memos_url(sidebar_view: "history")
+    assert_response :success
+    assert_includes response.body, "表示履歴"
+    assert_match(/#{Regexp.escape(one.title)}[\s\S]*#{Regexp.escape(two.title)}/m, response.body)
+  end
+
+  test "show records memo view history" do
+    memo = memos(:one)
+    assert_difference -> { MemoViewHistory.where(account_id: accounts(:one).id, memo_id: memo.id).count }, 1 do
+      get memo_url(memo)
+      assert_response :success
+    end
+  end
+
   test "show from search keeps memo open without syncing directory sidebar" do
     m = memos(:one)
     dir = m.memo_directory

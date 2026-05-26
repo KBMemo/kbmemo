@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_26_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_26_140000) do
   create_table "account_login_change_keys", force: :cascade do |t|
     t.datetime "deadline", null: false
     t.string "key", null: false
@@ -104,6 +104,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_120000) do
     t.index ["tag_id"], name: "index_memo_tags_on_tag_id"
   end
 
+  create_table "memo_view_histories", force: :cascade do |t|
+    t.integer "account_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "memo_id", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "viewed_at", null: false
+    t.index ["account_id", "memo_id"], name: "index_memo_view_histories_on_account_id_and_memo_id", unique: true
+    t.index ["account_id", "viewed_at"], name: "index_memo_view_histories_on_account_id_and_viewed_at"
+    t.index ["account_id"], name: "index_memo_view_histories_on_account_id"
+    t.index ["memo_id"], name: "index_memo_view_histories_on_memo_id"
+  end
+
   create_table "memo_wiki_links", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "source_memo_id", null: false
@@ -159,6 +171,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_120000) do
   add_foreign_key "memo_group_memberships", "memo_groups"
   add_foreign_key "memo_tags", "memos"
   add_foreign_key "memo_tags", "tags"
+  add_foreign_key "memo_view_histories", "accounts"
+  add_foreign_key "memo_view_histories", "memos"
   add_foreign_key "memo_wiki_links", "memos", column: "source_memo_id", on_delete: :cascade
   add_foreign_key "memo_wiki_links", "memos", column: "target_memo_id", on_delete: :cascade
   add_foreign_key "memos", "accounts"
