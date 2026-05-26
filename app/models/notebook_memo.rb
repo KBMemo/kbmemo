@@ -1,0 +1,33 @@
+# frozen_string_literal: true
+
+# == Schema Information
+#
+# Table name: notebook_memos
+#
+#  id            :integer          not null, primary key
+#  chapter_title :string
+#  position      :integer          default(0), not null
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
+#  memo_id       :integer          not null
+#  notebook_id   :integer          not null
+#
+# Indexes
+#
+#  index_notebook_memos_on_memo_id                   (memo_id)
+#  index_notebook_memos_on_notebook_id               (notebook_id)
+#  index_notebook_memos_on_notebook_id_and_memo_id   (notebook_id,memo_id) UNIQUE
+#  index_notebook_memos_on_notebook_id_and_position  (notebook_id,position)
+#
+# Foreign Keys
+#
+#  memo_id      (memo_id => memos.id)
+#  notebook_id  (notebook_id => notebooks.id)
+#
+class NotebookMemo < ApplicationRecord
+  belongs_to :notebook
+  belongs_to :memo
+
+  validates :memo_id, uniqueness: true
+  validates :position, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+end

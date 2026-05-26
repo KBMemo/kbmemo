@@ -1,0 +1,25 @@
+- content_for :title, "編集 · #{@notebook.title}"
+
+.mb-6
+  h1.text-xl.font-semibold.kb-text-primary ノートブックを編集
+
+= render "form", notebook: @notebook, submit_label: "保存"
+
+section.mt-10
+  h2.text-base.font-semibold.kb-text-primary メモの追加
+  - if @available_memos&.any?
+    = form_with url: notebook_notebook_memos_path(@notebook), method: :post, class: "mt-3 flex flex-wrap items-end gap-2" do
+      div
+        = label_tag :memo_id, "メモ", class: kb_label
+        = select_tag :memo_id, options_from_collection_for_select(@available_memos, :id, :title), include_blank: "選んでください", required: true, class: kb_field_input_classes
+      = submit_tag "追加", class: "kb-chrome-btn-primary px-4 py-2 text-sm", data: { theme_slot: "btn-primary" }
+  - else
+    p.mt-2.text-sm.kb-text-muted 追加できるメモがありません（未所属のメモのみ追加できます）。
+
+  - if @notebook_memos.any?
+    h3.mt-8.text-sm.font-semibold.kb-text-primary 含まれるメモ
+    ul.mt-3 class="divide-y divide-[var(--kb-border)] rounded-md border kb-border"
+      - @notebook_memos.each do |entry|
+        li.flex.items-center.justify-between.gap-3.px-3.py-2
+          span.min-w-0.truncate = entry.memo.title
+          = button_to "外す", notebook_notebook_memo_path(@notebook, entry.memo), method: :delete, class: "shrink-0 text-sm text-red-600 hover:text-red-800"

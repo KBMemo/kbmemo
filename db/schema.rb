@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_26_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_26_160000) do
   create_table "account_login_change_keys", force: :cascade do |t|
     t.datetime "deadline", null: false
     t.string "key", null: false
@@ -151,6 +151,35 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_140000) do
     t.index ["slug"], name: "index_memos_on_slug", unique: true
   end
 
+  create_table "notebook_memos", force: :cascade do |t|
+    t.string "chapter_title"
+    t.datetime "created_at", null: false
+    t.integer "memo_id", null: false
+    t.integer "notebook_id", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["memo_id"], name: "index_notebook_memos_on_memo_id"
+    t.index ["notebook_id", "memo_id"], name: "index_notebook_memos_on_notebook_id_and_memo_id", unique: true
+    t.index ["notebook_id", "position"], name: "index_notebook_memos_on_notebook_id_and_position"
+    t.index ["notebook_id"], name: "index_notebook_memos_on_notebook_id"
+  end
+
+  create_table "notebooks", force: :cascade do |t|
+    t.integer "account_id", null: false
+    t.datetime "created_at", null: false
+    t.text "description", default: "", null: false
+    t.integer "memo_directory_id"
+    t.integer "publication_kind", default: 2, null: false
+    t.datetime "published_at"
+    t.string "slug", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "publication_kind"], name: "index_notebooks_on_account_id_and_publication_kind"
+    t.index ["account_id", "slug"], name: "index_notebooks_on_account_id_and_slug", unique: true
+    t.index ["account_id"], name: "index_notebooks_on_account_id"
+    t.index ["memo_directory_id"], name: "index_notebooks_on_memo_directory_id"
+  end
+
   create_table "tags", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
@@ -180,4 +209,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_140000) do
   add_foreign_key "memos", "boards"
   add_foreign_key "memos", "memo_directories"
   add_foreign_key "memos", "memo_groups"
+  add_foreign_key "notebook_memos", "memos"
+  add_foreign_key "notebook_memos", "notebooks"
+  add_foreign_key "notebooks", "accounts"
+  add_foreign_key "notebooks", "memo_directories"
 end

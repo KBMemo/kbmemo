@@ -1,0 +1,32 @@
+= form_with model: notebook, class: "space-y-4 max-w-xl" do |f|
+  - if notebook.errors.any?
+    .rounded-md.border.border-red-200.bg-red-50.px-4.py-3.text-sm.text-red-900
+      p.font-medium 保存できませんでした。
+      ul.mt-2.list-inside.list-disc
+        - notebook.errors.full_messages.each do |message|
+          li = message
+
+  div
+    = f.label :title, "タイトル", class: kb_label
+    = f.text_field :title, required: true, class: kb_field_input_classes
+
+  div
+    = f.label :slug, "スラッグ（URL 用）", class: kb_label
+    = f.text_field :slug, class: kb_field_input_classes
+    p.mt-1.text-xs.kb-text-muted アカウント内で一意の識別子です。
+
+  div
+    = f.label :publication_kind, "種別", class: kb_label
+    = f.select :publication_kind, notebook_kind_options_for_select, {}, class: kb_field_input_classes
+
+  div
+    = f.label :description, "説明", class: kb_label
+    = f.text_area :description, rows: 3, class: kb_field_input_classes
+
+  div
+    = f.label :memo_directory_id, "新規メモの既定保存先（任意）", class: kb_label
+    = f.collection_select :memo_directory_id, @memo_directory_options, :id, :labeled_path_from_root, { include_blank: "（未指定）" }, class: kb_field_input_classes
+
+  .flex.flex-wrap.gap-2
+    = f.submit submit_label, class: "kb-chrome-btn-primary px-4 py-2 text-sm", data: { theme_slot: "btn-primary" }
+    = link_to "キャンセル", notebook.persisted? ? notebook_path(notebook) : notebooks_path, class: "kb-chrome-btn-secondary px-4 py-2 text-sm"

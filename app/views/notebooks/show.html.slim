@@ -1,0 +1,57 @@
+- content_for :title, @notebook.title
+
+.mb-4.flex.flex-wrap.items-start.justify-between.gap-3
+  div.min-w-0
+    h1.text-xl.font-semibold.kb-text-primary = @notebook.title
+    p.mt-1.text-sm.kb-text-secondary
+      = notebook_kind_label(@notebook)
+      span.kb-text-subtle aria-hidden="true" ·
+      = notebook_status_label(@notebook)
+    - if @notebook.description.present?
+      p.mt-2.text-sm.kb-text-secondary = @notebook.description
+    p.mt-2.text-sm
+      = link_to "ノートブック一覧", notebooks_path, class: "kb-chrome-link"
+      - if @can_manage
+        = " · "
+        = link_to "編集", edit_notebook_path(@notebook), class: "kb-chrome-link"
+
+  - if @can_manage
+    .flex.flex-wrap.items-center.gap-2
+      - if @notebook.notes?
+        span.text-xs.kb-text-muted 自分用ノートは公開できません
+      - elsif @notebook.published?
+        = button_to "公開停止", unpublish_notebook_path(@notebook), method: :patch, class: "kb-chrome-btn-secondary px-3 py-1.5 text-sm"
+      - else
+        = button_to "公開", publish_notebook_path(@notebook), method: :patch, class: "kb-chrome-btn-primary px-3 py-1.5 text-sm", data: { theme_slot: "btn-primary" }
+
+- if @notebook_memos.any?
+  - if @notebook.manual?
+    nav.mb-6.kb-card.p-4
+      h2.text-sm.font-semibold.kb-text-primary 目次
+      ol.mt-3.list-decimal.space-y-1.pl-5.text-sm
+        - @notebook_memos.each do |entry|
+          li
+            = link_to @notebook.display_label_for_memo(entry), notebook_memo_path_for_viewer(@notebook, entry.memo, viewer: @can_manage), class: kb_link_table
+  - elsif @notebook.blog?
+    .space-y-6
+      - @notebook_memos.reverse_each do |entry|
+        article.kb-card.p-4
+          h2.text-lg.font-semibold.kb-text-primary
+            = link_to @notebook.display_label_for_memo(entry), notebook_memo_path_for_viewer(@notebook, entry.memo, viewer: @can_manage), class: "hover:underline"
+          p.mt-1.text-xs.kb-text-muted
+            time datetime=entry.memo.updated_at.iso8601 = l(entry.memo.updated_at, format: :short)
+  - else
+    ul class="divide-y divide-[var(--kb-border)] rounded-md border kb-border"
+      - @notebook_memos.each do |entry|
+        li.px-3.py-3
+          = link_to @notebook.display_label_for_memo(entry), notebook_memo_path_for_viewer(@notebook, entry.memo, viewer: @can_manage), class: kb_link_table
+          p.mt-1.text-xs.kb-text-muted
+            time datetime=entry.memo.updated_at.iso8601 = l(entry.memo.updated_at, format: :short)
+- else
+  p.text-sm.kb-text-muted
+    - if @can_manage
+      | メモがまだありません。
+      = link_to "編集画面", edit_notebook_path(@notebook), class: "kb-chrome-link"
+      | から追加してください。
+    - else
+      | このノートブックにはまだ公開されているメモがありません。

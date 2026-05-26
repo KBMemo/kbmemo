@@ -31,6 +31,7 @@ html data-kb-theme="default" data-kb-theme-base="default"
         .flex.flex-wrap.items-center.gap-x-4.gap-y-2.text-sm
           = link_to "メモ", memos_path, class: "kb-chrome-link"
           = link_to "カンバン", boards_path, class: "kb-chrome-link"
+          = link_to "ノートブック", notebooks_path, class: "kb-chrome-link"
           = link_to "タグ管理", tags_path, class: "kb-chrome-link"
           = link_to "テーマ", theme_studio_path, class: "kb-chrome-link"
           - if rodauth.rails_account&.admin?

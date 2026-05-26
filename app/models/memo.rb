@@ -51,6 +51,8 @@ class Memo < ApplicationRecord
   has_many :outgoing_wiki_links, class_name: "MemoWikiLink", foreign_key: :source_memo_id, dependent: :delete_all, inverse_of: :source_memo
   has_many :incoming_wiki_links, class_name: "MemoWikiLink", foreign_key: :target_memo_id, dependent: :delete_all, inverse_of: :target_memo
   has_many :memo_view_histories, dependent: :delete_all
+  has_one :notebook_memo, dependent: :destroy
+  has_one :notebook, through: :notebook_memo
 
   scope :on_kanban_board, -> { where.not(board_id: nil) }
   scope :available_for_board, -> { where(board_id: nil) }

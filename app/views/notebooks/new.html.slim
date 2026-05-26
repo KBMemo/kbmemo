@@ -1,0 +1,6 @@
+- content_for :title, "新規ノートブック"
+
+.mb-6
+  h1.text-xl.font-semibold.kb-text-primary 新規ノートブック
+
+= render "form", notebook: @notebook, submit_label: "作成"

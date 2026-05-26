@@ -1,0 +1,34 @@
+= Notebook MVP
+
+テーマごとにメモを集め、用途に応じて公開・閲覧するためのコンテナです。
+
+== 種別（publication_kind）
+
+[cols="1,2,2",options="header"]
+|===
+| 種別 | 用途 | 公開
+
+| `blog` | 記事一覧として公開 | `published_at` 設定後、未ログインでも閲覧可
+| `manual` | 目次付きドキュメント | 同上
+| `notes` | 自分用ノート | 常に非公開（オーナーのみ）
+|===
+
+== データモデル
+
+* `notebooks` — オーナー（`account_id`）、タイトル、スラッグ、種別、説明、公開日時
+* `notebook_memos` — ノートブックとメモの中間（`position` で順序）。MVP では 1 メモは 1 ノートブックのみ
+
+メモ本文は既存の `memos.body`（AsciiDoc）のまま。ノートブックは **表示順と公開単位** のレイヤーです。
+
+== 公開ルール（MVP）
+
+* Blog / Manual は「公開」ボタンで `published_at` を設定
+* ゲストは `NotebookPolicy::Scope` 経由で公開済み notebook の `show` のみ
+* 各メモの閲覧可否は引き続き `MemoPolicy`（`public_everyone` 等）が正
+
+== 今後（Phase 2+）
+
+* 公開用スラッグ URL（`/pub/...`）
+* 章タイトル（`chapter_title`）の編集 UI
+* ノートブック単位の AsciiDoc エクスポート
+* メモを複数ノートブックに所属させる

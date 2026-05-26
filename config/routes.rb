@@ -52,6 +52,16 @@ Rails.application.routes.draw do
     resources :board_cards, only: %i[create destroy], path: "cards"
   end
 
+  resources :notebooks do
+    member do
+      patch :publish
+      patch :unpublish
+      get :available_memos
+    end
+
+    resources :notebook_memos, only: %i[create destroy], path: "memos"
+  end
+
   resources :memos do
     collection do
       get :wiki_completions
