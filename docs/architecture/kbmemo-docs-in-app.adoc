@@ -1,0 +1,314 @@
+= KBMemo 内ドキュメント参照設計
+
+開発ドキュメント（リポジトリ `docs/`）やマニュアル・ヘルプを、開発環境および本番の KBMemo 上から **メモとして参照・閲覧** する方針をまとめる。
+
+前提は `AGENTS.md` どおり: **メモ本文の正は DB の AsciiDoc**。Git 作業ツリー（`MemoRepository`）はコミット後のバックアップ層。リポジトリ直下の `docs/` は **アプリ開発用ドキュメント** であり、現状メモシステムとは別系統。
+
+== 背景・目的
+
+* アーキテクチャ doc（本ファイル含む）を KBMemo 上で Wiki リンク・検索・Notebook 目次と組み合わせて読みたい。
+* エンドユーザー向け **ヘルプ** や社内向け **マニュアル** も KBMemo で管理し、Notebook（`manual`）で公開したい。
+* 開発者向け doc は **Git PR でレビュー可能** な正本を維持しつつ、KBMemo は **閲覧 UI** として使いたい。
+
+== 現状の制約
+
+=== 表示パイプライン
+
+* 画面表示は `memos.body`（DB）を `Asciidoctor.convert` する（`app/helpers/memos_helper.rb` の `memo_html`）。
+* `safe: :safe` で変換しており、**文字列入力に base_dir を渡していない**。
+* そのため `include::path/to/file.adoc[]` は **リポジトリ `docs/` をそのまま引けない**（ファイルパス解決・サンドボックスの両面で未対応）。
+
+=== Git 作業ツリー
+
+* パス: `config.x.memo_git_work_tree`（既定 `storage/memo_git_worktree`、環境変数 `MEMO_GIT_WORK_TREE` で上書き）。
+* メモ 1 件 = DB レコード +（コミット後）`{memo_directory.full_path}/{slug}.adoc` + 任意の `{slug}.assets/`。
+* ファイル形式は YAML front matter + AsciiDoc 本文（`MemoRepository#file_contents_for`）。リポジトリ `docs/*.adoc` の素ファイルと **形式が一致しない**。
+
+=== ディレクトリ・権限
+
+* ルート直下バケットは `home` / `share` / `public`（`docs/architecture/memo-directory-layout.adoc`）。
+* 一般ユーザーは原則 **自分の `home|share|public` 配下の `u-{id}` 以下** のみ参照（`MemoDirectoryPolicy::Scope`）。
+* `admin` は全ディレクトリ参照可。メモ閲覧は引き続き `MemoPolicy`（`visibility`）が正。
+
+== 検討した方式
+
+=== symlink（Git 作業ツリーへ `docs/` をリンク）
+
+[cols="1,3"]
+|===
+|観点 |評価
+
+|KBMemo UI で閲覧
+|× — `Memo` レコードが無ければサイドバー・show に出ない。表示は DB 依存。
+
+|Git `docs/` との一致
+|△ — ファイル実体は共有できるが、メモ形式（front matter・slug 命名）と不一致。
+
+|編集
+|双方向編集で競合しやすい。
+
+|結論
+|**非推奨**（KBMemo 参照手段としては機能しない）
+|===
+
+=== AsciiDoc `include::`
+
+[cols="1,3"]
+|===
+|観点 |評価
+
+|1 メモで目次ハブ
+|理想形だが **現状未対応**。
+
+|技術理由
+|DB 文字列変換 + `safe: :safe` + base_dir 未設定。
+
+|将来
+|専用プリプロセッサ（`Rails.root/docs` から admin のみ include）または include 許可 jail の設計が必要。
+
+|結論
+|**Phase 3 以降**の拡張候補。当面は Wiki リンクで代替。
+|===
+
+=== 手動でメモ化（コピー / インポート）
+
+[cols="1,3"]
+|===
+|観点 |評価
+
+|即効性
+|○ — 追加実装なしで可能。
+
+|Git `docs/` との一致
+|× — 二重管理。更新漏れが起きやすい。
+
+|結論
+|**Phase 0**（少数 doc の試行）向け。
+|===
+
+=== Rake 同期（`docs/` → Memo upsert）
+
+[cols="1,3"]
+|===
+|観点 |評価
+
+|KBMemo UI
+|○ — 通常メモとして検索・Wiki・Notebook 可能。
+
+|Git `docs/` との一致
+|○ — 正本を `docs/` に置ける（PR レビュー維持）。
+
+|実装
+|中 — マッピング・front matter・slug・idempotent upsert。
+
+|結論
+|**Phase 1 推奨**（開発 doc の主経路）。
+|===
+
+=== システム doc バケット（admin 管理・全員閲覧）
+
+[cols="1,3"]
+|===
+|観点 |評価
+
+|ヘルプ・マニュアル
+|◎ — 置き場所と権限をコードで明示できる。
+
+|実装
+|中 — `system` バケット追加、`MemoDirectoryPolicy` / `MemoPolicy` 拡張。
+
+|結論
+|**Phase 2**（本番ヘルプ向け）。
+|===
+
+== 推奨ロードマップ
+
+[cols="1,1,3"]
+|===
+|Phase |名称 |内容
+
+|0
+|手動試行
+|重要 doc をメモに取り込み、Notebook（`manual`）で目次化。運用感の確認。
+
+|1
+|`docs/` 同期 Rake
+|`bin/rails kbmemo:docs:sync` で `docs/**/*.adoc` → Memo を upsert。開発環境・CI で実行。
+
+|2
+|システムバケット
+|`system/docs`（開発・運用）、`system/help`（エンドユーザー）等。admin 編集・閲覧 Policy。
+
+|3
+|include / 固定 URL（任意）
+|include プリプロセッサ、公開ヘルプ用 `/help` ルート、Notebook エクスポート。
+|===
+
+== ドキュメント種別と配置（目標）
+
+[cols="1,2,2,2"]
+|===
+|種別 |正本 |KBMemo 上の置き場 |閲覧者
+
+|開発アーキテクチャ
+|Git `docs/architecture/`
+|同期先: `home/u-{sync_account}/dev-docs/architecture/`（仮）
+|開発者（`group_read` または admin）
+
+|デプロイ・運用
+|Git `docs/deployment/`
+|同期先: `.../dev-docs/deployment/`
+|開発者・運用者
+
+|社内マニュアル
+|KBMemo または Git（要決定）
+|Notebook（`manual`）+ `share/u-{id}/manual/` 等
+|ログインユーザー
+
+|エンドユーザーヘルプ
+|KBMemo（非エンジニア編集可）
+|`public/u-{id}/help/` + Notebook（`manual`）公開
+|`public_everyone` + 公開 Notebook
+|===
+
+* **開発 doc**: Git `docs/` を正とし、KBMemo は **ミラー（読み取り UI）**。
+* **ヘルプ**: KBMemo を正とし、必要なら export で Git にバックアップ（Phase 2 以降で検討）。
+
+== Phase 1: `docs/` 同期 Rake（設計スケッチ）
+
+=== コマンド
+
+[source,bash]
+----
+bin/rails kbmemo:docs:sync
+bin/rails kbmemo:docs:sync DRY_RUN=1
+----
+
+=== 入力
+
+* ルート: `Rails.root.join("docs")`
+* 対象: `**/*.adoc`（必要なら `*.md` は Phase 1 外）
+
+=== 出力（Memo）
+
+[cols="1,3"]
+|===
+|項目 |ルール
+
+|配置ディレクトリ
+|設定可能な `sync_account_id` の `home/u-{id}/dev-docs/...`（パスは `docs/` 以下の相対パスを反映）
+
+|title
+|ファイル先頭の `= Title` または front matter の `title`、なければ basename
+
+|slug
+|ファイル名（拡張子除く）を `Memo.normalize_slug_fragment` で正規化
+
+|body
+|front matter を除いた AsciiDoc 本文
+
+|visibility
+|既定 `group_read` または `owner_read_write`（環境変数で上書き）
+
+|tags
+|固定 `docs-sync` + パス由来タグ（例: `architecture`）
+
+|properties
+|`{ "docs_sync": { "source_path": "architecture/notebook-mvp.adoc", "content_sha256": "..." } }` — 更新検知・再同期用
+|===
+
+=== upsert 方針
+
+* `properties.docs_sync.source_path` で既存メモを特定（なければ新規作成）。
+* 本文ハッシュが変わったときだけ `body` / `title` を更新。
+* **KBMemo 上で手編集した同期管理メモ** との衝突を避けるため、Phase 1 では **同期メモは read-only フラグ**（UI で編集ボタン非表示）を検討。
+* Git `MemoRepository` への write は、同期後にオプションで `write_and_commit!`（開発環境のみ推奨）。
+
+=== やらないこと（Phase 1）
+
+* 双方向同期（Memo → `docs/` への書き戻し）
+* `include::` の自動展開
+* 画像・diagram アセットの自動コピー（本文中パスは後続）
+
+== Phase 2: システム doc バケット（設計スケッチ）
+
+=== ディレクトリ
+
+[source]
+----
+system/
+  docs/     … 開発・運用ドキュメント（admin 編集、開発者閲覧）
+  help/     … エンドユーザー向けヘルプ（admin 編集、public_everyone メモ）
+----
+
+* `home` / `share` / `public` と同様、**ルート直下の保護バケット**として追加（`MemoDirectory::PROTECTED_BUCKET_PATHS` 拡張）。
+* 一般ユーザーの `MemoDirectoryPolicy::Scope` に `system/help` 以下の **読み取り専用** 参照を追加。
+
+=== 権限（案）
+
+[cols="1,3"]
+|===
+|操作 |条件
+
+|`system/docs` のメモ編集
+|admin のみ
+
+|`system/help` のメモ編集
+|admin のみ（将来: 限定ロール）
+
+|閲覧
+|`MemoPolicy#show?` — ヘルプは `public_everyone`、開発 doc は `group_read` 等
+|===
+
+== Notebook との連携
+
+* **マニュアル / ヘルプ** は Notebook `publication_kind: manual` が向く（2 ペイン + ツリー目次、`docs/architecture/notebook-mvp.adoc`）。
+* 同期 Rake で作ったメモを Notebook に登録するタスク（`kbmemo:docs:sync_notebook`）は Phase 1b 候補。
+* 公開ヘルプ: Notebook を `publish` + 各メモ `public_everyone`。
+
+== Wiki リンクによる章間参照
+
+`include::` が使えない Phase 0–2 では、**1 ファイル = 1 メモ** とし、章間は Wiki リンクでつなぐ。
+
+[source,asciidoc]
+----
+詳細は [[notebook-mvp]] を参照。
+
+* <<notebook-mvp#_データモデル,データモデル>> 節
+----
+
+* 同期 Rake は slug をファイル名と揃えるため、リンク先が安定する。
+* リポジトリ内の相対リンク（`xref:` 等）は KBMemo 上では機能しないため、同期時に **Wiki リンクへ変換する前処理** は Phase 1 では行わない（手動または将来タスク）。
+
+== 開発環境での使い方（Phase 0 手順）
+
+. 管理者アカウントでログイン。
+. `home/u-{id}/dev-docs/` 以下にディレクトリを作成。
+. `docs/architecture/notebook-mvp.adoc` 等を **メモ本文としてコピー**（title / slug をファイル名に合わせる）。
+. Notebook（manual）を作成し、メモをツリー順に追加。
+. 社内共有は `group_read`、ヘルプ試行は `public/u-{id}/help/` + `public_everyone`。
+
+== 関連ドキュメント
+
+* `docs/architecture/memo-directory-layout.adoc` — バケット設計
+* `docs/architecture/notebook-mvp.adoc` — マニュアル公開 UI
+* `AGENTS.md` — メモ本文・Slim / Tailwind 方針
+
+== 関連コード（現状）
+
+* `app/helpers/memos_helper.rb` — `memo_html`（Asciidoctor 変換）
+* `app/services/memo_repository.rb` — Git 作業ツリー
+* `app/policies/memo_directory_policy.rb` — ディレクトリスコープ
+* `app/policies/memo_policy.rb` — メモ閲覧・編集
+* `config/application.rb` — `memo_git_work_tree`
+
+== 変更履歴
+
+[cols="1,1,3"]
+|===
+|日付 |版 |内容
+
+|2026-05-26
+|0.1
+|初版（方式比較、Phase 0–3 ロードマップ、同期 Rake / システムバケットの設計スケッチ）
+|===
