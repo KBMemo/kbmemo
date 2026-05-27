@@ -96,9 +96,11 @@ rbenv install -s "$(cat .ruby-version)"
 gem install bundler
 ----
 
-=== Node.js（Vite ビルド用）
+=== Node.js（Vite ビルド用・任意）
 
-LTS（20 または 22）を推奨します。
+LTS（20 または 22）を推奨します。`assets:precompile` に必要です。
+
+NOTE: メモ本文の数式（STEM / KaTeX）は **リクエスト時** に `execjs` でレンダリングします。Gemfile の `mini_racer` が ExecJS ランタイムを提供するため、本番で Node.js が無くても数式表示は動作します。Node.js は Vite ビルド時のみ必須です。
 
 [source,bash]
 ----
@@ -297,6 +299,14 @@ Account.find_by!(email: "既存@example.com").update!(admin: true, status: :veri
 
 == systemd（アプリ常駐）
 
+`start.sh` が rbenv / nvm / PATH と `.env.production` を読み込んでから Thruster + Puma を起動します。リポジトリ直下に同梱されています。
+
+[source,bash]
+----
+cd /home/kensei/sites/kbmemo
+chmod 750 start.sh   # git pull 後、実行権限が無ければ
+----
+
 `/etc/systemd/system/kbmemo.service` の例です。
 
 [source,ini]
@@ -311,11 +321,7 @@ User=kensei
 Group=kensei
 WorkingDirectory=/home/kensei/sites/kbmemo
 
-EnvironmentFile=/home/kensei/sites/kbmemo/.env.production
-
-Environment=PATH=/home/kensei/.rbenv/shims:/home/kensei/.rbenv/bin:/usr/local/bin:/usr/bin:/bin
-
-ExecStart=/bin/bash -lc 'cd /home/kensei/sites/kbmemo && bundle exec thrust ./bin/rails server'
+ExecStart=/home/kensei/sites/kbmemo/start.sh
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
@@ -497,6 +503,7 @@ npm ci
 bundle exec rails db:migrate
 bundle exec rails assets:precompile
 
+chmod 750 start.sh   # 必要なら
 sudo systemctl restart kbmemo
 curl -fsS https://kbmemo.net/up
 ----
@@ -561,6 +568,7 @@ SQLite は可能ならメンテナンス時間にコピーするか、ファイ�
 |`MECAB_PATH` エラー |`.env.production` の libmecab パス
 |図だけ失敗 |Kroki と `KROKI_URL`（ポート **8001**）
 |BYOK 500 |暗号化 3 変数
+|`Could not find a JavaScript runtime`（ExecJS） |STEM 数式表示時。`bundle install` で `mini_racer` が入っているか確認。`bundle exec rails runner "puts ExecJS.runtime.name"` が `MiniRacer` 等を返すこと。古いデプロイで Node だけに依存している場合は Node.js を入れるか、`mini_racer` 入りのコードを pull して再起動
 |===
 
 == 付録: Kamal / Docker

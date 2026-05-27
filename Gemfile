@@ -83,3 +83,5 @@ gem "tilt", "~> 2.4", require: false
 gem "administrate", "~> 1.0"
 
 gem "asciidoctor-katex", "~> 0.4"
+
+gem "mini_racer", "~> 0.21.1"
