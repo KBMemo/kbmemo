@@ -24,6 +24,8 @@ class MemoPolicy < ApplicationPolicy
   end
 
   def update?
+    return false if record.docs_sync_read_only?
+    return false if record.system_space_memo? && !user&.admin?
     return false unless user
     return true if record.account_id == user.id
     return false unless record.group_read_write?
@@ -50,6 +52,9 @@ class MemoPolicy < ApplicationPolicy
   alias edit_diagram? update?
 
   def destroy?
+    return false if record.docs_sync_read_only?
+    return true if record.system_space_memo? && user&.admin?
+
     user.present? && record.account_id == user.id
   end
 

@@ -4,12 +4,29 @@ require "test_helper"
 
 class MemoDirectoryPolicyTest < ActiveSupport::TestCase
   test "top level buckets are not updatable" do
-    %i[home share public].each do |key|
+    %i[home share public system].each do |key|
       dir = memo_directories(key)
       assert dir.directory_list_readonly?
       assert_not MemoDirectoryPolicy.new(accounts(:one), dir).update?
       assert_not MemoDirectoryPolicy.new(accounts(:two), dir).update?
     end
+  end
+
+  test "non-admin cannot update system docs subtree" do
+    arch = MemoDirectory.create!(parent: memo_directories(:system_docs), path_segment: "policy-arch", label: "Arch")
+    assert arch.under_system_space?
+    assert_not MemoDirectoryPolicy.new(accounts(:two), arch).update?
+  end
+
+  test "admin can update system docs subtree" do
+    arch = MemoDirectory.create!(parent: memo_directories(:system_docs), path_segment: "admin-arch", label: "Arch")
+    assert MemoDirectoryPolicy.new(accounts(:one), arch).update?
+  end
+
+  test "scope includes system help for regular users" do
+    scope = MemoDirectoryPolicy::Scope.new(accounts(:two), MemoDirectory.all).resolve
+    assert_includes scope.map(&:full_path), "system/help"
+    assert_includes scope.map(&:full_path), "system/docs"
   end
 
   test "user can update directories under own home user space" do

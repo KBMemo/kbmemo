@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class NotebooksController < ApplicationController
+  include NotebookShowSupport
+
   after_action :verify_authorized
 
   before_action :set_notebook, only: %i[show edit update destroy publish unpublish available_memos reorder_memos]
@@ -13,10 +15,7 @@ class NotebooksController < ApplicationController
 
   def show
     authorize @notebook
-    load_notebook_memo_tree
-    @can_manage = policy(@notebook).manage_memos?
-    @selected_memo = find_selected_memo
-    load_available_memos if @can_manage
+    load_notebook_show!(@notebook)
   end
 
   def new
@@ -86,9 +85,7 @@ class NotebooksController < ApplicationController
       position: params[:position]
     )
 
-    load_notebook_memo_tree
-    @can_manage = true
-    @selected_memo = find_selected_memo
+    load_notebook_show!(@notebook)
 
     respond_to do |format|
       format.turbo_stream do
@@ -138,37 +135,8 @@ class NotebooksController < ApplicationController
     @notebook = policy_scope(Notebook).find(params[:id])
   end
 
-  def load_notebook_memo_tree
-    entries = @notebook.notebook_memos
-      .joins(:memo)
-      .merge(policy_scope(Memo))
-      .includes(:memo)
-      .order(:position, :id)
-      .to_a
-
-    @notebook_memos_by_parent = entries.group_by(&:parent_id)
-    @notebook_memo_roots = @notebook_memos_by_parent[nil] || []
-    @notebook_memos = entries
-  end
-
-  def find_selected_memo
-    scope = policy_scope(Memo).joins(:notebook_memo).where(notebook_memos: { notebook_id: @notebook.id })
-
-    if params[:memo_id].present?
-      memo = scope.find_by(id: params[:memo_id])
-      return memo if memo
-    end
-
-    @notebook_memo_roots.first&.memo
-  end
-
-  def load_available_memos
-    @available_memos = policy_scope(Memo).left_outer_joins(:notebook_memo).where(notebook_memos: { id: nil })
-      .order(updated_at: :desc).limit(30)
-  end
-
   def prepare_directory_options
-    @memo_directory_options = policy_scope(MemoDirectory).nav_ordered.select(&:directory_picker_selectable?)
+    @memo_directory_options = policy_scope(MemoDirectory).nav_ordered.select { |d| d.directory_picker_selectable?(admin: rodauth.rails_account.admin?) }
   end
 
   def notebook_params

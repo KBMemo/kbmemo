@@ -54,7 +54,7 @@ class Board < ApplicationRecord
 
   def memo_directory_must_be_assignable
     return if memo_directory.nil?
-    return if memo_directory.directory_picker_selectable?
+    return if memo_directory.directory_picker_selectable?(admin: account&.admin?)
 
     errors.add(:memo_directory, "はメモの保存先として選べません")
   end

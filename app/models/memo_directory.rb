@@ -43,7 +43,9 @@ class MemoDirectory < ApplicationRecord
 
   scope :nav_ordered, -> { order(:full_path) }
 
-  PROTECTED_BUCKET_PATHS = %w[home share public].freeze
+  PROTECTED_BUCKET_PATHS = %w[home share public system].freeze
+  SYSTEM_PROTECTED_PATHS = %w[system system/docs system/help].freeze
+  SYSTEM_FIXED_CHILD_SEGMENTS = %w[docs help].freeze
 
   def self.root
     find_by!(full_path: "")
@@ -125,14 +127,21 @@ class MemoDirectory < ApplicationRecord
     !root? && !top_level_bucket?
   end
 
-  # home / share / public（最上位バケット）
+  # home / share / public / system（最上位バケット）
   def top_level_bucket?
     PROTECTED_BUCKET_PATHS.include?(full_path)
   end
 
-  # ツリーピッカーで選択可能か（ルート・home/share/public 直下は不可）
-  def directory_picker_selectable?
-    !root? && !top_level_bucket?
+  def under_system_space?
+    full_path == "system" || full_path.start_with?("system/")
+  end
+
+  # ツリーピッカーで選択可能か（ルート・最上位バケットは不可。system 配下は admin のみ）
+  def directory_picker_selectable?(admin: false)
+    return false if root? || top_level_bucket?
+    return admin if under_system_space?
+
+    true
   end
 
   alias valid_parent_choice? directory_picker_selectable?
@@ -162,6 +171,7 @@ class MemoDirectory < ApplicationRecord
   def protected_from_structure_changes?
     return true if root?
     return true if PROTECTED_BUCKET_PATHS.include?(full_path)
+    return true if SYSTEM_PROTECTED_PATHS.include?(full_path)
     return true if full_path.match?(user_space_root_regex)
 
     false
@@ -188,8 +198,9 @@ class MemoDirectory < ApplicationRecord
   def parent_not_top_level_bucket
     return if parent.blank?
     return unless parent.top_level_bucket?
+    return if parent.full_path == "system" && SYSTEM_FIXED_CHILD_SEGMENTS.include?(path_segment)
 
-    errors.add(:parent_id, "Home / Share / Public の直下には移せません")
+    errors.add(:parent_id, "Home / Share / Public / System の直下には移せません")
   end
 
   def user_space_root_regex

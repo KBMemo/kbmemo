@@ -14,6 +14,9 @@ Rails.application.routes.draw do
 
   root "memos#index"
 
+  get "help", to: "help#show", as: :help
+  get "help/:memo_slug", to: "help#show", as: :help_memo
+
   resource :profile, only: %i[edit update] do
     post :clip_api_token, action: :create_clip_api_token
     delete :clip_api_token, action: :destroy_clip_api_token

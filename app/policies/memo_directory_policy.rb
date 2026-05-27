@@ -43,11 +43,17 @@ class MemoDirectoryPolicy < ApplicationPolicy
       return scope.all if user.admin?
 
       uid = user.id
-      bases = [ "", "home", "share", "public", "home/u-#{uid}", "share/u-#{uid}", "public/u-#{uid}" ]
+      bases = [
+        "", "home", "share", "public", "system",
+        "system/docs", "system/help",
+        "home/u-#{uid}", "share/u-#{uid}", "public/u-#{uid}"
+      ]
       scope.where(full_path: bases)
         .or(scope.where("memo_directories.full_path LIKE ?", "home/u-#{uid}/%"))
         .or(scope.where("memo_directories.full_path LIKE ?", "share/u-#{uid}/%"))
         .or(scope.where("memo_directories.full_path LIKE ?", "public/u-#{uid}/%"))
+        .or(scope.where("memo_directories.full_path LIKE ?", "system/docs/%"))
+        .or(scope.where("memo_directories.full_path LIKE ?", "system/help/%"))
     end
   end
 end

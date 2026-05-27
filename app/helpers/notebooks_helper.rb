@@ -25,8 +25,17 @@ module NotebooksHelper
     end
   end
 
-  def notebook_memo_path_for_viewer(notebook, memo, viewer:)
-    notebook_path(notebook, memo_id: memo.id)
+  def notebook_memo_path_for_viewer(notebook, memo, viewer: notebook_show_viewer)
+    case viewer
+    when :help
+      help_path(memo_slug: memo.slug)
+    else
+      notebook_path(notebook, memo_id: memo.id)
+    end
+  end
+
+  def notebook_show_viewer
+    help_show? ? :help : :notebook
   end
 
   def notebook_memo_tree_row_classes(entry, selected_memo:)

@@ -6,6 +6,6 @@ ruby:
     span.inline-flex.shrink-0.cursor-grab.select-none.pl-0.5.kb-text-subtle.hover:kb-text-secondary role="button" tabindex="0" title="ドラッグして順序・階層を変更" draggable="true" data-action="dragstart->notebook-memo-tree#entryDragStart dragend->notebook-memo-tree#entryDragEnd mousedown->notebook-memo-tree#prepareDrag"
       i.h-3.5.w-3.5 aria-hidden="true" data-lucide="grip-vertical"
   = link_to @notebook.display_label_for_memo(entry),
-    notebook_path(@notebook, memo_id: entry.memo.id),
+    notebook_memo_path_for_viewer(@notebook, entry.memo),
     class: notebook_memo_tree_row_classes(entry, selected_memo: @selected_memo),
     draggable: "false"

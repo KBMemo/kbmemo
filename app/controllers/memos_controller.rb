@@ -50,6 +50,11 @@ class MemosController < ApplicationController
   end
 
   def edit
+    authorize @memo, :show? if @memo.docs_sync_read_only?
+    if @memo.docs_sync_read_only?
+      redirect_to @memo, alert: "このメモは docs/ から同期されています。リポジトリの AsciiDoc を更新して bin/rails kbmemo:docs:sync を実行してください。"
+      return
+    end
     authorize @memo
   end
 

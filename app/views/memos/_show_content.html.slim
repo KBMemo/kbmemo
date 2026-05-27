@@ -44,12 +44,28 @@ ruby:
               span.kb-text-subtle aria-hidden="true" ·
               span.font-mono.text-xs.kb-text-secondary = memo.slug
     .flex.flex-shrink-0.flex-wrap.items-center.gap-2
-      - if memo.display_as_draft? && policy(memo).update?
+      - if memo.docs_sync_read_only?
+        span.text-sm.kb-text-muted docs/ 同期
+      - elsif memo.display_as_draft? && policy(memo).update?
         = button_to "コミット", commit_memo_path(memo), method: :patch, title: "ファイルへ保存して、Gitに記録", class: "kb-chrome-btn-primary", data: { theme_slot: "btn-primary" }
         = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-secondary"
-      - else
+      - elsif policy(memo).update?
         = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-primary", data: { theme_slot: "btn-primary" }
-      = button_to "削除", memo_path(memo), method: :delete, form: { data: { turbo_confirm: "このメモを削除しますか？" } }, class: "rounded-md border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
+      - if policy(memo).destroy?
+        = button_to "削除", memo_path(memo), method: :delete, form: { data: { turbo_confirm: "このメモを削除しますか？" } }, class: "rounded-md border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
+
+  - if memo.docs_sync_read_only?
+    .mb-4.rounded-md.border.kb-border.px-3.py-2.text-sm.kb-text-secondary
+      | このメモは Git リポジトリの
+      code.font-mono.text-xs docs/
+      |  から同期されています。変更は AsciiDoc を編集して
+      code.font-mono.text-xs bin/rails kbmemo:docs:sync
+      |  を実行してください。
+      - if (source_path = memo.properties.dig("docs_sync", "source_path")).present?
+        span.kb-text-muted.ml-1
+          | （
+          code.font-mono.text-xs = source_path
+          | ）
 
   = render "memos/show_tags", memo: memo, editable: metadata_editable
 

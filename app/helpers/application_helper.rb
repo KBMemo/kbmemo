@@ -4,7 +4,12 @@ module ApplicationHelper
   end
 
   def notebook_show_wide_layout?
-    controller.controller_path == "notebooks" && controller.action_name == "show"
+    (controller.controller_path == "notebooks" && controller.action_name == "show") ||
+      (controller.controller_path == "help" && controller.action_name == "show")
+  end
+
+  def help_show?
+    controller.controller_path == "help" && controller.action_name == "show"
   end
 
   # メモ一覧サイドバーなしで、ヘッダー・本文を広幅にする画面
