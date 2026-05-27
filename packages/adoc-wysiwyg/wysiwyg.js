@@ -317,6 +317,32 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     })
   }
 
+  function resolveUnitAdocSource(unit, explicitSource) {
+    if (typeof explicitSource === 'string') return explicitSource
+
+    const stored = getUnitAdocSource(unit)
+    if (stored !== undefined) return stored
+
+    const units = [...editorEl.querySelectorAll(':scope > .wysiwyg-unit')].filter(
+      (entry) => !entry.classList.contains('wysiwyg-unit--placeholder'),
+    )
+    const unitIndex = units.indexOf(unit)
+    if (unitIndex >= 0) {
+      const sourceSegments = buildSourceSegments(normalizeDocumentSource(history.getCurrent()))
+      if (unitIndex < sourceSegments.length) {
+        return sourceSegments[unitIndex].text
+      }
+    }
+
+    const fallback = unitToAsciidoc(unit, getMemoId?.()).trim()
+    if (fallback && typeof console !== 'undefined') {
+      console.warn(
+        '[kbmemo wysiwyg] block source recovered from rendered HTML; AsciiDoc round-trip may be lossy',
+      )
+    }
+    return fallback
+  }
+
   function collectDocumentSegments() {
     /** @type {{ unit: HTMLElement, text: string, from: number, to: number }[]} */
     const segments = []
@@ -332,12 +358,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
           text = getWysiwygSourceValue(host)
         }
       } else {
-        const stored = getUnitAdocSource(unit)
-        if (stored !== undefined) {
-          text = stored
-        } else {
-          text = unitToAsciidoc(unit, getMemoId?.())
-        }
+        text = resolveUnitAdocSource(/** @type {HTMLElement} */ (unit))
       }
 
       if (!text.trim() && !hasUnitAdocSource(unit)) continue
@@ -390,7 +411,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     const localFrom = Math.max(0, Math.min(clamped - sourceSegment.from, sourceSegment.text.length))
     activateSourceUnit(segment.unit, {
       caret: localFrom,
-      source: segment.text,
+      source: sourceSegment.text,
       skipSync,
     })
     clearStraySelection(segment.unit)
@@ -713,7 +734,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
 
     unit.classList.remove('wysiwyg-unit--placeholder')
 
-    const initialSource = source ?? getUnitAdocSource(unit) ?? unitToAsciidoc(unit, getMemoId?.()).trim()
+    const initialSource = resolveUnitAdocSource(unit, source)
     setUnitAdocSource(unit, initialSource)
     unit.replaceChildren()
     unit.classList.add('is-source')
@@ -971,7 +992,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
         return getWysiwygSourceValue(host)
       }
     }
-    return getUnitAdocSource(unit) ?? unitToAsciidoc(unit, getMemoId?.())
+    return resolveUnitAdocSource(/** @type {HTMLElement} */ (unit))
   }
 
   function wrapUnits(container = editorEl, { skipDeactivate = false } = {}) {
