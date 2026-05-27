@@ -29,4 +29,25 @@ class MemosControllerDocsSyncTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "architecture/sample.adoc"
     assert_not_includes response.body, ">編集<"
   end
+
+  test "sidebar tab links stay on show when docs_sync memo is not file-committed" do
+    @memo.update!(file_committed_at: nil)
+    assert_not @memo.reload.display_as_draft?
+
+    get memo_url(@memo)
+    assert_response :success
+
+    assert_select ".kb-sidebar-tab-bar a[href=?]", memo_path(@memo, sidebar_view: "tag")
+    assert_select ".kb-sidebar-tab-bar a[href=?]", memo_path(@memo, sidebar_view: "search")
+    assert_select ".kb-sidebar-tab-bar a[href=?]", memo_path(@memo, sidebar_view: "history")
+    assert_select ".kb-sidebar-tab-bar a[href*=?]", edit_memo_path(@memo), count: 0
+  end
+
+  test "sidebar tab navigation does not flash docs sync alert" do
+    @memo.update!(file_committed_at: nil)
+
+    get memo_url(@memo, sidebar_view: "search")
+    assert_response :success
+    assert_nil flash[:alert]
+  end
 end

@@ -81,7 +81,7 @@ module MemosHelper
   # show / edit 中はメモを開いたままサイドバー文脈だけ切り替える
   def memo_sidebar_open_memo
     return unless defined?(@memo) && @memo&.persisted?
-    return unless %w[show edit].include?(controller.action_name)
+    return unless %w[show edit sidebar_memo_list].include?(controller.action_name)
 
     @memo
   end
@@ -162,6 +162,27 @@ module MemosHelper
     else
       "ファイル保存済み"
     end
+  end
+
+  def memo_list_timestamp(memo)
+    if defined?(@sidebar_view) && @sidebar_view == "history" && defined?(@memo_viewed_at_by_id) && @memo_viewed_at_by_id
+      @memo_viewed_at_by_id[memo.id] || memo.updated_at
+    else
+      memo.updated_at
+    end
+  end
+
+  def memo_sidebar_history_memo_ids
+    return unless defined?(@sidebar_view) && @sidebar_view == "history"
+    return if @memos.blank?
+
+    @memos.map(&:id).join(",")
+  end
+
+  def memo_sidebar_history_link_data
+    return {} unless defined?(@sidebar_view) && @sidebar_view == "history"
+
+    { turbo_prefetch: false }
   end
 
   # サイドバー用: policy_scope 内のディレクトリを parent_id でグルーピング（ルート行は除外）

@@ -73,7 +73,9 @@ module MemoSidebar
           base.none
         end
       when "history"
-        MemoViewHistory.recent_memos_for(rodauth.rails_account, scope: base.unscope(:order))
+        history = MemoViewHistory.recent_history(rodauth.rails_account, scope: base.unscope(:order))
+        @memo_viewed_at_by_id = history.viewed_at_by_memo_id
+        history.memos
       else
         base.where(memo_directory_id: @current_memo_directory.id)
       end

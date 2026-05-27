@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_26_174134) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_27_120000) do
   create_table "account_login_change_keys", force: :cascade do |t|
     t.datetime "deadline", null: false
     t.string "key", null: false
@@ -109,8 +109,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_174134) do
     t.datetime "created_at", null: false
     t.integer "memo_id", null: false
     t.datetime "updated_at", null: false
+    t.bigint "view_sequence", null: false
     t.datetime "viewed_at", null: false
     t.index ["account_id", "memo_id"], name: "index_memo_view_histories_on_account_id_and_memo_id", unique: true
+    t.index ["account_id", "view_sequence"], name: "index_memo_view_histories_on_account_id_and_view_sequence", order: { view_sequence: :desc }
     t.index ["account_id", "viewed_at"], name: "index_memo_view_histories_on_account_id_and_viewed_at"
     t.index ["account_id"], name: "index_memo_view_histories_on_account_id"
     t.index ["memo_id"], name: "index_memo_view_histories_on_memo_id"

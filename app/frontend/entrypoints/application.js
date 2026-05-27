@@ -73,6 +73,86 @@ function restoreMemosEditorScroll() {
   memosEditorScrollTop = null
 }
 
+function historySidebarVisit(url) {
+  try {
+    return new URL(url, window.location.origin).searchParams.get("sidebar_view") === "history"
+  } catch {
+    return false
+  }
+}
+
+function openMemoIdFromUrl(url) {
+  try {
+    const match = new URL(url, window.location.origin).pathname.match(/\/memos\/(\d+)/)
+    return match ? match[1] : null
+  } catch {
+    return null
+  }
+}
+
+function sidebarRowIds(container) {
+  if (!container) return ""
+  return [...container.querySelectorAll("#memo_sidebar_memo_list > li[id^='sidebar_row_memo_']")]
+    .map((li) => {
+      const match = li.id.match(/^sidebar_row_memo_(.+)$/)
+      return match ? match[1] : ""
+    })
+    .filter(Boolean)
+    .join(",")
+}
+
+let historySidebarAbortController = null
+
+async function refreshHistoryMemoListFromServer() {
+  if (!historySidebarVisit(window.location.href)) return
+
+  historySidebarAbortController?.abort()
+  historySidebarAbortController = new AbortController()
+  const { signal } = historySidebarAbortController
+
+  const params = new URLSearchParams({ sidebar_view: "history" })
+  const openMemoId = openMemoIdFromUrl(window.location.href)
+  if (openMemoId) params.set("open_memo_id", openMemoId)
+
+  let response
+  try {
+    response = await fetch(`/memos/sidebar_memo_list?${params}`, {
+      headers: { Accept: "text/html", "X-Kbmemo-Sidebar-Sync": "1" },
+      credentials: "same-origin",
+      cache: "no-store",
+      signal
+    })
+  } catch (error) {
+    if (error.name === "AbortError") return
+    throw error
+  }
+
+  if (!response.ok) return
+
+  const html = await response.text()
+  const doc = new DOMParser().parseFromString(html, "text/html")
+  const newContainer = doc.getElementById("memo_sidebar_memo_list_container")
+  const currentContainer = document.getElementById("memo_sidebar_memo_list_container")
+  if (!newContainer || !currentContainer) return
+
+  const expectedIds =
+    newContainer.querySelector("#memo_sidebar_memo_list")?.dataset?.historyMemoIds ??
+    sidebarRowIds(newContainer)
+  const currentIds = sidebarRowIds(currentContainer)
+  if (expectedIds !== "" && currentIds === expectedIds) return
+
+  currentContainer.replaceWith(document.importNode(newContainer, true))
+  renderLucideIcons()
+}
+
+document.addEventListener("turbo:before-visit", () => {
+  historySidebarAbortController?.abort()
+})
+
+document.addEventListener("turbo:load", () => {
+  refreshHistoryMemoListFromServer()
+})
+
 document.addEventListener("turbo:before-stream-render", (event) => {
   const streamElement = event.target
   const streamTarget = streamElement?.getAttribute?.("target")

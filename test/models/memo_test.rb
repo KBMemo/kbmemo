@@ -195,6 +195,37 @@ class MemoTest < ActiveSupport::TestCase
     assert m.reload.display_as_draft?
   end
 
+  test "display_as_draft? is false for docs_sync read-only without file commit" do
+    m = memos(:one)
+    m.update!(
+      file_committed_at: nil,
+      properties: {
+        "docs_sync" => {
+          "source_path" => "architecture/sample.adoc",
+          "read_only" => true
+        }
+      }
+    )
+    assert_not m.display_as_draft?
+  end
+
+  test "display_as_draft? is false for docs_sync read-only after sync update" do
+    m = memos(:one)
+    t = 1.day.ago
+    m.update!(
+      file_committed_at: t,
+      updated_at: Time.current,
+      properties: {
+        "docs_sync" => {
+          "source_path" => "architecture/sample.adoc",
+          "read_only" => true
+        }
+      }
+    )
+    assert m.updated_at > m.file_committed_at
+    assert_not m.display_as_draft?
+  end
+
   test "group_read requires memo_group" do
     m = memos(:one)
     m.assign_attributes(visibility: :group_read, memo_group_id: nil)

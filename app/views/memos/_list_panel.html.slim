@@ -64,35 +64,6 @@ ruby:
     = link_to new_memo_path_with_current_directory, class: memo_sidebar_link_classes(:new), data: { turbo: false } do
       span.mr-1.kb-text-muted +
       span 新規メモ
-  div
-    - if @memos&.any?
-      ul class="divide-y divide-[var(--kb-border)]"
-        - @memos.each do |memo|
-          li.flex.min-h-0.min-w-0
-            - nav_q = memo_sidebar_nav_query
-            - if show_memo_dnd
-              .flex.min-w-0.flex-1 class=memo_sidebar_memo_list_row_classes(memo.id)
-                span.inline-flex.shrink-0.cursor-grab.select-none.self-start.pt-3.pl-1.kb-text-subtle.hover:kb-text-secondary role="button" tabindex="0" title="ここをドラッグしてディレクトリへ移動" draggable="true" data-draft-url=draft_memo_path(memo, nav_q) data-memo-directory-id=memo.memo_directory_id data-action="dragstart->memo-directory-dnd#memoDragStart dragend->memo-directory-dnd#memoDragEnd"
-                  i.h-4.w-4 aria-hidden="true" data-lucide="grip-vertical"
-                = link_to memo_sidebar_memo_main_href(memo), class: "min-w-0 flex-1 px-2 py-3 text-left text-inherit no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--kb-border-strong)]", draggable: "false" do
-                  = render "memos/list_panel_memo_row_inner", memo: memo
-            - else
-              = link_to memo_sidebar_memo_main_href(memo), class: "#{memo_sidebar_memo_list_row_classes(memo.id)} min-w-0 flex-1 px-2 py-3 text-left text-inherit no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--kb-border-strong)]", draggable: "false" do
-                = render "memos/list_panel_memo_row_inner", memo: memo
-    - else
-      .px-3.py-8.text-center.text-sm.kb-text-muted
-        - if @sidebar_view == "search"
-          - if @memo_search_query.present?
-            p 該当するメモはありません
-          - else
-            p 上の欄にキーワードを入力してください
-        - elsif @sidebar_view == "tag"
-          p このタグのメモはまだありません
-        - elsif @sidebar_view == "history"
-          p まだ表示履歴がありません
-        - elsif defined?(@current_memo_directory) && @current_memo_directory&.root?
-          p フォルダを選ぶとメモが表示されます
-        - else
-          p このディレクトリにはまだありません
+  = render "memos/sidebar_memo_list_container"
   dialog.memo-directory-dialog.kb-modal-panel.rounded-lg.p-0 class="max-h-[85vh] overflow-y-auto" data-memo-directory-dialog-target="dialog" data-action="click->memo-directory-dialog#backdropClick"
     #memo_directory_dialog_body.p-6 data-memo-directory-dialog-target="body"

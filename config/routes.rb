@@ -70,6 +70,7 @@ Rails.application.routes.draw do
     collection do
       get :wiki_completions
       get :wiki_link_labels
+      get :sidebar_memo_list
     end
 
     member do

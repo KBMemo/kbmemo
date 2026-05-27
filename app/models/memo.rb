@@ -135,6 +135,8 @@ class Memo < ApplicationRecord
   # 一覧・プレビュー文言など UI 用。未コミット、またはファイル保存後に DB が更新されている＝再編集ドラフト。
   # スラッグ自動同期の可否は file_committed_at? のまま（一度コミットしたら維持）。
   def display_as_draft?
+    return false if docs_sync_read_only?
+
     return true if file_committed_at.blank?
 
     updated_at > file_committed_at

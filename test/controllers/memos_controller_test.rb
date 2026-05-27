@@ -36,12 +36,172 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_match(/#{Regexp.escape(one.title)}[\s\S]*#{Regexp.escape(two.title)}/m, response.body)
   end
 
+  test "history tab preserves order of other memos when reopening from sidebar" do
+    one = memos(:one)
+    two = memos(:two)
+    three = Memo.create!(
+      title: "History third memo",
+      body: "body",
+      memo_directory: memo_directories(:work),
+      account: accounts(:one),
+      file_committed_at: Time.current
+    )
+
+    travel_to Time.zone.parse("2026-01-01 12:00:00") do
+      get memo_url(one)
+      travel 1.minute
+      get memo_url(two)
+      travel 1.minute
+      get memo_url(three)
+      travel 1.minute
+      get memo_url(one, sidebar_view: "history")
+    end
+
+    assert_response :success
+    assert_select "#memos_list_panel ul.divide-y > li", count: 3
+    assert_select "#memos_list_panel ul.divide-y > li:nth-child(1) a" do |links|
+      assert_includes links.first.text, one.title
+    end
+    assert_select "#memos_list_panel ul.divide-y > li:nth-child(2) a" do |links|
+      assert_includes links.first.text, three.title
+    end
+    assert_select "#memos_list_panel ul.divide-y > li:nth-child(3) a" do |links|
+      assert_includes links.first.text, two.title
+    end
+    assert_select "#sidebar_row_memo_#{one.id}"
+    assert_select "#sidebar_row_memo_#{two.id}"
+    assert_select "#sidebar_row_memo_#{three.id}"
+    assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{one.id},#{three.id},#{two.id}']"
+    assert_select "#memos_list_panel a[data-turbo-prefetch='false']", minimum: 3
+  end
+
+  test "history tab clicking C in A B C D order yields C A B D" do
+    memo_a = memos(:one)
+    memo_b = memos(:two)
+    memo_c = Memo.create!(
+      title: "History memo C",
+      body: "body",
+      memo_directory: memo_directories(:work),
+      account: accounts(:one),
+      file_committed_at: Time.current
+    )
+    memo_d = Memo.create!(
+      title: "History memo D",
+      body: "body",
+      memo_directory: memo_directories(:work),
+      account: accounts(:one),
+      file_committed_at: Time.current
+    )
+
+    travel_to Time.zone.parse("2026-01-01 12:00:00") do
+      get memo_url(memo_d)
+      travel 1.minute
+      get memo_url(memo_c)
+      travel 1.minute
+      get memo_url(memo_b)
+      travel 1.minute
+      get memo_url(memo_a)
+      travel 1.minute
+      get memo_url(memo_c, sidebar_view: "history")
+    end
+
+    assert_response :success
+    assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{memo_c.id},#{memo_a.id},#{memo_b.id},#{memo_d.id}']"
+    assert_select "#memos_list_panel ul.divide-y > li:nth-child(1)#sidebar_row_memo_#{memo_c.id}"
+    assert_select "#memos_list_panel ul.divide-y > li:nth-child(2)#sidebar_row_memo_#{memo_a.id}"
+    assert_select "#memos_list_panel ul.divide-y > li:nth-child(3)#sidebar_row_memo_#{memo_b.id}"
+    assert_select "#memos_list_panel ul.divide-y > li:nth-child(4)#sidebar_row_memo_#{memo_d.id}"
+  end
+
   test "show records memo view history" do
     memo = memos(:one)
     assert_difference -> { MemoViewHistory.where(account_id: accounts(:one).id, memo_id: memo.id).count }, 1 do
       get memo_url(memo)
       assert_response :success
     end
+  end
+
+  test "show skips memo view history for sidebar sync requests" do
+    memo = memos(:one)
+    assert_no_difference -> { MemoViewHistory.where(account_id: accounts(:one).id, memo_id: memo.id).count } do
+      get memo_url(memo), headers: { "X-Kbmemo-Sidebar-Sync" => "1" }
+      assert_response :success
+    end
+  end
+
+  test "show skips memo view history for turbo prefetch requests" do
+    memo = memos(:one)
+    assert_no_difference -> { MemoViewHistory.where(account_id: accounts(:one).id, memo_id: memo.id).count } do
+      get memo_url(memo), headers: { "X-Sec-Purpose" => "prefetch" }
+      assert_response :success
+    end
+  end
+
+  test "prefetching another memo does not push it above preserved history order on click" do
+    memo_a = memos(:one)
+    memo_b = memos(:two)
+    memo_c = Memo.create!(
+      title: "History memo C",
+      body: "body",
+      memo_directory: memo_directories(:work),
+      account: accounts(:one),
+      file_committed_at: Time.current
+    )
+    memo_d = Memo.create!(
+      title: "History memo D",
+      body: "body",
+      memo_directory: memo_directories(:work),
+      account: accounts(:one),
+      file_committed_at: Time.current
+    )
+
+    travel_to Time.zone.parse("2026-01-01 12:00:00") do
+      get memo_url(memo_d)
+      travel 1.minute
+      get memo_url(memo_c)
+      travel 1.minute
+      get memo_url(memo_b)
+      travel 1.minute
+      get memo_url(memo_a)
+      travel 1.minute
+      get memo_url(memo_b), headers: { "X-Sec-Purpose" => "prefetch" }
+      get memo_url(memo_c, sidebar_view: "history")
+    end
+
+    assert_response :success
+    assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{memo_c.id},#{memo_a.id},#{memo_b.id},#{memo_d.id}']"
+    assert_select "#memo_sidebar_memo_list_container ul.divide-y > li:nth-child(2)#sidebar_row_memo_#{memo_a.id}"
+  end
+
+  test "sidebar_memo_list returns history order without recording views" do
+    one = memos(:one)
+    two = memos(:two)
+    three = Memo.create!(
+      title: "Sidebar sync third",
+      body: "body",
+      memo_directory: memo_directories(:work),
+      account: accounts(:one),
+      file_committed_at: Time.current
+    )
+
+    travel_to Time.zone.parse("2026-01-01 12:00:00") do
+      get memo_url(one)
+      travel 1.minute
+      get memo_url(two)
+      travel 1.minute
+      get memo_url(three)
+      travel 1.minute
+      get memo_url(one, sidebar_view: "history")
+    end
+
+    assert_no_difference -> { MemoViewHistory.count } do
+      get sidebar_memo_list_memos_url(sidebar_view: "history", open_memo_id: one.id),
+        headers: { "X-Kbmemo-Sidebar-Sync" => "1" }
+    end
+    assert_response :success
+    assert_select "#memo_sidebar_memo_list_container"
+    assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{one.id},#{three.id},#{two.id}']"
+    assert_select "#memo_sidebar_memo_list_container ul.divide-y > li:nth-child(1)#sidebar_row_memo_#{one.id}"
   end
 
   test "show from search keeps memo open without syncing directory sidebar" do

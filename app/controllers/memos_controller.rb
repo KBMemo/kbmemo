@@ -1,9 +1,9 @@
 class MemosController < ApplicationController
+  prepend_before_action :record_memo_view_history, only: %i[show edit]
   prepend_before_action :set_memo, only: %i[show edit update destroy draft commit revert_draft checklist_toggle update_directory update_tags]
   before_action :set_memo_groups_for_form, only: %i[new create edit update]
   include MemoSidebar
 
-  after_action :record_memo_view_history, only: %i[show edit]
   after_action :verify_authorized
 
   def wiki_completions
@@ -25,6 +25,16 @@ class MemosController < ApplicationController
     targets = Array(params[:targets])
     labels = MemoWikiLinkLabels.new(scope: policy_scope(Memo), source_memo: source).call(targets)
     render json: labels
+  end
+
+  def sidebar_memo_list
+    authorize Memo, :index?
+    return head :not_found unless params[:sidebar_view].to_s == "history"
+
+    if params[:open_memo_id].present?
+      @memo = policy_scope(Memo).find_by(id: params[:open_memo_id])
+    end
+    render partial: "memos/sidebar_memo_list_container", layout: false
   end
 
   def index
@@ -355,11 +365,22 @@ class MemosController < ApplicationController
   end
 
   def record_memo_view_history
+    return if sidebar_sync_request?
+    return if turbo_prefetch_request?
     account = rodauth.rails_account
     return unless account && @memo&.persisted?
-    return unless response.successful?
+    return unless policy(@memo).show?
 
     MemoViewHistory.record!(account: account, memo: @memo)
+  end
+
+  def sidebar_sync_request?
+    request.headers["X-Kbmemo-Sidebar-Sync"].present?
+  end
+
+  def turbo_prefetch_request?
+    purpose = request.headers["X-Sec-Purpose"].to_s
+    purpose.casecmp("prefetch").zero? || request.headers["Sec-Purpose"].to_s.casecmp("prefetch").zero?
   end
 
   def set_memo_groups_for_form
