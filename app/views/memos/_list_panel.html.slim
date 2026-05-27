@@ -1,5 +1,5 @@
 ruby:
-  list_panel_root = { class: "flex min-h-0 flex-1 flex-col overflow-hidden" }
+  list_panel_root = { class: "flex flex-col" }
   show_memo_dnd = @sidebar_view == "directory"
   list_panel_controllers = ["memo-directory-nav-open"]
   list_panel_controllers << "memo-directory-dnd" if show_memo_dnd
@@ -64,7 +64,7 @@ ruby:
     = link_to new_memo_path_with_current_directory, class: memo_sidebar_link_classes(:new) do
       span.mr-1.kb-text-muted +
       span 新規メモ
-  .min-h-0.flex-1.overflow-y-auto
+  div
     - if @memos&.any?
       ul class="divide-y divide-[var(--kb-border)]"
         - @memos.each do |memo|
