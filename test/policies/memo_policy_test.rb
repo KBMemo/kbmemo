@@ -92,4 +92,41 @@ class MemoPolicyTest < ActiveSupport::TestCase
     assert_not policy.update?
     assert_not policy.destroy?
   end
+
+  test "docs_sync read-only memo can be added to notebook when visible" do
+    m = memos(:one)
+    m.update!(
+      properties: {
+        "docs_sync" => {
+          "source_path" => "architecture/sample.adoc",
+          "read_only" => true
+        }
+      }
+    )
+
+    policy = MemoPolicy.new(accounts(:one), m)
+    assert policy.show?
+    assert policy.add_to_notebook?
+    assert_not policy.update?
+  end
+
+  test "group_read docs_sync memo can be added to notebook by group member without update" do
+    m = memos(:one)
+    m.update!(
+      visibility: :group_read,
+      memo_group_id: memo_groups(:alpha).id,
+      account: accounts(:one),
+      properties: {
+        "docs_sync" => {
+          "source_path" => "architecture/shared.adoc",
+          "read_only" => true
+        }
+      }
+    )
+
+    policy = MemoPolicy.new(accounts(:two), m)
+    assert policy.show?
+    assert policy.add_to_notebook?
+    assert_not policy.update?
+  end
 end

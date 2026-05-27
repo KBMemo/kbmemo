@@ -31,6 +31,9 @@ application.register("memo-show-metadata", MemoShowMetadataController)
 import BoardAddMemoController from "./board_add_memo_controller"
 application.register("board-add-memo", BoardAddMemoController)
 
+import MemoSearchPickerController from "./memo_search_picker_controller"
+application.register("memo-search-picker", MemoSearchPickerController)
+
 import BoardKanbanDndController from "./board_kanban_dnd_controller"
 application.register("board-kanban-dnd", BoardKanbanDndController)
 

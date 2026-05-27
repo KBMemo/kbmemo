@@ -39,7 +39,6 @@ class NotebooksController < ApplicationController
     authorize @notebook
     prepare_directory_options
     load_notebook_memo_tree
-    load_available_memos if policy(@notebook).manage_memos?
   end
 
   def update
@@ -49,7 +48,6 @@ class NotebooksController < ApplicationController
     else
       prepare_directory_options
       load_notebook_memo_tree
-      load_available_memos
       render :edit, status: :unprocessable_entity
     end
   end
@@ -108,10 +106,11 @@ class NotebooksController < ApplicationController
 
   def available_memos
     authorize @notebook, :available_memos?
-    query = params[:q].to_s.strip
-    memos = policy_scope(Memo).left_outer_joins(:notebook_memo).where(notebook_memos: { id: nil })
-      .includes(:tags).order(updated_at: :desc).limit(20)
-    memos = memos.search_text(query) if query.present?
+    memos = Notebooks::AvailableMemos.call(
+      notebook: @notebook,
+      user: pundit_user,
+      query: params[:q]
+    )
 
     render json: memos.map { |memo|
       {

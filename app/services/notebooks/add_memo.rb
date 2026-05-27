@@ -12,8 +12,13 @@ module Notebooks
     end
 
     def call
-      if @memo.notebook_memo.present? && @memo.notebook_memo.notebook_id != @notebook.id
-        raise Error, "このメモは既に別のノートブックに含まれています"
+      existing = @memo.notebook_memo
+      if existing.present? && existing.notebook_id != @notebook.id
+        if @memo.docs_sync_read_only?
+          existing.destroy!
+        else
+          raise Error, "このメモは既に別のノートブックに含まれています"
+        end
       end
 
       position = @notebook.notebook_memos.where(parent_id: nil).maximum(:position).to_i + 1

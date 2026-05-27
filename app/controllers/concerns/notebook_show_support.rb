@@ -10,7 +10,6 @@ module NotebookShowSupport
     load_notebook_memo_tree
     @can_manage = rodauth.rails_account.present? && policy(@notebook).manage_memos?
     @selected_memo = find_selected_notebook_memo
-    load_available_memos if @can_manage
   end
 
   def load_notebook_memo_tree
@@ -41,10 +40,5 @@ module NotebookShowSupport
     end
 
     @notebook_memo_roots.first&.memo
-  end
-
-  def load_available_memos
-    @available_memos = policy_scope(Memo).left_outer_joins(:notebook_memo).where(notebook_memos: { id: nil })
-      .order(updated_at: :desc).limit(30)
   end
 end

@@ -1,0 +1,11 @@
+ruby:
+  picker_id = local_assigns.fetch(:picker_id, "notebook_memo_picker_#{notebook.id}")
+  placeholder = local_assigns.fetch(:placeholder, "メモを追加…")
+  results_id = "#{picker_id}_results"
+
+.relative
+  = hidden_field_tag :memo_id, nil, data: { memo_search_picker_target: "memoId" }
+  = text_field_tag :memo_query, nil, id: picker_id, autocomplete: "off", placeholder: placeholder, role: "combobox", aria: { expanded: "false", controls: results_id, autocomplete: "list", label: placeholder }, class: "#{kb_field_input_classes} w-full text-sm", data: { memo_search_picker_target: "query", action: "input->memo-search-picker#queryInput focus->memo-search-picker#open blur->memo-search-picker#closeLater keydown->memo-search-picker#keydown" }
+  div class="kb-modal-panel absolute z-20 mt-1 hidden w-full overflow-hidden rounded-md" data-memo-search-picker-target="panel" role="listbox" id=results_id data-action="mousedown->memo-search-picker#pointerDown mouseup->memo-search-picker#pointerUp"
+    .max-h-48.overflow-y-auto data-memo-search-picker-target="results"
+      p.px-3.py-2.text-sm.kb-text-secondary 読み込み中…

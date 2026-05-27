@@ -33,6 +33,92 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, memos(:two).title
     assert_includes response.body, "notebook_memo_tree"
     assert_includes response.body, "notebook_memo_panel"
+    assert_includes response.body, "memo-search-picker"
+    assert_includes response.body, available_memos_notebook_path(notebooks(:one))
+    assert_select "select#memo_id", count: 0
+  end
+
+  test "available_memos returns unassigned memos filtered by query" do
+    notebook = notebooks(:one)
+    unassigned = memos(:two)
+    unassigned.notebook_memo&.destroy
+
+    get available_memos_notebook_url(notebook), params: { q: "Second" }, headers: { Accept: "application/json" }
+    assert_response :success
+    body = JSON.parse(response.body)
+    assert(body.any? { |row| row["id"] == unassigned.id })
+    assert body.all? { |row| row.key?("id") && row.key?("title") }
+  end
+
+  test "available_memos includes docs_sync read-only memo assigned to another notebook" do
+    dev_notebook = notebooks(:one)
+    target_notebook = notebooks(:two)
+    memo = memos(:one)
+    memo.notebook_memo&.destroy
+    memo.update!(
+      title: "AsciiDoc Dev Docs Sample",
+      visibility: :group_read,
+      memo_group_id: memo_groups(:alpha).id,
+      account: accounts(:one),
+      properties: {
+        "docs_sync" => {
+          "source_path" => "architecture/asciidoc-sample.adoc",
+          "read_only" => true
+        }
+      }
+    )
+    NotebookMemo.create!(notebook: dev_notebook, memo: memo, position: 99)
+
+    get available_memos_notebook_url(target_notebook), params: { q: "AsciiDoc" },
+      headers: { Accept: "application/json" }
+    assert_response :success
+    body = JSON.parse(response.body)
+    assert(body.any? { |row| row["id"] == memo.id && row["title"].include?("AsciiDoc") })
+  end
+
+  test "available_memos excludes docs_sync read-only memo already in target notebook" do
+    notebook = notebooks(:one)
+    memo = memos(:two)
+    memo.notebook_memo&.destroy
+    memo.update!(
+      title: "AsciiDoc Already Here",
+      properties: {
+        "docs_sync" => {
+          "source_path" => "architecture/already-here.adoc",
+          "read_only" => true
+        }
+      }
+    )
+    NotebookMemo.create!(notebook: notebook, memo: memo, position: 99)
+
+    get available_memos_notebook_url(notebook), params: { q: "AsciiDoc" },
+      headers: { Accept: "application/json" }
+    assert_response :success
+    body = JSON.parse(response.body)
+    assert_not(body.any? { |row| row["id"] == memo.id })
+  end
+
+  test "add docs_sync read-only memo moves from another notebook" do
+    dev_notebook = notebooks(:one)
+    target_notebook = notebooks(:two)
+    memo = memos(:one)
+    memo.notebook_memo&.destroy
+    memo.update!(
+      properties: {
+        "docs_sync" => {
+          "source_path" => "architecture/move-me.adoc",
+          "read_only" => true
+        }
+      }
+    )
+    NotebookMemo.create!(notebook: dev_notebook, memo: memo, position: 0)
+
+    assert_difference -> { target_notebook.notebook_memos.count }, 1 do
+      assert_difference -> { dev_notebook.notebook_memos.where(memo: memo).count }, -1 do
+        post notebook_notebook_memos_url(target_notebook), params: { memo_id: memo.id }
+      end
+    end
+    assert_redirected_to notebook_path(target_notebook, memo_id: memo.id)
   end
 
   test "show selects memo from query param" do
@@ -53,6 +139,7 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Empty notebook"
     assert_includes response.body, "左の一覧からメモを選ぶ"
+    assert_includes response.body, "memo-search-picker"
   end
 
   test "reorder memos in tree" do
@@ -108,6 +195,36 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
       post notebook_notebook_memos_url(notebook), params: { memo_id: memo.id }
     end
     assert_redirected_to notebook_path(notebook, memo_id: memo.id)
+  end
+
+  test "add docs_sync read-only memo to notebook when user can view but not edit" do
+    notebook = notebooks(:two)
+    memo = memos(:two)
+    memo.notebook_memo&.destroy
+    memo.update!(
+      visibility: :group_read,
+      memo_group_id: memo_groups(:alpha).id,
+      account: accounts(:one),
+      properties: {
+        "docs_sync" => {
+          "source_path" => "architecture/dev-docs-sample.adoc",
+          "read_only" => true
+        }
+      }
+    )
+
+    assert_not MemoPolicy.new(accounts(:one), memo).update?
+    assert MemoPolicy.new(accounts(:one), memo).add_to_notebook?
+
+    assert_difference -> { notebook.notebook_memos.count }, 1 do
+      post notebook_notebook_memos_url(notebook), params: { memo_id: memo.id }
+    end
+    assert_redirected_to notebook_path(notebook, memo_id: memo.id)
+
+    get notebook_url(notebook, memo_id: memo.id)
+    assert_response :success
+    assert_select "a[href=?]", edit_memo_path(memo), count: 0
+    assert_includes response.body, "docs/"
   end
 
   test "cannot access other users notebook when unpublished" do

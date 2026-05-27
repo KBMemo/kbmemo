@@ -9,7 +9,7 @@ class NotebookMemosController < ApplicationController
     authorize @notebook, :manage_memos?
 
     memo = policy_scope(Memo).find(params.require(:memo_id))
-    authorize memo, :update?
+    authorize memo, :add_to_notebook?
 
     Notebooks::AddMemo.call(notebook: @notebook, memo: memo)
     redirect_to notebook_path(@notebook, memo_id: memo.id), notice: "メモを追加しました。"

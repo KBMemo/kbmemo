@@ -34,6 +34,13 @@ class MemoPolicy < ApplicationPolicy
     MemoGroupMembership.exists?(memo_group_id: record.memo_group_id, account_id: user.id)
   end
 
+  # ノートブックへの追加: 通常メモは update?、docs/ 同期（閲覧専用）は show? のみ。
+  def add_to_notebook?
+    return show? if record.docs_sync_read_only?
+
+    update?
+  end
+
   # member route `draft` → verify_authorized は draft? を参照する
   alias draft? update?
   alias commit? update?
