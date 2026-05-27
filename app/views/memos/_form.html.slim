@@ -7,9 +7,27 @@ ruby:
   form_data[:memo_draft_draft_url_value] = draft_memo_path(memo, memo_sidebar_nav_query) if memo.persisted?
   form_data[:memo_draft_discard_draft_url_value] = revert_draft_memo_path(memo, memo_sidebar_nav_query) if memo.persisted? && memo.file_committed_at.present?
   form_data[:memo_draft_create_url_value] = memos_path unless memo.persisted?
+  form_data[:turbo_cache] = "false" unless memo.persisted?
   form_data[:memo_draft_file_committed_value] = memo.file_committed_at.present?
   form_data[:memo_draft_memo_id_value] = memo.id if memo.persisted?
   form_data[:memo_draft_tag_catalog_value] = memo_tag_catalog_for_pills.to_json
+  unless memo.persisted?
+    selected_dir = memo.memo_directory&.root? ? nil : memo.memo_directory
+    unselected = selected_dir.nil? || selected_dir.root?
+    form_data[:memo_draft_initial_form_value] = {
+      title: "",
+      slug: "",
+      body: "",
+      properties_yaml: "",
+      tag_list: "",
+      visibility: memo.visibility,
+      memo_group_id: memo.memo_group_id.to_s,
+      memo_directory_id: unselected ? "" : selected_dir.id.to_s,
+      memo_directory_path_label: unselected ? "保存先フォルダを選んでください" : memo_directory_path_from_root_label(selected_dir),
+      title_manual: "0",
+      slug_manual: "0"
+    }.to_json
+  end
 
 = form_with model: memo, class: "space-y-3", data: form_data do |f|
   = hidden_field_tag "memo[title_manual]", memo.title_manual ? "1" : "0", data: { memo_draft_target: "titleManualFlag" }

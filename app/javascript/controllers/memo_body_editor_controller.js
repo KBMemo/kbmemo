@@ -160,6 +160,15 @@ export default class extends Controller {
     ])
 
     const textarea = this.fieldTarget
+    const isNewMemo = !this.memoIdValue
+    if (isNewMemo) textarea.value = ""
+
+    this._onResetBody = (event) => {
+      const body = event.detail?.body ?? ""
+      this.applyExternalBody(body)
+    }
+    this.element.addEventListener("kbmemo:reset-body-editor", this._onResetBody)
+
     const getWikiConfig = () => ({
       url: this.wikiCompletionsUrlValue,
       memoId: this.memoIdValue || null
@@ -245,7 +254,8 @@ export default class extends Controller {
       ".cm-completionDetail": { color: "#71717a", fontStyle: "normal" }
     })
 
-    const startDoc = textarea.value
+    if (isNewMemo) textarea.value = ""
+    const startDoc = isNewMemo ? "" : textarea.value
     const editorHost = this
     const asciidocExts = await loadAsciidocExtensions()
     this._webPasteHandler = createWebPasteHandler({
@@ -479,6 +489,9 @@ export default class extends Controller {
   }
 
   disconnect() {
+    if (this._onResetBody) {
+      this.element.removeEventListener("kbmemo:reset-body-editor", this._onResetBody)
+    }
     this._unbindInsertEvent()
     this._unbindDragDrop()
     resetHostConfig()
@@ -778,19 +791,23 @@ export default class extends Controller {
     this.uploadErrorTarget.classList.add("hidden")
   }
 
-  /** Turbo などで値だけ差し替えた場合（将来用） */
-  _onTextareaExternalChange = () => {
+  applyExternalBody(body) {
+    if (this.fieldTarget) this.fieldTarget.value = body
     if (!this.view) return
-    const next = this.fieldTarget.value
     const cur = this.view.state.doc.toString()
-    if (next === cur) return
+    if (body === cur) return
     if (this._editMode === "wysiwyg" && this._wysiwygEditor) {
-      this._wysiwygEditor.renderFromSource(next)
+      void this._wysiwygEditor.renderFromSource(body)
       return
     }
     this.view.dispatch({
-      changes: { from: 0, to: cur.length, insert: next }
+      changes: { from: 0, to: cur.length, insert: body }
     })
     this._livePreview?.scheduleRender()
+  }
+
+  /** Turbo などで値だけ差し替えた場合 */
+  _onTextareaExternalChange = () => {
+    this.applyExternalBody(this.fieldTarget.value)
   }
 }

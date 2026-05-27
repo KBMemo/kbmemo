@@ -521,6 +521,22 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "#memo_form_actions button[data-memo-commit='true']", count: 0
   end
 
+  test "new memo form renders empty title and disables turbo cache" do
+    get new_memo_url
+    assert_response :success
+    assert_select "input#memo_title[value='']"
+    assert_select "input#memo_slug[value='']"
+    assert_select "textarea#memo_body", text: ""
+    assert_select "textarea[name='memo[properties_yaml]']", text: ""
+    assert_select "input[name='memo[tag_list]'][value='']"
+    assert_select "select[name='memo[visibility]'] option[selected][value='owner_read_write']"
+    assert_select "select[name='memo[memo_group_id]'] option[value='']", text: "（なし）"
+    assert_select "select[name='memo[memo_group_id]'] option[selected][value]:not([value=''])", count: 0
+    assert_includes response.body, 'data-turbo-cache="false"'
+    assert_includes response.body, "data-memo-draft-create-url-value"
+    assert_includes response.body, "data-memo-draft-initial-form-value"
+  end
+
   test "edit uncommitted memo shows delete and commit actions" do
     memo = memos(:one)
     memo.update_column(:file_committed_at, nil)

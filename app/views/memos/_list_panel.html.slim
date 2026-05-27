@@ -61,7 +61,7 @@ ruby:
             span.sr-only メモを別ディレクトリへ移動する方法
           div class="absolute right-0 top-6 z-30 w-72 #{kb_hint_popover}"
             | 左の縞アイコンをドラッグして、上のフォルダ名に置くと移動します。
-    = link_to new_memo_path_with_current_directory, class: memo_sidebar_link_classes(:new) do
+    = link_to new_memo_path_with_current_directory, class: memo_sidebar_link_classes(:new), data: { turbo: false } do
       span.mr-1.kb-text-muted +
       span 新規メモ
   div
