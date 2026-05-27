@@ -215,7 +215,7 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 |同上 + `MemoWikiLinks`
 
 |5a リスト
-|行頭 `*` / `-` / `.` / `1.` 等の WYSIWYG ライト
+|行頭 `*` / `-` / `.` / `1.` 等の WYSIWYG ライト。WYSIWYG タブのブロック CM では Enter 継続（チェックリスト含む）
 |Asciidoctor リスト
 
 |5b Admonition
@@ -248,6 +248,8 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 マージ前に **1 本のメモ**で以下を通す（表示画面 + 編集画面）。
 
 . リスト入れ子・番号付きリスト
+. `- [ ]` チェックリストの Enter 継続（WYSIWYG タブのブロック CM）
+. 行頭空白の literal 段落（Enter 継続・空行で段落ユニット分割）
 . `NOTE:` / `WARNING:` ブロック（複数行）
 . `[source,ruby]` + `----` フェンス、行番号なしで編集可能
 . `|===` 表（ヘッダー + 複数行）
@@ -323,6 +325,36 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 
 *未着手:* E2E（Playwright 等）。別端末間の競合は Phase 6 範囲外。
 
+==== Phase 6c — Block WYSIWYG 編集モード（2026-05）
+
+*対象:* ツールバー「WYSIWYG」タブ（`@kbmemo/adoc-wysiwyg`、既定）。「ソース」タブは全文 CM6 + Phase 4–5 の WYSIWYG ライト。
+
+*ブロック内 CM の契約:*
+
+* `createKbmemoWysiwygSourceExtensions({ rawSourceMode: true })` — ユニット編集時は常に生 AsciiDoc。Wiki 補完・リスト継続・viewport lazy のみ。diagram / math / wiki リンクの Decoration は付けない（表示ラベルとソースの乖離を防ぐ）。
+* ソース復元は `resolveUnitAdocSource` が編集履歴（`data-adoc`）を優先し、HTML からの逆変換にフォールバックしない。
+
+*Enter キー（ブロック CM、ソース CM と同等の継続）:*
+
+[cols="2,3"]
+|===
+|文脈 |Enter の挙動
+
+|literal 段落（行頭空白）
+|行末 Enter: 前行と同じインデントで改行。空行 Enter: ユニット分割（上に literal プレビュー、下に通常段落ユニット）
+
+|通常段落
+|空行 Enter でユニット分割
+
+|リスト行
+|`- ` / `*` / `1.` 等で次行継続。空項目 Enter でリスト終了（インデントのみ）
+
+|チェックリスト
+|`- [ ] ` で次行継続（新規項目は未チェック）
+|===
+
+*現状（2026-05）:* 実装済み。`literalParagraph.js`（EU / 分割）、`literal_paragraph_continuation.js`、`list_continuation.js` / `list_syntax.js`（チェックリスト含む）、`wysiwyg_source_extensions.js`。
+
 == リスクと意思決定（早めに固定）
 
 [cols="2,3"]
@@ -348,7 +380,7 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 . 軽ハイライト + Wiki Completion（Phase 2–3）
 . Decoration ベースの WYSIWYG-lite（見出し → インライン → リンク）（Phase 4）
 . ブロック拡張: リスト（5a）→ admonition（5b）→ コード（5c）→ 表（5d）→ 画像（5f）→ 図（5e）→ 数式（5g）（Phase 5 第1段完了）
-. Turbo / マルチタブ / Compartment 切替（Phase 6）
+. Turbo / マルチタブ / Compartment 切替 / Block WYSIWYG 編集 UX（Phase 6）
 
 記事が示す設計哲学（**ソース不変・カーソル駆動の raw 復帰**）を保ったまま、AsciiDoc 向けに段階的に寄せる。
 
@@ -369,7 +401,11 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 * `packages/adoc-kbmemo/src/math_wysiwyg.js` — stem / latexmath KaTeX プレビュー（5g CM）
 * `packages/adoc-kbmemo/src/code_block_syntax.js` — フェンス / listing / literal ブロック走査
 * `packages/adoc-kbmemo/src/wiki_link_wysiwyg.js` — Wiki / AsciiDoc リンク WYSIWYG
-* `packages/adoc-wysiwyg/wysiwyg.js` — ブロック単位 WYSIWYG エディタ
+* `packages/adoc-wysiwyg/wysiwyg.js` — ブロック単位 WYSIWYG エディタ（`resolveUnitAdocSource`、空行ユニット分割）
+* `packages/adoc-codemirror/src/literalParagraph.js` — インデント literal 段落の EU / 空行分割
+* `packages/adoc-kbmemo/wysiwyg_source_extensions.js` — ブロック CM 拡張（`rawSourceMode`、リスト継続）
+* `packages/adoc-kbmemo/src/literal_paragraph_continuation.js` — literal / 段落の Enter 継続・分割
+* `packages/adoc-kbmemo/src/list_continuation.js` / `list_syntax.js` — リスト・チェックリスト Enter 継続
 * `packages/adoc-preview/live_preview.js` — ライブ HTML プレビュー
 * `packages/adoc-kbmemo/hostConfig.js` — CSRF・URL・スクロールルート等の HostConfig
 * `npm run build:packages` — workspace パッケージの ESM ビルド（`tsup` → `packages/*/dist/`、publish 用）

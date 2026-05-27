@@ -1,4 +1,5 @@
 import { diagramWysiwygExtension } from './src/diagram_wysiwyg.js'
+import { listContinuationExtension } from './src/list_continuation.js'
 import { mathWysiwygExtension } from './src/math_wysiwyg.js'
 import { wikiAutocompletion } from './src/wiki_completion.js'
 import { viewportLineRangeSyncExtension } from './src/viewport_lazy.js'
@@ -14,7 +15,10 @@ export function createKbmemoWysiwygSourceExtensions({
   getMemoId,
   rawSourceMode = true,
 } = {}) {
-  const extensions = [...viewportLineRangeSyncExtension()]
+  const extensions = [
+    ...viewportLineRangeSyncExtension(),
+    listContinuationExtension(),
+  ]
 
   if (!rawSourceMode) {
     extensions.push(

@@ -2,6 +2,8 @@
 export const LIST_LINE =
   /^(\s*)((?:\d+\.|[a-zA-Z]\.|[ixvmIXVM]+\)|\*{1,5}|-|\.{1,5}))(\s+)(.*)$/
 
+const CHECKLIST_AFTER_MARKER = /^\[( |x|X|\*)\](\s*)(.*)$/
+
 function listKind(marker) {
   if (/^\*+$/.test(marker) || marker === "-") return "bullet"
   return "ordered"
@@ -22,7 +24,15 @@ export function parseListLine(text) {
   const indent = match[1]
   const marker = match[2]
   const space = match[3]
-  const content = match[4]
+  let content = match[4]
+  let checklistMarker = null
+
+  const checklistMatch = content.match(CHECKLIST_AFTER_MARKER)
+  if (checklistMatch) {
+    checklistMarker = `[${checklistMatch[1]}]`
+    content = checklistMatch[3] ?? ""
+  }
+
   const markerEndInLine = indent.length + marker.length + space.length
   const kind = listKind(marker)
   const level = listLevel(indent, marker)
@@ -33,6 +43,7 @@ export function parseListLine(text) {
     marker,
     markerEndInLine,
     content,
+    checklistMarker,
     kind,
     level
   }
@@ -57,4 +68,11 @@ export function listContinuationMarker(doc, lineNo, parsed) {
     return `${orderedListIndex(doc, lineNo, indentLength, marker) + 1}.`
   }
   return marker
+}
+
+/** Enter で挿入する改行 + インデント + マーカー（チェックリストは [ ] を付与） */
+export function listContinuationInsert(doc, lineNo, parsed) {
+  const marker = listContinuationMarker(doc, lineNo, parsed)
+  const checklist = parsed.checklistMarker ? " [ ] " : " "
+  return `\n${parsed.indent}${marker}${checklist}`
 }

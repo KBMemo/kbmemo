@@ -2,7 +2,7 @@ import { Prec } from "@codemirror/state"
 import { keymap } from "@codemirror/view"
 import { codeBlockByLine, scanCodeBlocks } from "./code_block_syntax"
 import {
-  listContinuationMarker,
+  listContinuationInsert,
   parseListLine
 } from "./list_syntax"
 
@@ -33,11 +33,10 @@ function continueListOnEnter(view) {
     return true
   }
 
-  const marker = listContinuationMarker(state.doc, line.number, parsed)
-  const insert = `\n${parsed.indent}${marker} `
+  const marker = listContinuationInsert(state.doc, line.number, parsed)
   view.dispatch({
-    changes: { from: head, to: head, insert },
-    selection: { anchor: head + insert.length }
+    changes: { from: head, to: head, insert: marker },
+    selection: { anchor: head + marker.length }
   })
   return true
 }

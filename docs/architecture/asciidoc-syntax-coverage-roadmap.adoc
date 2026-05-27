@@ -45,7 +45,7 @@
 
 |document-header |✓ |— |✓ |— |— |✓ |author/revision 行 HL
 |paragraphs |✓ |✓ |✓ |— |✓ |✓ |
-|paragraphs-literal |✓ |△ |✓ |— |— |✓ |インデント literal 行
+|paragraphs-literal |✓ |✓ |✓ |— |✓ |✓ |インデント literal 行・WY Enter 継続/分割
 |paragraphs-hardbreaks |✓ |— |✓ |— |— |✓ |`+` / `[%hardbreaks]`
 |paragraphs-lead |✓ |— |✓ |— |— |✓ |`[.lead]`
 |text-formatting-constrained |✓ |✓ |✓ |✓ |△ |✓ |WYSIWYG 往復は限定
@@ -67,7 +67,7 @@
 |includes |✓ |✓ |△ |— |— |△ |パス解決・safe mode
 |lists-unordered |✓ |✓ |✓ |✓ |✓ |✓ |5a 対応
 |lists-ordered |✓ |✓ |✓ |✓ |✓ |✓ |
-|lists-checklist |✓ |✓ |✓ |— |— |✓ |`[*]` / `[x]`
+|lists-checklist |✓ |✓ |✓ |— |△ |✓ |`[*]` / `[x]`。WY は Enter 継続のみ
 |lists-description |✓ |✓ |✓ |— |— |✓ |`term:: desc`
 |lists-qanda |✓ |✓ |✓ |— |— |✓ |`[qanda]`
 |lists-mixed |✓ |✓ |✓ |— |— |✓ |入れ子定義リスト
@@ -80,7 +80,7 @@
 |video |✓ |✓ |✓ |— |— |✓ |YouTube / Vimeo
 |macros-kbd-menu-btn |✓ |✓ |✓ |— |— |✓ |`:experimental:`
 |literals-inline |✓ |— |✓ |— |— |✓ |`` `++` ++` ``
-|literals-paragraph |✓ |— |✓ |— |— |✓ |
+|literals-paragraph |✓ |✓ |✓ |— |✓ |✓ |`paragraphs-literal` と同一（行頭空白）
 |literals-block |✓ |✓ |✓ |— |— |✓ |`....`
 |listing |✓ |✓ |✓ |— |✓ |✓ |5c
 |source-highlight |✓ |✓ |✓ |— |✓ |✓ |
@@ -139,8 +139,8 @@
 . sidebar / example / blockquote / open block — delimited preamble + paragraph quote 復元
 . CSV / DSV 表 — `isTableDelimiterLine` に `,===` / `:===` 追加（EU はソース単位）
 
-*テスト:* `packages/adoc-codemirror/test/phase_b_edit_units.test.js`
-*WY:* `quoteblock` / `sidebarblock` / `exampleblock` は flatten 対象。セル編集は Phase E。
+*テスト:* `packages/adoc-codemirror/test/phase_b_edit_units.test.js`、`packages/adoc-codemirror/test/literal_paragraph.test.js`
+*WY（2026-05）:* ユニット編集 CM は生 AsciiDoc（`rawSourceMode`）。literal 段落の Enter 継続・空行ユニット分割、リスト／チェックリスト Enter 継続。プレビュー表示は flatten 対象（`quoteblock` / `sidebarblock` / `exampleblock` 等）。表セル編集は Phase E 以降。
 
 === Phase C — インラインと HL 拡張（HL 完了）
 
