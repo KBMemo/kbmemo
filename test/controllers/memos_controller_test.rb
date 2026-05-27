@@ -591,8 +591,10 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/data-memo-draft-target="discardDraftButton"[^>]*class="[^"]*\bhidden\b/, actions)
   end
 
-  test "draft turbo stream keeps commit submit inside memo form" do
+  test "draft turbo stream links commit button to memo edit form" do
     memo = memos(:one)
+    t = 1.hour.ago.change(usec: 0)
+    memo.update_columns(file_committed_at: t, updated_at: t)
     get edit_memo_url(memo)
     assert_response :success
 
@@ -602,10 +604,41 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     actions = response.body[/target="memo_form_actions"><template>(.*)<\/template>/m, 1]
-    assert actions, "expected memo_form_actions turbo stream"
+    assert actions, "expected memo_form_actions turbo stream when draft state changes"
     assert_match(/data-memo-commit="true"/, actions)
     assert_match(/type="submit"/, actions)
-    assert_no_match(/form="edit_memo_/, actions)
+    assert_match(/form="#{dom_id(memo, :edit_form)}"/, actions)
+  end
+
+  test "draft autosave for uncommitted memo does not replace form actions" do
+    memo = memos(:one)
+    memo.update_column(:file_committed_at, nil)
+    get edit_memo_url(memo)
+    assert_response :success
+
+    patch draft_memo_url(memo),
+      params: { memo: { body: "= Clip title\n\nClipped body." } },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    assert_response :success
+    assert_not_includes response.body, 'target="memo_form_actions"'
+    assert_includes response.body, "memo_title_field"
+  end
+
+  test "edit uncommitted memo keeps delete and commit outside nested forms" do
+    memo = memos(:one)
+    memo.update_column(:file_committed_at, nil)
+    get edit_memo_url(memo)
+    assert_response :success
+
+    form_id = dom_id(memo, :edit_form)
+    assert_select "form##{form_id}" do
+      assert_select "#memo_form_actions", count: 0
+      assert_select "button[data-memo-commit='true']", count: 0
+      assert_select "button", text: "削除", count: 0
+    end
+    assert_select "#memo_form_actions button[data-memo-commit='true'][form='#{form_id}']", text: "コミット"
+    assert_select "#memo_form_actions button", text: "削除"
+    assert_select "#memo_form_actions input[name='_method'][value='delete']"
   end
 
   test "draft can respond with turbo stream for title sync" do
@@ -618,7 +651,6 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "memo_title_field"
     assert_includes response.body, "memo_slug_field"
     assert_includes response.body, "memo_directory_field"
-    assert_includes response.body, "memo_form_actions"
   end
 
   test "draft turbo stream keeps memos_list_panel id so repeated saves refresh sidebar" do

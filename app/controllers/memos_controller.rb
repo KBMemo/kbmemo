@@ -168,6 +168,8 @@ class MemosController < ApplicationController
 
   def draft
     authorize @memo
+    display_as_draft_before = @memo.display_as_draft?
+    file_committed_before = @memo.file_committed_at.present?
     repo = MemoRepository.new
     old_rel = repo.relative_path_for(@memo)
     old_abs = repo.absolute_path_for(@memo)
@@ -198,7 +200,7 @@ class MemosController < ApplicationController
       broadcast_updated_show_content
       respond_to do |format|
         format.turbo_stream do
-          render turbo_stream: [
+          streams = [
             turbo_stream.replace(
               "memo_title_field",
               partial: "memos/title_field",
@@ -214,13 +216,17 @@ class MemosController < ApplicationController
               partial: "memos/directory_field",
               locals: { memo: @memo }
             ),
-            turbo_stream.replace(
-              "memo_form_actions",
-              partial: "memos/form_actions",
-              locals: { memo: @memo }
-            ),
             turbo_stream.replace("memos_list_panel", partial: "memos/list_panel")
           ]
+          if @memo.display_as_draft? != display_as_draft_before ||
+             @memo.file_committed_at.present? != file_committed_before
+            streams << turbo_stream.replace(
+              "memo_form_actions",
+              partial: "memos/form_actions",
+              locals: { memo: @memo, memo_edit_form_id: helpers.dom_id(@memo, :edit_form) }
+            )
+          end
+          render turbo_stream: streams
         end
         format.json do
           render json: {

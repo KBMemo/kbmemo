@@ -11,6 +11,7 @@ ruby:
   form_data[:memo_draft_file_committed_value] = memo.file_committed_at.present?
   form_data[:memo_draft_memo_id_value] = memo.id if memo.persisted?
   form_data[:memo_draft_tag_catalog_value] = memo_tag_catalog_for_pills.to_json
+  memo_edit_form_id = memo.persisted? ? dom_id(memo, :edit_form) : "new_memo_form"
   unless memo.persisted?
     selected_dir = memo.memo_directory&.root? ? nil : memo.memo_directory
     unselected = selected_dir.nil? || selected_dir.root?
@@ -29,7 +30,7 @@ ruby:
     }.to_json
   end
 
-= form_with model: memo, class: "space-y-3", data: form_data do |f|
+= form_with model: memo, class: "space-y-3", html: { id: memo_edit_form_id }, data: form_data do |f|
   = hidden_field_tag "memo[title_manual]", memo.title_manual ? "1" : "0", data: { memo_draft_target: "titleManualFlag" }
   - if memo.errors.any?
     .rounded-md.border.border-red-200.bg-red-50.px-4.py-3.text-sm.text-red-900
@@ -159,6 +160,6 @@ ruby:
   - if memo.persisted?
     = render "memos/show_backlinks", memo: memo
 
-  - if memo.persisted?
-    = render "memos/form_actions", memo: memo
+- if memo.persisted?
+  = render "memos/form_actions", memo: memo, memo_edit_form_id: memo_edit_form_id
 
