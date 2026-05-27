@@ -141,7 +141,7 @@
 
 |3
 |include / 固定 URL（任意）
-|include プリプロセッサ、公開ヘルプ用 `/help` ルート、Notebook エクスポート。
+|include プリプロセッサ、公開ヘルプ用 `/help` ルート、Notebook エクスポート（実装済み）。
 |===
 
 == ドキュメント種別と配置（目標）
@@ -340,6 +340,30 @@ KBMEMO_DOCS_SYNC_TARGET=share bin/rails kbmemo:docs:sync   # Phase 1b 互換: sh
 |省略時 `system`。`share` で従来の `share/u-{id}/dev-docs/` 配置
 |===
 
+== Phase 3: include / 固定 URL / エクスポート（実装済み）
+
+=== include プリプロセッサ
+
+* `MemoAdocIncludes` — `docs_sync` メモ表示時、`properties.docs_sync.source_path` を基準に `Rails.root/docs/` から `include::` を展開（`memo_html` 内、Asciidoctor 変換前）。
+* フェンス内の `include::` は展開しない。`docs/` 外へのパス・リモート URL は拒否。
+
+=== 公開ヘルプ `/help`
+
+* `HelpController#show` — slug 既定 `help` の **公開済み manual** Notebook をゲスト閲覧可能な固定 URL で表示。
+* ルート: `/help`, `/help/:memo_slug`（`KBMEMO_HELP_NOTEBOOK_SLUG` で slug 上書き）。
+* ノートブック show と同一 UI（2 ペイン + ツリー）。ヘッダーに「ヘルプ」リンク（公開 Notebook がある場合）。
+
+=== Notebook エクスポート
+
+[source,bash]
+----
+NOTEBOOK_ID=1 OUTPUT=tmp/help-export bin/rails kbmemo:notebook:export
+NOTEBOOK_SLUG=help OUTPUT=docs/help DRY_RUN=1 bin/rails kbmemo:notebook:export
+----
+
+* `Notebooks::Export` — Notebook ツリーを YAML front matter 付き `.adoc` 群として書き出し。
+* 子メモは親 slug 名のサブディレクトリに配置。
+
 == Notebook との連携
 
 * **マニュアル / ヘルプ** は Notebook `publication_kind: manual` が向く（2 ペイン + ツリー目次、`docs/architecture/notebook-mvp.adoc`）。
@@ -375,7 +399,10 @@ KBMEMO_DOCS_SYNC_TARGET=share bin/rails kbmemo:docs:sync   # Phase 1b 互換: sh
 == 関連コード（現状）
 
 * `app/services/kbmemo_docs/` — 同期本体
-* `lib/tasks/kbmemo_docs.rake` — Rake タスク（`sync`, `sync_notebook`）
+* `app/services/memo_adoc_includes.rb` — docs_sync include 展開
+* `app/services/help_notebook.rb`, `app/controllers/help_controller.rb` — `/help`
+* `app/services/notebooks/export.rb` — Notebook → AsciiDoc 書き出し
+* `lib/tasks/kbmemo_docs.rake` — `kbmemo:notebook:export`
 * `app/helpers/memos_helper.rb` — `memo_html`（Asciidoctor 変換）
 * `app/services/memo_repository.rb` — Git 作業ツリー（任意 commit）
 * `app/models/memo_directory/system_space.rb` — system バケット
@@ -398,6 +425,6 @@ KBMEMO_DOCS_SYNC_TARGET=share bin/rails kbmemo:docs:sync   # Phase 1b 互換: sh
 |Phase 1 実装（`kbmemo:docs:sync`、`KbmemoDocs::Sync`）
 
 |2026-05-26
-|0.4
-|Phase 2 実装（`system` バケット、`system/docs` / `system/help`、Policy、同期先 `KBMEMO_DOCS_SYNC_TARGET`）
+|0.5
+|Phase 3 実装（include 展開、`/help`、`kbmemo:notebook:export`）
 |===

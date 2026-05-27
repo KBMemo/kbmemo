@@ -203,6 +203,29 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, %(href="/memos/#{memos(:two).id}")
   end
 
+  test "memo_html expands docs_sync include before conversion" do
+    subdir = "_memo_html_include_test_#{SecureRandom.hex(4)}"
+    docs_dir = Rails.root.join("docs", subdir)
+    docs_dir.mkpath
+    File.write(docs_dir.join("part.adoc"), "Included paragraph.\n", encoding: "UTF-8")
+
+    memo = memos(:one)
+    memo.update!(
+      properties: {
+        "docs_sync" => {
+          "source_path" => "#{subdir}/hub.adoc",
+          "read_only" => true
+        }
+      },
+      body: "include::part.adoc[]\n"
+    )
+
+    html = memo_html(memo.body, source_memo: memo)
+    assert_includes html, "Included paragraph."
+  ensure
+    FileUtils.rm_rf(Rails.root.join("docs", subdir)) if subdir
+  end
+
   test "memo_directory_tree_select_option_pairs uses NBSP indent when excluding root" do
     dirs = [
       memo_directories(:root),

@@ -52,6 +52,12 @@ module KbmemoDocs
       [ "dev-docs", *Pathname.new(relative_path).dirname.to_s.split("/").reject { |p| p.blank? || p == "." } ]
     end
 
+    # include 展開用: front matter と先頭タイトル行を除いた本文
+    def self.embedded_body(content)
+      source = new(relative_path: "_embedded.adoc", content: content.to_s)
+      source.body
+    end
+
     private
 
     attr_reader :raw_body

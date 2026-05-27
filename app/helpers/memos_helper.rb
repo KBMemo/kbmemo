@@ -327,6 +327,7 @@ module MemosHelper
 
     text = body.to_s
     text = MemoBodyReferences.normalize_image_macro_paths(text) if source_memo&.persisted?
+    text = MemoAdocIncludes.new(memo: source_memo).expand(text) if source_memo&.docs_sync_managed?
 
     processed = MemoWikiLinks.new(
       scope: policy_scope(Memo),

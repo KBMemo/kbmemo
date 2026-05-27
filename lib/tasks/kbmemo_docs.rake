@@ -35,4 +35,28 @@ namespace :kbmemo do
       abort "sync_notebook finished with errors" if result.errors.any?
     end
   end
+
+  namespace :notebook do
+    desc <<~DESC.squish
+      Export a notebook tree to AsciiDoc files.
+      Env: NOTEBOOK_ID or NOTEBOOK_SLUG, OUTPUT (required), DRY_RUN=1
+    DESC
+    task export: :environment do
+      dry_run = ActiveModel::Type::Boolean.new.cast(ENV["DRY_RUN"])
+      output = ENV["OUTPUT"].presence || abort("OUTPUT is required")
+      notebook = if (id = ENV["NOTEBOOK_ID"].presence)
+        Notebook.find(id)
+      elsif (slug = ENV["NOTEBOOK_SLUG"].presence)
+        Notebook.find_by!(slug: slug)
+      else
+        abort "NOTEBOOK_ID or NOTEBOOK_SLUG is required"
+      end
+
+      result = Notebooks::Export.call(notebook: notebook, target_root: output, dry_run: dry_run)
+
+      puts "kbmemo:notebook:export#{dry_run ? " (dry run)" : ""}"
+      result.summary_lines.each { |line| puts line }
+      abort "export finished with errors" if result.errors.any?
+    end
+  end
 end
