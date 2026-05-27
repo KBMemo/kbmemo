@@ -368,6 +368,11 @@ function visitBlocks(node, units, protectedRanges, lines) {
     return
   }
 
+  if (ctx === 'paragraph') {
+    pushParagraphUnit(node, units, protectedRanges, lines)
+    return
+  }
+
   const blockSource = node.getSource?.()
   if (!blockSource) return
 
@@ -402,6 +407,30 @@ function listUnitStartLine(contentStartLine, lines) {
   }
 
   return startLine
+}
+
+/**
+ * 段落直前のブロック属性（[%hardbreaks] / [.lead] 等）をユニットに含める。
+ *
+ * @param {import('@asciidoctor/core').Block} node
+ * @param {ParsedEditUnit[]} units
+ * @param {[number, number][]} protectedRanges
+ * @param {string[]} lines
+ */
+function pushParagraphUnit(node, units, protectedRanges, lines) {
+  const blockSource = node.getSource?.() ?? ''
+  if (!blockSource) return
+
+  const contentStartLine = (node.getLineNumber() ?? 1) - 1
+  const startLine = listUnitStartLine(contentStartLine, lines)
+  const endLine = contentStartLine + Math.max(0, blockSource.split('\n').length - 1)
+  if (isRangeInsideProtected(startLine, endLine, protectedRanges)) return
+
+  units.push({
+    adoc: lines.slice(startLine, endLine + 1).join('\n'),
+    startLine,
+    endLine,
+  })
 }
 
 /**

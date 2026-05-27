@@ -46,7 +46,7 @@
 |document-header |✓ |— |✓ |— |— |✓ |author/revision 行 HL
 |paragraphs |✓ |✓ |✓ |— |✓ |✓ |
 |paragraphs-literal |✓ |✓ |✓ |— |✓ |✓ |インデント literal 行・WY Enter 継続/分割
-|paragraphs-hardbreaks |✓ |— |✓ |— |— |✓ |`+` / `[%hardbreaks]`
+|paragraphs-hardbreaks |✓ |✓ |✓ |— |✓ |✓ |`+` / `[%hardbreaks]`
 |paragraphs-lead |✓ |— |✓ |— |— |✓ |`[.lead]`
 |text-formatting-constrained |✓ |✓ |✓ |✓ |△ |✓ |WYSIWYG 往復は限定
 |text-formatting-unconstrained |✓ |△ |✓ |△ |— |✓ |`**` / `__` 等

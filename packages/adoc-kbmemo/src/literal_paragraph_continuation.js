@@ -5,9 +5,14 @@ import {
   isBlankLine,
   isIndentLiteralBlock,
 } from '@kbmemo/adoc-codemirror'
+import { parseListLine } from './list_syntax.js'
 
 function isWysiwygBlockSourceEditor(view) {
   return Boolean(view.dom.closest('.wysiwyg-source-editor'))
+}
+
+function isHardbreaksParagraph(doc) {
+  return doc.trimStart().startsWith('[%hardbreaks]')
 }
 
 /**
@@ -49,10 +54,19 @@ function continueWysiwygParagraphOnEnter(view, onSplitToParagraph) {
     return true
   }
 
-  if (!isIndentLiteralBlock(doc)) return false
+  if (parseListLine(line.text)) return false
 
-  const indent = indentForLiteralContinuation(lines, lineIndex)
-  const insert = `\n${indent}`
+  if (isIndentLiteralBlock(doc)) {
+    const indent = indentForLiteralContinuation(lines, lineIndex)
+    const insert = `\n${indent}`
+    view.dispatch({
+      changes: { from: head, to: head, insert },
+      selection: { anchor: head + insert.length },
+    })
+    return true
+  }
+
+  const insert = isHardbreaksParagraph(doc) ? '\n' : ' +\n'
   view.dispatch({
     changes: { from: head, to: head, insert },
     selection: { anchor: head + insert.length },

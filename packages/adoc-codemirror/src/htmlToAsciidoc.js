@@ -92,8 +92,7 @@ function convertNode(node, memoId) {
   }
 
   if (el.classList.contains('paragraph')) {
-    const p = el.querySelector('p')
-    return p ? inlineContent(p) : inlineContent(el)
+    return convertParagraph(el)
   }
 
   if (el.classList.contains('ulist')) {
@@ -370,6 +369,70 @@ function inlineNode(node) {
   if (tag === 'kbd') return el.textContent ? `kbd:[${el.textContent}]` : inner
 
   return inner
+}
+
+const HARDBREAKS_DATA_ATTR = 'kbHardbreaks'
+
+/**
+ * @param {HTMLElement} wrapper
+ */
+function convertParagraph(wrapper) {
+  const hardbreaks = wrapper.dataset[HARDBREAKS_DATA_ATTR] === 'true'
+  const p = wrapper.querySelector('p') ?? wrapper
+  const body = serializeParagraphBody(p, { hardbreaks })
+  if (!body) return null
+  if (hardbreaks) return `[%hardbreaks]\n${body}`
+  return body
+}
+
+/**
+ * @param {HTMLElement} p
+ * @param {{ hardbreaks: boolean }} options
+ */
+function serializeParagraphBody(p, { hardbreaks }) {
+  /** @type {string[]} */
+  const lines = []
+  let current = ''
+
+  const pushLine = () => {
+    if (hardbreaks) {
+      lines.push(current)
+    } else {
+      const trimmed = current.replace(/\s+$/, '')
+      lines.push(trimmed ? `${trimmed} +` : '+')
+    }
+    current = ''
+  }
+
+  for (const child of p.childNodes) {
+    if (child.nodeType === Node.TEXT_NODE) {
+      let text = child.textContent ?? ''
+      if (current === '' && lines.length > 0) {
+        text = text.replace(/^\n+/, '')
+      }
+      current += text
+      continue
+    }
+
+    if (child.nodeType !== Node.ELEMENT_NODE) continue
+
+    const el = /** @type {HTMLElement} */ (child)
+    const tag = el.tagName.toLowerCase()
+
+    if (tag === 'br') {
+      pushLine()
+      continue
+    }
+
+    current += inlineNode(el)
+  }
+
+  const trailing = hardbreaks ? current : current.replace(/\s+$/, '')
+  if (trailing || lines.length === 0) {
+    lines.push(trailing)
+  }
+
+  return lines.join('\n').trimEnd()
 }
 
 /**

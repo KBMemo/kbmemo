@@ -121,7 +121,21 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
         block.dataset[INDENT_LITERAL_DATA_ATTR] = 'true'
       }
     }
+    annotateParagraphHardbreaks(adoc, temp)
     unit.replaceChildren(...temp.childNodes)
+  }
+
+  /**
+   * @param {string} adoc
+   * @param {ParentNode} previewRoot
+   */
+  function annotateParagraphHardbreaks(adoc, previewRoot) {
+    const trimmed = adoc.trimStart()
+    if (trimmed.startsWith('[%hardbreaks]')) {
+      for (const block of previewRoot.querySelectorAll('.paragraph')) {
+        block.dataset.kbHardbreaks = 'true'
+      }
+    }
   }
 
   async function refreshWikiLabelPreviews(source) {
