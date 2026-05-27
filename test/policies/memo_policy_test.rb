@@ -59,4 +59,21 @@ class MemoPolicyTest < ActiveSupport::TestCase
     assert MemoPolicy.new(accounts(:one), m).destroy?
     assert_not MemoPolicy.new(accounts(:two), m).destroy?
   end
+
+  test "docs_sync read-only memo cannot be updated or destroyed by owner" do
+    m = memos(:one)
+    m.update!(
+      properties: {
+        "docs_sync" => {
+          "source_path" => "architecture/sample.adoc",
+          "read_only" => true
+        }
+      }
+    )
+
+    policy = MemoPolicy.new(accounts(:one), m)
+    assert policy.show?
+    assert_not policy.update?
+    assert_not policy.destroy?
+  end
 end

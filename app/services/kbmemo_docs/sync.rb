@@ -132,7 +132,7 @@ module KbmemoDocs
     end
 
     def ensure_memo_directory!(segments)
-      MemoDirectory::UserSpace.ensure_subdirectory!(@account, *segments)
+      MemoDirectory::UserSpace.ensure_subdirectory!(@account, *segments, bucket: KbmemoDocs::SYNC_BUCKET)
     end
 
     def create_memo!(source, directory)

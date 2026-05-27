@@ -197,6 +197,14 @@ class Memo < ApplicationRecord
     text.match?(/\p{Hiragana}|\p{Katakana}|\p{Han}|\uFF61-\uFF9F/u)
   end
 
+  def docs_sync_managed?
+    properties.is_a?(Hash) && properties.dig("docs_sync", "source_path").present?
+  end
+
+  def docs_sync_read_only?
+    docs_sync_managed? && properties.dig("docs_sync", "read_only") != false
+  end
+
   private
 
   def clear_memo_group_when_not_group_visibility

@@ -38,6 +38,16 @@ class MemoDirectory
         MemoDirectory.find_by!(full_path: "home/u-#{id}")
       end
 
+      def share_directory(account_or_id)
+        id = account_or_id.is_a?(Account) ? account_or_id.id : account_or_id
+        MemoDirectory.find_by!(full_path: "share/u-#{id}")
+      end
+
+      def bucket_directory(account_or_id, bucket)
+        id = account_or_id.is_a?(Account) ? account_or_id.id : account_or_id
+        MemoDirectory.find_by!(full_path: "#{bucket}/u-#{id}")
+      end
+
       # 初回クリップ時に home/u-{id}/clippings を自動作成する。
       def clippings_directory(account)
         account = account.is_a?(Account) ? account : Account.find(account)
@@ -52,11 +62,11 @@ class MemoDirectory
           )
       end
 
-      # `home/u-{id}` 配下に segments 指定のディレクトリツリーを確保し、末端を返す。
-      def ensure_subdirectory!(account, *segments)
+      # `{bucket}/u-{id}` 配下に segments 指定のディレクトリツリーを確保し、末端を返す。
+      def ensure_subdirectory!(account, *segments, bucket: KbmemoDocs::SYNC_BUCKET)
         account = account.is_a?(Account) ? account : Account.find(account)
         ensure_for_account!(account)
-        parent = default_home_directory(account)
+        parent = bucket_directory(account, bucket)
         segments.flatten.compact_blank.each do |seg|
           fp = "#{parent.full_path}/#{seg}"
           parent = MemoDirectory.find_by(full_path: fp) ||

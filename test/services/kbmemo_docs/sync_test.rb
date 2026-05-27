@@ -27,7 +27,7 @@ class KbmemoDocsSyncTest < ActiveSupport::TestCase
     assert_equal "Wiki target [[world]].\n", memo.body
     assert_equal "architecture/hello.adoc", memo.properties.dig("docs_sync", "source_path")
     assert memo.properties.dig("docs_sync", "read_only")
-    assert_equal "home/u-#{@account.id}/dev-docs/architecture", memo.memo_directory.full_path
+    assert_equal "share/u-#{@account.id}/dev-docs/architecture", memo.memo_directory.full_path
     assert_includes memo.tags.map(&:name), "docs-sync"
   end
 

@@ -152,7 +152,7 @@
 
 |開発アーキテクチャ
 |Git `docs/architecture/`
-|同期先: `home/u-{sync_account}/dev-docs/architecture/`（仮）
+|同期先: `share/u-{sync_account}/dev-docs/architecture/`（仮）
 |開発者（`group_read` または admin）
 
 |デプロイ・運用
@@ -212,7 +212,7 @@ KBMEMO_DOCS_SYNC_COMMIT=1 bin/rails kbmemo:docs:sync   # development のみ Git 
 
 * Rake: `lib/tasks/kbmemo_docs.rake`（`kbmemo:docs:sync`）
 * サービス: `app/services/kbmemo_docs/sync.rb`, `adoc_source.rb`
-* ディレクトリ: `MemoDirectory::UserSpace.ensure_subdirectory!` → `home/u-{id}/dev-docs/...`
+* ディレクトリ: `MemoDirectory::UserSpace.ensure_subdirectory!` → `share/u-{id}/dev-docs/...`
 
 === 入力
 
@@ -226,7 +226,7 @@ KBMEMO_DOCS_SYNC_COMMIT=1 bin/rails kbmemo:docs:sync   # development のみ Git 
 |項目 |ルール
 
 |配置ディレクトリ
-|設定可能な `sync_account_id` の `home/u-{id}/dev-docs/...`（パスは `docs/` 以下の相対パスを反映）
+|設定可能な `sync_account_id` の `share/u-{id}/dev-docs/...`（パスは `docs/` 以下の相対パスを反映）
 
 |title
 |ファイル先頭の `= Title` または front matter の `title`、なければ basename
@@ -251,14 +251,45 @@ KBMEMO_DOCS_SYNC_COMMIT=1 bin/rails kbmemo:docs:sync   # development のみ Git 
 
 * `properties.docs_sync.source_path` で既存メモを特定（なければ新規作成）。
 * 本文ハッシュが変わったときだけ `body` / `title` を更新。
-* `properties.docs_sync.read_only` を `true` で付与（UI 側の編集抑止は Phase 1b）。
-* Git `MemoRepository` への write は、同期後にオプションで `write_and_commit!`（開発環境のみ推奨）。
+* `properties.docs_sync.read_only` を `true` で付与し、KBMemo 上の編集・削除を抑止（Phase 1b）。
 
 === やらないこと（Phase 1）
 
 * 双方向同期（Memo → `docs/` への書き戻し）
 * `include::` の自動展開
 * 画像・diagram アセットの自動コピー（本文中パスは後続）
+
+== Phase 1b: 読み取り専用 UI + Notebook 登録（実装済み）
+
+=== 読み取り専用
+
+* `Memo#docs_sync_read_only?` — `properties.docs_sync.read_only` が true のメモ
+* `MemoPolicy#update?` / `#destroy?` — read-only では拒否
+* show 画面 — 編集・削除ボタン非表示、同期元パスと `kbmemo:docs:sync` の案内を表示
+* `MemosController#edit` — read-only 時は show へリダイレクト
+
+=== Notebook 同期
+
+[source,bash]
+----
+bin/rails kbmemo:docs:sync_notebook
+DRY_RUN=1 bin/rails kbmemo:docs:sync_notebook
+----
+
+* Rake: `kbmemo:docs:sync_notebook`
+* サービス: `app/services/kbmemo_docs/sync_notebook.rb`
+* ノートブック: slug 既定 `dev-docs`（`KBMEMO_DOCS_SYNC_NOTEBOOK_SLUG` で上書き）
+* `docs_sync` メモを Notebook に登録。`docs/` のディレクトリ深さに応じて `parent_id` ツリーを構成
+
+=== 推奨ワークフロー
+
+[source,bash]
+----
+bin/rails kbmemo:docs:sync
+bin/rails kbmemo:docs:sync_notebook
+----
+
+* 1 本目でメモ upsert、2 本目で Developer Docs ノートブックの目次を更新
 
 == Phase 2: システム doc バケット（設計スケッチ）
 
@@ -312,10 +343,9 @@ system/
 
 == 開発環境での使い方
 
-. `DRY_RUN=1 bin/rails kbmemo:docs:sync` で対象ファイルを確認。
-. `bin/rails kbmemo:docs:sync` で `home/u-{admin}/dev-docs/` 以下にメモ upsert。
+. `bin/rails kbmemo:docs:sync` で `share/u-{admin}/dev-docs/` 以下にメモ upsert。
+. `bin/rails kbmemo:docs:sync_notebook` で Developer Docs ノートブックを更新。
 . KBMemo 上でメモ一覧・Wiki リンク・Notebook 目次を確認。
-. （任意）Notebook（manual）を作成し、同期メモをツリー順に登録。
 
 == 関連ドキュメント
 
@@ -326,7 +356,7 @@ system/
 == 関連コード（現状）
 
 * `app/services/kbmemo_docs/` — 同期本体
-* `lib/tasks/kbmemo_docs.rake` — Rake タスク
+* `lib/tasks/kbmemo_docs.rake` — Rake タスク（`sync`, `sync_notebook`）
 * `app/helpers/memos_helper.rb` — `memo_html`（Asciidoctor 変換）
 * `app/services/memo_repository.rb` — Git 作業ツリー（任意 commit）
 * `app/policies/memo_directory_policy.rb` — ディレクトリスコープ
@@ -346,4 +376,8 @@ system/
 |2026-05-26
 |0.2
 |Phase 1 実装（`kbmemo:docs:sync`、`KbmemoDocs::Sync`）
+
+|2026-05-26
+|0.3
+|配置を `share/u-{id}/dev-docs/` に変更。Phase 1b（read-only UI、`kbmemo:docs:sync_notebook`）
 |===
