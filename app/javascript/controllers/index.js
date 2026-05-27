@@ -61,6 +61,9 @@ application.register("memo-directory-parent-picker", MemoDirectoryParentPickerCo
 import MemoDirectorySidebarOpenController from "./memo_directory_sidebar_open_controller"
 application.register("memo-directory-sidebar-open", MemoDirectorySidebarOpenController)
 
+import MemoWikiCreateController from "./memo_wiki_create_controller"
+application.register("memo-wiki-create", MemoWikiCreateController)
+
 import MemoDraftController from "./memo_draft_controller"
 application.register("memo-draft", MemoDraftController)
 

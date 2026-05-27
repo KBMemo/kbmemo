@@ -350,10 +350,11 @@ module MemosHelper
     text = MemoBodyReferences.normalize_image_macro_paths(text) if source_memo&.persisted?
     text = MemoAdocIncludes.new(memo: source_memo).expand(text) if source_memo&.docs_sync_managed?
 
-    processed = MemoWikiLinks.new(
+    wiki_linker = MemoWikiLinks.new(
       scope: policy_scope(Memo),
       source_memo: source_memo
-    ).substitute(text)
+    )
+    processed = wiki_linker.substitute(text)
     processed = MemoDiagramMacro.new(memo: source_memo).substitute(processed)
 
     attrs = {
@@ -374,7 +375,68 @@ module MemosHelper
     )
     html = memo_html_lazy_load_images(html)
     html = memo_html_add_asset_viewer_links(html, source_memo)
+    html = memo_html_enrich_broken_wiki_links(html, wiki_linker.broken_links, source_memo: source_memo)
     memo_html_add_checklist_controls(html, source_memo)
+  end
+
+  def memo_wiki_create_directory_id(memo)
+    dir = memo.memo_directory
+    account_id = pundit_user&.id
+    return MemoDirectory::UserSpace.default_home_directory(account_id).id unless account_id
+
+    if dir && !dir.root? && !dir.top_level_bucket?
+      dir.id
+    else
+      MemoDirectory::UserSpace.default_home_directory(account_id).id
+    end
+  end
+
+  def memo_wiki_create_enabled?(source_memo)
+    return false unless source_memo&.persisted?
+
+    user = pundit_user
+    return false unless user
+
+    MemoPolicy.new(user, Memo).create?
+  end
+
+  def memo_body_tag_options(memo)
+    opts = { class: "memo-body asciidoctor kb-card p-6", data: { theme_slot: "memo-body" } }
+    return opts unless memo_wiki_create_enabled?(memo)
+
+    opts[:data][:controller] = "memo-wiki-create"
+    opts[:data][:memo_wiki_create_create_url_value] = memos_path
+    opts[:data][:memo_wiki_create_memo_directory_id_value] = memo_wiki_create_directory_id(memo)
+    opts
+  end
+
+  def memo_body_stimulus_data(memo)
+    memo_body_tag_options(memo)
+  end
+
+  def memo_html_enrich_broken_wiki_links(html, broken_links, source_memo:)
+    return html if broken_links.blank?
+    return html unless memo_wiki_create_enabled?(source_memo)
+
+    fragment = Nokogiri::HTML.fragment(html.to_s)
+    broken_links.each_with_index do |link, index|
+      span = fragment.at_css("span.kb-wiki-broken-#{index}")
+      next unless span
+
+      title = MemoWikiLinks.derive_title_from_target(link[:target])
+      title = link[:target].to_s.strip if title.blank?
+
+      button = Nokogiri::XML::Node.new("button", fragment)
+      button["type"] = "button"
+      button["class"] = (span["class"].to_s.split + ["memo-wiki-create-link"]).uniq.join(" ")
+      button["data-wiki-target"] = link[:target]
+      button["data-wiki-title"] = title
+      button["data-action"] = "memo-wiki-create#create"
+      button["title"] = "「#{title}」のメモを新規作成"
+      button.content = span.text
+      span.replace(button)
+    end
+    fragment.to_html.html_safe
   end
 
   # 表示画面: ビューポート外の画像読み込みを遅延（<object> 図は対象外）

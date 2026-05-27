@@ -33,9 +33,24 @@ class MemosHelperTest < ActionView::TestCase
 
   test "memo_html renders broken wiki link with styled span" do
     html = memo_html("[[no-such-memo]]", source_memo: memos(:one))
-    assert_includes html, 'class="memo-wiki-broken"'
+    assert_includes html, 'class="memo-wiki-broken'
     assert_includes html, "no-such-memo"
     assert_not_includes html, "&lt;span"
+  end
+
+  test "memo_html makes broken wiki links clickable to create memo" do
+    html = memo_html("[[Missing memo]]", source_memo: memos(:one))
+    assert_includes html, 'data-wiki-target="Missing memo"'
+    assert_includes html, 'data-wiki-title="Missing memo"'
+    assert_includes html, 'data-action="memo-wiki-create#create"'
+    assert_includes html, "<button"
+  end
+
+  test "memo_html broken wiki link with custom label uses target for create title" do
+    html = memo_html("[[Real Title|short label]]", source_memo: memos(:one))
+    assert_includes html, "short label"
+    assert_includes html, 'data-wiki-target="Real Title"'
+    assert_includes html, 'data-wiki-title="Real Title"'
   end
 
   test "memo_html renders fenced code as listingblock" do

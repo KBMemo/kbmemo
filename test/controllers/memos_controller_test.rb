@@ -896,6 +896,39 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", memo_path(memo, sidebar_view: "tag", tag_id: tag.id), text: tag.name
   end
 
+  test "create memo from wiki link body derives title" do
+    dir = memo_directories(:work)
+    assert_difference -> { Memo.count }, 1 do
+      post memos_url, params: {
+        memo: {
+          body: "= Missing memo\n\n",
+          memo_directory_id: dir.id,
+          slug: "",
+          slug_manual: false,
+          title_manual: false,
+          tag_list: "",
+          properties_yaml: "{}"
+        }
+      }, as: :json
+    end
+    assert_response :created
+    memo = Memo.order(:id).last
+    assert_equal "Missing memo", memo.title
+    assert_equal "= Missing memo\n\n", memo.body
+  end
+
+  test "show renders broken wiki link as create button for signed in user" do
+    source = memos(:one)
+    source.update_columns(
+      file_committed_at: 1.hour.ago,
+      body: "= Linked\n\n[[Brand new topic]]"
+    )
+    get memo_url(source)
+    assert_response :success
+    assert_includes response.body, 'data-wiki-target="Brand new topic"'
+    assert_includes response.body, 'data-action="memo-wiki-create#create"'
+  end
+
   test "show does not link to memo outside policy scope" do
     source = memos(:one)
     private_memo = memos(:two)

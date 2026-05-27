@@ -82,7 +82,7 @@ ruby:
         = memo_properties_yaml_value(memo)
 
   - checklist_editable = policy(memo).update? && Array(memo.properties["checkboxes"]).any?
-  article.memo-body.asciidoctor.kb-card.p-6 data-theme-slot="memo-body"
+  = tag.article(**memo_body_tag_options(memo)) do
     - if checklist_editable
       .max-w-none data-controller="memo-checklist" data-memo-checklist-toggle-url-value=checklist_toggle_memo_path(memo) data-action="change->memo-checklist#toggle"
         == memo_html(memo.body, source_memo: memo)

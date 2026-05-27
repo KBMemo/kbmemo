@@ -29,6 +29,7 @@ class MemoWikiLinks
   def substitute(text)
     return text if text.blank?
 
+    @broken_links = []
     out = +""
     in_fenced = false
     text.each_line do |line|
@@ -61,6 +62,24 @@ class MemoWikiLinks
     targets.uniq
   end
 
+  def broken_links
+    @broken_links || []
+  end
+
+  # 未解決 [[target]] の新規メモタイトル（| 以降の表示名ではなく target 側を使う）
+  def self.derive_title_from_target(target)
+    key = target.to_s.strip
+    return "" if key.blank?
+
+    slug_part = key.include?("/") ? key.rpartition("/").last : key
+    if (match = slug_part.match(/\A(.+)-(\d+)\z/))
+      stem = match[1].to_s.tr("-", " ").squeeze(" ").strip
+      return stem.presence || slug_part
+    end
+
+    slug_part
+  end
+
   private
 
   def replace_link(m)
@@ -72,13 +91,14 @@ class MemoWikiLinks
       link_label = custom_label || link_display_label(resolved, target)
       "link:/memos/#{resolved.id}[#{escape_asciidoc_link_text(link_label)}]"
     else
-      broken_link_markup(display_label)
+      @broken_links << { target: target, label: display_label }
+      broken_link_markup(display_label, index: @broken_links.size - 1)
     end
   end
 
-  def broken_link_markup(label)
+  def broken_link_markup(label, index:)
     # safe モードの Asciidoctor では HTML パススルーがエスケープされるため role 記法を使う
-    "[.memo-wiki-broken]##{escape_asciidoc_unquoted(label)}#"
+    "[.memo-wiki-broken.kb-wiki-broken-#{index}]##{escape_asciidoc_unquoted(label)}#"
   end
 
   def escape_asciidoc_unquoted(text)

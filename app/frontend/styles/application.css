@@ -49,6 +49,10 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   @apply text-red-600 underline decoration-dotted;
 }
 
+.memo-body button.memo-wiki-create-link {
+  @apply cursor-pointer text-red-600 underline decoration-dotted;
+}
+
 /* 本文 CodeMirror: ガターと編集域の重なり防止・行頭カーソル */
 .memo-body-editor .cm-editor {
   position: relative;

@@ -65,9 +65,26 @@ class MemoWikiLinksTest < ActiveSupport::TestCase
 
   test "substitute broken link when target not in scope" do
     body = "[[Missing memo]]"
-    out = linker(source: @one).substitute(body)
+    linker = linker(source: @one)
+    out = linker.substitute(body)
     assert_includes out, "memo-wiki-broken"
+    assert_includes out, "kb-wiki-broken-0"
     assert_includes out, "Missing memo"
+    assert_equal [{ target: "Missing memo", label: "Missing memo" }], linker.broken_links
+  end
+
+  test "derive_title_from_target uses target not display label" do
+    assert_equal "My Title", MemoWikiLinks.derive_title_from_target("My Title")
+    assert_equal "second memo", MemoWikiLinks.derive_title_from_target("second-memo-42")
+    assert_equal "my note", MemoWikiLinks.derive_title_from_target("home/work/my-note-99")
+  end
+
+  test "substitute broken link records target for custom label" do
+    body = "[[Real Title|short label]]"
+    linker = linker(source: @one)
+    out = linker.substitute(body)
+    assert_includes out, "short label"
+    assert_equal [{ target: "Real Title", label: "short label" }], linker.broken_links
   end
 
   test "substitute resolves directory full_path and slug" do
