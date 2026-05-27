@@ -38,4 +38,5 @@ set +a
 
 export RAILS_ENV="${RAILS_ENV:-production}"
 
-exec bundle exec thrust ./bin/rails server
+# exec bundle exec thrust ./bin/rails server
+exec bundle exec ./bin/rails server
