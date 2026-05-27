@@ -85,7 +85,7 @@ class MemoDirectory
         return unless home_user
 
         MemoDirectory.where(parent_id: root.id)
-          .where.not(path_segment: BUCKETS + [ "" ])
+          .where.not(path_segment: BUCKETS + MemoDirectory::PROTECTED_BUCKET_PATHS + [ "" ])
           .find_each do |legacy|
             legacy.update!(parent: home_user)
           end

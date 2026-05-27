@@ -3,8 +3,8 @@
 namespace :kbmemo do
   namespace :docs do
     desc <<~DESC.squish
-      Sync docs/**/*.adoc into memos under share/u-{account}/dev-docs/.
-      Env: KBMEMO_DOCS_SYNC_ACCOUNT_ID, KBMEMO_DOCS_SYNC_VISIBILITY,
+      Sync docs/**/*.adoc into memos (default: system/docs/, or share/u-{account}/dev-docs/ with KBMEMO_DOCS_SYNC_TARGET=share).
+      Env: KBMEMO_DOCS_SYNC_TARGET, KBMEMO_DOCS_SYNC_ACCOUNT_ID, KBMEMO_DOCS_SYNC_VISIBILITY,
       KBMEMO_DOCS_SYNC_MEMO_GROUP_ID, KBMEMO_DOCS_SYNC_COMMIT=1, DRY_RUN=1
     DESC
     task sync: :environment do

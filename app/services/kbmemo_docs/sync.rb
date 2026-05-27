@@ -29,7 +29,8 @@ module KbmemoDocs
       dry_run: false,
       visibility: nil,
       memo_group_id: nil,
-      git_commit: false
+      git_commit: false,
+      sync_target: nil
     )
       @account = resolve_account(account)
       @docs_root = Pathname.new(docs_root || Rails.root.join("docs"))
@@ -37,6 +38,10 @@ module KbmemoDocs
       @visibility = resolve_visibility(visibility, memo_group_id)
       @memo_group_id = memo_group_id.presence&.to_i
       @git_commit = git_commit
+      @sync_target = (sync_target || KbmemoDocs::SYNC_TARGET).to_s
+      unless KbmemoDocs::SYNC_TARGETS.include?(@sync_target)
+        raise ArgumentError, "未知の sync_target: #{@sync_target} (#{KbmemoDocs::SYNC_TARGETS.join(', ')})"
+      end
       @repo = MemoRepository.new
     end
 
@@ -116,7 +121,7 @@ module KbmemoDocs
         return outcome_line(relative_path, "#{action} title=#{source.title.inspect}", counters: { skipped: 1 })
       end
 
-      directory = ensure_memo_directory!(source.memo_directory_segments)
+      directory = ensure_memo_directory!(directory_segments_for(source))
       if memo
         update_memo!(memo, source, directory)
         assign_tags!(memo, source)
@@ -131,8 +136,25 @@ module KbmemoDocs
       end
     end
 
+    def directory_segments_for(source)
+      dirname_parts = Pathname.new(source.relative_path).dirname.to_s.split("/").reject { |p| p.blank? || p == "." }
+      case @sync_target
+      when "system"
+        [ KbmemoDocs::SYSTEM_DOCS_SEGMENT, *dirname_parts ]
+      when "share"
+        [ KbmemoDocs::DEV_DOCS_SEGMENT, *dirname_parts ]
+      else
+        source.memo_directory_segments
+      end
+    end
+
     def ensure_memo_directory!(segments)
-      MemoDirectory::UserSpace.ensure_subdirectory!(@account, *segments, bucket: KbmemoDocs::SYNC_BUCKET)
+      case @sync_target
+      when "system"
+        MemoDirectory::SystemSpace.ensure_subdirectory!(*segments)
+      when "share"
+        MemoDirectory::UserSpace.ensure_subdirectory!(@account, *segments, bucket: KbmemoDocs::SYNC_BUCKET)
+      end
     end
 
     def create_memo!(source, directory)

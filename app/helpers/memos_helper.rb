@@ -10,6 +10,14 @@ module MemosHelper
     policy_scope(MemoDirectory).nav_ordered
   end
 
+  def memo_directory_picker_admin?
+    rodauth.rails_account&.admin?
+  end
+
+  def memo_directory_picker_selectable?(directory)
+    directory.directory_picker_selectable?(admin: memo_directory_picker_admin?)
+  end
+
   def memo_visibility_options_for_select
     Memo.visibilities.keys.map { |key| [ MEMO_VISIBILITY_LABELS.fetch(key, key.humanize), key ] }
   end

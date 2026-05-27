@@ -18,7 +18,7 @@ class KbmemoDocsSyncTest < ActiveSupport::TestCase
     FileUtils.rm_rf(@docs_root)
   end
 
-  test "creates memo under dev-docs directory" do
+  test "creates memo under system/docs directory by default" do
     result = KbmemoDocs::Sync.call(account: @account, docs_root: @docs_root)
 
     assert_equal 1, result.created
@@ -27,8 +27,16 @@ class KbmemoDocsSyncTest < ActiveSupport::TestCase
     assert_equal "Wiki target [[world]].\n", memo.body
     assert_equal "architecture/hello.adoc", memo.properties.dig("docs_sync", "source_path")
     assert memo.properties.dig("docs_sync", "read_only")
-    assert_equal "share/u-#{@account.id}/dev-docs/architecture", memo.memo_directory.full_path
+    assert_equal "system/docs/architecture", memo.memo_directory.full_path
     assert_includes memo.tags.map(&:name), "docs-sync"
+  end
+
+  test "creates memo under share dev-docs when sync_target is share" do
+    result = KbmemoDocs::Sync.call(account: @account, docs_root: @docs_root, sync_target: "share")
+
+    assert_equal 1, result.created
+    memo = Memo.order(:id).last
+    assert_equal "share/u-#{@account.id}/dev-docs/architecture", memo.memo_directory.full_path
   end
 
   test "skips unchanged content on second sync" do

@@ -60,6 +60,22 @@ class MemoPolicyTest < ActiveSupport::TestCase
     assert_not MemoPolicy.new(accounts(:two), m).destroy?
   end
 
+  test "system space memo can only be updated by admin" do
+    m = memos(:one)
+    m.update!(memo_directory: memo_directories(:system_docs))
+
+    assert MemoPolicy.new(accounts(:one), m).update?
+    assert_not MemoPolicy.new(accounts(:two), m).update?
+  end
+
+  test "admin can destroy system space memo" do
+    m = memos(:one)
+    m.update!(memo_directory: memo_directories(:system_docs))
+
+    assert MemoPolicy.new(accounts(:one), m).destroy?
+    assert_not MemoPolicy.new(accounts(:two), m).destroy?
+  end
+
   test "docs_sync read-only memo cannot be updated or destroyed by owner" do
     m = memos(:one)
     m.update!(

@@ -205,6 +205,10 @@ class Memo < ApplicationRecord
     docs_sync_managed? && properties.dig("docs_sync", "read_only") != false
   end
 
+  def system_space_memo?
+    memo_directory&.under_system_space?
+  end
+
   private
 
   def clear_memo_group_when_not_group_visibility
@@ -240,12 +244,13 @@ class Memo < ApplicationRecord
 
   def memo_directory_must_be_assignable_location
     return if memo_directory.nil?
-    return if memo_directory.directory_picker_selectable?
+    return if memo_directory.directory_picker_selectable?(admin: account&.admin?)
+    return if account&.admin? && memo_directory.under_system_space?
 
     if memo_directory.root?
       errors.add(:memo_directory, "ルートには保存できません")
     else
-      errors.add(:memo_directory, "Home / Share / Public の直下には保存できません")
+      errors.add(:memo_directory, "Home / Share / Public / System の直下には保存できません")
     end
   end
 

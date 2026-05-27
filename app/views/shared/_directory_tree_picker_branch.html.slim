@@ -4,7 +4,7 @@ ruby:
   row_label = memo_directory_path_from_root_label(dir)
   directory_path = row_label
   directory_full_path = dir.full_path
-  selectable = dir.directory_picker_selectable?
+  selectable = memo_directory_picker_selectable?(dir)
   selected = selectable && selected_directory&.id == dir.id
   picker_btn_class = memo_directory_parent_picker_button_classes(selected: selected)
   header_class = "block w-full min-w-0 truncate rounded-md px-2 py-1.5 text-left text-sm kb-text-muted"

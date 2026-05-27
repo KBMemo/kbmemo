@@ -168,7 +168,7 @@ class NotebooksController < ApplicationController
   end
 
   def prepare_directory_options
-    @memo_directory_options = policy_scope(MemoDirectory).nav_ordered.select(&:directory_picker_selectable?)
+    @memo_directory_options = policy_scope(MemoDirectory).nav_ordered.select { |d| d.directory_picker_selectable?(admin: rodauth.rails_account.admin?) }
   end
 
   def notebook_params

@@ -44,6 +44,24 @@ public:
   full_path: public
   label: Public
 
+system:
+  parent: root
+  path_segment: system
+  full_path: system
+  label: System
+
+system_docs:
+  parent: system
+  path_segment: docs
+  full_path: system/docs
+  label: Docs
+
+system_help:
+  parent: system
+  path_segment: help
+  full_path: system/help
+  label: Help
+
 home_u_one:
   parent: home
   path_segment: u-1
