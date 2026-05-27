@@ -41,6 +41,20 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, memos(:two).title
   end
 
+  test "show renders overview when notebook has no memos" do
+    notebook = Notebook.create!(
+      account: accounts(:one),
+      title: "Empty notebook",
+      slug: "empty-notebook",
+      publication_kind: :notes
+    )
+
+    get notebook_url(notebook)
+    assert_response :success
+    assert_includes response.body, "Empty notebook"
+    assert_includes response.body, "左の一覧からメモを選ぶ"
+  end
+
   test "reorder memos in tree" do
     notebook = notebooks(:one)
     entry = notebook_memos(:one_two)
