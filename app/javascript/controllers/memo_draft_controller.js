@@ -31,7 +31,8 @@ export default class extends Controller {
     debounce: { type: Number, default: 800 },
     fileCommitted: { type: Boolean, default: false },
     memoId: Number,
-    tagCatalog: { type: Array, default: [] }
+    tagCatalog: { type: Array, default: [] },
+    initialForm: { type: Object, default: {} }
   }
 
   connect() {
@@ -43,7 +44,15 @@ export default class extends Controller {
     this._pendingRemoteBody = null
     this._lastSavedBody = this.hasBodyTarget ? this.bodyTarget.value : null
     this._setupRemoteDraftChannel()
+    this._onTurboRender = () => {
+      if (this.isNewMemoForm()) this.scheduleNewMemoFormReset()
+    }
+    document.addEventListener("turbo:render", this._onTurboRender)
+    if (this.isNewMemoForm()) {
+      this.scheduleNewMemoFormReset()
+    }
     queueMicrotask(() => {
+      if (this.isNewMemoForm()) return
       this.syncTitleFromBodyIfBlank()
       this.syncSlugFromTitleIfBlank()
       this.hydrateTagSuggestionsCatalog()
@@ -52,6 +61,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    document.removeEventListener("turbo:render", this._onTurboRender)
     this._remoteChannel?.close()
     this._remoteChannel = null
   }
@@ -348,6 +358,93 @@ export default class extends Controller {
     const line = (text.split(/\r?\n/)[0] ?? "").trim()
     const stripped = line.replace(/^=+\s*/, "")
     return stripped || TITLE_PLACEHOLDER
+  }
+
+  isNewMemoForm() {
+    return this.hasCreateUrlValue && this.createUrlValue && !(this.hasDraftUrlValue && this.draftUrlValue)
+  }
+
+  initialFormSnapshot() {
+    return this.hasInitialFormValue ? this.initialFormValue : {}
+  }
+
+  scheduleNewMemoFormReset() {
+    this.resetNewMemoFormFields()
+    queueMicrotask(() => this.resetNewMemoFormFields())
+    requestAnimationFrame(() => this.resetNewMemoFormFields())
+  }
+
+  setFieldValue(field, value) {
+    if (!field) return
+    field.value = value ?? ""
+  }
+
+  propertiesField() {
+    if (this.hasPropertiesYamlTarget) return this.propertiesYamlTarget
+    return this.element.querySelector('textarea[name="memo[properties_yaml]"]')
+  }
+
+  visibilityField() {
+    return this.element.querySelector('select[name="memo[visibility]"]')
+  }
+
+  memoGroupField() {
+    return this.element.querySelector('select[name="memo[memo_group_id]"]')
+  }
+
+  resetNewMemoFormFields() {
+    if (!this.isNewMemoForm()) return
+
+    const initial = this.initialFormSnapshot()
+
+    this.setFieldValue(this.hasTitleTarget ? this.titleTarget : null, initial.title ?? "")
+    this.setFieldValue(
+      this.hasTitleManualFlagTarget ? this.titleManualFlagTarget : null,
+      initial.title_manual ?? "0"
+    )
+    this.setFieldValue(this.hasSlugTarget ? this.slugTarget : null, initial.slug ?? "")
+    this.setFieldValue(
+      this.hasSlugManualFlagTarget ? this.slugManualFlagTarget : null,
+      initial.slug_manual ?? "0"
+    )
+    this._slugTouched = false
+
+    const body = initial.body ?? ""
+    if (this.hasBodyTarget) {
+      this.bodyTarget.value = body
+      this._lastSavedBody = body
+    }
+    this.element.dispatchEvent(
+      new CustomEvent("kbmemo:reset-body-editor", { bubbles: true, detail: { body } })
+    )
+
+    this.setFieldValue(this.hasTagListTarget ? this.tagListTarget : null, initial.tag_list ?? "")
+    this.setFieldValue(this.hasTagInputTarget ? this.tagInputTarget : null, "")
+    this.setFieldValue(this.propertiesField(), initial.properties_yaml ?? "")
+
+    const visibility = this.visibilityField()
+    if (visibility && initial.visibility != null) {
+      visibility.value = String(initial.visibility)
+    }
+
+    const memoGroup = this.memoGroupField()
+    if (memoGroup) {
+      memoGroup.value = initial.memo_group_id ?? ""
+    }
+
+    if (this.hasDirectoryTarget) {
+      const directoryId = initial.memo_directory_id ?? ""
+      this.directoryTarget.value = directoryId
+      const picker = this.directoryTarget.closest('[data-controller*="memo-directory-parent-picker"]')
+      const pathLabel = picker?.querySelector(
+        '[data-memo-directory-parent-picker-target="pathLabel"]'
+      )
+      if (pathLabel && initial.memo_directory_path_label != null) {
+        pathLabel.textContent = initial.memo_directory_path_label
+      }
+    }
+
+    if (this.hasTagPillsTarget) this.tagPillsTarget.replaceChildren()
   }
 
   maybeSyncSlugFromTitle() {
