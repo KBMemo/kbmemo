@@ -6,6 +6,10 @@ import {
   indentLiteralFromPlainText,
   normalizeBlockSegmentText,
 } from './literalParagraph.js'
+import {
+  formatHardBreakLine,
+  isEmptyParagraphMarkerBr,
+} from './hardbreakParagraph.js'
 
 /**
  * Convert Asciidoctor HTML5 output (preview body) back to AsciiDoc.
@@ -48,9 +52,15 @@ export function htmlToAsciidoc(root, { getSourceValue, memoId } = {}) {
  * @returns {string}
  */
 export function unitToAsciidoc(unitEl, memoId) {
-  if (!unitEl.classList.contains('is-source')) {
+  if (unitEl.classList.contains('wysiwyg-unit')) {
     const stored = getUnitAdocSource(unitEl)
     if (stored !== undefined) return stored
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn(
+        '[kbmemo wysiwyg] wysiwyg-unit has no stored AsciiDoc source; skipping HTML recovery',
+      )
+    }
+    return ''
   }
 
   /** @type {string[]} */
@@ -372,16 +382,20 @@ function inlineNode(node) {
 }
 
 const HARDBREAKS_DATA_ATTR = 'kbHardbreaks'
+const LEAD_DATA_ATTR = 'kbLead'
 
 /**
  * @param {HTMLElement} wrapper
  */
 function convertParagraph(wrapper) {
   const hardbreaks = wrapper.dataset[HARDBREAKS_DATA_ATTR] === 'true'
+  const lead =
+    wrapper.dataset[LEAD_DATA_ATTR] === 'true' || wrapper.classList.contains('lead')
   const p = wrapper.querySelector('p') ?? wrapper
   const body = serializeParagraphBody(p, { hardbreaks })
   if (!body) return null
   if (hardbreaks) return `[%hardbreaks]\n${body}`
+  if (lead) return `[.lead]\n${body}`
   return body
 }
 
@@ -398,8 +412,8 @@ function serializeParagraphBody(p, { hardbreaks }) {
     if (hardbreaks) {
       lines.push(current)
     } else {
-      const trimmed = current.replace(/\s+$/, '')
-      lines.push(trimmed ? `${trimmed} +` : '+')
+      const formatted = formatHardBreakLine(current)
+      if (formatted) lines.push(formatted)
     }
     current = ''
   }
@@ -420,6 +434,7 @@ function serializeParagraphBody(p, { hardbreaks }) {
     const tag = el.tagName.toLowerCase()
 
     if (tag === 'br') {
+      if (isEmptyParagraphMarkerBr(el)) continue
       pushLine()
       continue
     }

@@ -59,4 +59,28 @@ describe('Phase B paragraph hard breaks', () => {
     paragraph.dataset.kbHardbreaks = 'true'
     expect(htmlToAsciidoc(wrapper).trim()).toBe(adoc)
   })
+
+  it('does not add trailing plus to single-line paragraphs', () => {
+    const adoc = 'Single line only.'
+    const html = asciidocBlockToHtml(adoc)
+    const wrapper = document.createElement('div')
+    wrapper.innerHTML = html
+    expect(htmlToAsciidoc(wrapper).trim()).toBe(adoc)
+  })
+
+  it('ignores empty paragraph marker br when serializing', () => {
+    const wrapper = document.createElement('div')
+    wrapper.innerHTML =
+      '<div class="paragraph"><p><br class="wysiwyg-empty-paragraph-marker" aria-hidden="true" /></p></div>'
+    expect(htmlToAsciidoc(wrapper).trim()).toBe('')
+  })
+
+  it('does not duplicate plus on double html round-trip', () => {
+    const adoc = 'Roses are red, +\nviolets are blue.'
+    const wrapper = document.createElement('div')
+    wrapper.innerHTML = asciidocBlockToHtml(adoc)
+    const once = htmlToAsciidoc(wrapper).trim()
+    wrapper.innerHTML = asciidocBlockToHtml(once)
+    expect(htmlToAsciidoc(wrapper).trim()).toBe(adoc)
+  })
 })

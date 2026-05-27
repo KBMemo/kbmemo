@@ -1,6 +1,5 @@
 import {
   asciidocBlockToHtml,
-  unitToAsciidoc,
   isIndentLiteralBlock,
   INDENT_LITERAL_DATA_ATTR,
   normalizeBlockSegmentText,
@@ -121,7 +120,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
         block.dataset[INDENT_LITERAL_DATA_ATTR] = 'true'
       }
     }
-    annotateParagraphHardbreaks(adoc, temp)
+    annotateParagraphAttributes(adoc, temp)
     unit.replaceChildren(...temp.childNodes)
   }
 
@@ -129,11 +128,17 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
    * @param {string} adoc
    * @param {ParentNode} previewRoot
    */
-  function annotateParagraphHardbreaks(adoc, previewRoot) {
+  function annotateParagraphAttributes(adoc, previewRoot) {
     const trimmed = adoc.trimStart()
     if (trimmed.startsWith('[%hardbreaks]')) {
       for (const block of previewRoot.querySelectorAll('.paragraph')) {
         block.dataset.kbHardbreaks = 'true'
+      }
+      return
+    }
+    if (trimmed.startsWith('[.lead]')) {
+      for (const block of previewRoot.querySelectorAll('.paragraph')) {
+        block.dataset.kbLead = 'true'
       }
     }
   }
@@ -370,13 +375,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
       }
     }
 
-    const fallback = unitToAsciidoc(unit, getMemoId?.()).trim()
-    if (fallback && typeof console !== 'undefined') {
-      console.warn(
-        '[kbmemo wysiwyg] block source recovered from rendered HTML; AsciiDoc round-trip may be lossy',
-      )
-    }
-    return fallback
+    return ''
   }
 
   function collectDocumentSegments() {
@@ -873,7 +872,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     for (const unit of [...editorEl.querySelectorAll(':scope > .wysiwyg-unit')]) {
       if (keep.has(unit)) continue
       if (unit.classList.contains('is-source')) continue
-      if (!unitToAsciidoc(unit, getMemoId?.()).trim()) {
+      if (!resolveUnitAdocSource(/** @type {HTMLElement} */ (unit)).trim()) {
         unit.remove()
       }
     }

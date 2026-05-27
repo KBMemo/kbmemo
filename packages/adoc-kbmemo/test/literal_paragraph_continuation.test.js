@@ -22,15 +22,27 @@ function viewWithDoc(doc) {
   return { view, host }
 }
 
-describe('literalParagraphContinuationExtension hard breaks', () => {
-  it('inserts trailing plus on Enter at end of normal paragraph line', () => {
+describe('literalParagraphContinuationExtension', () => {
+  it('inserts newline on Enter at end of normal paragraph line', () => {
     const { view, host } = viewWithDoc('Roses are red,')
     const head = view.state.doc.length
     view.dispatch({ selection: { anchor: head } })
     view.contentDOM.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
     )
-    expect(view.state.doc.toString()).toBe('Roses are red, +\n')
+    expect(view.state.doc.toString()).toBe('Roses are red,\n')
+    view.destroy()
+    host.remove()
+  })
+
+  it('inserts newline on Enter at end of [.lead] paragraph line', () => {
+    const { view, host } = viewWithDoc('[.lead]\nIntro paragraph.')
+    const head = view.state.doc.length
+    view.dispatch({ selection: { anchor: head } })
+    view.contentDOM.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
+    )
+    expect(view.state.doc.toString()).toBe('[.lead]\nIntro paragraph.\n')
     view.destroy()
     host.remove()
   })
@@ -43,6 +55,18 @@ describe('literalParagraphContinuationExtension hard breaks', () => {
       new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
     )
     expect(view.state.doc.toString()).toBe('[%hardbreaks]\nA ruby is red.\n')
+    view.destroy()
+    host.remove()
+  })
+
+  it('does not insert plus when line already ends with hard break marker', () => {
+    const { view, host } = viewWithDoc('Roses are red, +')
+    const head = view.state.doc.length
+    view.dispatch({ selection: { anchor: head } })
+    view.contentDOM.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
+    )
+    expect(view.state.doc.toString()).toBe('Roses are red, +\n')
     view.destroy()
     host.remove()
   })

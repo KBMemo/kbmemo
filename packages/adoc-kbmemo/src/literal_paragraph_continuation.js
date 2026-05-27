@@ -11,10 +11,6 @@ function isWysiwygBlockSourceEditor(view) {
   return Boolean(view.dom.closest('.wysiwyg-source-editor'))
 }
 
-function isHardbreaksParagraph(doc) {
-  return doc.trimStart().startsWith('[%hardbreaks]')
-}
-
 /**
  * @param {{ onSplitToParagraph?: (view: import('@codemirror/view').EditorView) => void }} [options]
  */
@@ -66,10 +62,9 @@ function continueWysiwygParagraphOnEnter(view, onSplitToParagraph) {
     return true
   }
 
-  const insert = isHardbreaksParagraph(doc) ? '\n' : ' +\n'
   view.dispatch({
-    changes: { from: head, to: head, insert },
-    selection: { anchor: head + insert.length },
+    changes: { from: head, to: head, insert: '\n' },
+    selection: { anchor: head + 1 },
   })
   return true
 }
