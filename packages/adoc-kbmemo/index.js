@@ -11,6 +11,7 @@ export { createKbmemoWysiwygSourceExtensions } from './wysiwyg_source_extensions
 
 export { BLOCK_TITLE_LINE, scanCodeBlocks, codeBlockByLine } from './src/code_block_syntax.js'
 export { listContinuationExtension } from './src/list_continuation.js'
+export { literalParagraphContinuationExtension } from './src/literal_paragraph_continuation.js'
 export { wikiAutocompletion } from './src/wiki_completion.js'
 
 export {

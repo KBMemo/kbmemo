@@ -309,9 +309,14 @@ function blockUnitSource(node, lines) {
   const blockSource = node.getSource?.() ?? ''
   const endLine = startLine + Math.max(0, blockSource.split('\n').length - 1)
   const raw = lines.slice(startLine, endLine + 1).join('\n')
-  const firstLine = lines[startLine]?.trim() ?? ''
+  const firstLine = lines[startLine] ?? ''
+  const firstTrimmed = firstLine.trim()
 
-  if (/^include::/.test(firstLine)) {
+  if (/^include::/.test(firstTrimmed)) {
+    return raw
+  }
+
+  if (node.getContext?.() === 'literal' && firstLine.startsWith(' ')) {
     return raw
   }
 

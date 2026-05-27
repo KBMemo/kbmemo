@@ -1,4 +1,5 @@
 import { getAsciidoctor, getExtensionRegistry } from './instance.js'
+import { adocForBlockConversion } from './literalParagraph.js'
 
 const BLOCK_CONVERT_ATTRIBUTES = {
   showtitle: true,
@@ -20,13 +21,14 @@ export function asciidocBlockToHtml(adoc, memoId) {
     return '<div class="paragraph"><p></p></div>'
   }
 
+  const toConvert = adocForBlockConversion(adoc)
   /** @type {Record<string, string>} */
   const attributes = { ...BLOCK_CONVERT_ATTRIBUTES }
   if (memoId != null && memoId !== '') {
     attributes.imagesdir = `/memos/${encodeURIComponent(String(memoId))}/assets/`
   }
 
-  return getAsciidoctor().convert(trimmed, {
+  return getAsciidoctor().convert(toConvert, {
     safe: 'safe',
     standalone: false,
     extension_registry: getExtensionRegistry(),

@@ -95,4 +95,19 @@ describe('Phase B edit unit boundaries', () => {
     expect(units[0].adoc).toContain(':===')
     expect(units[0].adoc).toContain('Robyn:Indestructible:Dance')
   })
+
+  it('preserves leading space on indent literal paragraphs', () => {
+    const units = unitsForBody(sectionBody('paragraphs-literal'))
+    const literalUnit = units.find((unit) => unit.adoc.includes('literal paragraph.'))
+    expect(literalUnit).toBeDefined()
+    expect(literalUnit.adoc.startsWith(' A literal paragraph.')).toBe(true)
+    expect(literalUnit.adoc).toContain('\n One or more consecutive lines')
+  })
+
+  it('preserves single-space indent literal lines from syntax fixture', () => {
+    const units = unitsForBody(sectionBody('literals-paragraph'))
+    const literalUnit = units.find((unit) => unit.adoc.includes('literal line'))
+    expect(literalUnit).toBeDefined()
+    expect(literalUnit.adoc.startsWith(' Indent line')).toBe(true)
+  })
 })

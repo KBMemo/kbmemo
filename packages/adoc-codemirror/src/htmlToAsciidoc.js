@@ -1,6 +1,11 @@
 import { diagramMacroPathFromSvgRelative } from '@kbmemo/adoc-kbmemo'
 import { memoAssetRelativePath } from '@kbmemo/adoc-kbmemo'
 import { getUnitAdocSource } from '@kbmemo/adoc-wysiwyg'
+import {
+  INDENT_LITERAL_DATA_ATTR,
+  indentLiteralFromPlainText,
+  normalizeBlockSegmentText,
+} from './literalParagraph.js'
 
 /**
  * Convert Asciidoctor HTML5 output (preview body) back to AsciiDoc.
@@ -19,8 +24,9 @@ export function htmlToAsciidoc(root, { getSourceValue, memoId } = {}) {
       const unitEl = /** @type {HTMLElement} */ (node)
       const sourceHost = unitEl.querySelector(':scope > .wysiwyg-source-editor')
       if (sourceHost instanceof HTMLElement && unitEl.classList.contains('is-source')) {
-        const text = (getSourceValue?.(sourceHost) ?? sourceHost.textContent ?? '').trim()
-        if (text) blocks.push(text)
+        const text = getSourceValue?.(sourceHost) ?? sourceHost.textContent ?? ''
+        const normalized = normalizeBlockSegmentText(text)
+        if (normalized) blocks.push(normalized)
         continue
       }
       const block = unitToAsciidoc(unitEl, memoId)
@@ -32,7 +38,8 @@ export function htmlToAsciidoc(root, { getSourceValue, memoId } = {}) {
     if (block) blocks.push(block)
   }
 
-  return blocks.join('\n\n').trim() + (blocks.length ? '\n' : '')
+  const body = blocks.join('\n\n').trimEnd()
+  return body + (body ? '\n' : '')
 }
 
 /**
@@ -108,6 +115,12 @@ function convertNode(node, memoId) {
   if (el.classList.contains('literalblock')) {
     const pre = el.querySelector('pre')
     const text = pre?.textContent ?? el.textContent ?? ''
+    if (!text.trim()) return null
+
+    if (el.dataset[INDENT_LITERAL_DATA_ATTR] === 'true') {
+      return indentLiteralFromPlainText(text)
+    }
+
     return `....\n${text.trim()}\n....`
   }
 

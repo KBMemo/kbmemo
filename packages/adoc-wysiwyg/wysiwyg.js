@@ -1,4 +1,18 @@
-import { asciidocBlockToHtml, unitToAsciidoc } from '@kbmemo/adoc-codemirror'
+import {
+  asciidocBlockToHtml,
+  unitToAsciidoc,
+  isIndentLiteralBlock,
+  INDENT_LITERAL_DATA_ATTR,
+  normalizeBlockSegmentText,
+  getActiveUnitIndex,
+  getCaretOffsetInUnit,
+  getCaretInFollowingBlock,
+  getTableParagraphSplit,
+  parseEditUnitsFromSource,
+  shouldSplitEditUnits,
+  splitIndentLiteralAtBlankLine,
+  splitParagraphAtBlankLine,
+} from '@kbmemo/adoc-codemirror'
 import {
   getScrollRoot,
   normalizeMemoImagePathsInSource,
@@ -6,15 +20,8 @@ import {
   ensureWikiLinkLabelsInCache,
   extractWikiLinkTargets,
   substituteWikiLinksForPreview,
+  literalParagraphContinuationExtension,
 } from '@kbmemo/adoc-kbmemo'
-import {
-  getActiveUnitIndex,
-  getCaretOffsetInUnit,
-  getCaretInFollowingBlock,
-  getTableParagraphSplit,
-  parseEditUnitsFromSource,
-  shouldSplitEditUnits,
-} from '@kbmemo/adoc-codemirror'
 import { renderPreviewHtml } from '@kbmemo/adoc-preview'
 import {
   createWysiwygSourceEditor,
@@ -66,7 +73,17 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
   let activeSourceUnit = null
   const history = createWysiwygHistory()
   let isApplyingHistory = false
-  const wikiExtensions = createWysiwygSourceExtensions({ sourceExtensions, getWikiConfig })
+  /** @type {(view: import('@codemirror/view').EditorView) => void} */
+  let splitUnitOnBlankLineFromView = () => {}
+  const wikiExtensions = createWysiwygSourceExtensions({
+    sourceExtensions: [
+      ...sourceExtensions,
+      literalParagraphContinuationExtension({
+        onSplitToParagraph: (view) => splitUnitOnBlankLineFromView(view),
+      }),
+    ],
+    getWikiConfig,
+  })
   /** @type {Map<string, object>} */
   const wikiLabelCache = new Map()
   let wikiLabelRefreshSeq = 0
@@ -99,6 +116,11 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
   function renderUnitPreview(unit, adoc) {
     const temp = document.createElement('div')
     renderPreviewHtml(previewHtmlForAdoc(adoc), temp, getMemoId?.())
+    if (isIndentLiteralBlock(adoc)) {
+      for (const block of temp.querySelectorAll('.literalblock')) {
+        block.dataset[INDENT_LITERAL_DATA_ATTR] = 'true'
+      }
+    }
     unit.replaceChildren(...temp.childNodes)
   }
 
@@ -214,7 +236,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     return rebuildSourceReplacingSegment(
       history.getCurrent(),
       segmentIndex,
-      getWysiwygSourceValue(host).trim(),
+      normalizeBlockSegmentText(getWysiwygSourceValue(host)),
     )
   }
 
@@ -363,7 +385,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
 
       if (!text.trim() && !hasUnitAdocSource(unit)) continue
 
-      text = text.trim()
+      text = normalizeBlockSegmentText(text)
       const from = offset
       const to = offset + text.length
       segments.push({ unit: /** @type {HTMLElement} */ (unit), text, from, to })
@@ -945,6 +967,53 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
 
     isSwitchingUnit = false
     scheduleSync()
+  }
+
+  splitUnitOnBlankLineFromView = (view) => {
+    if (isSwitchingUnit || isRendering) return
+
+    const host = view.dom.closest('.wysiwyg-source-editor')
+    if (!(host instanceof HTMLElement) || activeSourceUnit !== host.closest('.wysiwyg-unit')) return
+
+    const source = view.state.doc.toString()
+    const head = view.state.selection.main.head
+    const lineIndex = source.slice(0, head).split('\n').length - 1
+    const line = view.state.doc.lineAt(head)
+    if (line.text.trim() !== '') return
+
+    const preserveIndent = isIndentLiteralBlock(source)
+    const split = preserveIndent
+      ? splitIndentLiteralAtBlankLine(source, lineIndex)
+      : splitParagraphAtBlankLine(source, lineIndex)
+    const beforeAdoc = preserveIndent ? split.literalAdoc : split.beforeAdoc
+    const afterAdoc = split.afterAdoc
+
+    /** @type {{ adoc: string, startLine: number, endLine: number }[]} */
+    const parsedUnits = []
+
+    if (beforeAdoc) {
+      for (const unit of parseEditUnitsFromSource(beforeAdoc)) {
+        parsedUnits.push({ adoc: unit.adoc, startLine: 0, endLine: 0 })
+      }
+    }
+
+    let activeIndex = 0
+    if (afterAdoc.trim()) {
+      activeIndex = parsedUnits.length
+      for (const unit of parseEditUnitsFromSource(afterAdoc)) {
+        parsedUnits.push({ adoc: unit.adoc, startLine: 0, endLine: 0 })
+      }
+    } else {
+      parsedUnits.push({ adoc: '', startLine: 0, endLine: 0 })
+      activeIndex = parsedUnits.length - 1
+    }
+
+    if (parsedUnits.length === 0) {
+      parsedUnits.push({ adoc: '', startLine: 0, endLine: 0 })
+      activeIndex = 0
+    }
+
+    replaceActiveUnitWithSplit(host, parsedUnits, activeIndex, 0)
   }
 
   /**

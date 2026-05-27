@@ -2,6 +2,8 @@
 
 /** @typedef {{ unit: HTMLElement, text: string, from: number, to: number }} DocumentSegment */
 
+import { normalizeBlockSegmentText } from '@kbmemo/adoc-codemirror'
+
 /**
  * @param {string} source
  * @param {string} query
@@ -98,7 +100,7 @@ export function buildSourceSegments(source) {
   let offset = 0
 
   for (const raw of normalized.split('\n\n')) {
-    const text = raw.trim()
+    const text = normalizeBlockSegmentText(raw)
     if (!text) continue
 
     const from = offset
