@@ -29,7 +29,7 @@
 |ソース CM WYSIWYG ライト（`wysiwyg_lite.js` 等）
 
 |WY
-|ブロック WYSIWYG（`@kbmemo/adoc-wysiwyg`）
+|ブロック WYSIWYG（`@kbmemo/adoc-wysiwyg`）。**編集対象は AsciiDoc ソース**（ユニット内 CM）。プレビュー HTML は表示のみ — `memo-body-editor-roadmap.adoc` Phase 6c 基本方針参照
 
 |SV
 |コミット後表示（サーバー Asciidoctor + KBMemo 前処理）
@@ -46,8 +46,8 @@
 |document-header |✓ |— |✓ |— |— |✓ |author/revision 行 HL
 |paragraphs |✓ |✓ |✓ |— |✓ |✓ |
 |paragraphs-literal |✓ |✓ |✓ |— |✓ |✓ |インデント literal 行・WY Enter 継続/分割
-|paragraphs-hardbreaks |✓ |✓ |✓ |— |✓ |✓ |`+` / `[%hardbreaks]`
-|paragraphs-lead |✓ |✓ |✓ |— |✓ |✓ |`[.lead]`
+|paragraphs-hardbreaks |✓ |✓ |✓ |— |✓ |✓ |`+` / `[%hardbreaks]` — WY は stored source、Enter で `+` 自動挿入なし
+|paragraphs-lead |✓ |✓ |✓ |— |✓ |✓ |`[.lead]` — WY は stored source
 |text-formatting-constrained |✓ |✓ |✓ |✓ |△ |✓ |WYSIWYG 往復は限定
 |text-formatting-unconstrained |✓ |△ |✓ |△ |— |✓ |`**` / `__` 等
 |text-formatting-highlight |✓ |— |✓ |— |— |✓ |`#mark#` / role
@@ -184,6 +184,7 @@
 * 各 PR は `syntax-ref` id を 1〜3 個に絞る
 * フィクスチャ該当節で手動確認 + 必要なら `packages/*/test/` に id 別テスト追加
 * 表示の正は Asciidoctor（SV）。CM は軽量パースでよい
+* **WY レイヤ:** 記法対応はプレビュー属性付与（`annotateParagraphAttributes` 等）と stored source の往復で足す。HTML 逆変換や contentEditable を編集経路にしない（`AGENTS.md` / Phase 6c 基本方針）
 * ロードマップ表の ✓/△/— を PR マージ時に更新
 
 == 関連
