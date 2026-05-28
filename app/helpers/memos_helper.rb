@@ -359,7 +359,8 @@ module MemosHelper
 
     attrs = {
       "icons" => "font",
-      "stem" => "latexmath"
+      "stem" => "latexmath",
+      "experimental" => ""
     }
     if source_memo&.persisted?
       attrs["imagesdir"] = "#{memo_path(source_memo)}/assets/"

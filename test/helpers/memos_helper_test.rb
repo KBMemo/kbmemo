@@ -261,6 +261,18 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, 'class="fa icon-note"'
   end
 
+  test "memo_html renders experimental menu kbd and btn macros" do
+    html = memo_html("To save the file, select menu:File[Save]. Press kbd:[Ctrl+S]. Click btn:[OK].", source_memo: memos(:one))
+    assert_includes html, 'class="menuseq"'
+    assert_includes html, ">File</b>"
+    assert_includes html, ">Save</b>"
+    assert_includes html, "<kbd>Ctrl</kbd>"
+    assert_includes html, 'class="button">OK</b>'
+    assert_not_includes html, "menu:File[Save]"
+    assert_not_includes html, "kbd:[Ctrl+S]"
+    assert_not_includes html, "btn:[OK]"
+  end
+
   test "memo_html leaves wiki syntax inside fenced code" do
     body = "```\n[[Second memo]]\n```\n\n[[Second memo]]"
     html = memo_html(body, source_memo: memos(:one))
