@@ -1,5 +1,5 @@
 import { loadDocument } from './instance.js'
-import { BLOCK_TITLE_LINE } from '@kbmemo/adoc-kbmemo'
+import { BLOCK_TITLE_LINE, SOURCE_ATTR_LINE } from '@kbmemo/adoc-kbmemo'
 import { extractStemBlockUnitsFromLines } from '@kbmemo/adoc-kbmemo'
 import { isTableAttrLine, isTableDelimiterLine } from '@kbmemo/adoc-kbmemo'
 
@@ -154,6 +154,7 @@ function getProtectedLineRanges(lines) {
     ...getDelimitedLineRanges(lines),
     ...getTableLineRanges(lines),
     ...getStemLineRanges(lines),
+    ...getSourceParagraphLineRanges(lines),
   ]
 }
 
@@ -163,6 +164,80 @@ function getProtectedLineRanges(lines) {
  */
 function getStemLineRanges(lines) {
   return extractStemBlockUnitsFromLines(lines).map((unit) => [unit.startLine, unit.endLine])
+}
+
+/**
+ * `[source,lang]` + 本文（`----` なし）の source-paragraph 行範囲。
+ *
+ * @param {string[]} lines
+ * @returns {[number, number][]}
+ */
+function getSourceParagraphLineRanges(lines) {
+  const delimitedRanges = getDelimitedLineRanges(lines)
+  /** @type {[number, number][]} */
+  const ranges = []
+  let index = 0
+
+  while (index < lines.length) {
+    if (isLineProtected(index, delimitedRanges)) {
+      index++
+      continue
+    }
+
+    const trimmed = lines[index]?.trim() ?? ''
+    if (!SOURCE_ATTR_LINE.test(trimmed)) {
+      index++
+      continue
+    }
+
+    let startLine = index
+    const prevTrimmed = startLine > 0 ? lines[startLine - 1]?.trim() ?? '' : ''
+    if (BLOCK_TITLE_LINE.test(prevTrimmed)) {
+      startLine--
+    }
+
+    let contentLine = index + 1
+    while (contentLine < lines.length && (lines[contentLine]?.trim() ?? '') === '') {
+      contentLine++
+    }
+
+    if (contentLine >= lines.length) {
+      index++
+      continue
+    }
+
+    const contentTrimmed = lines[contentLine]?.trim() ?? ''
+    if (PAIRED_BLOCK_DELIMITERS.includes(contentTrimmed)) {
+      index++
+      continue
+    }
+
+    let endLine = contentLine
+    while (endLine + 1 < lines.length) {
+      const nextTrimmed = lines[endLine + 1]?.trim() ?? ''
+      if (nextTrimmed === '') break
+      if (isLineProtected(endLine + 1, delimitedRanges)) break
+      if (isEditUnitHardStop(nextTrimmed)) break
+      endLine++
+    }
+
+    ranges.push([startLine, endLine])
+    index = endLine + 1
+  }
+
+  return ranges
+}
+
+/**
+ * @param {string[]} lines
+ * @returns {ParsedEditUnit[]}
+ */
+function extractSourceParagraphUnits(lines) {
+  return getSourceParagraphLineRanges(lines).map(([start, end]) => ({
+    adoc: lines.slice(start, end + 1).join('\n'),
+    startLine: start,
+    endLine: end,
+  }))
 }
 
 /**
@@ -252,6 +327,7 @@ export function parseEditUnitsFromSource(source) {
     ...extractDelimitedBlockUnits(lines),
     ...extractTableBlockUnits(lines),
     ...extractStemBlockUnits(lines),
+    ...extractSourceParagraphUnits(lines),
   ]
 
   const doc = loadDocument(source)
@@ -404,6 +480,11 @@ function visitBlocks(node, units, protectedRanges, lines) {
     return
   }
 
+  if (ctx === 'listing') {
+    pushListingUnit(node, units, protectedRanges, lines)
+    return
+  }
+
   const blockSource = node.getSource?.()
   if (!blockSource) return
 
@@ -449,6 +530,30 @@ function listUnitStartLine(contentStartLine, lines) {
  * @param {string[]} lines
  */
 function pushParagraphUnit(node, units, protectedRanges, lines) {
+  const blockSource = node.getSource?.() ?? ''
+  if (!blockSource) return
+
+  const contentStartLine = (node.getLineNumber() ?? 1) - 1
+  const startLine = listUnitStartLine(contentStartLine, lines)
+  const endLine = contentStartLine + Math.max(0, blockSource.split('\n').length - 1)
+  if (isRangeInsideProtected(startLine, endLine, protectedRanges)) return
+
+  units.push({
+    adoc: lines.slice(startLine, endLine + 1).join('\n'),
+    startLine,
+    endLine,
+  })
+}
+
+/**
+ * source-paragraph（`[source,lang]` + 本文、`----` なし）を属性行込みで1ユニットにする。
+ *
+ * @param {import('@asciidoctor/core').Block} node
+ * @param {ParsedEditUnit[]} units
+ * @param {[number, number][]} protectedRanges
+ * @param {string[]} lines
+ */
+function pushListingUnit(node, units, protectedRanges, lines) {
   const blockSource = node.getSource?.() ?? ''
   if (!blockSource) return
 
