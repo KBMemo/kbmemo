@@ -259,6 +259,7 @@
 /* リスト */
 .memo-body .ulist > ul,
 .memo-body .olist > ol,
+.memo-body .dlist,
 .memo-body .hdlist > table {
   font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
   color: var(--mg-text);
@@ -296,6 +297,70 @@
 .memo-body .ulist > ul > li > p,
 .memo-body .olist > ol > li > p {
   margin: 0 0 0.625em;
+}
+
+/* 定義リスト（term:: desc）— 垂直 .dlist */
+.memo-body .dlist > dl {
+  margin: 0;
+}
+
+.memo-body .dlist > dl > dt.hdlist1,
+.memo-body .dlist > dl > dt {
+  font-weight: 600;
+  margin: 0 0 0.25em;
+}
+
+.memo-body .dlist > dl > dd {
+  margin: 0 0 0.85em 1.125em;
+}
+
+.memo-body .dlist > dl > dd:last-child {
+  margin-bottom: 0;
+}
+
+.memo-body .dlist > dl > dd > p {
+  margin: 0 0 0.625em;
+}
+
+.memo-body .dlist > dl > dd > p:last-child {
+  margin-bottom: 0;
+}
+
+/* 定義リスト — 水平 [horizontal] .hdlist */
+.memo-body .hdlist > table {
+  border-collapse: collapse;
+  border: 0;
+  width: 100%;
+  background: none;
+}
+
+.memo-body .hdlist > table > tbody > tr {
+  background: none;
+}
+
+.memo-body .hdlist > table td.hdlist1 {
+  font-weight: 600;
+  vertical-align: top;
+  padding: 0 0.625em 1em 0;
+}
+
+.memo-body .hdlist > table td.hdlist2 {
+  vertical-align: top;
+  padding: 0 0 1em 0;
+  word-wrap: anywhere;
+}
+
+.memo-body .hdlist > table tr:last-child td.hdlist1,
+.memo-body .hdlist > table tr:last-child td.hdlist2 {
+  padding-bottom: 0;
+}
+
+.memo-body .hdlist > table td.hdlist2 > p {
+  margin: 0 0 0.625em;
+}
+
+.memo-body .hdlist > table td.hdlist2 > p:last-child {
+  margin-bottom: 0;
 }
 
 /* Admonition（テーブル + Font Awesome アイコン） */
