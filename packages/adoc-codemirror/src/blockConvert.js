@@ -1,4 +1,5 @@
 import { getAsciidoctor, getExtensionRegistry } from './instance.js'
+import { restrictPassthroughInSource } from '@kbmemo/adoc-kbmemo'
 import { adocForBlockConversion } from './literalParagraph.js'
 
 const BLOCK_CONVERT_ATTRIBUTES = {
@@ -22,7 +23,7 @@ export function asciidocBlockToHtml(adoc, memoId) {
     return '<div class="paragraph"><p></p></div>'
   }
 
-  const toConvert = adocForBlockConversion(adoc)
+  const toConvert = restrictPassthroughInSource(adocForBlockConversion(adoc))
   /** @type {Record<string, string>} */
   const attributes = { ...BLOCK_CONVERT_ATTRIBUTES }
   if (memoId != null && memoId !== '') {

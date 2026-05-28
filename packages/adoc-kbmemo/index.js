@@ -50,4 +50,6 @@ export {
 
 export { extractStemBlockUnitsFromLines } from './src/math_syntax.js'
 
+export { restrictPassthroughInSource } from './src/passthrough_restrict.js'
+
 export { viewportLineRangeSyncExtension } from './src/viewport_lazy.js'

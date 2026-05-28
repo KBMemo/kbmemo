@@ -283,6 +283,25 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes example_html, "Example body."
   end
 
+  test "memo_html neutralizes passthrough markup" do
+    block = <<~ADOC
+      ++++
+      <script>alert(1)</script>
+      ++++
+    ADOC
+    inline = "pass:[<script>alert(2)</script>]"
+
+    block_html = memo_html(block, source_memo: memos(:one))
+    inline_html = memo_html(inline, source_memo: memos(:one))
+
+    assert_includes block_html, 'class="literalblock"'
+    assert_includes block_html, "&lt;script&gt;"
+    assert_not_includes block_html, "<script>alert(1)</script>"
+
+    assert_includes inline_html, "pass:["
+    assert_not_includes inline_html, "<script>alert(2)</script>"
+  end
+
   test "memo_html renders experimental menu kbd and btn macros" do
     html = memo_html("To save the file, select menu:File[Save]. Press kbd:[Ctrl+S]. Click btn:[OK].", source_memo: memos(:one))
     assert_includes html, 'class="menuseq"'

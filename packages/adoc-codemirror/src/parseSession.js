@@ -2,6 +2,7 @@ import { loadDocument } from './instance.js'
 import { computeHighlights } from './highlight.js'
 import {
   normalizeMemoImagePathsInSource,
+  restrictPassthroughInSource,
   substituteDiagramsForPreview,
   substituteWikiLinksForPreview,
 } from '@kbmemo/adoc-kbmemo'
@@ -80,7 +81,7 @@ function previewSourceForConvert(source, memoId, wikiLabels) {
   if (memoId != null && memoId !== '') {
     processed = normalizeMemoImagePathsInSource(processed, memoId)
   }
-  return processed
+  return restrictPassthroughInSource(processed)
 }
 
 /**
