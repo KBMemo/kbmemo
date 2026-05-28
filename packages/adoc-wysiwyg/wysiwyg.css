@@ -68,6 +68,10 @@
   margin-bottom: 1rem;
 }
 
+.memo-body-editor__wysiwyg-content:focus {
+  outline: none;
+}
+
 .memo-body-editor__wysiwyg-content > .wysiwyg-unit--placeholder:not(.is-source) {
   min-height: 2.5rem;
   cursor: text;

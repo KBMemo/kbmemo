@@ -400,7 +400,6 @@ export default class extends Controller {
       const source = this.view?.state.doc.toString() ?? this.fieldTarget.value
       await this.ensureWysiwygEditor()
       await this._wysiwygEditor.renderFromSource(source)
-      this._wysiwygEditor.focus()
     }
 
     this.syncEditModeUi()
@@ -754,7 +753,7 @@ export default class extends Controller {
       const next = cur + sep + text
       this.syncSourceFromWysiwyg(next)
       await this._wysiwygEditor.renderFromSource(next)
-      this._wysiwygEditor.focus()
+      this._wysiwygEditor.focus({ activate: true })
       return
     }
 

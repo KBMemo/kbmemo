@@ -70,6 +70,37 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
   let isSwitchingUnit = false
   /** @type {HTMLElement | null} */
   let activeSourceUnit = null
+
+  function getEditorPane() {
+    return paneEl ?? editorEl.closest('.memo-body-editor__wysiwyg-pane')
+  }
+
+  /** @param {Node | null | undefined} node */
+  function editorRegionContains(node) {
+    if (!(node instanceof Node)) return false
+    if (editorEl.contains(node)) return true
+    const pane = getEditorPane()
+    if (pane instanceof HTMLElement && pane.contains(node)) return true
+    if (node instanceof Element && node.closest('.search-replace-dialog, .editor-context-menu, .web-paste-dialog')) {
+      return true
+    }
+    return false
+  }
+
+  function editorRegionHasFocus() {
+    return editorRegionContains(document.activeElement)
+  }
+
+  function ensureEditorContainerFocusable() {
+    if (!editorEl.hasAttribute('tabindex')) {
+      editorEl.tabIndex = -1
+    }
+  }
+
+  function deactivateActiveSourceUnitIfNeeded() {
+    if (!activeSourceUnit) return
+    deactivateSourceUnit(activeSourceUnit)
+  }
   const history = createWysiwygHistory()
   let isApplyingHistory = false
   /** @type {(view: import('@codemirror/view').EditorView) => void} */
@@ -576,9 +607,20 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     })
   })
 
+  const focusRegion =
+    getEditorPane() instanceof HTMLElement ? /** @type {HTMLElement} */ (getEditorPane()) : editorEl
+  focusRegion.addEventListener('focusout', () => {
+    if (isRendering || isSwitchingUnit) return
+    requestAnimationFrame(() => {
+      if (editorRegionHasFocus()) return
+      deactivateActiveSourceUnitIfNeeded()
+    })
+  })
+
   document.addEventListener('selectionchange', () => {
     if (isRendering || isSwitchingUnit || isApplyingHistory) return
     if (!editorEl.isConnected) return
+    if (!editorRegionHasFocus()) return
 
     const selection = window.getSelection()
     if (!selection || selection.rangeCount === 0) return
@@ -861,7 +903,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     }
     unit.remove()
     if (editorEl.querySelectorAll(':scope > .wysiwyg-unit').length === 0) {
-      ensureEmptyDocumentEditable()
+      ensureEmptyDocumentPlaceholder()
     }
   }
 
@@ -1114,7 +1156,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     setUnitAdocSource(unit, '')
   }
 
-  function ensureEmptyDocumentEditable() {
+  function ensureEmptyDocumentPlaceholder() {
     if (isRendering || isSwitchingUnit) return
 
     let unit = editorEl.querySelector(':scope > .wysiwyg-unit')
@@ -1126,16 +1168,12 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
       appendEmptyParagraphPreview(unit)
       editorEl.append(unit)
     }
-
-    if (!unit.classList.contains('is-source')) {
-      activateSourceUnit(/** @type {HTMLElement} */ (unit), { caret: 'start' })
-    }
   }
 
   function finishRenderFromSource(source) {
     isApplyingHistory = false
     if (isEmptyDocumentSource(source)) {
-      ensureEmptyDocumentEditable()
+      ensureEmptyDocumentPlaceholder()
     }
   }
 
@@ -1148,13 +1186,21 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     ensureSourceEditable,
     insertTextAtSelection,
     createDocumentSearchController,
-    focus() {
-      const firstUnit = editorEl.querySelector(':scope > .wysiwyg-unit')
-      if (firstUnit instanceof HTMLElement) {
-        activateSourceUnit(firstUnit)
-        return
+    focus(options = {}) {
+      const { activate = false } = options
+      if (activate) {
+        const unit =
+          activeSourceUnit instanceof HTMLElement
+            ? activeSourceUnit
+            : editorEl.querySelector(':scope > .wysiwyg-unit')
+        if (unit instanceof HTMLElement) {
+          activateSourceUnit(unit, { caret: 'start' })
+          return
+        }
       }
-      editorEl.focus()
+
+      ensureEditorContainerFocusable()
+      editorEl.focus({ preventScroll: true })
     },
   }
 }
