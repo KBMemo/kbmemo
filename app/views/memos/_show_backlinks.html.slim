@@ -2,7 +2,7 @@ ruby:
   backlink_memos = memo_backlink_memos(memo)
 
 - if backlink_memos.any?
-  section.mb-6.pt-2.pl-2.flex.flex-wrap.items-center.gap-x-2.gap-y-1.text-sm.kb-text-muted
+  section.mb-6.pt-2.pl-2.flex.flex-wrap.items-center.gap-x-2.gap-y-1.text-sm.kb-text-muted id=dom_id(memo, :backlinks)
     span.inline-flex.shrink-0.items-center.kb-text-subtle title="バックリンク"
       span.sr-only バックリンク
       i class="h-3.5 w-3.5" aria-hidden="true" data-lucide="link-2"

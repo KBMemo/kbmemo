@@ -519,6 +519,17 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action=?]", commit_memo_path(memo), count: 0
   end
 
+  test "show attaches memo show context menu stimulus data" do
+    memo = memos(:one)
+
+    get memo_path(memo)
+    assert_response :success
+    assert_select "##{dom_id(memo)}[data-controller~='memo-show-context-menu']"
+    assert_select "##{dom_id(memo)}[data-action='contextmenu->memo-show-context-menu#open']"
+    assert_select "##{dom_id(memo)}[data-memo-show-context-menu-edit-url-value]"
+    assert_select "##{dom_id(memo)}[data-memo-show-context-menu-can-edit-value='true']"
+  end
+
   test "revert_draft restores memo fields from last git commit" do
     memo = memos(:one)
     repo = MemoRepository.new

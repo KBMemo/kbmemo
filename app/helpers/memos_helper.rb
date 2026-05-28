@@ -560,6 +560,22 @@ module MemosHelper
     Tag.order(:name).pluck(:id, :name).map { |id, name| { id: id, name: name } }
   end
 
+  def memo_show_edit_href(memo)
+    q = memo_sidebar_nav_query
+    q.present? ? edit_memo_path(memo, q) : edit_memo_path(memo)
+  end
+
+  def memo_show_context_menu_stimulus_data(memo)
+    {
+      controller: "memo-show-context-menu",
+      action: "contextmenu->memo-show-context-menu#open",
+      memo_show_context_menu_edit_url_value: memo_show_edit_href(memo),
+      memo_show_context_menu_can_edit_value: policy(memo).update? && !memo.docs_sync_read_only?,
+      memo_show_context_menu_has_backlinks_value: memo_backlink_memos(memo).any?,
+      memo_show_context_menu_backlinks_anchor_value: dom_id(memo, :backlinks)
+    }
+  end
+
   def memo_show_metadata_stimulus_data(memo)
     return {} unless policy(memo).update?
 
@@ -574,8 +590,13 @@ module MemosHelper
 
   def memo_show_content_tag_options(memo)
     { id: dom_id(memo) }.tap do |opts|
-      data = memo_show_metadata_stimulus_data(memo)
-      opts[:data] = data if data.present?
+      metadata = memo_show_metadata_stimulus_data(memo)
+      context_menu = memo_show_context_menu_stimulus_data(memo)
+      controllers = [ metadata[:controller], context_menu[:controller] ].compact.join(" ")
+      opts[:data] = metadata.merge(context_menu).merge(
+        controller: controllers,
+        action: context_menu[:action]
+      )
     end
   end
 

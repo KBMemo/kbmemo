@@ -28,6 +28,9 @@ application.register("memo-checklist", MemoChecklistController)
 import MemoShowMetadataController from "./memo_show_metadata_controller"
 application.register("memo-show-metadata", MemoShowMetadataController)
 
+import MemoShowContextMenuController from "./memo_show_context_menu_controller"
+application.register("memo-show-context-menu", MemoShowContextMenuController)
+
 import BoardAddMemoController from "./board_add_memo_controller"
 application.register("board-add-memo", BoardAddMemoController)
 
