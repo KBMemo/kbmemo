@@ -1,0 +1,89 @@
+= メモ AsciiDoc passthrough 制限
+
+AsciiDoc の passthrough 記法は HTML をそのまま出力するため、`safe: :safe` だけでは Stored XSS（保存型 XSS）の原因になり得る。
+KBMemo では **DB 上のソースは変更せず**、メモ表示・ライブプレビュー・WYSIWYG ブロックプレビューの **HTML 変換直前** で passthrough を無害化する。
+
+== 背景
+
+Asciidoctor の passthrough は次のように生 HTML を出力する。
+
+[source,asciidoc]
+----
+++++
+<script>alert(1)</script>
+++++
+
+pass:[<script>alert(1)</script>]
+
++++<del>removed</del>+++
+----
+
+`memo_html` は `safe: :safe` で変換するが、これは include や base_dir 等の制限が主目的であり、passthrough 内の `<script>` やイベント属性は除去されない。
+メモは本人・グループ・全公開で共有されるため、悪意ある passthrough が閲覧者のブラウザで実行されるリスクがある。
+
+== 方針
+
+* **正（ソース）**: DB の AsciiDoc 文字列はそのまま保存・編集する。エディタのハイライト・編集ユニット分割も従来どおり。
+* **表示・プレビュー**: 変換前に passthrough を neutralize し、HTML として解釈されない形にする。
+
+== 無害化ルール
+
+[cols="2,3"]
+|===
+|記法 |変換
+
+|ブロック `++++` … `++++`
+|区切りを literal ブロック `....` に置換。中身は HTML エスケープされて `<pre>` 表示になる。
+
+|未閉じ `++++`
+|先頭を `....` にし、末尾に `....` を追加して literal 化する。
+
+|インライン `pass:[…]`
+|先頭に `\` を付与（`\pass:[…]`）し、テキストとして表示する。
+
+|インライン `+++…+++`
+|開始 `+++` の前に `\` を付与（`\+++…+++`）し、テキストとして表示する。
+|===
+
+**対象外:** 単一プラス passthrough（`+…+`）は Asciidoctor が HTML エスケープして出力するため、現状は制限しない。
+
+== 適用箇所
+
+[cols="2,3"]
+|===
+|パイプライン |実装
+
+|メモ show（サーバー）
+|`MemoAdocPassthroughRestrictor` → `memo_html`（`app/helpers/memos_helper.rb`）
+
+|ライブプレビュー（CM）
+|`restrictPassthroughInSource` → `parseSession.js` の `previewSourceForConvert`
+
+|WYSIWYG ブロックプレビュー
+|`restrictPassthroughInSource` → `blockConvert.js` の `asciidocBlockToHtml`
+|===
+
+== 実装ファイル
+
+* Ruby: `app/services/memo_adoc_passthrough_restrictor.rb`
+* JavaScript（共有）: `packages/adoc-kbmemo/src/passthrough_restrict.js`（`restrictPassthroughInSource`）
+
+Wiki リンク・diagram 展開の **後**、Asciidoctor 変換の **直前** に適用する。
+
+== 作者・閲覧者への見え方
+
+* **編集時**: ソース上は `++++` / `pass:[]` / `+++` のまま。シンタックスハイライトも従来どおり。
+* **表示時**: ブロック passthrough は literal（等幅・エスケープ）になる。インライン passthrough は記法文字列がそのまま段落内テキストとして見える。
+* syntax quick reference の `blocks-passthrough` 例（`<p>` 埋め込み）は、show では HTML レンダリングされず pre 表示になる。これは意図したセキュリティ上のトレードオフ。
+
+== テスト
+
+* `test/services/memo_adoc_passthrough_restrictor_test.rb`
+* `packages/adoc-kbmemo/test/passthrough_restrict.test.js`
+* `test/helpers/memos_helper_test.rb` — `memo_html neutralizes passthrough markup`
+
+== 関連
+
+* 表示パイプライン全体: `docs/architecture/kbmemo-docs-in-app.adoc`
+* 記法カバレッジ: `docs/architecture/asciidoc-syntax-coverage-roadmap.adoc`（`blocks-passthrough` / `passthrough-inline`）
+* SVG アップロードの XSS 対策: `app/services/memo_svg_sanitizer.rb`（別系統）

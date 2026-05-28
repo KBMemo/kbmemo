@@ -114,7 +114,7 @@
 |blocks-example |✓ |✓ |✓ |— |△ |✓ |同上
 |blocks-blockquote |✓ |✓ |✓ |— |△ |✓ |同上
 |blocks-open |✓ |✓ |✓ |— |△ |✓ |`--` — 同上
-|blocks-passthrough |✓ |✓ |✓ |— |— |✓ |`++++`
+|blocks-passthrough |✓ |✓ |✓ |— |— |✓ |`++++` — show/PV で literal 化（link:memo-adoc-passthrough-restriction.adoc[passthrough 制限]）
 |blocks-subs |— |— |✓ |— |— |✓ |`subs=attributes+`
 |tables-basic |✓ |✓ |✓ |— |✓ |✓ |5d pipe 表
 |tables-header-cols |✓ |△ |✓ |— |— |✓ |`%header` / `cols`
@@ -130,7 +130,7 @@
 |attributes-counter |✓ |— |✓ |— |— |✓ |
 |text-replacements |✓ |— |✓ |— |— |✓ |`(C)` / `--`
 |escaping |✓ |— |✓ |— |— |✓ |
-|passthrough-inline |✓ |— |✓ |— |— |✓ |`+++` / `pass:[]`
+|passthrough-inline |✓ |— |✓ |— |— |✓ |`+++` / `pass:[]` — show/PV でエスケープ（link:memo-adoc-passthrough-restriction.adoc[passthrough 制限]）
 |bibliography |✓ |— |✓ |— |— |✓ |
 |footnotes |✓ |✓ |✓ |— |— |✓ |
 |markdown-headings |✓ |— |✓ |— |— |✓ |`##` 互換

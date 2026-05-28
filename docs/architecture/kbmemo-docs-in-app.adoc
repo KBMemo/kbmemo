@@ -16,6 +16,7 @@
 
 * 画面表示は `memos.body`（DB）を `Asciidoctor.convert` する（`app/helpers/memos_helper.rb` の `memo_html`）。
 * `safe: :safe` で変換しており、**文字列入力に base_dir を渡していない**。
+* passthrough（`++++` / `pass:[]` / `+++`）は Stored XSS になり得るため、変換前に `MemoAdocPassthroughRestrictor` で無害化する（`docs/architecture/memo-adoc-passthrough-restriction.adoc`）。
 * そのため `include::path/to/file.adoc[]` は **リポジトリ `docs/` をそのまま引けない**（ファイルパス解決・サンドボックスの両面で未対応）。
 
 === Git 作業ツリー
