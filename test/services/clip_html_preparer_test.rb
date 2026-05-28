@@ -14,4 +14,21 @@ class ClipHtmlPreparerTest < ActiveSupport::TestCase
     assert_not_includes prepared, "<blockquote"
     assert_includes prepared, "<strong>Clip</strong>"
   end
+
+  test "strips presentation attributes from clipped html" do
+    html = <<~HTML
+      <div class="HeroSection_scheduleItem__CUhfj" id="schedule" style="color:red" data-test="1">
+        <span class="HeroSection_scheduleLabel__rVBvI">投稿募集開始</span>
+        <span class="HeroSection_scheduleValue__ZbeZQ">2026.05.11</span>
+      </div>
+    HTML
+
+    prepared = ClipHtmlPreparer.prepare(html)
+
+    assert_includes prepared, "投稿募集開始"
+    assert_includes prepared, "2026.05.11"
+    assert_not_includes prepared, "class="
+    assert_not_includes prepared, "HeroSection_"
+    assert_not_includes prepared, 'data-test="1"'
+  end
 end

@@ -31,6 +31,16 @@ class PandocHtmlToAsciidocTest < ActiveSupport::TestCase
     assert_includes adoc, "*Second*"
   end
 
+  test "normalize_output flattens pandoc inline class role markup" do
+    adoc = "[.HeroSection_scheduleLabel__rVBvI]#投稿募集開始#[.HeroSection_scheduleValue__ZbeZQ]#2026.05.11#"
+
+    normalized = PandocHtmlToAsciidoc.normalize_output(adoc)
+
+    assert_equal "投稿募集開始2026.05.11", normalized
+    assert_not_includes normalized, "HeroSection_"
+    assert_not_includes normalized, "[."
+  end
+
   private
 
   def pandoc_available?
