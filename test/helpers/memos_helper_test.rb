@@ -290,6 +290,20 @@ class MemosHelperTest < ActionView::TestCase
     assert_not_includes html, "// &lt;1&gt;"
   end
 
+  test "memo_html marks source blocks for highlight.js" do
+    body = <<~ADOC
+      [source,ruby]
+      ----
+      def hello
+        puts 1
+      end
+      ----
+    ADOC
+    html = memo_html(body, source_memo: memos(:one))
+    assert_includes html, 'class="highlightjs highlight"'
+    assert_includes html, 'class="language-ruby hljs"'
+  end
+
   test "memo_html leaves wiki syntax inside fenced code" do
     body = "```\n[[Second memo]]\n```\n\n[[Second memo]]"
     html = memo_html(body, source_memo: memos(:one))

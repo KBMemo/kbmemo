@@ -91,13 +91,110 @@ export function highlightCode(code, language) {
 }
 
 /**
- * Asciidoctor (source-highlighter) may already embed syntax spans and callout markers.
- * Re-highlighting strips `.conum` badges and drops callout numbers in live preview.
- *
+ * @param {HTMLElement} block
+ */
+function languageForCodeBlock(block) {
+  const dataLang = block.getAttribute('data-lang')
+  if (dataLang) return normalizeLanguage(dataLang)
+  const match = block.className.match(/\blanguage-(\S+)/)
+  return normalizeLanguage(match?.[1])
+}
+
+/**
+ * @typedef {{ type: 'text', value: string } | { type: 'callout', html: string }} SourcePart
+ */
+
+/**
+ * @param {HTMLElement} root
+ * @returns {SourcePart[]}
+ */
+function splitSourceParts(root) {
+  /** @type {SourcePart[]} */
+  const parts = []
+
+  /**
+   * @param {Node} parent
+   */
+  function walk(parent) {
+    const children = [...parent.childNodes]
+    for (let index = 0; index < children.length; index++) {
+      const node = children[index]
+      if (node.nodeType === Node.TEXT_NODE) {
+        appendText(node.textContent ?? '')
+        continue
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) continue
+
+      const element = /** @type {HTMLElement} */ (node)
+      if (element.classList.contains('conum')) {
+        flushText()
+        let html = element.outerHTML
+        const next = children[index + 1]
+        if (
+          element.hasAttribute('data-value') &&
+          next?.nodeType === Node.ELEMENT_NODE &&
+          /** @type {HTMLElement} */ (next).tagName === 'B'
+        ) {
+          html += /** @type {HTMLElement} */ (next).outerHTML
+          index++
+        }
+        parts.push({ type: 'callout', html })
+        continue
+      }
+
+      walk(element)
+    }
+  }
+
+  /** @type {string} */
+  let pendingText = ''
+
+  function appendText(text) {
+    pendingText += text
+  }
+
+  function flushText() {
+    if (pendingText === '') return
+    parts.push({ type: 'text', value: pendingText })
+    pendingText = ''
+  }
+
+  walk(root)
+  flushText()
+  return parts
+}
+
+/**
+ * @param {SourcePart[]} parts
+ * @param {string} lang
+ */
+function highlightSourceParts(parts, lang) {
+  const canHighlight = lang !== 'plaintext' && hljs.getLanguage(lang)
+
+  return parts
+    .map((part) => {
+      if (part.type === 'callout') return part.html
+      if (!canHighlight) return escapeHtml(part.value)
+      return hljs.highlight(part.value, { language: lang, ignoreIllegals: true }).value
+    })
+    .join('')
+}
+
+/**
+ * @param {HTMLElement} block
+ */
+function highlightCodeElement(block) {
+  const lang = languageForCodeBlock(block)
+  const parts = splitSourceParts(block)
+  block.innerHTML = highlightSourceParts(parts, lang)
+  block.classList.add('hljs')
+}
+
+/**
  * @param {HTMLElement} block
  */
 function isAlreadySyntaxHighlighted(block) {
-  if (block.querySelector('.conum, i.conum')) return true
+  if (block.querySelector('.conum, i.conum')) return false
   return block.querySelector('[class*="hljs-"]') != null
 }
 
@@ -108,7 +205,7 @@ export function highlightPreviewCode(container) {
   ensureLanguagesRegistered()
   container.querySelectorAll('pre code[data-lang], pre code[class*="language-"]').forEach((block) => {
     if (isAlreadySyntaxHighlighted(block)) return
-    hljs.highlightElement(block)
+    highlightCodeElement(block)
   })
 }
 

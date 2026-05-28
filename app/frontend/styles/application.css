@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "katex/dist/katex.min.css";
+@import "highlight.js/styles/github.min.css";
+@import "@kbmemo/adoc-preview/preview_hljs.css";
 @import "./asciidoctor-material-grey.css";
 @import "./themes.css";
 @import "./diagram_svg_viewer.css";

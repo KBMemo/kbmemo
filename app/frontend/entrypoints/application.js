@@ -2,6 +2,7 @@ import "../styles/application.css"
 
 import "@hotwired/turbo-rails"
 import "../../javascript/controllers"
+import { highlightMemoBodies } from "../../javascript/memo_body_highlight.js"
 import { applyStoredThemeWithSync, bootstrapAccountTheme, initThemeSync } from "../../javascript/theme/theme_bootstrap.js"
 import {
   applyOpenDirectoryIds,
@@ -29,6 +30,8 @@ const renderLucideIcons = () => {
 
 document.addEventListener("turbo:load", renderLucideIcons)
 document.addEventListener("turbo:render", renderLucideIcons)
+document.addEventListener("turbo:load", () => highlightMemoBodies())
+document.addEventListener("turbo:render", () => highlightMemoBodies())
 document.addEventListener("turbo:load", () => {
   initThemeSync()
   applyStoredThemeWithSync()
@@ -178,6 +181,7 @@ document.addEventListener("turbo:before-stream-render", (event) => {
           applyOpenDirectoryIds(loadOpenDirectoryIds())
         }
         scheduleLucideIconsAfterStream()
+        highlightMemoBodies()
       })
     })
     return result

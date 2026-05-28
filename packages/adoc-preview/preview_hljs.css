@@ -1,5 +1,8 @@
-/* highlight.js tweaks inside memo live preview */
+/* highlight.js tweaks for memo body (show) and live preview */
 
+.memo-body pre.highlight,
+.memo-body pre.highlightjs,
+.memo-body .listingblock pre,
 .memo-body-editor__preview-content pre.highlight,
 .memo-body-editor__preview-content pre.highlightjs,
 .memo-body-editor__preview-content .listingblock pre {
@@ -7,17 +10,20 @@
   overflow: auto;
 }
 
+.memo-body pre code.hljs,
 .memo-body-editor__preview-content pre code.hljs {
   display: block;
   padding: 0.75em 1em;
   overflow-x: auto;
 }
 
-.memo-body-editor__preview-content .imageblock img {
+.memo-body-editor__preview-content .imageblock img,
+.memo-body .imageblock img {
   max-width: 100%;
   height: auto;
 }
 
-.memo-body-editor__preview-content .imageblock .title {
+.memo-body-editor__preview-content .imageblock .title,
+.memo-body .imageblock .title {
   margin-top: 0.5em;
 }
