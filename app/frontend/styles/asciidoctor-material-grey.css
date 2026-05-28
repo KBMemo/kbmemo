@@ -40,6 +40,33 @@
   margin-bottom: 1.25rem;
 }
 
+/* [.lead] 段落 */
+.memo-body .paragraph.lead > p,
+.memo-body-editor__preview-content.asciidoctor .paragraph.lead > p,
+.memo-body-editor__wysiwyg-content.asciidoctor .paragraph.lead > p {
+  font-size: 1.21875em;
+  line-height: 1.6;
+}
+
+/* インライン装飾（[.line-through] / [.underline] 等） */
+.memo-body .line-through,
+.memo-body-editor__preview-content.asciidoctor .line-through,
+.memo-body-editor__wysiwyg-content.asciidoctor .line-through {
+  text-decoration: line-through;
+}
+
+.memo-body .underline,
+.memo-body-editor__preview-content.asciidoctor .underline,
+.memo-body-editor__wysiwyg-content.asciidoctor .underline {
+  text-decoration: underline;
+}
+
+.memo-body .overline,
+.memo-body-editor__preview-content.asciidoctor .overline,
+.memo-body-editor__wysiwyg-content.asciidoctor .overline {
+  text-decoration: overline;
+}
+
 /* ダイアグラム SVG（Mermaid の foreignObject ラベルは object 表示が必要） */
 .memo-body .imageblock object {
   display: block;
