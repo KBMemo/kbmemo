@@ -227,3 +227,83 @@
 .web-paste-actions button:hover {
   background: #eef2ff;
 }
+
+.image-paste-dialog {
+  position: fixed;
+  z-index: 2100;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(24rem, calc(100vw - 2rem));
+  background: #fff;
+  border: 1px solid #d0d7de;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(27, 31, 36, 0.18);
+}
+
+.image-paste-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem 1rem;
+}
+
+.image-paste-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.image-paste-description {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.image-paste-close {
+  border: none;
+  background: transparent;
+  color: #666;
+  font-size: 1.125rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.image-paste-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.image-paste-field input {
+  font: inherit;
+  font-size: 0.875rem;
+  color: #1a1a1a;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 0.4rem 0.55rem;
+}
+
+.image-paste-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.image-paste-actions button {
+  font: inherit;
+  font-size: 0.75rem;
+  color: #1a1a1a;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  padding: 0.35rem 0.55rem;
+  cursor: pointer;
+}
+
+.image-paste-actions button:hover {
+  background: #eef2ff;
+}

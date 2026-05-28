@@ -61,9 +61,9 @@ const SYNC_DEBOUNCE_MS = 400
 
 /**
  * @param {HTMLElement} editorEl
- * @param {{ onSourceChange: (source: string) => void, paneEl?: HTMLElement | null, getMemoId?: () => string | null | undefined, getWikiConfig?: () => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null }, sourceExtensions?: import('@codemirror/state').Extension[] }} options
+ * @param {{ onSourceChange: (source: string) => void, paneEl?: HTMLElement | null, getMemoId?: () => string | null | undefined, getWikiConfig?: () => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null }, sourceExtensions?: import('@codemirror/state').Extension[], onImagePaste?: (event: ClipboardEvent) => boolean | void }} options
  */
-export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoId, getWikiConfig, sourceExtensions = [] }) {
+export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoId, getWikiConfig, sourceExtensions = [], onImagePaste }) {
   let syncTimer
   let splitTimer
   let isRendering = false
@@ -81,7 +81,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     if (editorEl.contains(node)) return true
     const pane = getEditorPane()
     if (pane instanceof HTMLElement && pane.contains(node)) return true
-    if (node instanceof Element && node.closest('.search-replace-dialog, .editor-context-menu, .web-paste-dialog')) {
+    if (node instanceof Element && node.closest('.search-replace-dialog, .editor-context-menu, .web-paste-dialog, .image-paste-dialog')) {
       return true
     }
     return false
@@ -824,7 +824,10 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
         scheduleSync()
       },
       onKeyDown: (event, view) => handleSourceKeydown(event, view, activateSourceUnit, getUnitText),
-      onPaste: webPasteHandler,
+      onPaste: (event, view) => {
+        if (onImagePaste?.(event)) return true
+        return webPasteHandler(event, view)
+      },
       onContextMenu: (event, view) => {
         void openWysiwygContextMenu(event, () => view)
       },

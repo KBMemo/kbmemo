@@ -18,8 +18,9 @@ function removeLegacyGlobalStylesheet() {
  * @param {() => string | null | undefined} [options.getMemoId]
  * @param {() => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null }} [options.getWikiConfig]
  * @param {(source: string) => void} options.onSourceChange
+ * @param {(event: ClipboardEvent) => boolean | void} [options.onImagePaste]
  */
-export function createMemoWysiwygEditor({ editorEl, paneEl, getMemoId, getWikiConfig, onSourceChange }) {
+export function createMemoWysiwygEditor({ editorEl, paneEl, getMemoId, getWikiConfig, onSourceChange, onImagePaste }) {
   removeLegacyGlobalStylesheet()
 
   return createWysiwygEditor(editorEl, {
@@ -28,5 +29,6 @@ export function createMemoWysiwygEditor({ editorEl, paneEl, getMemoId, getWikiCo
     getWikiConfig,
     sourceExtensions: createKbmemoWysiwygSourceExtensions({ getWikiConfig, getMemoId }),
     onSourceChange,
+    onImagePaste,
   })
 }

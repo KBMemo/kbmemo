@@ -4,6 +4,7 @@ import { initEditorContextMenus } from "@kbmemo/adoc-wysiwyg"
 import {
   createWebPasteHandler,
   insertTextIntoEditorView,
+  promptImageFilename,
 } from "@kbmemo/adoc-wysiwyg"
 import { loadAsciidocExtensions } from "../adoc_editor/kbmemo_asciidoc_extensions"
 import {
@@ -83,10 +84,17 @@ function extensionForImageType(type) {
   return CLIPBOARD_IMAGE_EXT[type?.toLowerCase()] || "png"
 }
 
-function withPasteFilename(file) {
-  if (file.name && ACCEPTED_IMAGE_EXT.test(file.name)) return file
+function suggestedPasteFilename(file) {
   const ext = extensionForImageType(file.type)
-  return new File([file], `paste-${Date.now()}.${ext}`, { type: file.type })
+  return `paste-${Date.now()}.${ext}`
+}
+
+function fileWithFilename(file, filename) {
+  const trimmed = filename.trim()
+  const name = ACCEPTED_IMAGE_EXT.test(trimmed)
+    ? trimmed
+    : `${trimmed}.${extensionForImageType(file.type)}`
+  return new File([file], name, { type: file.type })
 }
 
 function imageFilesFromClipboard(clipboardData) {
@@ -94,15 +102,56 @@ function imageFilesFromClipboard(clipboardData) {
 
   const fromItems = []
   for (const item of clipboardData.items ?? []) {
-    if (item.kind !== "file" || !item.type.startsWith("image/")) continue
+    if (item.kind !== "file") continue
     const file = item.getAsFile()
     if (!file) continue
-    if (!ACCEPTED_IMAGE_TYPE.test(file.type) && !ACCEPTED_IMAGE_EXT.test(file.name)) continue
-    fromItems.push(withPasteFilename(file))
+    const type = (file.type || item.type || "").toLowerCase()
+    if (ACCEPTED_IMAGE_TYPE.test(type) || ACCEPTED_IMAGE_EXT.test(file.name)) {
+      fromItems.push(file)
+      continue
+    }
+    // スクリーンショット等で MIME が空のことがある
+    if (!type || type === "application/octet-stream") {
+      fromItems.push(file)
+    }
   }
   if (fromItems.length > 0) return fromItems
 
-  return imageFilesFrom(clipboardData.files).map((file) => withPasteFilename(file))
+  return imageFilesFrom(clipboardData.files)
+}
+
+function clipboardPlainText(clipboardData) {
+  const types = Array.from(clipboardData.types ?? [])
+  if (!types.includes("text/plain")) return ""
+  return clipboardData.getData("text/plain") ?? ""
+}
+
+function clipboardHtml(clipboardData) {
+  const types = Array.from(clipboardData.types ?? [])
+  if (!types.includes("text/html")) return ""
+  return clipboardData.getData("text/html") ?? ""
+}
+
+function looksLikeLocalFilePath(text) {
+  const value = text.trim()
+  if (!value) return false
+  return /^([a-z]+:|\\\\|\/|\.\/|\.\.\/).+\.(png|jpe?g|gif|webp|svg)$/i.test(value)
+}
+
+/** HTML が画像ラッパーだけなら画像ペーストとして扱う（スクリーンショット等） */
+function isImageOnlyClipboardHtml(html) {
+  const trimmed = html.trim()
+  if (!trimmed) return true
+
+  try {
+    const doc = new DOMParser().parseFromString(trimmed, "text/html")
+    const body = doc.body
+    if (!body) return false
+    if (!body.querySelector("img")) return false
+    return (body.textContent ?? "").replace(/\s+/g, "").length === 0
+  } catch {
+    return false
+  }
 }
 
 /** 画像貼り付けとして扱うか（テキスト貼り付けは CodeMirror の既定動作に任せる） */
@@ -112,15 +161,11 @@ function shouldHandleImagePaste(clipboardData) {
   const files = imageFilesFromClipboard(clipboardData)
   if (files.length === 0) return false
 
-  const types = Array.from(clipboardData.types ?? [])
+  const html = clipboardHtml(clipboardData).trim()
+  if (html && !isImageOnlyClipboardHtml(html)) return false
 
-  // HTML 付きは通常のリッチテキスト貼り付けを優先（getData しない）
-  if (types.includes("text/html")) return false
-
-  if (types.includes("text/plain")) {
-    const plain = clipboardData.getData("text/plain") ?? ""
-    return plain.trim().length === 0
-  }
+  const plain = clipboardPlainText(clipboardData).trim()
+  if (plain && !looksLikeLocalFilePath(plain)) return false
 
   return true
 }
@@ -316,6 +361,7 @@ export default class extends Controller {
     })
 
     this._bindDragDrop()
+    this._bindPaste()
     this._bindInsertEvent()
     this._editMode = "source"
     this.syncEditModeUi()
@@ -418,7 +464,8 @@ export default class extends Controller {
         labelsUrl: this.wikiLinkLabelsUrlValue,
         memoId: this.memoIdValue || null,
       }),
-      onSourceChange: (source) => this.syncSourceFromWysiwyg(source)
+      onSourceChange: (source) => this.syncSourceFromWysiwyg(source),
+      onImagePaste: (event) => this.handleImagePaste(event),
     })
   }
 
@@ -493,6 +540,7 @@ export default class extends Controller {
     }
     this._unbindInsertEvent()
     this._unbindDragDrop()
+    this._unbindPaste()
     resetHostConfig()
     this._wysiwygEditor?.flush()
     this._wysiwygEditor = null
@@ -603,6 +651,34 @@ export default class extends Controller {
     void this.handleImageDrop(event)
   }
 
+  _onDocumentPaste = (event) => {
+    if (!this.isEditorPasteTarget(event)) return
+    this.handleImagePaste(event)
+  }
+
+  _bindPaste() {
+    if (this._pasteBound) return
+    document.addEventListener("paste", this._onDocumentPaste, { capture: true })
+    this._pasteBound = true
+  }
+
+  _unbindPaste() {
+    if (!this._pasteBound) return
+    document.removeEventListener("paste", this._onDocumentPaste, { capture: true })
+    this._pasteBound = false
+  }
+
+  isEditorPasteTarget(event) {
+    const target = event.target
+    if (target instanceof Node && this.element.contains(target)) return true
+
+    const active = document.activeElement
+    if (active instanceof Node && this.element.contains(active)) return true
+
+    const anchor = window.getSelection()?.anchorNode
+    return anchor instanceof Node && this.element.contains(anchor)
+  }
+
   /**
    * クリップボード画像（スクリーンショット等）の貼り付け。
    * 同期で true/false を返す（async にすると Promise が truthy になり通常貼り付けが壊れる）。
@@ -622,10 +698,19 @@ export default class extends Controller {
       return true
     }
 
-    void this.uploadFiles(files).catch(() => {
+    void this.uploadPastedImages(files).catch(() => {
       this.showUploadError("画像の貼り付けに失敗しました")
     })
     return true
+  }
+
+  async uploadPastedImages(files) {
+    for (const file of files) {
+      const { action, filename } = await promptImageFilename(suggestedPasteFilename(file))
+      if (action !== "upload" || !filename) continue
+
+      await this.uploadFiles([fileWithFilename(file, filename)])
+    }
   }
 
   placeSelectionAtDrop(event) {
@@ -710,7 +795,12 @@ export default class extends Controller {
     }
 
     if (inserted.length > 0) {
-      await this.insertAtCursor(inserted.join("\n\n"))
+      const text = inserted.join("\n\n")
+      if (this._editMode === "wysiwyg" && this._wysiwygEditor?.insertTextAtSelection?.(text)) {
+        // カーソル位置へ挿入済み
+      } else {
+        await this.insertAtCursor(text)
+      }
     }
 
     if (failed) {
