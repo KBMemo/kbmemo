@@ -42,6 +42,7 @@ class MemoBodyReferences
   def self.normalize_asset_path(path)
     path = path.to_s.unicode_normalize(:nfc).gsub("\\", "/")
     path = path.delete_prefix("./")
+    path = strip_pseudo_image_uri_scheme(path)
 
     loop do
       if (match = path.match(%r{\A/memos/\d+/assets/(.+)\z}i))
@@ -51,6 +52,21 @@ class MemoBodyReferences
       else
         break
       end
+    end
+
+    path
+  end
+
+  KNOWN_URI_SCHEME = /\A(?:https?|data|file|ftp|mailto|javascript):/i
+  IMAGE_FILE_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|ico)\z/i
+
+  def self.strip_pseudo_image_uri_scheme(path)
+    path = path.to_s
+    return path if path.match?(KNOWN_URI_SCHEME)
+
+    if (match = path.match(/\A[a-z][a-z0-9+.-]*:(.+)\z/i))
+      rest = match[1]
+      return rest if rest.include?("/") || rest.match?(IMAGE_FILE_EXT)
     end
 
     path

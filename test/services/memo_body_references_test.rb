@@ -34,4 +34,27 @@ class MemoBodyReferencesTest < ActiveSupport::TestCase
     path = "/memos/14/assets//memos/14/assets/box.png"
     assert_equal "box.png", MemoBodyReferences.normalize_asset_path(path)
   end
+
+  test "does not rewrite /images paths to memo assets" do
+    assert_equal "/images/octocat.jpg", MemoBodyReferences.normalize_asset_path("/images/octocat.jpg")
+    body = "image::/images/octocat.jpg[]"
+    assert_equal body, MemoBodyReferences.normalize_image_macro_paths(body)
+  end
+
+  test "strip_pseudo_image_uri_scheme removes macros prefix from image path" do
+    assert_equal "sunset.jpg", MemoBodyReferences.strip_pseudo_image_uri_scheme("macros:sunset.jpg")
+    assert_equal "https://example.com/a.png", MemoBodyReferences.strip_pseudo_image_uri_scheme("https://example.com/a.png")
+  end
+
+  test "normalize_image_macro_paths rewrites macros pseudo scheme" do
+    body = <<~ADOC
+      [#img-sunset,caption="Figure 1: ",link=https://www.example.com/photos/sunset]
+      image::macros:sunset.jpg[Sunset,200,100]
+    ADOC
+    expected = <<~ADOC
+      [#img-sunset,caption="Figure 1: ",link=https://www.example.com/photos/sunset]
+      image::sunset.jpg[Sunset,200,100]
+    ADOC
+    assert_equal expected, MemoBodyReferences.normalize_image_macro_paths(body)
+  end
 end

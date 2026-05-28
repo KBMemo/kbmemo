@@ -220,6 +220,41 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, %(href="/memos/#{memo.id}/assets/shot.png/view")
   end
 
+  test "memo_html renders image with /images asset path alias" do
+    memo = memos(:one)
+    repo = MemoRepository.new
+    repo.write_asset!(memo, filename: "shot.png", io: StringIO.new("PNG"))
+
+    html = memo_html("image::shot.png[]", source_memo: memo)
+    assert_includes html, %(src="/memos/#{memo.id}/assets/shot.png")
+    assert_includes html, "<img"
+  end
+
+  test "memo_html renders propshaft image from app/assets/images via /images macro" do
+    html = memo_html("image::/images/octocat.jpg[GitHub mascot]", source_memo: memos(:one))
+    assert_includes html, %(src="/images/octocat.jpg")
+    assert_includes html, "<img"
+    assert_includes html, 'alt="GitHub mascot"'
+    assert_not_includes html, "ビューアで開く"
+  end
+
+  test "memo_html resolves macros pseudo scheme image path" do
+    memo = memos(:one)
+    repo = MemoRepository.new
+    repo.write_asset!(memo, filename: "sunset.jpg", io: StringIO.new("JPEG"))
+
+    body = <<~ADOC
+      [#img-sunset,caption="Figure 1: ",link=https://www.example.com/photos/sunset]
+      image::macros:sunset.jpg[Sunset,200,100]
+    ADOC
+    html = memo_html(body, source_memo: memo)
+    assert_includes html, %(src="/memos/#{memo.id}/assets/sunset.jpg")
+    assert_includes html, %(href="https://www.example.com/photos/sunset")
+    assert_includes html, 'width="200"'
+    assert_includes html, 'height="100"'
+    assert_not_includes html, "macros:sunset.jpg"
+  end
+
   test "memo_html renders admonition with font icon" do
     html = memo_html("NOTE: Remember this.", source_memo: memos(:one))
     assert_includes html, 'class="admonitionblock note"'

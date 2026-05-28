@@ -18,7 +18,9 @@ export {
   memoAssetRelativePath,
   memoAssetSrc,
   memoAssetViewUrl,
+  appImageSrc,
   normalizeMemoImagePathsInSource,
+  stripPseudoImageUriScheme,
 } from './src/image_syntax.js'
 
 export {

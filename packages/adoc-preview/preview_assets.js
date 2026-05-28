@@ -1,4 +1,4 @@
-import { memoAssetRelativePath, memoAssetSrc } from "@kbmemo/adoc-kbmemo"
+import { appImageSrc, memoAssetRelativePath, memoAssetSrc } from "@kbmemo/adoc-kbmemo"
 
 /**
  * @param {ParentNode} container
@@ -7,15 +7,21 @@ import { memoAssetRelativePath, memoAssetSrc } from "@kbmemo/adoc-kbmemo"
 function resolvePreviewAssetUrl(memoId, raw) {
   if (!raw?.trim()) return null
 
-  const relative = memoAssetRelativePath(memoId, raw)
+  const trimmed = raw.trim()
+  const appImage = appImageSrc(trimmed)
+  if (appImage) {
+    return { resolved: appImage, relative: null }
+  }
+
+  const relative = memoAssetRelativePath(memoId, trimmed)
   if (relative && relative !== raw.trim()) {
     return { resolved: memoAssetSrc(memoId, relative), relative }
   }
 
-  if (/^(https?:|data:|blob:|\/)/.test(raw)) return null
+  if (/^(https?:|data:|blob:|\/)/.test(trimmed)) return null
 
-  const resolved = memoAssetSrc(memoId, raw)
-  return resolved ? { resolved, relative: memoAssetRelativePath(memoId, raw) || raw } : null
+  const resolved = memoAssetSrc(memoId, trimmed)
+  return resolved ? { resolved, relative: memoAssetRelativePath(memoId, trimmed) || trimmed } : null
 }
 
 export function resolvePreviewImages(container, memoId) {
