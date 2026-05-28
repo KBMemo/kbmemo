@@ -39,6 +39,22 @@ class MemosControllerChecklistTest < ActionDispatch::IntegrationTest
     assert_equal({ "other" => 1 }, @memo.properties.except("checkboxes"))
   end
 
+  test "show renders interactive checklist without preexisting properties" do
+    @memo.update_columns(
+      body: <<~ADOC.strip,
+        [%interactive]
+        * [*] Done
+        * [ ] Open
+      ADOC
+      properties: {}
+    )
+
+    get memo_path(@memo)
+    assert_response :success
+    assert_includes response.body, 'data-controller="memo-checklist"'
+    assert_includes response.body, 'data-memo-checklist-id'
+  end
+
   test "checklist_toggle updates memo and returns turbo stream" do
     id = @memo.properties["checkboxes"].first["id"]
 

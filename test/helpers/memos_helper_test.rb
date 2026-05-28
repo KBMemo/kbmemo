@@ -118,12 +118,27 @@ class MemosHelperTest < ActionView::TestCase
       ADOC
       properties: {}
     )
-    MemoChecklist.sync_properties_from_body!(memo)
-    memo.save!
 
     html = memo_html(memo.body, source_memo: memo)
+    assert_includes html, 'data-memo-checklist-id="cb-1"'
+    assert_includes html, "memo-checklist#toggle"
+  end
+
+  test "memo_html syncs checklist controls without preexisting properties" do
+    memo = memos(:one)
+    memo.update_columns(
+      body: <<~ADOC.strip,
+        [%interactive]
+        * [*] Done
+        * [ ] Open
+      ADOC
+      properties: {}
+    )
+
+    html = memo_html(memo.body, source_memo: memo)
+
+    assert_equal 2, memo.properties["checkboxes"].size
     assert_includes html, 'data-memo-checklist-id'
-    assert_includes html, "change->memo-checklist#toggle"
   end
 
   test "memo_html renders diagram macro via cached svg" do

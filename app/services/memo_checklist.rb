@@ -4,7 +4,7 @@
 # 本文がラベル・[ ]/[x] の正本。properties には id・label（本文からコピー）・checked を保持する。
 class MemoChecklist
   INTERACTIVE_ATTR = /\A\[%interactive\]\s*\z/
-  CHECKLIST_ITEM = /\A(\s*)\* \[([ Xx])\] (.+)\z/
+  CHECKLIST_ITEM = /\A(\s*)([\*-]) \[([ Xx\*])\] (.+)\z/
   ID_SUFFIX = /\s+#([\w][\w-]*)\z/
 
   class Error < StandardError; end
@@ -89,8 +89,8 @@ class MemoChecklist
 
       match = CHECKLIST_ITEM.match(line)
       if interactive && match
-        checked = match[2] != " "
-        rest = match[3]
+        checked = match[3] != " "
+        rest = match[4]
         id_match = rest.match(ID_SUFFIX)
         id = id_match ? id_match[1] : nil
         label = id_match ? rest.sub(ID_SUFFIX, "").strip : rest.strip
@@ -135,8 +135,9 @@ class MemoChecklist
   def update_checklist_marker(line, marker)
     line.sub(CHECKLIST_ITEM) do
       indent = Regexp.last_match(1)
-      rest = Regexp.last_match(3)
-      "#{indent}* [#{marker}] #{rest.rstrip}"
+      list_marker = Regexp.last_match(2)
+      rest = Regexp.last_match(4)
+      "#{indent}#{list_marker} [#{marker}] #{rest.rstrip}"
     end
   end
 end

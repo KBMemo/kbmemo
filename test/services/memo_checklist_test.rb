@@ -28,6 +28,41 @@ class MemoChecklistTest < ActiveSupport::TestCase
     assert_not_includes @memo.body, "##{rows[0]["id"]}"
   end
 
+  test "parses dash checklist markers" do
+    @memo.update_columns(
+      body: <<~ADOC.strip,
+        [%interactive]
+        - [ ] Dash todo
+        - [x] Done
+      ADOC
+      properties: {}
+    )
+
+    rows = MemoChecklist.sync_properties_from_body!(@memo)
+
+    assert_equal 2, rows.size
+    assert_equal "Dash todo", rows[0]["label"]
+    assert_equal false, rows[0]["checked"]
+    assert_equal true, rows[1]["checked"]
+  end
+
+  test "parses asterisk checked marker" do
+    @memo.update_columns(
+      body: <<~ADOC.strip,
+        [%interactive]
+        * [*] checked item
+        * [ ] open item
+      ADOC
+      properties: {}
+    )
+
+    rows = MemoChecklist.sync_properties_from_body!(@memo)
+
+    assert_equal 2, rows.size
+    assert_equal true, rows[0]["checked"]
+    assert_equal false, rows[1]["checked"]
+  end
+
   test "toggle updates body and properties" do
     MemoChecklist.sync_properties_from_body!(@memo)
     id = @memo.properties["checkboxes"].first["id"]

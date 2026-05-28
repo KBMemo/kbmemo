@@ -81,7 +81,7 @@ ruby:
       pre#memo-properties-panel.hidden.overflow-x-auto.rounded-md.p-3.font-mono.text-xs.kb-text-primary style="background: var(--kb-bg-subtle)" data-expandable-hint-target="panel"
         = memo_properties_yaml_value(memo)
 
-  - checklist_editable = policy(memo).update? && Array(memo.properties["checkboxes"]).any?
+  - checklist_editable = memo_checklist_editable?(memo)
   = tag.article(**memo_body_tag_options(memo)) do
     - if checklist_editable
       .max-w-none data-controller="memo-checklist" data-memo-checklist-toggle-url-value=checklist_toggle_memo_path(memo) data-action="change->memo-checklist#toggle"

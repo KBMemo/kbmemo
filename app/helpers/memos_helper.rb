@@ -450,9 +450,16 @@ module MemosHelper
   end
 
   # 表示画面: [%interactive] チェックリストに id 付きトグル（properties と同期）
+  def memo_checklist_editable?(memo)
+    return false unless memo.persisted? && policy(memo).update?
+
+    MemoChecklist.interactive_items(memo).any?
+  end
+
   def memo_html_add_checklist_controls(html, memo)
     return html if memo.blank? || !memo.persisted?
 
+    MemoChecklist.sync_properties_from_body!(memo)
     rows = Array(memo.properties["checkboxes"])
     return html if rows.empty?
 
