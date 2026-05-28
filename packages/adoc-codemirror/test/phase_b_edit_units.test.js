@@ -75,6 +75,25 @@ describe('Phase B edit unit boundaries', () => {
     ).toBe(true)
   })
 
+  it('keeps paragraph-style quote with -- attribution in one unit', () => {
+    const body = `"paragraph
+said"
+-- author`
+    const units = unitsForBody(body)
+    expect(units).toHaveLength(1)
+    expect(units[0].adoc).toBe(body)
+  })
+
+  it('keeps delimited quote with -- attribution in one unit', () => {
+    const body = `____
+Four score
+____
+-- Abraham Lincoln`
+    const units = unitsForBody(body)
+    expect(units).toHaveLength(1)
+    expect(units[0].adoc).toBe(body)
+  })
+
   it('keeps open blocks as separate units', () => {
     const units = unitsForBody(sectionBody('blocks-open'))
     expect(units).toHaveLength(2)

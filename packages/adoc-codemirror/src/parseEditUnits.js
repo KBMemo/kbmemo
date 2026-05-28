@@ -9,6 +9,7 @@ const PAIRED_BLOCK_DELIMITERS = ['++++', '////', '----', '....', '====', '____',
 const BLOCK_ATTR_LINE = /^\[[^\]]+\]$/
 const ADMONITION_LABEL_LINE = /^(NOTE|TIP|IMPORTANT|WARNING|CAUTION):/
 const SOURCE_CALLOUT_LINE = /^<\d+(?:\.\d+)?>\s/
+const QUOTE_ATTRIBUTION_LINE = /^--\s+\S/
 
 /**
  * @param {string[]} lines
@@ -348,6 +349,8 @@ export function parseEditUnitsFromSource(source) {
   units.sort((a, b) => a.startLine - b.startLine)
   let deduped = dedupeContainedUnits(units)
   deduped = attachSourceCalloutsToListingUnits(lines, deduped)
+  deduped = attachQuoteAttributionsToQuoteUnits(lines, deduped)
+  deduped = dedupeContainedUnits(deduped)
   deduped = fillGapUnits(lines, deduped, protectedRanges)
   units.length = 0
   units.push(...deduped)
@@ -405,6 +408,83 @@ function attachSourceCalloutsToListingUnits(lines, units) {
   }
 
   return dedupeContainedUnits(units)
+}
+
+/**
+ * Keep quote blocks and their `-- attribution` lines in one edit unit.
+ *
+ * @param {string[]} lines
+ * @param {ParsedEditUnit[]} units
+ * @returns {ParsedEditUnit[]}
+ */
+function attachQuoteAttributionsToQuoteUnits(lines, units) {
+  for (const unit of units) {
+    if (!isQuoteBlockUnit(unit)) continue
+
+    const nextLine = unit.endLine + 1
+    const nextTrimmed = lines[nextLine]?.trim() ?? ''
+    if (!QUOTE_ATTRIBUTION_LINE.test(nextTrimmed)) continue
+
+    unit.adoc = lines.slice(unit.startLine, nextLine + 1).join('\n')
+    unit.endLine = nextLine
+  }
+
+  return units
+}
+
+/**
+ * @param {ParsedEditUnit} unit
+ */
+function isQuoteBlockUnit(unit) {
+  const trimmed = unit.adoc.trim()
+  return (
+    trimmed.startsWith('"')
+    || trimmed.startsWith('____')
+    || /^\[quote/i.test(trimmed)
+  )
+}
+
+/**
+ * @param {string[]} lines
+ * @param {number} startLine 0-based
+ */
+function findParagraphQuoteCloseLine(lines, startLine) {
+  for (let index = startLine; index < lines.length; index++) {
+    if (lines[index]?.trim().endsWith('"')) return index
+  }
+
+  return startLine
+}
+
+/**
+ * @param {string[]} lines
+ * @param {number} contentStartLine 0-based
+ */
+function findDelimitedQuoteEndLine(lines, contentStartLine) {
+  let openLine = contentStartLine
+  while (openLine >= 0) {
+    if (lines[openLine]?.trim() === '____') break
+    openLine--
+  }
+
+  if (openLine < 0) return contentStartLine
+
+  for (let index = openLine + 1; index < lines.length; index++) {
+    if (lines[index]?.trim() === '____') return index
+  }
+
+  return contentStartLine
+}
+
+/**
+ * @param {string[]} lines
+ * @param {number} endLine 0-based
+ */
+function quoteAttributionEndLine(lines, endLine) {
+  const nextLine = endLine + 1
+  const nextTrimmed = lines[nextLine]?.trim() ?? ''
+  if (!QUOTE_ATTRIBUTION_LINE.test(nextTrimmed)) return endLine
+  return nextLine
 }
 
 /**
@@ -476,6 +556,7 @@ function visitBlocks(node, units, protectedRanges, lines) {
   }
 
   if (ctx === 'paragraph') {
+    if (isQuoteAttributionParagraph(node)) return
     pushParagraphUnit(node, units, protectedRanges, lines)
     return
   }
@@ -767,21 +848,46 @@ function quoteUnitFromNode(node, lines) {
   const content = node.getSource?.() ?? ''
   const style = node.getStyle?.()
 
+  let startLine = contentStartLine
   if (style === 'quote') {
     const prevTrimmed = contentStartLine > 0 ? lines[contentStartLine - 1]?.trim() : ''
     if (prevTrimmed.startsWith('[quote')) {
-      const startLine = contentStartLine - 1
-      const endLine = contentStartLine + Math.max(0, content.split('\n').length - 1)
-      return {
-        adoc: lines.slice(startLine, endLine + 1).join('\n'),
-        startLine,
-        endLine,
-      }
+      startLine = contentStartLine - 1
     }
   }
 
-  const endLine = contentStartLine + Math.max(0, content.split('\n').length - 1)
-  return { adoc: content, startLine: contentStartLine, endLine }
+  let endLine
+  const firstTrimmed = lines[startLine]?.trim() ?? ''
+  if (firstTrimmed.startsWith('"')) {
+    endLine = findParagraphQuoteCloseLine(lines, startLine)
+  } else if (content.trim()) {
+    endLine = contentStartLine + Math.max(0, content.split('\n').length - 1)
+  } else {
+    endLine = findDelimitedQuoteEndLine(lines, contentStartLine)
+  }
+
+  endLine = quoteAttributionEndLine(lines, endLine)
+
+  return {
+    adoc: lines.slice(startLine, endLine + 1).join('\n'),
+    startLine,
+    endLine,
+  }
+}
+
+/**
+ * @param {import('@asciidoctor/core').Block} node
+ */
+function isQuoteAttributionParagraph(node) {
+  const source = node.getSource?.()?.trim() ?? ''
+  if (!QUOTE_ATTRIBUTION_LINE.test(source)) return false
+
+  const parent = node.getParent?.()
+  const blocks = parent?.getBlocks?.() ?? []
+  const index = blocks.indexOf(node)
+  if (index <= 0) return false
+
+  return blocks[index - 1]?.getContext?.() === 'quote'
 }
 
 /**
