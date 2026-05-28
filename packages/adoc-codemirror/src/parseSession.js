@@ -3,6 +3,7 @@ import { computeHighlights } from './highlight.js'
 import {
   normalizeMemoImagePathsInSource,
   substituteDiagramsForPreview,
+  substituteWikiLinksForPreview,
 } from '@kbmemo/adoc-kbmemo'
 
 /** @typedef {{ from: number, to: number, className: string }} HighlightSpan */
@@ -12,6 +13,8 @@ import {
 let cache = { source: '', doc: null, html: null, highlights: [] }
 /** @type {string | null | undefined} */
 let cachePreviewMemoId
+/** @type {string | undefined} */
+let cachePreviewWikiLabelsKey
 
 /**
  * Parse for editor highlights (sync on every keystroke).
@@ -29,6 +32,7 @@ export function refreshHighlights(source) {
   const highlights = computeHighlights(source, doc)
   cache = { source, doc, highlights, html: null }
   cachePreviewMemoId = undefined
+  cachePreviewWikiLabelsKey = undefined
   return highlights
 }
 
@@ -53,11 +57,26 @@ function previewConvertOptions(memoId) {
 }
 
 /**
+ * @param {Map<string, { resolved?: boolean, memo_id?: number | null }> | undefined} wikiLabels
+ */
+function wikiLabelsCacheKey(wikiLabels) {
+  if (!wikiLabels || wikiLabels.size === 0) return ''
+  return [...wikiLabels.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, entry]) => `${key}\t${entry.resolved ? 1 : 0}\t${entry.memo_id ?? ''}`)
+    .join('\n')
+}
+
+/**
  * @param {string} source
  * @param {string | null | undefined} memoId
+ * @param {Map<string, object> | undefined} wikiLabels
  */
-function previewSourceForConvert(source, memoId) {
+function previewSourceForConvert(source, memoId, wikiLabels) {
   let processed = substituteDiagramsForPreview(source)
+  if (wikiLabels !== undefined) {
+    processed = substituteWikiLinksForPreview(processed, wikiLabels)
+  }
   if (memoId != null && memoId !== '') {
     processed = normalizeMemoImagePathsInSource(processed, memoId)
   }
@@ -69,12 +88,18 @@ function previewSourceForConvert(source, memoId) {
  * Reuses doc/highlights from {@link refreshHighlights} when possible.
  *
  * @param {string} source
- * @param {{ memoId?: string | null }} [options]
+ * @param {{ memoId?: string | null, wikiLabels?: Map<string, object> }} [options]
  */
-export function refreshPreview(source, { memoId } = {}) {
-  const previewSource = previewSourceForConvert(source, memoId)
+export function refreshPreview(source, { memoId, wikiLabels } = {}) {
+  const labelsKey = wikiLabels !== undefined ? wikiLabelsCacheKey(wikiLabels) : undefined
+  const previewSource = previewSourceForConvert(source, memoId, wikiLabels)
 
-  if (cache.source === source && cache.html && cachePreviewMemoId === memoId) {
+  if (
+    cache.source === source &&
+    cache.html &&
+    cachePreviewMemoId === memoId &&
+    cachePreviewWikiLabelsKey === labelsKey
+  ) {
     return { html: cache.html, highlights: cache.highlights }
   }
 
@@ -83,16 +108,19 @@ export function refreshPreview(source, { memoId } = {}) {
     const highlights = computeHighlights(source, doc)
     cache = { source, doc, highlights, html: null }
     cachePreviewMemoId = undefined
+    cachePreviewWikiLabelsKey = undefined
   }
 
   const previewDoc =
     previewSource === source ? cache.doc : loadDocument(previewSource)
   cache.html = previewDoc.convert(previewConvertOptions(memoId))
   cachePreviewMemoId = memoId
+  cachePreviewWikiLabelsKey = labelsKey
   return { html: cache.html, highlights: cache.highlights }
 }
 
 export function clearParseCache() {
   cache = { source: '', doc: null, html: null, highlights: [] }
   cachePreviewMemoId = undefined
+  cachePreviewWikiLabelsKey = undefined
 }

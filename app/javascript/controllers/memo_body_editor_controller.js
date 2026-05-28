@@ -389,7 +389,11 @@ export default class extends Controller {
       previewEl: this.previewHostTarget,
       skinSelectEl: this.hasPreviewSkinSelectTarget ? this.previewSkinSelectTarget : null,
       getMemoId: () => this.memoIdValue || null,
-      getSource: () => this.view?.state.doc.toString() ?? textarea.value
+      getSource: () => this.view?.state.doc.toString() ?? textarea.value,
+      getWikiConfig: () => ({
+        labelsUrl: this.wikiLinkLabelsUrlValue,
+        memoId: this.memoIdValue || null,
+      }),
     })
   }
 
