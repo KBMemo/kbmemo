@@ -12,30 +12,51 @@
 
 == レイヤの定義
 
+本表の ✓ / △ / — は link:memo-body-editor-roadmap.adoc[メモ本文エディタ ロードマップ] の *Phase 6c 基本方針*（**ソース優先**）に沿って記載する。
+
+* *正（保存・同期）:* DB / フォームに渡す AsciiDoc プレーン文字列。WYSIWYG タブではユニットごとの stored source（`setUnitAdocSource` / `getUnitAdocSource`）。
+* *CM / プレビュー:* 見せ方のみ。HTML 逆変換・contentEditable で本文を書き換えない（`AGENTS.md`）。
+
 [cols="1,3"]
 |===
 |レイヤ |説明
 
 |HL
-|`@kbmemo/adoc-codemirror` — CM6 AST ハイライト（`refreshHighlights`）
+|`@kbmemo/adoc-codemirror` — CM6 向け AST ハイライト（`refreshHighlights`）。ソースタブ全文 CM・WYSIWYG ユニット内 CM の双方で利用。
 
 |EU
-|WYSIWYG ブロック分割（`parseEditUnitsFromSource`）
+|WYSIWYG ブロック分割（`parseEditUnitsFromSource`）。WYSIWYG タブのユニット境界の正。
 
 |PV
-|ライブプレビュー（`@kbmemo/adoc-preview` / クライアント Asciidoctor）
+|クライアント Asciidoctor プレビュー（`@kbmemo/adoc-preview`）。主に *ソースタブ* の分割プレビュー。
 
 |WL
-|ソース CM WYSIWYG ライト（`wysiwyg_lite.js` 等）
+|*ソースタブ* — 全文 CM6 + Phase 4–5 Decoration WYSIWYG ライト（`wysiwyg_lite.js`、`wiki_link_wysiwyg.js` 等）。カーソル位置で raw 復帰。Compartment でオンオフ可。
 
 |WY
-|ブロック WYSIWYG（`@kbmemo/adoc-wysiwyg`）。**編集対象は AsciiDoc ソース**（ユニット内 CM）。プレビュー HTML は表示のみ — `memo-body-editor-roadmap.adoc` Phase 6c 基本方針参照
+|*WYSIWYG タブ（既定）* — `@kbmemo/adoc-wysiwyg`。EU で分割した各ユニットは *プレビュー*（読取専用 Asciidoctor HTML）と *編集*（生 AsciiDoc のユニット内 CM、`createKbmemoWysiwygSourceExtensions({ rawSourceMode: true })`）の二状態。クリックでプレビュー → ソース CM。保存は stored source のみ（`unitToAsciidoc` は HTML フォールバックしない）。
 
 |SV
-|コミット後表示（サーバー Asciidoctor + KBMemo 前処理）
+|コミット後表示（サーバー Asciidoctor + KBMemo 前処理、`memo_html`）。
 |===
 
-*凡例:* ✓ 第1段対応済 / △ 部分 / — 未対応 / N/A 対象外
+*凡例（全レイヤ）:* ✓ 第1段対応済 / △ 部分 / — 未対応 / N/A 対象外
+
+*WY 列の見方（ソース優先）:*
+
+[cols="1,3"]
+|===
+|記号 |意味
+
+|✓
+|EU でユニット化でき、WYSIWYG タブでプレビュー表示・stored source の編集・保存が通る（記法は raw テキストとして編集）
+
+|△
+|プレビューまたは EU のみ、Enter 継続等の *ソース CM 向け* 編集補助が一部、または delimited ブロックの flatten プレビューのみ
+
+|—
+|WYSIWYG タブでは実用的に未対応（*ソースタブ WL* または *SV* で代替）
+|===
 
 == クイックリファレンス対応表
 
@@ -45,21 +66,21 @@
 
 |document-header |✓ |— |✓ |— |— |✓ |author/revision 行 HL
 |paragraphs |✓ |✓ |✓ |— |✓ |✓ |
-|paragraphs-literal |✓ |✓ |✓ |— |✓ |✓ |インデント literal 行・WY Enter 継続/分割
-|paragraphs-hardbreaks |✓ |✓ |✓ |— |✓ |✓ |`+` / `[%hardbreaks]` — WY は stored source、Enter で `+` 自動挿入なし
-|paragraphs-lead |✓ |✓ |✓ |— |✓ |✓ |`[.lead]` — WY は stored source
-|text-formatting-constrained |✓ |✓ |✓ |✓ |△ |✓ |WYSIWYG 往復は限定
-|text-formatting-unconstrained |✓ |△ |✓ |△ |— |✓ |`**` / `__` 等
-|text-formatting-highlight |✓ |— |✓ |— |— |✓ |`#mark#` / role
-|text-formatting-super-sub |✓ |— |✓ |— |— |✓ |`^` / `~`
+|paragraphs-literal |✓ |✓ |✓ |— |✓ |✓ |WY: Enter 継続・空行ユニット分割（`literal_paragraph_continuation.js`）
+|paragraphs-hardbreaks |✓ |✓ |✓ |— |✓ |✓ |`+` / `[%hardbreaks]` — stored source。Enter で `+` 自動挿入なし
+|paragraphs-lead |✓ |✓ |✓ |— |✓ |✓ |`[.lead]` — stored source + プレビュー `data-kb-lead`
+|text-formatting-constrained |✓ |✓ |✓ |✓ |✓ |✓ |`*` / `_` 等 — WL は Decoration、WY は raw 入力 + プレビュー
+|text-formatting-unconstrained |✓ |△ |✓ |△ |— |✓ |`**` / `__` 等 — WL は部分 Decoration
+|text-formatting-highlight |✓ |— |✓ |— |✓ |✓ |`#mark#` / role — WY は raw + プレビュー
+|text-formatting-super-sub |✓ |— |✓ |— |✓ |✓ |`^` / `~` — WY は raw + プレビュー
 |text-formatting-smart-quotes |— |— |✓ |— |— |✓ |
-|links-autolink |✓ |✓ |✓ |— |△ |✓ |mailto / URL
-|links-attributes |✓ |— |✓ |— |— |✓ |
-|links-special-chars |✓ |— |✓ |— |— |✓ |`link:++...++`
-|links-relative |✓ |— |✓ |— |— |✓ |
-|links-unc |✓ |— |✓ |— |— |✓ |
-|links-anchors |✓ |— |✓ |— |— |✓ |`[[...]]` / `anchor:`
-|links-xref |✓ |— |✓ |— |△ |✓ |`<<...>>`
+|links-autolink |✓ |✓ |✓ |— |✓ |✓ |mailto / URL — WY は raw + プレビュー（ユニット CM にリンク Decoration なし）
+|links-attributes |✓ |— |✓ |— |✓ |✓ |属性付き link — WY は raw + プレビュー
+|links-special-chars |✓ |— |✓ |— |✓ |✓ |`link:++...++`
+|links-relative |✓ |— |✓ |— |✓ |✓ |
+|links-unc |✓ |— |✓ |— |✓ |✓ |
+|links-anchors |✓ |— |✓ |— |✓ |✓ |`[[...]]` / `anchor:`
+|links-xref |✓ |— |✓ |— |✓ |✓ |`<<...>>` — WY は raw + プレビュー
 |links-interdoc |✓ |— |△ |— |— |△ |ファイル参照
 |sections-article |✓ |✓ |✓ |✓ |✓ |✓ |
 |sections-book |— |— |✓ |— |— |✓ |`:doctype: book`
@@ -67,19 +88,19 @@
 |includes |✓ |✓ |△ |— |— |△ |パス解決・safe mode
 |lists-unordered |✓ |✓ |✓ |✓ |✓ |✓ |5a 対応
 |lists-ordered |✓ |✓ |✓ |✓ |✓ |✓ |
-|lists-checklist |✓ |✓ |✓ |— |△ |✓ |`[*]` / `[x]`。WY は Enter 継続のみ
+|lists-checklist |✓ |✓ |✓ |— |△ |✓ |`[*]` / `[x]` — WY: Enter 継続のみ（rawSourceMode）
 |lists-description |✓ |✓ |✓ |— |— |✓ |`term:: desc`
 |lists-qanda |✓ |✓ |✓ |— |— |✓ |`[qanda]`
 |lists-mixed |✓ |✓ |✓ |— |— |✓ |入れ子定義リスト
 |lists-complex |— |△ |✓ |— |— |✓ |list continuation + 表
-|images-block |△ |✓ |△ |— |△ |✓ |5f / アセット URL
-|images-inline |✓ |— |✓ |— |— |✓ |
-|images-positioning |✓ |— |✓ |— |— |✓ |`role=right` 等
+|images-block |△ |✓ |△ |— |✓ |✓ |5f / アセット URL — WY は raw `image::` + プレビュー
+|images-inline |✓ |— |✓ |— |✓ |✓ |
+|images-positioning |✓ |— |✓ |— |✓ |✓ |`role=right` 等
 |images-data-uri |— |— |✓ |— |— |✓ |`:data-uri:`
 |audio |✓ |✓ |✓ |— |— |✓ |
 |video |✓ |✓ |✓ |— |— |✓ |YouTube / Vimeo
 |macros-kbd-menu-btn |✓ |✓ |✓ |— |— |✓ |`:experimental:`
-|literals-inline |✓ |— |✓ |— |— |✓ |`` `++` ++` ``
+|literals-inline |✓ |— |✓ |— |✓ |✓ |`` `++` ++` `` — WY は raw + プレビュー
 |literals-paragraph |✓ |✓ |✓ |— |✓ |✓ |`paragraphs-literal` と同一（行頭空白）
 |literals-block |✓ |✓ |✓ |— |— |✓ |`....`
 |listing |✓ |✓ |✓ |— |✓ |✓ |5c
@@ -89,10 +110,10 @@
 |source-paragraph |— |— |✓ |— |— |✓ |
 |admonitions-paragraph |✓ |✓ |✓ |✓ |✓ |✓ |5b
 |admonitions-block |✓ |✓ |✓ |— |— |✓ |`[NOTE]====`
-|blocks-sidebar |✓ |✓ |✓ |— |△ |✓ |`****`
-|blocks-example |✓ |✓ |✓ |— |△ |✓ |
-|blocks-blockquote |✓ |✓ |✓ |— |△ |✓ |
-|blocks-open |✓ |✓ |✓ |— |△ |✓ |`--`
+|blocks-sidebar |✓ |✓ |✓ |— |△ |✓ |`****` — WY: flatten プレビュー + raw 編集
+|blocks-example |✓ |✓ |✓ |— |△ |✓ |同上
+|blocks-blockquote |✓ |✓ |✓ |— |△ |✓ |同上
+|blocks-open |✓ |✓ |✓ |— |△ |✓ |`--` — 同上
 |blocks-passthrough |✓ |✓ |✓ |— |— |✓ |`++++`
 |blocks-subs |— |— |✓ |— |— |✓ |`subs=attributes+`
 |tables-basic |✓ |✓ |✓ |— |✓ |✓ |5d pipe 表
@@ -116,9 +137,9 @@
 |markdown-fenced |✓ |✓ |✓ |— |✓ |✓ |`` ``` ``
 |markdown-blockquote |— |— |✓ |— |— |✓ |
 |markdown-thematic |— |— |✓ |— |— |✓ |
-|kbmemo-wiki |✓ |✓ |△ |— |△ |✓ |`[[slug]]` / ラベル API
-|kbmemo-diagram |△ |✓ |△ |— |△ |✓ |5e `diagram::`
-|kbmemo-math |✓ |✓ |△ |— |△ |✓ |5g stem / latexmath
+|kbmemo-wiki |✓ |✓ |△ |— |✓ |✓ |`[[slug]]` / ラベル API — WY: raw `[[...]]` + プレビュー（ユニット CM にリンク Decoration なし）
+|kbmemo-diagram |△ |✓ |△ |— |△ |✓ |5e `diagram::` — WY: プレビュー + raw 行編集（ユニット CM に SVG Decoration なし）
+|kbmemo-math |✓ |✓ |△ |— |△ |✓ |5g stem / latexmath — WY: プレビュー + raw 行編集（ユニット CM に KaTeX Decoration なし）
 |===
 
 == フェーズ計画（全記法対応）
@@ -140,7 +161,7 @@
 . CSV / DSV 表 — `isTableDelimiterLine` に `,===` / `:===` 追加（EU はソース単位）
 
 *テスト:* `packages/adoc-codemirror/test/phase_b_edit_units.test.js`、`packages/adoc-codemirror/test/literal_paragraph.test.js`
-*WY（2026-05）:* ユニット編集 CM は生 AsciiDoc（`rawSourceMode`）。literal 段落の Enter 継続・空行ユニット分割、リスト／チェックリスト Enter 継続。プレビュー表示は flatten 対象（`quoteblock` / `sidebarblock` / `exampleblock` 等）。表セル編集は Phase E 以降。
+*WY（2026-05）:* ユニット内 CM は常に生 AsciiDoc（`rawSourceMode: true`）。literal 段落の Enter 継続・空行ユニット分割、リスト／チェックリスト Enter 継続。プレビューは Asciidoctor HTML（`flattenAndWrapUnits` で quoteblock / sidebarblock / exampleblock 等をユニット化）。表セルの視覚編集は Phase E 以降。
 
 === Phase C — インラインと HL 拡張（HL 完了）
 
@@ -167,7 +188,7 @@
 . delimited admonition の区切り HL — `[NOTE]` + `====`
 
 *テスト:* `phase_e_highlight.test.js`、`phase_e_edit_units.test.js`
-*WY:* 表セル結合・AsciiDoc セル内ブロックの WYSIWYG 往復は未着手
+*WY:* 表セル結合・セル内ブロックの *視覚的* 編集は未着手（テーブルは raw ソース編集 + プレビュー）
 
 === Phase F — リスト・置換・Markdown 互換 HL（完了）
 
@@ -184,7 +205,8 @@
 * 各 PR は `syntax-ref` id を 1〜3 個に絞る
 * フィクスチャ該当節で手動確認 + 必要なら `packages/*/test/` に id 別テスト追加
 * 表示の正は Asciidoctor（SV）。CM は軽量パースでよい
-* **WY レイヤ:** 記法対応はプレビュー属性付与（`annotateParagraphAttributes` 等）と stored source の往復で足す。HTML 逆変換や contentEditable を編集経路にしない（`AGENTS.md` / Phase 6c 基本方針）
+* **WY レイヤ:** EU・Asciidoctor プレビュー・stored source CM 編集で足す。`annotateParagraphAttributes` 等はプレビュー DOM へのメタデータ付与のみ。HTML 逆変換・contentEditable・ユニット CM の Decoration 編集（`rawSourceMode: true`）は編集経路にしない（`AGENTS.md` / Phase 6c 基本方針）
+* **WL レイヤ:** ソースタブの Decoration WYSIWYG のみ。WYSIWYG タブのユニット CM には適用しない
 * ロードマップ表の ✓/△/— を PR マージ時に更新
 
 == 関連
