@@ -91,11 +91,23 @@ export function highlightCode(code, language) {
 }
 
 /**
+ * Asciidoctor (source-highlighter) may already embed syntax spans and callout markers.
+ * Re-highlighting strips `.conum` badges and drops callout numbers in live preview.
+ *
+ * @param {HTMLElement} block
+ */
+function isAlreadySyntaxHighlighted(block) {
+  if (block.querySelector('.conum, i.conum')) return true
+  return block.querySelector('[class*="hljs-"]') != null
+}
+
+/**
  * @param {ParentNode} container
  */
 export function highlightPreviewCode(container) {
   ensureLanguagesRegistered()
   container.querySelectorAll('pre code[data-lang], pre code[class*="language-"]').forEach((block) => {
+    if (isAlreadySyntaxHighlighted(block)) return
     hljs.highlightElement(block)
   })
 }

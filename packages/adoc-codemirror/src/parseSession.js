@@ -37,9 +37,15 @@ export function refreshHighlights(source) {
  */
 function previewConvertOptions(memoId) {
   /** @type {Record<string, unknown>} */
-  const options = { safe: 'safe' }
+  const options = {
+    safe: 'safe',
+    attributes: {
+      icons: 'font',
+    },
+  }
   if (memoId != null && memoId !== '') {
     options.attributes = {
+      .../** @type {Record<string, string>} */ (options.attributes),
       imagesdir: `/memos/${encodeURIComponent(String(memoId))}/assets/`,
     }
   }

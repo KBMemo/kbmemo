@@ -11,6 +11,7 @@ const PARSE_OPTIONS = {
   attributes: {
     showtitle: true,
     experimental: '',
+    icons: 'font',
     'source-highlighter': 'highlight.js',
     stem: 'latexmath',
   },

@@ -273,6 +273,23 @@ class MemosHelperTest < ActionView::TestCase
     assert_not_includes html, "btn:[OK]"
   end
 
+  test "memo_html renders source callouts with markers and colist" do
+    body = <<~ADOC
+      [source,ruby]
+      ----
+      require 'sinatra' // <1>
+      ----
+      <1> Library import
+    ADOC
+    html = memo_html(body, source_memo: memos(:one))
+    assert_includes html, 'class="conum"'
+    assert_includes html, 'class="colist'
+    assert_includes html, "<table>"
+    assert_includes html, 'data-value="1"'
+    assert_includes html, "Library import"
+    assert_not_includes html, "// &lt;1&gt;"
+  end
+
   test "memo_html leaves wiki syntax inside fenced code" do
     body = "```\n[[Second memo]]\n```\n\n[[Second memo]]"
     html = memo_html(body, source_memo: memos(:one))

@@ -4,6 +4,7 @@ import { adocForBlockConversion } from './literalParagraph.js'
 const BLOCK_CONVERT_ATTRIBUTES = {
   showtitle: true,
   experimental: '',
+  icons: 'font',
   'source-highlighter': 'highlight.js',
   stem: 'latexmath',
 }

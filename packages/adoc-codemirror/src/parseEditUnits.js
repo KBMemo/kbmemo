@@ -8,6 +8,7 @@ import { isTableAttrLine, isTableDelimiterLine } from '@kbmemo/adoc-kbmemo'
 const PAIRED_BLOCK_DELIMITERS = ['++++', '////', '----', '....', '====', '____', '****', '--', '+++']
 const BLOCK_ATTR_LINE = /^\[[^\]]+\]$/
 const ADMONITION_LABEL_LINE = /^(NOTE|TIP|IMPORTANT|WARNING|CAUTION):/
+const SOURCE_CALLOUT_LINE = /^<\d+(?:\.\d+)?>\s/
 
 /**
  * @param {string[]} lines
@@ -270,6 +271,7 @@ export function parseEditUnitsFromSource(source) {
 
   units.sort((a, b) => a.startLine - b.startLine)
   let deduped = dedupeContainedUnits(units)
+  deduped = attachSourceCalloutsToListingUnits(lines, deduped)
   deduped = fillGapUnits(lines, deduped, protectedRanges)
   units.length = 0
   units.push(...deduped)
@@ -298,6 +300,35 @@ function dedupeContainedUnits(units) {
   }
 
   return kept
+}
+
+/**
+ * Keep listing blocks and their `<1>` callout footnotes in one edit unit.
+ *
+ * @param {string[]} lines
+ * @param {ParsedEditUnit[]} units
+ * @returns {ParsedEditUnit[]}
+ */
+function attachSourceCalloutsToListingUnits(lines, units) {
+  for (const unit of units) {
+    if (!unit.adoc.trimEnd().endsWith('----')) continue
+
+    let line = unit.endLine + 1
+    while (line < lines.length) {
+      const lineText = lines[line]?.trim() ?? ''
+      if (lineText === '') break
+      if (!SOURCE_CALLOUT_LINE.test(lineText)) break
+      line++
+    }
+
+    const calloutEnd = line - 1
+    if (calloutEnd <= unit.endLine) continue
+
+    unit.adoc = lines.slice(unit.startLine, calloutEnd + 1).join('\n')
+    unit.endLine = calloutEnd
+  }
+
+  return dedupeContainedUnits(units)
 }
 
 /**

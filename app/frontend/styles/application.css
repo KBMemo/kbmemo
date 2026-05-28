@@ -13,6 +13,9 @@
 @source "../../helpers/**/*.rb";
 @source "../../javascript/**/*.js";
 @source "../entrypoints/**/*.js";
+/* Asciidoctor が実行時 HTML に出力するクラス（Slim/JS ソースに文字列が無い） */
+@source inline("conum");
+@source inline("colist");
 
 /* メモ→ディレクトリ DnD 中のカーソル（memo_directory_dnd_controller が html にクラス付与） */
 html.memo-directory-dnd-dragging,

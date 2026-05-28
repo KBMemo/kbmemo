@@ -25,6 +25,8 @@
   --mg-code-bg: #f7f7f8;
   --mg-table-header-bg: #eeeeee;
   --mg-table-stripe-bg: #fafafa;
+  --source-callout-badge-bg: rgba(0, 0, 0, 0.78);
+  --source-callout-badge-fg: #ffffff;
 }
 
 /* --- メモ表示 (.memo-body) --- */
@@ -623,6 +625,175 @@
 .memo-body .listingblock > .content > pre {
   padding-top: 0;
   padding-bottom: 0;
+}
+
+/* Source callouts (listing markers + colist footnotes) */
+.memo-body b.conum,
+.memo-body i.conum,
+.memo-body .conum[data-value],
+.memo-body .colist > ol > li::before,
+.memo-body-editor__preview-content.asciidoctor b.conum,
+.memo-body-editor__preview-content.asciidoctor i.conum,
+.memo-body-editor__preview-content.asciidoctor .conum[data-value],
+.memo-body-editor__preview-content.asciidoctor .colist > ol > li::before,
+.memo-body-editor__wysiwyg-content.asciidoctor b.conum,
+.memo-body-editor__wysiwyg-content.asciidoctor i.conum,
+.memo-body-editor__wysiwyg-content.asciidoctor .conum[data-value],
+.memo-body-editor__wysiwyg-content.asciidoctor .colist > ol > li::before {
+  display: inline-block !important;
+  color: var(--source-callout-badge-fg) !important;
+  background: var(--source-callout-badge-bg) !important;
+  border-radius: 50%;
+  text-align: center;
+  font-size: 0.625rem;
+  min-width: 1.67em;
+  height: 1.67em;
+  line-height: 1.67em;
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  padding: 0 0.25em;
+  vertical-align: baseline;
+  box-sizing: border-box;
+}
+
+.memo-body i.conum[data-value],
+.memo-body .conum[data-value],
+.memo-body-editor__preview-content.asciidoctor i.conum[data-value],
+.memo-body-editor__preview-content.asciidoctor .conum[data-value],
+.memo-body-editor__wysiwyg-content.asciidoctor i.conum[data-value],
+.memo-body-editor__wysiwyg-content.asciidoctor .conum[data-value] {
+  position: relative;
+  overflow: visible;
+}
+
+.memo-body i.conum[data-value]::after,
+.memo-body .conum[data-value]::after,
+.memo-body-editor__preview-content.asciidoctor i.conum[data-value]::after,
+.memo-body-editor__preview-content.asciidoctor .conum[data-value]::after,
+.memo-body-editor__wysiwyg-content.asciidoctor i.conum[data-value]::after,
+.memo-body-editor__wysiwyg-content.asciidoctor .conum[data-value]::after {
+  content: "(" attr(data-value) ")";
+  display: inline-block;
+  width: 100%;
+  color: var(--source-callout-badge-fg) !important;
+  font-size: 0.625rem;
+  line-height: 1.67em;
+  font-weight: 700;
+}
+
+.memo-body i.conum[data-value] + b,
+.memo-body .conum[data-value] + b,
+.memo-body-editor__preview-content.asciidoctor i.conum[data-value] + b,
+.memo-body-editor__preview-content.asciidoctor .conum[data-value] + b,
+.memo-body-editor__wysiwyg-content.asciidoctor i.conum[data-value] + b,
+.memo-body-editor__wysiwyg-content.asciidoctor .conum[data-value] + b {
+  display: none !important;
+}
+
+.memo-body pre b.conum,
+.memo-body pre i.conum,
+.memo-body pre .conum[data-value],
+.memo-body-editor__preview-content.asciidoctor pre b.conum,
+.memo-body-editor__preview-content.asciidoctor pre i.conum,
+.memo-body-editor__preview-content.asciidoctor pre .conum[data-value],
+.memo-body-editor__wysiwyg-content.asciidoctor pre b.conum,
+.memo-body-editor__wysiwyg-content.asciidoctor pre i.conum,
+.memo-body-editor__wysiwyg-content.asciidoctor pre .conum[data-value] {
+  position: relative;
+  top: -0.125em;
+}
+
+.memo-body .literalblock + .colist,
+.memo-body .listingblock + .colist,
+.memo-body-editor__preview-content.asciidoctor .literalblock + .colist,
+.memo-body-editor__preview-content.asciidoctor .listingblock + .colist,
+.memo-body-editor__wysiwyg-content.asciidoctor .literalblock + .colist,
+.memo-body-editor__wysiwyg-content.asciidoctor .listingblock + .colist {
+  margin-top: -0.35em;
+  margin-bottom: 1.25em;
+}
+
+/* colist table layout (icons: font — memo_html / live preview) */
+.memo-body .colist > table,
+.memo-body-editor__preview-content.asciidoctor .colist > table,
+.memo-body-editor__wysiwyg-content.asciidoctor .colist > table {
+  border: 0;
+  background: none;
+  border-collapse: collapse;
+  width: auto;
+  margin: 0 0 1.25em;
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  color: var(--mg-text);
+  line-height: 1.6;
+}
+
+.memo-body .colist > table > tbody > tr,
+.memo-body-editor__preview-content.asciidoctor .colist > table > tbody > tr,
+.memo-body-editor__wysiwyg-content.asciidoctor .colist > table > tbody > tr {
+  background: none;
+}
+
+.memo-body .colist > table td:not([class]):first-child,
+.memo-body-editor__preview-content.asciidoctor .colist > table td:not([class]):first-child,
+.memo-body-editor__wysiwyg-content.asciidoctor .colist > table td:not([class]):first-child {
+  padding: 0.35em 0.75em 0.35em 0;
+  line-height: 1;
+  vertical-align: top;
+  white-space: nowrap;
+  border: 0;
+}
+
+.memo-body .colist > table td:not([class]):last-child,
+.memo-body-editor__preview-content.asciidoctor .colist > table td:not([class]):last-child,
+.memo-body-editor__wysiwyg-content.asciidoctor .colist > table td:not([class]):last-child {
+  padding: 0.35em 0;
+  vertical-align: top;
+  border: 0;
+}
+
+/* colist ol layout (fallback when icons: font is off) */
+.memo-body .colist > ol,
+.memo-body-editor__preview-content.asciidoctor .colist > ol,
+.memo-body-editor__wysiwyg-content.asciidoctor .colist > ol {
+  counter-reset: source-callout;
+  margin: 0 0 1.25em;
+  padding: 0;
+  list-style: none;
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  color: var(--mg-text);
+  line-height: 1.6;
+}
+
+.memo-body .colist > ol > li,
+.memo-body-editor__preview-content.asciidoctor .colist > ol > li,
+.memo-body-editor__wysiwyg-content.asciidoctor .colist > ol > li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55em;
+  counter-increment: source-callout;
+  margin: 0 0 0.5em;
+}
+
+.memo-body .colist > ol > li::before,
+.memo-body-editor__preview-content.asciidoctor .colist > ol > li::before,
+.memo-body-editor__wysiwyg-content.asciidoctor .colist > ol > li::before {
+  content: "(" counter(source-callout) ")";
+  flex-shrink: 0;
+  margin-top: 0.05em;
+}
+
+.memo-body .colist > ol > li > p,
+.memo-body-editor__preview-content.asciidoctor .colist > ol > li > p,
+.memo-body-editor__wysiwyg-content.asciidoctor .colist > ol > li > p {
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+.memo-body .colist > ol > li:last-child,
+.memo-body-editor__preview-content.asciidoctor .colist > ol > li:last-child,
+.memo-body-editor__wysiwyg-content.asciidoctor .colist > ol > li:last-child {
+  margin-bottom: 0;
 }
 
 .memo-body .memo-diagram-missing {
