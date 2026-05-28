@@ -261,6 +261,28 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, 'class="fa icon-note"'
   end
 
+  test "memo_html renders sidebar and example delimited blocks" do
+    sidebar = <<~ADOC
+      .Sidebar title
+      ****
+      Sidebar body.
+      ****
+    ADOC
+    example = <<~ADOC
+      ====
+      Example body.
+      ====
+    ADOC
+
+    sidebar_html = memo_html(sidebar, source_memo: memos(:one))
+    example_html = memo_html(example, source_memo: memos(:one))
+
+    assert_includes sidebar_html, 'class="sidebarblock"'
+    assert_includes sidebar_html, "Sidebar title"
+    assert_includes example_html, 'class="exampleblock"'
+    assert_includes example_html, "Example body."
+  end
+
   test "memo_html renders experimental menu kbd and btn macros" do
     html = memo_html("To save the file, select menu:File[Save]. Press kbd:[Ctrl+S]. Click btn:[OK].", source_memo: memos(:one))
     assert_includes html, 'class="menuseq"'
