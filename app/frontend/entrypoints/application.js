@@ -35,12 +35,12 @@ document.addEventListener("turbo:load", () => highlightMemoBodies())
 document.addEventListener("turbo:render", () => highlightMemoBodies())
 document.addEventListener("turbo:load", () => {
   initThemeSync()
-  applyStoredThemeWithSync()
   applyStoredSkin()
+  applyStoredThemeWithSync().finally(() => applyStoredSkin())
 })
 document.addEventListener("turbo:render", () => {
-  applyStoredThemeWithSync()
   applyStoredSkin()
+  applyStoredThemeWithSync().finally(() => applyStoredSkin())
 })
 
 if (typeof window.__KBMEMO_ACCOUNT_THEME__ === "object" && window.__KBMEMO_ACCOUNT_THEME__ !== null) {

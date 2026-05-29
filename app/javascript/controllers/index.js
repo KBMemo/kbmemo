@@ -100,3 +100,6 @@ application.register("user-menu", UserMenuController)
 
 import ThemeStudioController from "./theme_studio_controller"
 application.register("theme-studio", ThemeStudioController)
+
+import SkinStudioController from "./skin_studio_controller"
+application.register("skin-studio", SkinStudioController)

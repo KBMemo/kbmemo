@@ -43,6 +43,23 @@ div data-controller="theme-studio" data-theme-studio-editing-theme-id-value=(@ed
         p.text-sm.font-medium.kb-text-primary 保存済みカスタムテーマ
         ul.mt-2.space-y-1 data-theme-studio-target="customThemeList"
 
+      div.border-t.kb-border.pt-4 data-controller="skin-studio"
+        p.text-sm.font-medium.kb-text-primary 本文スキン
+        p.mt-1.text-xs.kb-text-muted
+          | chrome テーマと独立にメモ本文へ適用されます。カスタムは
+          code.mx-1 .memo-body
+          | 配下に CSS を書いてください。
+        select class="#{kb_field_input_classes} mt-2 w-full rounded px-2 py-1" data-skin-select="true" data-skin-studio-target="select" data-action="change->skin-studio#applySelected" aria-label="本文スキン"
+        .mt-3.space-y-2
+          input class="#{kb_field_input_classes} w-full rounded px-2 py-1" type="text" placeholder="カスタムスキン名" data-skin-studio-target="name"
+          textarea class="#{kb_field_input_classes} w-full rounded px-2 py-1 font-mono text-xs" rows=6 placeholder=".memo-body { ... }" data-skin-studio-target="css"
+          .flex.flex-wrap.gap-2
+            button.kb-chrome-btn-primary type="button" data-theme-slot="btn-primary" data-action="skin-studio#saveCustom" 保存して適用
+            button.kb-chrome-btn-secondary type="button" data-action="skin-studio#newCustom" 新規
+        p.mt-3.text-sm.font-medium.kb-text-primary 保存済みカスタムスキン
+        ul.mt-2.space-y-1 data-skin-studio-target="customList"
+        p.mt-2.text-xs.kb-text-muted data-skin-studio-target="status"
+
       .flex.flex-wrap.gap-2
         button.kb-chrome-btn-primary type="button" data-theme-slot="btn-primary" data-action="theme-studio#saveTheme" 保存
         button.kb-chrome-btn-secondary type="button" data-action="theme-studio#applyTheme" 適用

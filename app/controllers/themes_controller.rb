@@ -24,7 +24,9 @@ class ThemesController < ApplicationController
     payload = current_account.theme_preference_payload
     {
       active_theme_id: payload["active_theme_id"],
-      custom_themes: payload["custom_themes"].map { |theme| camelize_custom_theme(theme) }
+      custom_themes: payload["custom_themes"].map { |theme| camelize_custom_theme(theme) },
+      active_skin_id: payload["active_skin_id"],
+      custom_skins: payload["custom_skins"].map { |skin| camelize_custom_skin(skin) }
     }
   end
 
@@ -34,13 +36,15 @@ class ThemesController < ApplicationController
 
     ActionController::Parameters.new(source).permit(
       :active_theme_id,
+      :active_skin_id,
       custom_themes: [
         :id,
         :label,
         :base_theme,
         { variables: {} },
         { rules: [:selector, { properties: {} }] }
-      ]
+      ],
+      custom_skins: [:id, :label, :css]
     )
   end
 
@@ -56,6 +60,14 @@ class ThemesController < ApplicationController
           properties: rule["properties"] || {}
         }
       end
+    }
+  end
+
+  def camelize_custom_skin(skin)
+    {
+      id: skin["id"],
+      label: skin["label"],
+      css: skin["css"] || ""
     }
   end
 end

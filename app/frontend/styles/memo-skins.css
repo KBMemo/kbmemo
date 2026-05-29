@@ -2,8 +2,11 @@
  *
  * 設計（docs/architecture/memo-body-skins-roadmap.adoc）:
  * - `data-kb-skin="auto"` は本ファイルでは何もしない（themes.css が chrome テーマに追従して本文を着色する）。
- * - 「汎用フルスキン層」が非 auto スキン共通の骨格を `--mg-*` と `--skin-*` トークンで描く。
+ * - 「汎用フルスキン層」が builtin フルスキン共通の骨格を `--mg-*` と `--skin-*` トークンで描く。
  *   各スキンはトークンを差し替えるだけ（個別の特殊表現のみ追記）。
+ * - カスタムスキン（`custom-skin-*`）は汎用層の対象外。material-grey 基底の上に
+ *   ユーザー CSS（`<style id="kbmemo-custom-skin-style">`）を重ねる（asciidoctor-skins 流）。
+ *   そのため汎用層セレクタは custom-skin-* を除外している。
  * - themes.css の本文向け上書きは `[data-kb-skin="auto"]` 限定なので、フルスキン選択時は干渉しない。
  * - 必ず application.css で themes.css の後に import すること。
  * - 適用先は show（.memo-body）・編集プレビュー・WYSIWYG の 3 セレクタ（`:is()` でまとめる）。
@@ -13,7 +16,7 @@
  * 汎用フルスキン層（非 auto スキン共通）
  * ============================================================ */
 
-html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) {
+html:not([data-kb-skin="auto"]):not([data-kb-skin^="custom-skin-"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) {
   background: var(--mg-surface);
   color: var(--mg-text);
   font-family: var(--skin-body-font, inherit);
@@ -21,7 +24,7 @@ html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__p
 }
 
 /* 見出し: material-grey のグレーバーを既定で解除し、スキン側のトークンで上書きする。 */
-html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(h1, h2, h3) {
+html:not([data-kb-skin="auto"]):not([data-kb-skin^="custom-skin-"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(h1, h2, h3) {
   background: var(--skin-heading-bg, transparent);
   color: var(--skin-heading-color, var(--mg-text)) !important;
   padding: var(--skin-heading-pad, 0);
@@ -30,12 +33,12 @@ html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__p
   line-height: 1.25;
 }
 
-html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(h1, h2) {
+html:not([data-kb-skin="auto"]):not([data-kb-skin^="custom-skin-"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(h1, h2) {
   border-bottom: var(--skin-heading-rule, none);
   padding-bottom: var(--skin-heading-rule-pad, 0);
 }
 
-html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(h4, h5, h6) {
+html:not([data-kb-skin="auto"]):not([data-kb-skin^="custom-skin-"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(h4, h5, h6) {
   background: transparent;
   color: var(--skin-heading-color, var(--mg-text));
   font-family: var(--skin-heading-font, inherit);
@@ -44,29 +47,29 @@ html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__p
 }
 
 /* material-grey のセクション角丸グレー枠はフルスキンでは出さない。 */
-html:not([data-kb-skin="auto"]) :is(.memo-body, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) .sect1 {
+html:not([data-kb-skin="auto"]):not([data-kb-skin^="custom-skin-"]) :is(.memo-body, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) .sect1 {
   border-bottom: none;
   border-radius: 0;
 }
 
-html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) a {
+html:not([data-kb-skin="auto"]):not([data-kb-skin^="custom-skin-"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) a {
   color: var(--mg-link);
   text-decoration: var(--skin-link-decoration, none);
 }
 
-html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) a:hover {
+html:not([data-kb-skin="auto"]):not([data-kb-skin^="custom-skin-"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) a:hover {
   color: var(--mg-link-hover, var(--mg-link));
   text-decoration: underline;
 }
 
-html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(code, pre) {
+html:not([data-kb-skin="auto"]):not([data-kb-skin^="custom-skin-"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(code, pre) {
   background: var(--mg-code-bg);
   color: var(--skin-code-color, var(--mg-text));
   border-color: var(--mg-border);
   font-family: var(--skin-mono-font, ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace);
 }
 
-html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(blockquote, .quoteblock) {
+html:not([data-kb-skin="auto"]):not([data-kb-skin^="custom-skin-"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(blockquote, .quoteblock) {
   border-left: 0.25em solid var(--skin-quote-border, var(--mg-divider));
   background: var(--mg-blockquote-bg);
   color: var(--skin-quote-color, inherit);

@@ -1,5 +1,6 @@
 import { THEME_CHANGE_EVENT } from "./theme.js"
-import { loadThemeStorage, saveThemeStorage } from "./theme_storage.js"
+import { SKIN_CHANGE_EVENT } from "./memo_skins.js"
+import { DEFAULT_SKIN_ID, loadThemeStorage, saveThemeStorage } from "./theme_storage.js"
 
 const SYNC_DEBOUNCE_MS = 500
 
@@ -24,6 +25,12 @@ function toServerPayload(state) {
       variables: theme.variables,
       rules: theme.rules,
     })),
+    active_skin_id: state.activeSkinId ?? DEFAULT_SKIN_ID,
+    custom_skins: (state.customSkins ?? []).map((skin) => ({
+      id: skin.id,
+      label: skin.label,
+      css: skin.css ?? "",
+    })),
   }
 }
 
@@ -43,6 +50,19 @@ function fromServerPayload(payload) {
           baseTheme: theme.base_theme ?? theme.baseTheme ?? "default",
           variables: theme.variables ?? {},
           rules: theme.rules ?? [],
+        }))
+      : [],
+    activeSkinId:
+      typeof payload.active_skin_id === "string"
+        ? payload.active_skin_id
+        : typeof payload.activeSkinId === "string"
+          ? payload.activeSkinId
+          : DEFAULT_SKIN_ID,
+    customSkins: Array.isArray(payload.custom_skins || payload.customSkins)
+      ? (payload.custom_skins || payload.customSkins).map((skin) => ({
+          id: skin.id,
+          label: skin.label,
+          css: skin.css ?? "",
         }))
       : [],
   }
@@ -96,6 +116,7 @@ export function initThemeSync() {
   if (!themeSyncEnabled()) return
 
   document.addEventListener(THEME_CHANGE_EVENT, scheduleThemeSync)
+  document.addEventListener(SKIN_CHANGE_EVENT, scheduleThemeSync)
 }
 
 /** @param {Record<string, unknown>} accountTheme */

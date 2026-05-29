@@ -65,6 +65,14 @@ module ApplicationHelper
           variables: theme["variables"] || {},
           rules: theme["rules"] || []
         }
+      end,
+      active_skin_id: payload["active_skin_id"],
+      custom_skins: payload["custom_skins"].map do |skin|
+        {
+          id: skin["id"],
+          label: skin["label"],
+          css: skin["css"] || ""
+        }
       end
     }.to_json
   end

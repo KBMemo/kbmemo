@@ -94,7 +94,7 @@ themes.css の本文上書きを `[data-kb-skin="auto"]` 限定へ / `memo-skins
 |3
 |DB 永続化（`AccountThemePreference` に `active_skin_id`/`custom_skins`、`/theme.json`、ブートストラップ、theme_sync）と
 カスタム CSS スキンの追加/削除（Theme Studio）。CSS のサニタイズ方針を確定。
-|未着手
+|完了
 
 |4
 |Theme Studio の asciidoctor-skins 配色プリセット拡充（配色のみ）。
@@ -111,6 +111,15 @@ themes.css の本文上書きを `[data-kb-skin="auto"]` 限定へ / `memo-skins
   スキン別トークン」構成に整理。各スキンは `--mg-*` / `--skin-*` を差し替えるだけ。
   builtin スキン = `auto` / `github` / `tufte` / `notebook` / `dark` / `riak` / `medium`。
   Web フォント（et-book・Architects Daughter 等）は同梱せず system フォントへフォールバック。
-* カスタム CSS は `.memo-body` 系セレクタ配下にスコープして注入し、chrome へ漏らさない。
-  生 CSS 受け入れ時のサニタイズ（`@import` 外部取得・`url()` の扱い等）を Phase 3 で決める。
+* Phase 3 実装メモ:
+  ** `AccountThemePreference` に `active_skin_id` / `custom_skins`（`{id,label,css}`）を追加し、
+     `/theme.json`（GET/PATCH）・anti-FOUC ブートストラップ・`theme_sync.js` の往復に skin を載せた。
+     これにより `pullThemeFromServer` 等が skin を破棄しなくなり、ログインユーザーの端末間同期が成立。
+  ** Theme Studio に `skin-studio` コントローラの「本文スキン」セクション（builtin 選択＋カスタム CSS の
+     追加/編集/削除）を追加。skin 変更も `SKIN_CHANGE_EVENT` 経由で DB へ debounce 同期。
+* サニタイズ方針（確定）: 本文スキンのカスタム CSS は当該アカウント自身のページにしか描画されず、
+  `to_json`（`escape_html_entities_in_json`）でインライン埋め込みも安全。サーバ側 `sanitize_skin_css` で
+  外部 `@import` を除去（追跡・外部取得の遮断）し、`CUSTOM_SKIN_CSS_LIMIT`（20,000 文字）で肥大化を制限する。
+  CSS 実行能力は無いため JS 実行リスクは無い。スコープは作者の責務（`.memo-body` 配下推奨）とし、
+  汎用フルスキン層は `:not([data-kb-skin^="custom-skin-"])` で除外して material-grey 基底に重ねる構成。
 * Slim のドット記法は `[` を含むクラス名を解釈できないため、角括弧ユーティリティは `class="..."` で書く。

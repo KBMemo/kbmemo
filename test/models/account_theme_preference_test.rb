@@ -41,4 +41,43 @@ class AccountThemePreferenceTest < ActiveSupport::TestCase
     assert_equal "dark", account.theme_active_id
     assert_equal "dark", account.theme_preference_payload["active_theme_id"]
   end
+
+  test "normalize_theme_preference defaults skin to auto" do
+    payload = Account.normalize_theme_preference({})
+
+    assert_equal "auto", payload["active_skin_id"]
+    assert_equal [], payload["custom_skins"]
+  end
+
+  test "normalize_theme_preference keeps custom skins and strips @import" do
+    payload = Account.normalize_theme_preference(
+      "active_skin_id" => "custom-skin-1",
+      "custom_skins" => [
+        {
+          "id" => "custom-skin-1",
+          "label" => "Mine",
+          "css" => "@import url(http://evil/x.css); .memo-body { color: red }"
+        }
+      ]
+    )
+
+    assert_equal "custom-skin-1", payload["active_skin_id"]
+    assert_equal 1, payload["custom_skins"].size
+    refute_includes payload["custom_skins"].first["css"], "@import"
+    assert_includes payload["custom_skins"].first["css"], ".memo-body"
+  end
+
+  test "theme_active_skin_id falls back to auto for an unknown skin id" do
+    account = accounts(:one)
+    account.update_theme_preference!(active_skin_id: "nope", custom_skins: [])
+
+    assert_equal "auto", account.reload.theme_active_skin_id
+  end
+
+  test "account persists builtin skin selection" do
+    account = accounts(:one)
+    account.update_theme_preference!(active_skin_id: "github", custom_skins: [])
+
+    assert_equal "github", account.reload.theme_active_skin_id
+  end
 end

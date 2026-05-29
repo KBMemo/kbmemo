@@ -17,6 +17,8 @@ class ThemesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Design モード"
     assert_includes response.body, "AsciiDoc プリセット"
     assert_includes response.body, "data-controller=\"theme-studio\""
+    assert_includes response.body, "data-controller=\"skin-studio\""
+    assert_includes response.body, "本文スキン"
     assert_match(/<main[^>]*max-w-none/, response.body)
   end
 
@@ -57,6 +59,38 @@ class ThemesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :no_content
     assert_equal "minimal", accounts(:one).reload.theme_active_id
+  end
+
+  test "theme preference json includes skin fields" do
+    get theme_url(format: :json)
+    assert_response :success
+    assert_equal "auto", response.parsed_body["active_skin_id"]
+    assert_equal [], response.parsed_body["custom_skins"]
+  end
+
+  test "update persists active skin and custom skins" do
+    patch theme_url(format: :json), params: {
+      active_skin_id: "custom-skin-x",
+      custom_skins: [
+        { id: "custom-skin-x", label: "X", css: ".memo-body { color: teal }" }
+      ]
+    }, as: :json
+
+    assert_response :no_content
+    account = accounts(:one).reload
+    assert_equal "custom-skin-x", account.theme_active_skin_id
+    assert_equal 1, account.theme_preference_payload["custom_skins"].size
+    assert_includes account.theme_preference_payload["custom_skins"].first["css"], "teal"
+  end
+
+  test "update persists builtin skin selection" do
+    patch theme_url(format: :json), params: {
+      active_skin_id: "github",
+      custom_skins: []
+    }, as: :json
+
+    assert_response :no_content
+    assert_equal "github", accounts(:one).reload.theme_active_skin_id
   end
 
   test "layout includes theme sync meta for signed-in user" do

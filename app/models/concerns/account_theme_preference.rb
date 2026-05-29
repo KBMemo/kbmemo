@@ -4,6 +4,9 @@ module AccountThemePreference
   extend ActiveSupport::Concern
 
   BUILTIN_THEME_IDS = %w[default dark sepia minimal].freeze
+  BUILTIN_SKIN_IDS = %w[auto github tufte notebook dark riak medium].freeze
+  DEFAULT_SKIN_ID = "auto"
+  CUSTOM_SKIN_CSS_LIMIT = 20_000
   THEME_PREFERENCE_VERSION = 1
 
   class_methods do
@@ -16,10 +19,36 @@ module AccountThemePreference
         normalize_custom_theme(entry)
       end
 
+      active_skin = data["active_skin_id"].presence || data["activeSkinId"].presence || DEFAULT_SKIN_ID
+      custom_skins = Array(data["custom_skins"] || data["customSkins"]).filter_map do |entry|
+        normalize_custom_skin(entry)
+      end
+
       {
         "active_theme_id" => active,
-        "custom_themes" => custom_themes
+        "custom_themes" => custom_themes,
+        "active_skin_id" => active_skin.to_s,
+        "custom_skins" => custom_skins
       }
+    end
+
+    def normalize_custom_skin(raw)
+      return nil unless raw.is_a?(Hash)
+
+      data = raw.deep_stringify_keys
+      id = data["id"].presence
+      label = data["label"].presence
+      return nil if id.blank? || label.blank?
+
+      css = data["css"].is_a?(String) ? sanitize_skin_css(data["css"]) : ""
+
+      { "id" => id, "label" => label, "css" => css }
+    end
+
+    # 本文スキンのカスタム CSS から外部取得（@import）を除去し、長さを制限する軽量サニタイズ。
+    # CSS は当該アカウント自身のページにしか描画されないが、外部 @import の追跡や肥大化を防ぐ。
+    def sanitize_skin_css(css)
+      css.to_s.gsub(/@import\b[^;]*;?/i, "").first(CUSTOM_SKIN_CSS_LIMIT)
     end
 
     def normalize_custom_theme(raw)
@@ -77,6 +106,15 @@ module AccountThemePreference
     return active if BUILTIN_THEME_IDS.include?(active) || custom_ids.include?(active)
 
     "default"
+  end
+
+  def theme_active_skin_id
+    payload = theme_preference_payload
+    active = payload["active_skin_id"]
+    custom_ids = payload["custom_skins"].map { |skin| skin["id"] }
+    return active if BUILTIN_SKIN_IDS.include?(active) || custom_ids.include?(active)
+
+    DEFAULT_SKIN_ID
   end
 
   def update_theme_preference!(payload)
