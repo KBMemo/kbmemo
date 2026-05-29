@@ -12,55 +12,55 @@ class MemoWikiLinksTest < ActiveSupport::TestCase
   test "substitute resolves title in same directory to asciidoc link" do
     body = "See [[Second memo]] for details."
     out = linker(source: @one).substitute(body)
-    assert_equal "See link:/memos/#{@two.id}[Second memo] for details.", out
+    assert_equal "See link:/memos/#{@two.uid}[Second memo] for details.", out
   end
 
   test "substitute supports custom label" do
     body = "Go to [[Second memo|the other note]]."
     out = linker(source: @one).substitute(body)
-    assert_equal "Go to link:/memos/#{@two.id}[the other note].", out
+    assert_equal "Go to link:/memos/#{@two.uid}[the other note].", out
   end
 
   test "substitute resolves global slug and displays title" do
     body = "Ref [[#{@two.slug}]]"
     out = linker(source: @one).substitute(body)
-    assert_equal "Ref link:/memos/#{@two.id}[#{@two.title}]", out
+    assert_equal "Ref link:/memos/#{@two.uid}[#{@two.title}]", out
   end
 
   test "substitute resolves memo by uid and displays title" do
     body = "Ref [[#{@two.uid}]]"
     out = linker(source: @one).substitute(body)
-    assert_equal "Ref link:/memos/#{@two.id}[#{@two.title}]", out
+    assert_equal "Ref link:/memos/#{@two.uid}[#{@two.title}]", out
   end
 
   test "substitute resolves uid case-insensitively" do
     body = "[[#{@two.uid.downcase}]]"
     out = linker(source: @one).substitute(body)
-    assert_equal "link:/memos/#{@two.id}[#{@two.title}]", out
+    assert_equal "link:/memos/#{@two.uid}[#{@two.title}]", out
   end
 
   test "substitute uid link allows custom label override" do
     body = "[[#{@two.uid}|alias]]"
     out = linker(source: @one).substitute(body)
-    assert_equal "link:/memos/#{@two.id}[alias]", out
+    assert_equal "link:/memos/#{@two.uid}[alias]", out
   end
 
   test "substitute resolves legacy stem slug without id suffix" do
     body = "Ref [[second-memo]]"
     out = linker(source: @one).substitute(body)
-    assert_equal "Ref link:/memos/#{@two.id}[#{@two.title}]", out
+    assert_equal "Ref link:/memos/#{@two.uid}[#{@two.title}]", out
   end
 
   test "substitute slug link allows custom label override" do
     body = "[[#{@two.slug}|short]]"
     out = linker(source: @one).substitute(body)
-    assert_equal "link:/memos/#{@two.id}[short]", out
+    assert_equal "link:/memos/#{@two.uid}[short]", out
   end
 
   test "substitute title match is case insensitive" do
     body = "[[SECOND MEMO]]"
     out = linker(source: @one).substitute(body)
-    assert_equal "link:/memos/#{@two.id}[SECOND MEMO]", out
+    assert_equal "link:/memos/#{@two.uid}[SECOND MEMO]", out
   end
 
   test "substitute unique title in scope when source directory differs" do
@@ -68,7 +68,7 @@ class MemoWikiLinksTest < ActiveSupport::TestCase
     @two.update_columns(memo_directory_id: other_dir.id, title: "Lonely target")
     body = "[[Lonely target]]"
     out = linker(source: @one).substitute(body)
-    assert_equal "link:/memos/#{@two.id}[Lonely target]", out
+    assert_equal "link:/memos/#{@two.uid}[Lonely target]", out
   end
 
   test "substitute broken link when ambiguous title" do
@@ -116,7 +116,7 @@ class MemoWikiLinksTest < ActiveSupport::TestCase
     @two.update_columns(memo_directory_id: work.id)
     body = "[[#{work.full_path}/#{@two.slug}]]"
     out = linker(source: @one).substitute(body)
-    assert_equal "link:/memos/#{@two.id}[#{@two.title}]", out
+    assert_equal "link:/memos/#{@two.uid}[#{@two.title}]", out
   end
 
   test "substitute directory full_path slug allows leading slash" do
@@ -124,7 +124,7 @@ class MemoWikiLinksTest < ActiveSupport::TestCase
     @two.update_columns(memo_directory_id: work.id)
     body = "[[/#{work.full_path}/#{@two.slug}]]"
     out = linker(source: @one).substitute(body)
-    assert_equal "link:/memos/#{@two.id}[#{@two.title}]", out
+    assert_equal "link:/memos/#{@two.uid}[#{@two.title}]", out
   end
 
   test "substitute directory full_path slug is case insensitive for path" do
@@ -132,7 +132,7 @@ class MemoWikiLinksTest < ActiveSupport::TestCase
     @two.update_columns(memo_directory_id: work.id)
     body = "[[HOME/U-1/WORK/#{@two.slug}]]"
     out = linker(source: @one).substitute(body)
-    assert_equal "link:/memos/#{@two.id}[#{@two.title}]", out
+    assert_equal "link:/memos/#{@two.uid}[#{@two.title}]", out
   end
 
   test "substitute directory full_path slug supports custom label" do
@@ -140,7 +140,7 @@ class MemoWikiLinksTest < ActiveSupport::TestCase
     @two.update_columns(memo_directory_id: work.id)
     body = "[[#{work.full_path}/#{@two.slug}|note]]"
     out = linker(source: @one).substitute(body)
-    assert_equal "link:/memos/#{@two.id}[note]", out
+    assert_equal "link:/memos/#{@two.uid}[note]", out
   end
 
   test "substitute broken link for unknown directory path slug" do
@@ -159,7 +159,7 @@ class MemoWikiLinksTest < ActiveSupport::TestCase
     BODY
     out = linker(source: @one).substitute(body)
     assert_includes out, "```asciidoc\n[[Second memo]]\n```"
-    assert_includes out, "link:/memos/#{@two.id}[Second memo]"
+    assert_includes out, "link:/memos/#{@two.uid}[Second memo]"
     assert_equal 1, out.scan("link:/memos/").size
   end
 

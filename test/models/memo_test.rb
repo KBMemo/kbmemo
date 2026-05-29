@@ -137,9 +137,10 @@ class MemoTest < ActiveSupport::TestCase
     end
   end
 
-  test "global_slug_for appends memo id" do
-    assert_equal "hello-42", Memo.global_slug_for("hello", 42)
-    assert_equal "hello-42", Memo.global_slug_for("hello-42", 42)
+  test "global_slug_for appends uid suffix" do
+    uid = ULID.generate.to_s
+    assert_equal "hello-#{Memo.slug_suffix_for(uid)}", Memo.global_slug_for("hello", uid)
+    assert_equal "hello-#{Memo.slug_suffix_for(uid)}", Memo.global_slug_for("hello-#{uid}", uid)
   end
 
   test "normalize_slug_fragment matches storage rules" do
@@ -159,7 +160,7 @@ class MemoTest < ActiveSupport::TestCase
     )
     m.save!
     assert_not m.slug_manual?
-    assert_equal "hi-#{m.id}", m.slug
+    assert_equal memo_global_slug("hi", m), m.slug
   end
 
   test "slug does not auto sync from title after file commit" do
@@ -173,7 +174,7 @@ class MemoTest < ActiveSupport::TestCase
       memo_directory: memo_directories(:work)
     )
     m.save!
-    assert_equal "kept-slug-#{m.id}", m.slug
+    assert_equal memo_global_slug("kept-slug", m), m.slug
   end
 
   test "display_as_draft? when never file-committed" do
@@ -288,8 +289,9 @@ class MemoTest < ActiveSupport::TestCase
     assert_equal "note", Memo.slug_stem("note-7", memo_id: 7)
   end
 
-  test "global_slug_for replaces a ULID suffix with the id suffix" do
-    ulid = ULID.generate.to_s
-    assert_equal "note-5", Memo.global_slug_for("note-#{ulid}", 5)
+  test "global_slug_for replaces legacy suffix with uid suffix" do
+    uid = ULID.generate.to_s
+    legacy = ULID.generate.to_s
+    assert_equal "note-#{Memo.slug_suffix_for(uid)}", Memo.global_slug_for("note-#{legacy}", uid)
   end
 end

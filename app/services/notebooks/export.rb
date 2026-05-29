@@ -53,7 +53,7 @@ module Notebooks
       end
 
       children = by_parent[entry.id] || []
-      child_dir = directory.join(Memo.slug_stem(memo.slug, memo_id: memo.id) || "memo-#{memo.id}")
+      child_dir = directory.join(Memo.slug_stem(memo.slug, memo_id: memo.id, uid: memo.uid) || "memo-#{Memo.slug_suffix_for(memo.uid)}")
       children.each do |child|
         write_entry!(child, child_dir, by_parent, counters)
       end
@@ -62,7 +62,7 @@ module Notebooks
     end
 
     def export_filename(memo)
-      stem = Memo.slug_stem(memo.slug, memo_id: memo.id).presence || "memo-#{memo.id}"
+      stem = Memo.slug_stem(memo.slug, memo_id: memo.id, uid: memo.uid).presence || "memo-#{Memo.slug_suffix_for(memo.uid)}"
       "#{stem}.adoc"
     end
 

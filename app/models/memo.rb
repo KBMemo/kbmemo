@@ -98,7 +98,6 @@ class Memo < ApplicationRecord
   before_validation :prepare_slug_from_title_and_manual
   before_validation :normalize_slug_for_storage
   before_create :assign_uid
-  after_create :ensure_global_slug_suffix_after_create
   after_commit :reindex_outgoing_wiki_links, on: %i[create update], if: :memo_wiki_links_need_outgoing_reindex?
   after_commit :reindex_inbound_wiki_links, on: :update, if: :memo_wiki_links_need_inbound_reindex?
 
@@ -109,18 +108,30 @@ class Memo < ApplicationRecord
   end
 
   # 末尾の識別子（数値 id または ULID）を除いたスラッグ本体（Wiki リンクのレガシー表記との互換用）。
-  def self.slug_stem(value, memo_id: nil)
+  def self.slug_stem(value, memo_id: nil, uid: nil)
     frag = normalize_slug_fragment(value)
     return nil if frag.blank?
 
     stem = frag.sub(SLUG_TRAILING_ID, "")
-    stem = stem.sub(/-#{Regexp.escape(memo_id.to_s)}\z/i, "") if memo_id.present?
+    stem = stem.sub(/-#{Regexp.escape(memo_id.to_s)}\z/, "") if memo_id.present?
+    if uid.present?
+      suffix = slug_suffix_for(uid)
+      stem = stem.sub(/-#{Regexp.escape(suffix)}\z/i, "") if suffix.present?
+    end
     stem.presence || "memo"
   end
 
-  # アプリ全体で一意なスラッグ（Wiki リンク・検索用）。例: first-memo-42
-  def self.global_slug_for(stem, memo_id)
-    "#{slug_stem(stem, memo_id: memo_id)}-#{memo_id}"
+  # uid を slug 末尾に使うための正規化（小文字・パス安全）。
+  def self.slug_suffix_for(uid)
+    normalize_slug_fragment(uid.to_s.upcase)
+  end
+
+  # アプリ全体で一意なスラッグ（Wiki リンク・Git ファイル名）。例: first-memo-01kdwpv...
+  def self.global_slug_for(stem, uid)
+    suffix = slug_suffix_for(uid)
+    return slug_stem(stem, uid: uid) if suffix.blank?
+
+    "#{slug_stem(stem, uid: uid)}-#{suffix}"
   end
 
   # 本文1行目から一覧用タイトルを派生（行頭の連続する "=" と続く空白を除く）。title_manual が true のときは同期しない。
@@ -315,19 +326,9 @@ class Memo < ApplicationRecord
   def normalize_slug_for_storage
     frag = self.class.normalize_slug_fragment(slug)
     self.slug = frag
-    return if slug.blank? || id.blank?
+    return if slug.blank? || uid.blank?
 
-    self.slug = self.class.global_slug_for(slug, id)
-  end
-
-  def ensure_global_slug_suffix_after_create
-    return if slug.blank?
-
-    target = self.class.global_slug_for(self.class.slug_stem(slug, memo_id: id), id)
-    return if slug == target
-
-    update_column(:slug, target)
-    MemoWikiLinkIndex.rebuild_inbound_for(self)
+    self.slug = self.class.global_slug_for(slug, uid)
   end
 
   def memo_wiki_links_need_outgoing_reindex?

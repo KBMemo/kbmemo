@@ -30,7 +30,7 @@ module NotebookShowSupport
 
     if params[:memo_slug].present?
       slug = params[:memo_slug].to_s
-      memo = scope.find_by(slug: slug) || scope.find_by(slug: Memo.global_slug_for(slug))
+      memo = scope.find_by(slug: slug)
       return memo if memo
     end
 

@@ -5,7 +5,7 @@ require "fileutils"
 
 # メモの「コミット後の正」を Git 管理のファイルに書き出す。
 # パス規則: {memo_directory.full_path}/{global_slug}.adoc（ルート直下メモはファイル名のみ）
-# global_slug は DB の slug（{stem}-{memo_id}）と同一。
+# global_slug は DB の slug（{stem}-{uid}）と同一。
 #
 # DB はキャッシュ。ドラフトは DB のみ。「更新」で本クラス経由でファイル + git commit し、その後 DB 保存する想定。
 class MemoRepository
@@ -96,11 +96,10 @@ class MemoRepository
 
   alias relocate_file! relocate_path!
 
-  # Git HEAD に記録されている .adoc の相対パス（*-{memo.id}.adoc）
+  # Git HEAD に記録されている .adoc の相対パス（*-{uid} またはレガシー *-{id}）。
   def committed_relative_path_for(memo)
     ensure_repo!
-    suffix = "-#{memo.id}.adoc"
-    candidates = git_head_paths.select { |path| path.end_with?(suffix) }
+    candidates = git_head_paths.select { |path| committed_path_for_memo?(memo, path) }
     raise Error, "Git にコミット済みのメモファイルが見つかりません" if candidates.empty?
 
     candidates.max_by { |path| last_commit_epoch_for_path(path) }
@@ -137,12 +136,13 @@ class MemoRepository
     File.write(full, content, encoding: "UTF-8")
   end
 
-  # 同一メモ ID の .adoc のうち、keep 以外を作業ツリーから削除（git 操作なし）
+  # 同一メモの .adoc のうち、keep 以外を作業ツリーから削除（git 操作なし）
   def remove_work_tree_files_for_memo_except!(memo, keep_relative:)
-    suffix = "-#{memo.id}.adoc"
-    @root.glob("**/*#{suffix}").each do |abs|
+    keep = keep_relative.to_s
+    @root.glob("**/*.adoc").each do |abs|
       rel = abs.relative_path_from(@root).to_s
-      next if rel == keep_relative.to_s
+      next if rel == keep
+      next unless committed_path_for_memo?(memo, rel)
 
       FileUtils.rm_f(abs)
     end
@@ -263,7 +263,14 @@ class MemoRepository
   end
 
   def filename_slug_segment(memo)
-    Memo.normalize_slug_fragment(memo.slug).presence || "memo-#{memo.id}"
+    Memo.normalize_slug_fragment(memo.slug).presence || "memo-#{Memo.slug_suffix_for(memo.uid)}"
+  end
+
+  def committed_path_for_memo?(memo, path)
+    return false unless path.to_s.end_with?(".adoc")
+
+    uid_suffix = Memo.slug_suffix_for(memo.uid)
+    path.end_with?("-#{uid_suffix}.adoc") || path.end_with?("-#{memo.id}.adoc")
   end
 
   def default_commit_message(memo)

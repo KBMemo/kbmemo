@@ -5,7 +5,7 @@ require "application_system_test_case"
 class MemoAttachmentDeleteTest < ApplicationSystemTestCase
   setup do
     @memo = memos(:one)
-    @memo.update_columns(slug: "first-memo-#{@memo.id}", file_committed_at: Time.current)
+    @memo.update_columns(slug: memo_global_slug("first-memo", @memo), file_committed_at: Time.current)
     @repo = MemoRepository.new
     @repo.write_and_commit!(@memo)
     @repo.write_asset!(@memo, filename: "orphan.png", io: StringIO.new("\x89PNG\r\n\x1a\n"))

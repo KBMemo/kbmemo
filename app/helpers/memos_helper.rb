@@ -319,10 +319,10 @@ module MemosHelper
   end
 
   def memo_wiki_link_reference_for(memo)
-    seg = Memo.normalize_slug_fragment(memo.slug)
-    return nil if seg.blank?
+    uid = memo.uid.to_s.presence
+    return nil if uid.blank?
 
-    "[[#{seg}]]"
+    "[[#{uid}]]"
   end
 
   def memo_attachment_entries(memo, body: nil)

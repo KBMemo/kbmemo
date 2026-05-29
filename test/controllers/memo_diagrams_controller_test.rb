@@ -6,7 +6,7 @@ class MemoDiagramsControllerTest < ActionDispatch::IntegrationTest
   setup do
     sign_in_as(:one)
     @memo = memos(:one)
-    @memo.update_columns(slug: "first-memo-#{@memo.id}", file_committed_at: Time.current)
+    @memo.update_columns(slug: memo_global_slug("first-memo", @memo), file_committed_at: Time.current)
     @repo = MemoRepository.new
   end
 

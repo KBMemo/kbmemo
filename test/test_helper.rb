@@ -37,14 +37,21 @@ module ActiveSupport
       MemoDiagramRenderer.singleton_class.define_method(:render, original)
     end
 
-    # フィクスチャの slug は stem のみ。テスト DB では global_slug（-{id} 付き）に揃える。
+    # フィクスチャの slug は stem のみ。テスト DB では global_slug（-{uid} 付き）に揃える。
     def normalize_memo_slug_fixtures!
       Memo.find_each do |memo|
-        next if memo.slug.blank?
+        next if memo.slug.blank? || memo.uid.blank?
 
-        target = Memo.global_slug_for(Memo.slug_stem(memo.slug, memo_id: memo.id), memo.id)
+        target = Memo.global_slug_for(
+          Memo.slug_stem(memo.slug, memo_id: memo.id, uid: memo.uid),
+          memo.uid
+        )
         memo.update_column(:slug, target) if memo.slug != target
       end
+    end
+
+    def memo_global_slug(stem, memo)
+      Memo.global_slug_for(stem, memo.uid)
     end
   end
 end

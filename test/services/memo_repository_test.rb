@@ -9,10 +9,10 @@ class MemoRepositoryTest < ActiveSupport::TestCase
     @repo = MemoRepository.new
   end
 
-  test "relative_path_for in root directory is slug-id filename only" do
+  test "relative_path_for in root directory is slug-uid filename only" do
     @memo.memo_directory = MemoDirectory.root
-    @memo.slug = "repo-slug-#{@memo.id}"
-    assert_equal "repo-slug-#{@memo.id}.adoc", @repo.relative_path_for(@memo).to_s
+    @memo.slug = memo_global_slug("repo-slug", @memo)
+    assert_equal "#{@memo.slug}.adoc", @repo.relative_path_for(@memo).to_s
   end
 
   test "relative_path_for nests under memo directory segment" do
@@ -23,9 +23,10 @@ class MemoRepositoryTest < ActiveSupport::TestCase
   test "relative_path_for uses memo when slug blank" do
     @memo.memo_directory = MemoDirectory.root
     @memo.slug = ""
-    assert_equal "memo-#{@memo.id}.adoc", @repo.relative_path_for(@memo).to_s
-    @memo.slug = "memo-#{@memo.id}"
-    assert_equal "memo-#{@memo.id}.adoc", @repo.relative_path_for(@memo).to_s
+    fallback = "memo-#{Memo.slug_suffix_for(@memo.uid)}"
+    assert_equal "#{fallback}.adoc", @repo.relative_path_for(@memo).to_s
+    @memo.slug = fallback
+    assert_equal "#{fallback}.adoc", @repo.relative_path_for(@memo).to_s
   end
 
   test "file_contents_for includes yaml front matter and body" do
@@ -49,13 +50,13 @@ class MemoRepositoryTest < ActiveSupport::TestCase
 
   test "assets_dir_relative_for is sibling of adoc file" do
     @memo.memo_directory = MemoDirectory.root
-    @memo.slug = "repo-slug-#{@memo.id}"
-    assert_equal "repo-slug-#{@memo.id}.assets", @repo.assets_dir_relative_for(@memo).to_s
+    @memo.slug = memo_global_slug("repo-slug", @memo)
+    assert_equal "#{@memo.slug}.assets", @repo.assets_dir_relative_for(@memo).to_s
   end
 
   test "write_and_commit! includes nested assets in git commit" do
     @memo.memo_directory = MemoDirectory.root
-    @memo.slug = "repo-slug-#{@memo.id}"
+    @memo.slug = memo_global_slug("repo-slug", @memo)
     @repo.write_asset!(@memo, filename: "diagrams/flow.mmd", io: StringIO.new("graph TD"))
     @repo.write_asset!(@memo, filename: "diagrams/flow.svg", io: StringIO.new("<svg/>"))
     @repo.write_and_commit!(@memo)
@@ -74,7 +75,7 @@ class MemoRepositoryTest < ActiveSupport::TestCase
 
   test "write_and_commit! includes assets in git commit" do
     @memo.memo_directory = MemoDirectory.root
-    @memo.slug = "repo-slug-#{@memo.id}"
+    @memo.slug = memo_global_slug("repo-slug", @memo)
     @repo.write_asset!(@memo, filename: "fig.png", io: StringIO.new("PNG"))
     @repo.write_and_commit!(@memo)
 
@@ -101,10 +102,11 @@ class MemoRepositoryTest < ActiveSupport::TestCase
 
   test "read_committed_snapshot! reads body and metadata from git HEAD" do
     memo = memos(:two)
+    slug = memo_global_slug("committed-slug", memo)
     memo.assign_attributes(
       body: "= Committed title\n\nCommitted body.",
       title: "Committed title",
-      slug: "committed-slug-#{memo.id}"
+      slug: slug
     )
     @repo.write_and_commit!(memo)
 
@@ -113,15 +115,32 @@ class MemoRepositoryTest < ActiveSupport::TestCase
 
     assert_includes snapshot[:body], "Committed body."
     assert_equal "Committed title", snapshot[:title]
-    assert_equal "committed-slug-#{memo.id}", snapshot[:slug]
+    assert_equal slug, snapshot[:slug]
     assert_equal memo.memo_directory, snapshot[:memo_directory]
     assert_includes snapshot[:file_content], "Committed title"
+  end
+
+  test "read_committed_snapshot! finds legacy id-suffixed git paths" do
+    memo = memos(:two)
+    legacy_slug = "legacy-slug-#{memo.id}"
+    memo.assign_attributes(
+      body: "= Legacy\n\nBody.",
+      title: "Legacy",
+      slug: legacy_slug
+    )
+    @repo.write_and_commit!(memo)
+
+    memo.assign_attributes(slug: memo_global_slug("legacy-slug", memo))
+    snapshot = @repo.read_committed_snapshot!(memo)
+
+    assert_equal legacy_slug, snapshot[:slug]
+    assert_includes snapshot[:body], "Body."
   end
 
   test "write_work_tree_file! writes without creating git commit" do
     @repo.write_and_commit!(@memo)
     log_before, = Open3.capture3("git", "rev-list", "--count", "HEAD", chdir: @repo.root.to_s)
-    @memo.assign_attributes(body: "= Work tree\n\nOnly.", slug: "work-tree-#{@memo.id}")
+    @memo.assign_attributes(body: "= Work tree\n\nOnly.", slug: memo_global_slug("work-tree", @memo))
     @repo.write_work_tree_file!(@memo)
     path = @repo.absolute_path_for(@memo)
     assert path.exist?

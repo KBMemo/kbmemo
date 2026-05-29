@@ -5,7 +5,7 @@ require "test_helper"
 class MemoDiagramMacroTest < ActiveSupport::TestCase
   setup do
     @memo = memos(:one)
-    @memo.update_columns(slug: "first-memo-#{@memo.id}", file_committed_at: Time.current)
+    @memo.update_columns(slug: memo_global_slug("first-memo", @memo), file_committed_at: Time.current)
     @repo = MemoRepository.new
   end
 

@@ -91,7 +91,8 @@ class MemoWikiLinks
     resolved = resolve(target)
     if resolved
       link_label = custom_label || link_display_label(resolved, target)
-      "link:/memos/#{resolved.id}[#{escape_asciidoc_link_text(link_label)}]"
+      link_ref = resolved.uid.presence || resolved.id.to_s
+      "link:/memos/#{link_ref}[#{escape_asciidoc_link_text(link_label)}]"
     else
       @broken_links << { target: target, label: display_label }
       broken_link_markup(display_label, index: @broken_links.size - 1)

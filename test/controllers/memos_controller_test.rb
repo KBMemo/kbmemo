@@ -515,7 +515,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_equal "= Draft title\n\nBody.", memo.body
     assert_equal "Draft title", memo.title
     # 一度コミット済み（file_committed_at あり）のメモは、明示指定した slug を優先して保持する。
-    assert_equal "draft-slug-#{memo.id}", memo.slug
+    assert_equal memo_global_slug("draft-slug", memo), memo.slug
     assert_equal({ "k" => 1 }, memo.properties)
     assert_includes memo.tags.map(&:name), "draft-tag"
     assert_not memo.title_manual
@@ -540,7 +540,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     memo.reload
     assert_equal "Derived heading", memo.title
     # 初回コミット前 + 自動モード（slug 空）はタイトルから派生する。
-    assert_equal "derived-heading-#{memo.id}", memo.slug
+    assert_equal memo_global_slug("derived-heading", memo), memo.slug
   end
 
   test "body draft save works even when properties field is currently invalid on client" do
@@ -639,7 +639,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     memo.update_columns(
       title: "Committed title",
       body: "= Committed title\n\nCommitted paragraph.",
-      slug: "committed-title-#{memo.id}",
+      slug: memo_global_slug("committed-title", memo),
       file_committed_at: committed_at,
       updated_at: committed_at
     )
@@ -786,9 +786,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
       as: :json
     assert_response :success
     memo.reload
-    assert_equal "weird-slug-#{memo.id}", memo.slug
+    assert_equal memo_global_slug("weird-slug", memo), memo.slug
     body = JSON.parse(response.body)
-    assert_equal "weird-slug-#{memo.id}", body["slug"]
+    assert_equal memo_global_slug("weird-slug", memo), body["slug"]
   end
 
   test "draft json returns saved_at for multi-tab sync" do
@@ -904,7 +904,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert json["edit_path"].present?
     assert json["draft_url"].present?
     m = Memo.order(:id).last
-    assert_equal "from-json-#{m.id}", json["slug"]
+    assert_equal memo_global_slug("from-json", m), json["slug"]
     assert_equal "From Json", m.title
     assert_includes m.tags.map(&:name), "json-tag"
   end
@@ -939,7 +939,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     )
     get memo_url(source)
     assert_response :success
-    assert_includes response.body, %(href="/memos/#{target.id}")
+    assert_includes response.body, %(href="/memos/#{target.uid}")
     assert_includes response.body, target.title
   end
 

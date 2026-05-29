@@ -14,20 +14,19 @@ class MemosHelperTest < ActionView::TestCase
     MemoPolicy::Scope.new(pundit_user, scope).resolve
   end
 
-  test "memo_wiki_link_reference uses global slug only" do
+  test "memo_wiki_link_reference uses uid" do
     memo = memos(:two)
-    assert_equal "[[#{memo.slug}]]", memo_wiki_link_reference_for(memo)
+    assert_equal "[[#{memo.uid}]]", memo_wiki_link_reference_for(memo)
   end
 
-  test "memo_wiki_link_reference_for returns nil when slug blank" do
-    memo = memos(:one)
-    memo.update_columns(slug: "")
-    assert_nil memo_wiki_link_reference_for(memo)
+  test "memo_wiki_link_reference_for returns nil when uid is blank" do
+    blank = Struct.new(:uid).new("")
+    assert_nil memo_wiki_link_reference_for(blank)
   end
 
   test "memo_html converts wiki link to memo href" do
     html = memo_html("See [[Second memo]].", source_memo: memos(:one))
-    assert_includes html, %(href="/memos/#{memos(:two).id}")
+    assert_includes html, %(href="/memos/#{memos(:two).uid}")
     assert_includes html, "Second memo"
   end
 
@@ -349,7 +348,7 @@ class MemosHelperTest < ActionView::TestCase
     body = "```\n[[Second memo]]\n```\n\n[[Second memo]]"
     html = memo_html(body, source_memo: memos(:one))
     assert_includes html, "[[Second memo]]"
-    assert_includes html, %(href="/memos/#{memos(:two).id}")
+    assert_includes html, %(href="/memos/#{memos(:two).uid}")
   end
 
   test "memo_html expands docs_sync include before conversion" do
