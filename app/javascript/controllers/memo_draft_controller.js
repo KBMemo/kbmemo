@@ -43,6 +43,8 @@ export default class extends Controller {
     this._tabId = crypto.randomUUID()
     this._pendingRemoteBody = null
     this._lastSavedBody = this.hasBodyTarget ? this.bodyTarget.value : null
+    // 直近に保存済みのフォーム状態。これと一致する間は再 PATCH しない（無変更保存・本文未更新の抑止）。
+    this._lastSavedSnapshot = JSON.stringify(this.buildMemoSnapshotOverrides())
     this._setupRemoteDraftChannel()
     this._onTurboRender = () => {
       if (this.isNewMemoForm()) this.scheduleNewMemoFormReset()
@@ -102,17 +104,36 @@ export default class extends Controller {
     if (ifComposing(event)) return
     const trimmed = this.titleTarget.value.trim()
     if (trimmed === "" || trimmed === TITLE_PLACEHOLDER) {
+      // タイトルを空にしたら本文追従（manual=0）へ戻すが、ここで派生タイトルを
+      // 即座に書き戻さない（全消しした瞬間に元へ戻る挙動を防ぐ）。空のまま編集を続けられる。
       if (this.hasTitleManualFlagTarget) {
         this.titleManualFlagTarget.value = "0"
-      }
-      if (this.hasBodyTarget) {
-        this.titleTarget.value = this.derivedTitle(this.bodyTarget.value)
       }
     } else if (this.hasTitleManualFlagTarget) {
       this.titleManualFlagTarget.value = "1"
     }
     this.autosaveDraft()
     this.maybeSyncSlugFromTitle()
+  }
+
+  // タイトルを空のまま離れたら、本文追従の派生タイトルを表示へ反映する。
+  // （編集中は空のまま、フォーカスを外したときだけ追従表示を復元する）
+  titleBlur() {
+    if (!this.hasTitleTarget || !this.hasBodyTarget) return
+    const trimmed = this.titleTarget.value.trim()
+    if (trimmed !== "" && trimmed !== TITLE_PLACEHOLDER) return
+
+    if (this.hasTitleManualFlagTarget) {
+      this.titleManualFlagTarget.value = "0"
+    }
+    const derived = this.derivedTitle(this.bodyTarget.value)
+    // 未入力（本文1行目も空）は表示も空にして、サーバー描画（memo_title_input_value）と揃える。
+    const display = derived === TITLE_PLACEHOLDER ? "" : derived
+    if (this.titleTarget.value !== display) {
+      this.titleTarget.value = display
+      this.autosaveDraft()
+      void this.maybeSyncSlugFromTitle()
+    }
   }
 
   bodyInput(event) {
@@ -499,7 +520,9 @@ export default class extends Controller {
   async directoryChange() {
     if (!this.hasDirectoryTarget) return
     const id = this.directoryTarget.value
-    await this.persistDraftMerged({ memo_directory_id: id })
+    // ディレクトリ変更は明示操作（本文タイピング中ではない）なので、
+    // turbo_stream でパスラベル・サイドバーまで更新する。
+    await this.persistDraftMerged({ memo_directory_id: id }, { stream: true })
   }
 
   discardDraft(event) {
@@ -581,14 +604,14 @@ export default class extends Controller {
   /**
    * 連続 PATCH を直列にしつつキュー送信（autosave と directory が混ざっても競合しない）
    */
-  persistDraftMerged(overrides = {}) {
+  persistDraftMerged(overrides = {}, options = {}) {
     this._persistChain = this._persistChain.catch(() => {}).then(() =>
-      this.performDraftAutosaveFetch(overrides)
+      this.performDraftAutosaveFetch(overrides, options)
     )
     return this._persistChain
   }
 
-  async performDraftAutosaveFetch(overrides = {}) {
+  async performDraftAutosaveFetch(overrides = {}, { stream = false } = {}) {
     if (this._creating) return false
     const canPersist =
       (this.hasDraftUrlValue && this.draftUrlValue) ||
@@ -596,13 +619,28 @@ export default class extends Controller {
     if (!canPersist) return false
 
     const snapshot = this.buildMemoSnapshotOverrides(overrides)
+    const snapshotKey = JSON.stringify(snapshot)
+
+    // 既存メモのドラフト保存は、前回保存から実質変化がなければ送らない。
+    // 本文未更新・blur・実質無変更のタイトル入力などでの無駄な PATCH／再描画を防ぐ。
+    if (
+      this.hasDraftUrlValue &&
+      this.draftUrlValue &&
+      snapshotKey === this._lastSavedSnapshot
+    ) {
+      return false
+    }
+
     const wrapped = this.memoPayload(snapshot)
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content")
-    const accept =
+    // 入力由来の自動保存は JSON で受け、本文タイピング中に title/slug/sidebar を
+    // DOM ごと差し替える「ページ更新」を起こさない。turbo_stream はディレクトリ変更等の
+    // 明示操作（stream: true）のときだけ使う。
+    const wantsStream =
+      stream &&
       typeof window !== "undefined" &&
       typeof window.Turbo?.renderStreamMessage === "function"
-        ? "text/vnd.turbo-stream.html"
-        : "application/json"
+    const accept = wantsStream ? "text/vnd.turbo-stream.html" : "application/json"
 
     if (this.hasDraftUrlValue && this.draftUrlValue) {
       try {
@@ -618,17 +656,19 @@ export default class extends Controller {
         if (!res.ok) return false
         const ct = (res.headers.get("Content-Type") || "").toLowerCase()
         if (ct.includes("vnd.turbo-stream")) {
-          const stream = await res.text()
+          const streamHtml = await res.text()
           if (window.Turbo?.renderStreamMessage) {
-            window.Turbo.renderStreamMessage(stream)
+            window.Turbo.renderStreamMessage(streamHtml)
           }
           this.notifyRemoteDraftSaved({ body: wrapped.memo?.body })
+          this._lastSavedSnapshot = snapshotKey
           return true
         }
         if (ct.includes("application/json")) {
           const data = await res.json()
           this.applyDraftServerPayload(data)
           this.notifyRemoteDraftSaved({ body: wrapped.memo?.body, savedAt: data.saved_at })
+          this._lastSavedSnapshot = snapshotKey
           return true
         }
         return false
@@ -678,7 +718,12 @@ export default class extends Controller {
   }
 
   applyDraftServerPayload(data) {
-    if (Object.prototype.hasOwnProperty.call(data, "slug") && this.hasSlugTarget) {
+    // slug を編集中（フォーカス中）は確定値で上書きしない。入力中のカーソル干渉を避ける。
+    if (
+      Object.prototype.hasOwnProperty.call(data, "slug") &&
+      this.hasSlugTarget &&
+      document.activeElement !== this.slugTarget
+    ) {
       this.slugTarget.value = data.slug ?? ""
     }
     if (typeof data.slug_manual === "boolean" && this.hasSlugManualFlagTarget) {
