@@ -4,6 +4,7 @@ import "@hotwired/turbo-rails"
 import "../../javascript/controllers"
 import { highlightMemoBodies } from "../../javascript/memo_body_highlight.js"
 import { applyStoredThemeWithSync, bootstrapAccountTheme, initThemeSync } from "../../javascript/theme/theme_bootstrap.js"
+import { applyStoredSkin } from "../../javascript/theme/memo_skins.js"
 import {
   applyOpenDirectoryIds,
   loadOpenDirectoryIds,
@@ -35,9 +36,11 @@ document.addEventListener("turbo:render", () => highlightMemoBodies())
 document.addEventListener("turbo:load", () => {
   initThemeSync()
   applyStoredThemeWithSync()
+  applyStoredSkin()
 })
 document.addEventListener("turbo:render", () => {
   applyStoredThemeWithSync()
+  applyStoredSkin()
 })
 
 if (typeof window.__KBMEMO_ACCOUNT_THEME__ === "object" && window.__KBMEMO_ACCOUNT_THEME__ !== null) {

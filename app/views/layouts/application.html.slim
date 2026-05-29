@@ -1,5 +1,5 @@
 doctype html
-html data-kb-theme="default" data-kb-theme-base="default"
+html data-kb-theme="default" data-kb-theme-base="default" data-kb-skin="auto"
   head
     title
       = content_for(:title) || "Kbmemo"
@@ -22,7 +22,7 @@ html data-kb-theme="default" data-kb-theme-base="default"
     script type="text/javascript"
       | window.__KBMEMO_ACCOUNT_THEME__ = #{raw kb_account_theme_json};
     script type="text/javascript"
-      | (function(){try{var a=window.__KBMEMO_ACCOUNT_THEME__;if(a&&a.active_theme_id){localStorage.setItem("kbmemo_themes_v1",JSON.stringify({activeThemeId:a.active_theme_id,customThemes:(a.custom_themes||[]).map(function(t){return{id:t.id,label:t.label,baseTheme:t.base_theme,variables:t.variables||{},rules:t.rules||[]};})}));}var r=localStorage.getItem("kbmemo_themes_v1");if(!r)return;var s=JSON.parse(r);if(!s.activeThemeId)return;document.documentElement.dataset.kbTheme=s.activeThemeId;var c=(s.customThemes||[]).find(function(t){return t.id===s.activeThemeId});document.documentElement.dataset.kbThemeBase=c&&c.baseTheme?c.baseTheme:s.activeThemeId;}catch(e){}})();
+      | (function(){try{var a=window.__KBMEMO_ACCOUNT_THEME__;var r=localStorage.getItem("kbmemo_themes_v1");var s=r?JSON.parse(r):{};if(a&&a.active_theme_id){s={activeThemeId:a.active_theme_id,customThemes:(a.custom_themes||[]).map(function(t){return{id:t.id,label:t.label,baseTheme:t.base_theme,variables:t.variables||{},rules:t.rules||[]};}),activeSkinId:(a.active_skin_id||s.activeSkinId||"auto"),customSkins:(a.custom_skins||s.customSkins||[]).map(function(k){return{id:k.id,label:k.label,css:k.css||""};})};localStorage.setItem("kbmemo_themes_v1",JSON.stringify(s));}if(s.activeSkinId)document.documentElement.dataset.kbSkin=s.activeSkinId;if(!s.activeThemeId)return;document.documentElement.dataset.kbTheme=s.activeThemeId;var c=(s.customThemes||[]).find(function(t){return t.id===s.activeThemeId});document.documentElement.dataset.kbThemeBase=c&&c.baseTheme?c.baseTheme:s.activeThemeId;}catch(e){}})();
   body.kb-chrome-body.min-h-screen data-theme-slot="app-body" data-controller="flash-notice"
     header.kb-chrome-header data-theme-slot="app-header"
       nav.mx-auto.flex.w-full.flex-wrap.items-center.justify-between.gap-3.px-4.py-3 class=content_max_width_class
@@ -52,6 +52,10 @@ html data-kb-theme="default" data-kb-theme-base="default"
                   label.flex.items-center.justify-between.gap-3.kb-text-primary
                     span.kb-text-secondary テーマ
                     select.kb-input.rounded.px-1.5.py-0.5.text-sm data-theme-select="true" data-user-menu-target="themeSelect" data-action="change->user-menu#changeTheme" aria-label="表示テーマ"
+                .px-3.py-2 role="none"
+                  label.flex.items-center.justify-between.gap-3.kb-text-primary
+                    span.kb-text-secondary 本文スキン
+                    select.kb-input.rounded.px-1.5.py-0.5.text-sm data-skin-select="true" data-user-menu-target="skinSelect" data-action="change->user-menu#changeSkin" aria-label="本文スキン"
                 hr.my-1.border.kb-border
                 = button_to "ログアウト", rodauth.logout_path, method: :post, form: { class: "block w-full" }, class: "kb-menu-item w-full rounded-none border-0 bg-transparent px-3 py-2 text-left text-sm font-normal", role: "menuitem"
           - if Rails.env.development?

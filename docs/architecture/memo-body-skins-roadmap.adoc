@@ -1,0 +1,112 @@
+= メモ本文スキン機構ロードマップ（テーマ機能の改善）
+
+https://github.com/asciidoctor/asciidoctor-browser-extension[asciidoctor-browser-extension] の
+Theme/Stylesheet 機能を参考に、KBMemo のテーマ機能を拡張する計画。
+
+== 背景: 拡張機能との設計差
+
+[cols="2,3,3"]
+|===
+|観点 |asciidoctor-browser-extension |KBMemo 現状
+
+|本文の見た目
+|フル CSS スキンを多数から選択（`github` / `riak` / `notebook` / `tufte` など。構造・タイポも変わる）。https://github.com/darshandsoni/asciidoctor-skins[asciidoctor-skins] 由来。
+|`--mg-*` トークンで material-grey 1 種を**配色のみ**可変。
+
+|chrome と本文
+|本文（記事 HTML）のみ。アプリ chrome は持たない＝独立。
+|`--mg-*` の上書きが `data-kb-theme-base` に**連動**（一体）。
+
+|カスタム CSS
+|任意 CSS を追加／削除（"Add a stylesheet"）。
+|Theme Studio の**トークン編集のみ**（生 CSS 不可）。
+
+|適用切替
+|ドロップダウン＋ファイル単位 `?stylesheet=`。
+|ヘッダのテーマ select＋Theme Studio。
+|===
+
+KBMemo の「配色バリエーション」は既に十分強い。取り込む価値が高いのは
+**「本文の見た目を chrome テーマと独立に、フルスタイルシート単位で選べるスキン機構」**。
+
+== 設計方針
+
+=== 新しい独立次元: `data-kb-skin`
+
+`<html>` に 3 つ目の属性 `data-kb-skin="<skinId>"` を追加し、chrome テーマ（`data-kb-theme` /
+`data-kb-theme-base`）とは独立に本文スキンを切り替える。
+
+* `auto`（既定）— 本文は従来どおり chrome テーマの `--mg-*` に追従（**既存挙動と完全互換**）。
+* builtin フルスキン — `github` / `tufte` / `notebook` / `riak` など。スコープ付き CSS で本文を全面的に上書き。
+* `custom-skin-<uuid>` — ユーザー定義 CSS を `<style id="kbmemo-custom-skin-style">` で注入。
+
+=== 適用先（スコープ）
+
+show・編集プレビュー・WYSIWYG の 3 セレクタすべてに効かせる:
+
+[source,css]
+----
+html[data-kb-skin="github"] .memo-body.asciidoctor,
+html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor,
+html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor { ... }
+----
+
+=== カスケード戦略（auto とフルスキンの分離）
+
+構造的な漏れを防ぐため、**`themes.css` の本文（`.memo-body` / `--mg-*`）に対する
+テーマ別上書きは `auto` のときだけ効く**ように限定する。
+
+* themes.css の本文系上書き（`--mg-*` 再定義・`.memo-body.asciidoctor ...` ブロック）に
+  `[data-kb-skin="auto"]` 限定を付ける。
+* フルスキン CSS（`memo-skins.css`）は `themes.css` の後に import し、`--mg-*` を含め本文を**全定義**する。
+* これにより「auto = テーマ追従」「フルスキン = スキンが本文を全面制御」がカスケード上きれいに分離する。
+
+=== 永続化
+
+既存のテーマ永続化に相乗りする（localStorage + DB + FOUC 防止ブートストラップ）。
+
+* localStorage `kbmemo_themes_v1` に `activeSkinId` / `customSkins[]`（`{ id, name, css }`）を追加。
+* `accounts.theme_preference` JSON に `active_skin_id` / `custom_skins` を追加（`AccountThemePreference` を拡張）。
+* `/theme.json`（show/update）でスキンも往復。
+* レイアウトの anti-FOUC インラインスクリプトで `data-kb-skin` を bundle 前にセット。
+
+=== UI
+
+* ヘッダのユーザーメニューに**スキン選択 select**を追加（テーマ select の隣）。
+* Theme Studio に「本文スキン」セクション（builtin 選択＋カスタム CSS 追加/削除）。
+* asciidoctor-skins の配色プリセット（`asciidoctor_skin_presets.js`）を拡充。
+
+== フェーズ
+
+[cols="1,4,1"]
+|===
+|Phase |内容 |状態
+
+|1
+|スキン機構の土台: `data-kb-skin` 属性 / `memo_skins.js`（apply・select・列挙）/ localStorage 拡張 /
+themes.css の本文上書きを `[data-kb-skin="auto"]` 限定へ / `memo-skins.css` 新設 / ヘッダ select / builtin スキン 1 種で検証。
+|完了
+
+|2
+|builtin フルスキン拡充（`github` / `tufte` / `notebook` / `riak` など。構造・タイポ含む）。
+|未着手
+
+|3
+|DB 永続化（`AccountThemePreference` に `active_skin_id`/`custom_skins`、`/theme.json`、ブートストラップ、theme_sync）と
+カスタム CSS スキンの追加/削除（Theme Studio）。CSS のサニタイズ方針を確定。
+|未着手
+
+|4
+|Theme Studio の asciidoctor-skins 配色プリセット拡充（配色のみ）。
+|未着手
+|===
+
+== 留意点
+
+* 既定 `auto` で**既存ユーザーの見た目は不変**であること（回帰させない）。
+* Phase 1 実装メモ: localStorage（`kbmemo_themes_v1`）に `activeSkinId` / `customSkins` を追加済み。
+  ログイン時の DB 同期はまだ無いので、別端末間の同期は Phase 3 で対応。anti-FOUC スクリプトは
+  account theme シード時に skin フィールドを保持するよう変更済み。builtin スキンは `auto` と `github`。
+* カスタム CSS は `.memo-body` 系セレクタ配下にスコープして注入し、chrome へ漏らさない。
+  生 CSS 受け入れ時のサニタイズ（`@import` 外部取得・`url()` の扱い等）を Phase 3 で決める。
+* Slim のドット記法は `[` を含むクラス名を解釈できないため、角括弧ユーティリティは `class="..."` で書く。

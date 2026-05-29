@@ -4,6 +4,8 @@
 @import "@kbmemo/adoc-preview/preview_hljs.css";
 @import "./asciidoctor-material-grey.css";
 @import "./themes.css";
+/* 本文スキン（data-kb-skin）。themes.css の本文上書きより後に置き、フルスキンが本文を全定義できるようにする。 */
+@import "./memo-skins.css";
 @import "./diagram_svg_viewer.css";
 @import "./diagram_source_viewer.css";
 

@@ -4,21 +4,35 @@ import {
   getStoredThemeId,
   populateThemeSelect,
 } from "../theme/theme.js"
+import {
+  applySkin,
+  getStoredSkinId,
+  populateSkinSelect,
+} from "../theme/memo_skins.js"
 
 // ヘッダー: 表示名ボタンで開く個人メニュー（外クリック・Escape で閉じる）
 export default class extends Controller {
-  static targets = ["panel", "button", "themeSelect"]
+  static targets = ["panel", "button", "themeSelect", "skinSelect"]
 
   connect() {
     if (this.hasThemeSelectTarget) {
       populateThemeSelect(this.themeSelectTarget)
       this.themeSelectTarget.value = getStoredThemeId()
     }
+    if (this.hasSkinSelectTarget) {
+      populateSkinSelect(this.skinSelectTarget)
+      this.skinSelectTarget.value = getStoredSkinId()
+    }
   }
 
   changeTheme() {
     if (!this.hasThemeSelectTarget) return
     applyTheme(this.themeSelectTarget.value)
+  }
+
+  changeSkin() {
+    if (!this.hasSkinSelectTarget) return
+    applySkin(this.skinSelectTarget.value)
   }
 
   disconnect() {

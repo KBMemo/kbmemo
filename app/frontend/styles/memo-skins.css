@@ -1,0 +1,121 @@
+/* メモ本文スキン（data-kb-skin）。chrome テーマと独立に `.memo-body` 系へ適用するフル CSS スキン。
+ *
+ * 設計（docs/architecture/memo-body-skins-roadmap.adoc）:
+ * - `data-kb-skin="auto"` は本ファイルでは何もしない（themes.css が chrome テーマに追従して本文を着色する）。
+ * - フルスキンは `--mg-*` を再定義しつつ、必要な構造・タイポを上書きする。
+ * - themes.css の本文向け上書きは `[data-kb-skin="auto"]` 限定なので、フルスキン選択時は干渉しない。
+ * - 必ず application.css で themes.css の後に import すること。
+ * - 適用先は show（.memo-body）・編集プレビュー・WYSIWYG の 3 セレクタ。
+ */
+
+/* ============================================================
+ * GitHub
+ * ============================================================ */
+
+html[data-kb-skin="github"] {
+  --mg-text: #1f2328;
+  --mg-surface: #ffffff;
+  --mg-primary: #d8dee4;
+  --mg-secondary: #0969da;
+  --mg-tertiary: #59636e;
+  --mg-on-primary: #1f2328;
+  --mg-border: #d0d7de;
+  --mg-divider: #d8dee4;
+  --mg-link: #0969da;
+  --mg-link-hover: #0969da;
+  --mg-link-alt: #0969da;
+  --mg-blockquote-bg: #ffffff;
+  --mg-code-bg: #f6f8fa;
+  --mg-sidebar-block-bg: #f6f8fa;
+  --mg-example-block-bg: #f6f8fa;
+  --mg-table-header-bg: #f6f8fa;
+  --mg-table-stripe-bg: #f6f8fa;
+}
+
+html[data-kb-skin="github"] .memo-body.asciidoctor,
+html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor,
+html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor {
+  color-scheme: light;
+  background: var(--mg-surface);
+  color: var(--mg-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial,
+    sans-serif;
+  line-height: 1.6;
+}
+
+/* 見出し: material-grey のグレーバーを廃し、GitHub 風の下線見出しにする。 */
+html[data-kb-skin="github"] .memo-body h1,
+html[data-kb-skin="github"] .memo-body h2,
+html[data-kb-skin="github"] .memo-body h3,
+html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor h1,
+html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor h2,
+html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor h3,
+html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor h1,
+html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor h2,
+html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor h3 {
+  background: transparent;
+  color: var(--mg-text) !important;
+  padding: 0;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+html[data-kb-skin="github"] .memo-body h1,
+html[data-kb-skin="github"] .memo-body h2,
+html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor h1,
+html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor h2,
+html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor h1,
+html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor h2 {
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--mg-divider);
+}
+
+html[data-kb-skin="github"] .memo-body h4,
+html[data-kb-skin="github"] .memo-body h5,
+html[data-kb-skin="github"] .memo-body h6,
+html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor h4,
+html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor h4 {
+  color: var(--mg-text);
+  font-weight: 600;
+  border-bottom: none;
+}
+
+/* セクション区切り線（material-grey の角丸グレー枠）を GitHub では出さない。 */
+html[data-kb-skin="github"] .memo-body .sect1 {
+  border-bottom: none;
+  border-radius: 0;
+}
+
+html[data-kb-skin="github"] .memo-body a,
+html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor a,
+html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor a {
+  color: var(--mg-link);
+  text-decoration: none;
+}
+
+html[data-kb-skin="github"] .memo-body a:hover,
+html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor a:hover,
+html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor a:hover {
+  text-decoration: underline;
+}
+
+html[data-kb-skin="github"] .memo-body code,
+html[data-kb-skin="github"] .memo-body pre,
+html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor code,
+html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor pre,
+html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor code,
+html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor pre {
+  background: var(--mg-code-bg);
+  color: var(--mg-text);
+  border-color: var(--mg-border);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+html[data-kb-skin="github"] .memo-body blockquote,
+html[data-kb-skin="github"] .memo-body .quoteblock,
+html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor blockquote,
+html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor blockquote {
+  border-left: 0.25em solid var(--mg-divider);
+  background: var(--mg-surface);
+  color: var(--mg-tertiary);
+}

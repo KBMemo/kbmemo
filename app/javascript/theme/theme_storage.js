@@ -11,9 +11,23 @@ import { getBuiltinTheme, THEME_TOKEN_DEFAULTS } from "./builtin_themes.js"
  * @property {ThemeRule[]} rules
  */
 
-/** @typedef {{ activeThemeId: string, customThemes: CustomTheme[] }} ThemeStorageState */
+/**
+ * @typedef {object} CustomSkin
+ * @property {string} id
+ * @property {string} label
+ * @property {string} css
+ */
+
+/**
+ * @typedef {object} ThemeStorageState
+ * @property {string} activeThemeId
+ * @property {CustomTheme[]} customThemes
+ * @property {string} activeSkinId
+ * @property {CustomSkin[]} customSkins
+ */
 
 export const THEME_STORAGE_KEY = "kbmemo_themes_v1"
+export const DEFAULT_SKIN_ID = "auto"
 const LEGACY_SKIN_STORAGE_KEY = "kbmemo_adoc_preview_skin"
 
 /** @returns {ThemeStorageState} */
@@ -37,7 +51,7 @@ export function saveThemeStorage(state) {
 
 /** @returns {ThemeStorageState} */
 function defaultThemeStorage() {
-  return { activeThemeId: "default", customThemes: [] }
+  return { activeThemeId: "default", customThemes: [], activeSkinId: DEFAULT_SKIN_ID, customSkins: [] }
 }
 
 /** @param {unknown} value */
@@ -51,8 +65,26 @@ function normalizeThemeStorage(value) {
   const customThemes = Array.isArray(record.customThemes)
     ? record.customThemes.map(normalizeCustomTheme).filter(Boolean)
     : []
+  const activeSkinId =
+    typeof record.activeSkinId === "string" ? record.activeSkinId : fallback.activeSkinId
+  const customSkins = Array.isArray(record.customSkins)
+    ? record.customSkins.map(normalizeCustomSkin).filter(Boolean)
+    : []
 
-  return { activeThemeId, customThemes }
+  return { activeThemeId, customThemes, activeSkinId, customSkins }
+}
+
+/** @param {unknown} value */
+function normalizeCustomSkin(value) {
+  if (!value || typeof value !== "object") return null
+
+  const record = /** @type {Record<string, unknown>} */ (value)
+  const id = typeof record.id === "string" ? record.id : null
+  const label = typeof record.label === "string" ? record.label : null
+  const css = typeof record.css === "string" ? record.css : ""
+  if (!id || !label) return null
+
+  return /** @type {CustomSkin} */ ({ id, label, css })
 }
 
 /** @param {unknown} value */
@@ -145,6 +177,44 @@ export function deleteCustomTheme(themeId) {
   state.customThemes = state.customThemes.filter((theme) => theme.id !== themeId)
   if (state.activeThemeId === themeId) {
     state.activeThemeId = "default"
+  }
+  saveThemeStorage(state)
+}
+
+/** @param {{ id?: string, label: string, css?: string }} input */
+export function createCustomSkin(input) {
+  const id = input.id ?? `custom-skin-${crypto.randomUUID()}`
+  return /** @type {CustomSkin} */ ({
+    id,
+    label: input.label.trim() || "Custom skin",
+    css: input.css ?? "",
+  })
+}
+
+/** @param {string} skinId */
+export function findCustomSkin(skinId) {
+  return loadThemeStorage().customSkins.find((skin) => skin.id === skinId) ?? null
+}
+
+/** @param {CustomSkin} skin */
+export function upsertCustomSkin(skin) {
+  const state = loadThemeStorage()
+  const index = state.customSkins.findIndex((entry) => entry.id === skin.id)
+  if (index >= 0) {
+    state.customSkins[index] = skin
+  } else {
+    state.customSkins.push(skin)
+  }
+  saveThemeStorage(state)
+  return skin
+}
+
+/** @param {string} skinId */
+export function deleteCustomSkin(skinId) {
+  const state = loadThemeStorage()
+  state.customSkins = state.customSkins.filter((skin) => skin.id !== skinId)
+  if (state.activeSkinId === skinId) {
+    state.activeSkinId = DEFAULT_SKIN_ID
   }
   saveThemeStorage(state)
 }
