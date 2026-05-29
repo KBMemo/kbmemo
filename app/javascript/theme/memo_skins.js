@@ -22,6 +22,11 @@ const CUSTOM_SKIN_STYLE_ID = "kbmemo-custom-skin-style"
 export const BUILTIN_SKINS = [
   { id: "auto", label: "Auto（テーマ追従）", builtin: true },
   { id: "github", label: "GitHub", builtin: true },
+  { id: "tufte", label: "Tufte", builtin: true },
+  { id: "notebook", label: "Notebook", builtin: true },
+  { id: "dark", label: "Dark", builtin: true },
+  { id: "riak", label: "Riak", builtin: true },
+  { id: "medium", label: "Medium", builtin: true },
 ]
 
 /** @param {string} skinId */

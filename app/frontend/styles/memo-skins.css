@@ -2,22 +2,83 @@
  *
  * 設計（docs/architecture/memo-body-skins-roadmap.adoc）:
  * - `data-kb-skin="auto"` は本ファイルでは何もしない（themes.css が chrome テーマに追従して本文を着色する）。
- * - フルスキンは `--mg-*` を再定義しつつ、必要な構造・タイポを上書きする。
+ * - 「汎用フルスキン層」が非 auto スキン共通の骨格を `--mg-*` と `--skin-*` トークンで描く。
+ *   各スキンはトークンを差し替えるだけ（個別の特殊表現のみ追記）。
  * - themes.css の本文向け上書きは `[data-kb-skin="auto"]` 限定なので、フルスキン選択時は干渉しない。
  * - 必ず application.css で themes.css の後に import すること。
- * - 適用先は show（.memo-body）・編集プレビュー・WYSIWYG の 3 セレクタ。
+ * - 適用先は show（.memo-body）・編集プレビュー・WYSIWYG の 3 セレクタ（`:is()` でまとめる）。
  */
 
 /* ============================================================
- * GitHub
+ * 汎用フルスキン層（非 auto スキン共通）
  * ============================================================ */
 
+html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) {
+  background: var(--mg-surface);
+  color: var(--mg-text);
+  font-family: var(--skin-body-font, inherit);
+  line-height: var(--skin-line-height, 1.6);
+}
+
+/* 見出し: material-grey のグレーバーを既定で解除し、スキン側のトークンで上書きする。 */
+html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(h1, h2, h3) {
+  background: var(--skin-heading-bg, transparent);
+  color: var(--skin-heading-color, var(--mg-text)) !important;
+  padding: var(--skin-heading-pad, 0);
+  font-family: var(--skin-heading-font, inherit);
+  font-weight: var(--skin-heading-weight, 600);
+  line-height: 1.25;
+}
+
+html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(h1, h2) {
+  border-bottom: var(--skin-heading-rule, none);
+  padding-bottom: var(--skin-heading-rule-pad, 0);
+}
+
+html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(h4, h5, h6) {
+  background: transparent;
+  color: var(--skin-heading-color, var(--mg-text));
+  font-family: var(--skin-heading-font, inherit);
+  font-weight: var(--skin-heading-weight, 600);
+  border-bottom: none;
+}
+
+/* material-grey のセクション角丸グレー枠はフルスキンでは出さない。 */
+html:not([data-kb-skin="auto"]) :is(.memo-body, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) .sect1 {
+  border-bottom: none;
+  border-radius: 0;
+}
+
+html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) a {
+  color: var(--mg-link);
+  text-decoration: var(--skin-link-decoration, none);
+}
+
+html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) a:hover {
+  color: var(--mg-link-hover, var(--mg-link));
+  text-decoration: underline;
+}
+
+html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(code, pre) {
+  background: var(--mg-code-bg);
+  color: var(--skin-code-color, var(--mg-text));
+  border-color: var(--mg-border);
+  font-family: var(--skin-mono-font, ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace);
+}
+
+html:not([data-kb-skin="auto"]) :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) :is(blockquote, .quoteblock) {
+  border-left: 0.25em solid var(--skin-quote-border, var(--mg-divider));
+  background: var(--mg-blockquote-bg);
+  color: var(--skin-quote-color, inherit);
+}
+
+/* ============================================================
+ * GitHub — クリーンな下線見出し
+ * ============================================================ */
 html[data-kb-skin="github"] {
   --mg-text: #1f2328;
   --mg-surface: #ffffff;
   --mg-primary: #d8dee4;
-  --mg-secondary: #0969da;
-  --mg-tertiary: #59636e;
   --mg-on-primary: #1f2328;
   --mg-border: #d0d7de;
   --mg-divider: #d8dee4;
@@ -26,96 +87,158 @@ html[data-kb-skin="github"] {
   --mg-link-alt: #0969da;
   --mg-blockquote-bg: #ffffff;
   --mg-code-bg: #f6f8fa;
-  --mg-sidebar-block-bg: #f6f8fa;
-  --mg-example-block-bg: #f6f8fa;
   --mg-table-header-bg: #f6f8fa;
   --mg-table-stripe-bg: #f6f8fa;
+  --skin-body-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  --skin-heading-rule: 1px solid var(--mg-divider);
+  --skin-heading-rule-pad: 0.3em;
+  --skin-quote-border: var(--mg-divider);
+  --skin-quote-color: #59636e;
 }
 
-html[data-kb-skin="github"] .memo-body.asciidoctor,
-html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor,
-html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor {
-  color-scheme: light;
-  background: var(--mg-surface);
-  color: var(--mg-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial,
-    sans-serif;
-  line-height: 1.6;
+/* ============================================================
+ * Tufte — セリフ・クリーム背景・控えめな見出し
+ * ============================================================ */
+html[data-kb-skin="tufte"] {
+  --mg-text: #111111;
+  --mg-surface: #fffff8;
+  --mg-primary: #cfcfc4;
+  --mg-on-primary: #111111;
+  --mg-border: #cfcfc4;
+  --mg-divider: #cfcfc4;
+  --mg-link: #111111;
+  --mg-link-hover: #111111;
+  --mg-blockquote-bg: #fffff8;
+  --mg-code-bg: #f3f3ec;
+  --mg-table-header-bg: #f3f3ec;
+  --mg-table-stripe-bg: #faf9ef;
+  --skin-body-font: Palatino, "Palatino Linotype", "Book Antiqua", Georgia, "Times New Roman", serif;
+  --skin-heading-font: Palatino, "Palatino Linotype", Georgia, serif;
+  --skin-heading-weight: 400;
+  --skin-line-height: 1.7;
+  --skin-link-decoration: underline;
+  --skin-quote-border: #cfcfc4;
 }
 
-/* 見出し: material-grey のグレーバーを廃し、GitHub 風の下線見出しにする。 */
-html[data-kb-skin="github"] .memo-body h1,
-html[data-kb-skin="github"] .memo-body h2,
-html[data-kb-skin="github"] .memo-body h3,
-html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor h1,
-html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor h2,
-html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor h3,
-html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor h1,
-html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor h2,
-html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor h3 {
-  background: transparent;
-  color: var(--mg-text) !important;
-  padding: 0;
-  font-weight: 600;
-  line-height: 1.25;
+html[data-kb-skin="tufte"] :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) h2 {
+  font-style: italic;
 }
 
-html[data-kb-skin="github"] .memo-body h1,
-html[data-kb-skin="github"] .memo-body h2,
-html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor h1,
-html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor h2,
-html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor h1,
-html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor h2 {
-  padding-bottom: 0.3em;
-  border-bottom: 1px solid var(--mg-divider);
+/* ============================================================
+ * Notebook — 罫線ノート・ブルー見出し・付箋コード
+ * ============================================================ */
+html[data-kb-skin="notebook"] {
+  --mg-text: #1b1b1b;
+  --mg-surface: #ffffff;
+  --mg-primary: #1a237e;
+  --mg-on-primary: #ffffff;
+  --mg-border: #abced4;
+  --mg-divider: #abced4;
+  --mg-link: #0d47a1;
+  --mg-link-hover: #b71c1c;
+  --mg-blockquote-bg: #f7f7ff;
+  --mg-code-bg: #000000;
+  --mg-table-header-bg: #ffffff;
+  --mg-table-stripe-bg: #f7f7ff;
+  --skin-body-font: "Comic Sans MS", "Segoe Print", "Bradley Hand", "Chalkboard SE", cursive;
+  --skin-heading-font: "Comic Sans MS", "Segoe Print", "Bradley Hand", "Chalkboard SE", cursive;
+  --skin-heading-color: #1a237e;
+  --skin-code-color: #ffd600;
+  --skin-quote-color: #1a237e;
+  --skin-quote-border: #1a237e;
 }
 
-html[data-kb-skin="github"] .memo-body h4,
-html[data-kb-skin="github"] .memo-body h5,
-html[data-kb-skin="github"] .memo-body h6,
-html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor h4,
-html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor h4 {
-  color: var(--mg-text);
-  font-weight: 600;
-  border-bottom: none;
+html[data-kb-skin="notebook"] :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) h1 {
+  color: #000000 !important;
 }
 
-/* セクション区切り線（material-grey の角丸グレー枠）を GitHub では出さない。 */
-html[data-kb-skin="github"] .memo-body .sect1 {
-  border-bottom: none;
-  border-radius: 0;
+/* 罫線ノート風の背景。 */
+html[data-kb-skin="notebook"] :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) {
+  background-image: linear-gradient(90deg, transparent 79px, #f3b5b5 79px, #f3b5b5 81px, transparent 81px),
+    linear-gradient(#eaeaea 0.1em, transparent 0.1em);
+  background-size: 100% 1.6em;
 }
 
-html[data-kb-skin="github"] .memo-body a,
-html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor a,
-html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor a {
-  color: var(--mg-link);
-  text-decoration: none;
+html[data-kb-skin="notebook"] :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) pre {
+  background: #fff7c0;
+  color: #1a237e;
 }
 
-html[data-kb-skin="github"] .memo-body a:hover,
-html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor a:hover,
-html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor a:hover {
-  text-decoration: underline;
+/* ============================================================
+ * Dark — chrome と独立した暗い本文（One Dark 系）
+ * ============================================================ */
+html[data-kb-skin="dark"] {
+  color-scheme: dark;
+  --mg-text: #e6e6e6;
+  --mg-surface: #282c34;
+  --mg-primary: #f39c12;
+  --mg-on-primary: #ffffff;
+  --mg-border: #3a3f4b;
+  --mg-divider: #3a3f4b;
+  --mg-link: #f44336;
+  --mg-link-hover: #ff9800;
+  --mg-blockquote-bg: #21252b;
+  --mg-code-bg: #21252b;
+  --mg-table-header-bg: #21252b;
+  --mg-table-stripe-bg: #2c313a;
+  --skin-body-font: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  --skin-heading-color: #03a9f4;
+  --skin-code-color: #ff9800;
+  --skin-quote-color: #4db6ac;
+  --skin-quote-border: #4db6ac;
 }
 
-html[data-kb-skin="github"] .memo-body code,
-html[data-kb-skin="github"] .memo-body pre,
-html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor code,
-html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor pre,
-html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor code,
-html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor pre {
-  background: var(--mg-code-bg);
-  color: var(--mg-text);
-  border-color: var(--mg-border);
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+html[data-kb-skin="dark"] :is(.memo-body.asciidoctor, .memo-body-editor__preview-content.asciidoctor, .memo-body-editor__wysiwyg-content.asciidoctor) h1 {
+  color: #f39c12 !important;
 }
 
-html[data-kb-skin="github"] .memo-body blockquote,
-html[data-kb-skin="github"] .memo-body .quoteblock,
-html[data-kb-skin="github"] .memo-body-editor__preview-content.asciidoctor blockquote,
-html[data-kb-skin="github"] .memo-body-editor__wysiwyg-content.asciidoctor blockquote {
-  border-left: 0.25em solid var(--mg-divider);
-  background: var(--mg-surface);
-  color: var(--mg-tertiary);
+/* ============================================================
+ * Riak — Helvetica 系・グレー見出し・控えめリンク
+ * ============================================================ */
+html[data-kb-skin="riak"] {
+  --mg-text: #222222;
+  --mg-surface: #ffffff;
+  --mg-primary: #616366;
+  --mg-on-primary: #ffffff;
+  --mg-border: #c9c9c9;
+  --mg-divider: #dddddd;
+  --mg-link: #2984a9;
+  --mg-link-hover: #2984a9;
+  --mg-blockquote-bg: #ffffff;
+  --mg-code-bg: #dfdfdf;
+  --mg-table-header-bg: #dfdfdf;
+  --mg-table-stripe-bg: #f1f1f1;
+  --skin-body-font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --skin-heading-font: "Titillium Web", Verdana, Arial, sans-serif;
+  --skin-heading-color: #616366;
+  --skin-heading-weight: 400;
+  --skin-link-decoration: underline;
+  --skin-code-color: #515151;
+  --skin-quote-border: #dddddd;
+  --skin-quote-color: #616366;
+}
+
+/* ============================================================
+ * Medium — セリフ本文・サンセリフ見出し
+ * ============================================================ */
+html[data-kb-skin="medium"] {
+  --mg-text: #292929;
+  --mg-surface: #ffffff;
+  --mg-primary: #292929;
+  --mg-on-primary: #ffffff;
+  --mg-border: #e6e6e6;
+  --mg-divider: #e6e6e6;
+  --mg-link: #1a8917;
+  --mg-link-hover: #1a8917;
+  --mg-blockquote-bg: #ffffff;
+  --mg-code-bg: #f2f2f2;
+  --mg-table-header-bg: #f2f2f2;
+  --mg-table-stripe-bg: #fafafa;
+  --skin-body-font: Georgia, Cambria, "Times New Roman", Times, serif;
+  --skin-heading-font: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Geneva, Arial, sans-serif;
+  --skin-heading-weight: 700;
+  --skin-line-height: 1.75;
+  --skin-link-decoration: underline;
+  --skin-quote-border: #292929;
+  --skin-quote-color: #555555;
 }

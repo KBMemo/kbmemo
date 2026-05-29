@@ -89,7 +89,7 @@ themes.css の本文上書きを `[data-kb-skin="auto"]` 限定へ / `memo-skins
 
 |2
 |builtin フルスキン拡充（`github` / `tufte` / `notebook` / `riak` など。構造・タイポ含む）。
-|未着手
+|完了
 
 |3
 |DB 永続化（`AccountThemePreference` に `active_skin_id`/`custom_skins`、`/theme.json`、ブートストラップ、theme_sync）と
@@ -106,7 +106,11 @@ themes.css の本文上書きを `[data-kb-skin="auto"]` 限定へ / `memo-skins
 * 既定 `auto` で**既存ユーザーの見た目は不変**であること（回帰させない）。
 * Phase 1 実装メモ: localStorage（`kbmemo_themes_v1`）に `activeSkinId` / `customSkins` を追加済み。
   ログイン時の DB 同期はまだ無いので、別端末間の同期は Phase 3 で対応。anti-FOUC スクリプトは
-  account theme シード時に skin フィールドを保持するよう変更済み。builtin スキンは `auto` と `github`。
+  account theme シード時に skin フィールドを保持するよう変更済み。
+* Phase 2 実装メモ: `memo-skins.css` を「汎用フルスキン層（`html:not([data-kb-skin="auto"]) :is(...)`）＋
+  スキン別トークン」構成に整理。各スキンは `--mg-*` / `--skin-*` を差し替えるだけ。
+  builtin スキン = `auto` / `github` / `tufte` / `notebook` / `dark` / `riak` / `medium`。
+  Web フォント（et-book・Architects Daughter 等）は同梱せず system フォントへフォールバック。
 * カスタム CSS は `.memo-body` 系セレクタ配下にスコープして注入し、chrome へ漏らさない。
   生 CSS 受け入れ時のサニタイズ（`@import` 外部取得・`url()` の扱い等）を Phase 3 で決める。
 * Slim のドット記法は `[` を含むクラス名を解釈できないため、角括弧ユーティリティは `class="..."` で書く。

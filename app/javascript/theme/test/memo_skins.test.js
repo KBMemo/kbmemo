@@ -34,6 +34,13 @@ describe("memo_skins", () => {
     expect(loadThemeStorage().activeSkinId).toBe("github")
   })
 
+  it("applies every builtin full skin", () => {
+    for (const id of ["github", "tufte", "notebook", "dark", "riak", "medium"]) {
+      expect(applySkin(id)).toBe(id)
+      expect(document.documentElement.dataset.kbSkin).toBe(id)
+    }
+  })
+
   it("falls back to auto for an unknown skin id", () => {
     expect(applySkin("does-not-exist")).toBe("auto")
     expect(document.documentElement.dataset.kbSkin).toBe("auto")
