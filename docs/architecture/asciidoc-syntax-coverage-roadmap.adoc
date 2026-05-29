@@ -9,6 +9,7 @@
 *ブランチ:* `feature/asciidoc-syntax-coverage-phase-f`（未対応記法の実装用）
 *テスト:* `npm run test:packages`（フィクスチャの HL / EU smoke、fixture↔roadmap 同期）
 *計測:* `npm run report:syntax-coverage`（全 syntax-ref セクションの HL / EU 件数レポート）
+*サンプルメモ:* `bin/rails kbmemo:asciidoc_samples:seed`（各 syntax-ref id の手動確認メモを「AsciiDoc カバレッジ」ノートブックへ upsert。<<sample-memos>> 参照）
 
 == レイヤの定義
 
@@ -200,6 +201,28 @@
 
 *テスト:* `phase_f_highlight.test.js`
 
+[#sample-memos]
+== サンプルメモ（手動確認用）
+
+各 syntax-ref id の記法を KBMemo 上で手動確認するためのサンプルメモを、開発環境の「AsciiDoc カバレッジ」ノートブックへ冪等に upsert する Rake タスク。
+
+[source,bash]
+----
+bin/rails kbmemo:asciidoc_samples:seed
+DRY_RUN=1 bin/rails kbmemo:asciidoc_samples:seed                 # 変更内容のみ表示（永続化しない）
+ACCOUNT_ID=1 bin/rails kbmemo:asciidoc_samples:seed              # 対象アカウントを明示
+FIXTURE_PATH=path/to/other.adoc bin/rails kbmemo:asciidoc_samples:seed
+----
+
+* *本文の正* は `test/fixtures/asciidoc/syntax-quick-reference.adoc`（`// kbmemo:syntax-ref:<id>` マーカー単位の断片）。Web ではなくフィクスチャを使うことで、計測・テストと内容が一致する。
+* *1 id = 1 メモ*（タイトル = id、本文 = `= id` + フィクスチャ断片）。`public/u-{id}/asciidoc` に配置、タグ `asciidoc`、`owner_read_write`。**編集可能**（docs-sync の read-only とは別物 — WYSIWYG/各レイヤの編集試験に使うため）。
+* *冪等キー* は `properties.asciidoc_sample.syntax_ref_id`。既存の手動サンプルはタイトル（`id` / `id (AsciiDoc 記法チェック)` / 別名）で同定し、タイトルを id へ正規化する（本文・タグ・ディレクトリ・スラッグは保持＝編集を尊重）。再実行は create=0 / update=全件。
+* *チェックリストノート*「AsciiDoc 記法対応ノート」を本表（ロードマップ）順・全 id で再構成。サンプルあり = `* [x] [[id]]`、未作成 = プレーン表記。
+* `kbmemo-wiki` / `kbmemo-diagram` / `kbmemo-math` は公式 QR 外のため対象外（別途 KBMemo 記法版を用意）。
+
+*実装:* `lib/tasks/asciidoc_samples.rake`、`app/services/kbmemo_asciidoc_samples/{seed,fixture}.rb`
+*テスト:* `test/services/kbmemo_asciidoc_samples/{seed,fixture}_test.rb`
+
 == 作業ルール
 
 * 各 PR は `syntax-ref` id を 1〜3 個に絞る
@@ -214,3 +237,4 @@
 * link:memo-body-editor-roadmap.adoc[メモ本文エディタ ロードマップ] — Phase 4/5 製品範囲
 * `test/fixtures/asciidoc/syntax-quick-reference.adoc`
 * `packages/adoc-codemirror/test/syntax_quick_reference.test.js`
+* `lib/tasks/asciidoc_samples.rake` — サンプルメモ seed（`kbmemo:asciidoc_samples:seed`、<<sample-memos>>）
