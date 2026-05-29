@@ -9,6 +9,7 @@ ruby:
 
 = form_with model: @memo_directory, class: "space-y-5", data: form_data do |f|
   = hidden_field_tag :dialog, "1" if dialog_mode
+  = hidden_field_tag :board_picker, "1" if params[:board_picker].present?
 
   - if @memo_directory.errors.any?
     .rounded-md.border.border-red-200.bg-red-50.px-4.py-3.text-sm.text-red-900

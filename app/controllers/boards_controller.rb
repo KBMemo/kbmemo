@@ -112,7 +112,7 @@ class BoardsController < ApplicationController
   end
 
   def prepare_directory_options
-    @memo_directory_options = policy_scope(MemoDirectory).nav_ordered.select { |d| d.directory_picker_selectable?(admin: rodauth.rails_account.admin?) }
+    @new_directory_parent_id = MemoDirectory::UserSpace.default_home_directory(rodauth.rails_account.id).id
   end
 
   def board_params

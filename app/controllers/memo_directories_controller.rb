@@ -50,7 +50,13 @@ class MemoDirectoriesController < ApplicationController
     end
     authorize @memo_directory
     if @memo_directory.save
-      if dialog_request?
+      if params[:board_picker].present?
+        render turbo_stream: turbo_stream.update(
+          "board_directory_picker",
+          partial: "boards/directory_picker_field",
+          locals: { selected_directory: @memo_directory }
+        )
+      elsif dialog_request?
         flash.now[:notice] = "ディレクトリを作成しました。"
         render_sidebar_refresh_stream
       else

@@ -8,6 +8,7 @@ import {
 
 export default class extends Controller {
   static targets = ["dialog", "body"]
+  static values = { newQuery: String }
 
   connect() {
     this._onCancel = (event) => {
@@ -26,7 +27,11 @@ export default class extends Controller {
     event.stopPropagation()
     const parentId = event.params.parentId
     if (!parentId) return
-    void this.loadForm(`/memo_directories/new?dialog=1&parent_id=${encodeURIComponent(parentId)}`)
+    const params = new URLSearchParams({ dialog: "1", parent_id: parentId })
+    if (this.hasNewQueryValue && this.newQueryValue) {
+      new URLSearchParams(this.newQueryValue).forEach((value, key) => params.set(key, value))
+    }
+    void this.loadForm(`/memo_directories/new?${params.toString()}`)
   }
 
   openEdit(event) {
