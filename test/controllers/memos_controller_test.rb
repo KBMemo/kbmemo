@@ -72,7 +72,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "#sidebar_row_memo_#{two.id}"
     assert_select "#sidebar_row_memo_#{three.id}"
     assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{one.id},#{three.id},#{two.id}']"
-    assert_select "#memos_list_panel a[data-turbo-prefetch='false']", minimum: 3
+    # 履歴リンクの Turbo prefetch は有効。記録は同期リフレッシュ側で open_memo_id を使って行うため、
+    # hover prefetch が順序を崩すことはない。
+    assert_select "#memos_list_panel a[data-turbo-prefetch='false']", count: 0
   end
 
   test "history tab clicking C in A B C D order yields C A B D" do
@@ -173,7 +175,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "#memo_sidebar_memo_list_container ul.divide-y > li:nth-child(2)#sidebar_row_memo_#{memo_a.id}"
   end
 
-  test "sidebar_memo_list returns history order without recording views" do
+  test "sidebar_memo_list moves the open memo to the top for an already-viewed memo" do
     one = memos(:one)
     two = memos(:two)
     three = Memo.create!(
@@ -189,19 +191,61 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
       travel 1.minute
       get memo_url(two)
       travel 1.minute
-      get memo_url(three)
-      travel 1.minute
-      get memo_url(one, sidebar_view: "history")
+      get memo_url(three) # 順序: three, two, one
     end
 
+    # Turbo の prefetch キャッシュ再利用で本リクエストがサーバーに届かなかったクリック相当。
+    # 同期リフレッシュが open_memo_id を先頭へ移動させる。既存メモなので件数は増えない。
     assert_no_difference -> { MemoViewHistory.count } do
-      get sidebar_memo_list_memos_url(sidebar_view: "history", open_memo_id: one.id),
+      get sidebar_memo_list_memos_url(sidebar_view: "history", open_memo_id: two.id),
         headers: { "X-Kbmemo-Sidebar-Sync" => "1" }
     end
     assert_response :success
-    assert_select "#memo_sidebar_memo_list_container"
-    assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{one.id},#{three.id},#{two.id}']"
-    assert_select "#memo_sidebar_memo_list_container ul.divide-y > li:nth-child(1)#sidebar_row_memo_#{one.id}"
+    assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{two.id},#{three.id},#{one.id}']"
+    assert_select "#memo_sidebar_memo_list_container ul.divide-y > li:nth-child(1)#sidebar_row_memo_#{two.id}"
+  end
+
+  test "sidebar_memo_list records a newly opened memo into history" do
+    one = memos(:one)
+    fresh = Memo.create!(
+      title: "Never viewed yet",
+      body: "body",
+      memo_directory: memo_directories(:work),
+      account: accounts(:one),
+      file_committed_at: Time.current
+    )
+
+    travel_to Time.zone.parse("2026-01-01 12:00:00") do
+      get memo_url(one)
+    end
+
+    # prefetch キャッシュ経由で初めて開いたメモも、同期リフレッシュで履歴へ追加される。
+    assert_difference -> { MemoViewHistory.where(account_id: accounts(:one).id, memo_id: fresh.id).count }, 1 do
+      get sidebar_memo_list_memos_url(sidebar_view: "history", open_memo_id: fresh.id),
+        headers: { "X-Kbmemo-Sidebar-Sync" => "1" }
+    end
+    assert_response :success
+    assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{fresh.id},#{one.id}']"
+    assert_select "#memo_sidebar_memo_list_container ul.divide-y > li:nth-child(1)#sidebar_row_memo_#{fresh.id}"
+  end
+
+  test "sidebar_memo_list does not record a prefetch refresh" do
+    one = memos(:one)
+    two = memos(:two)
+
+    travel_to Time.zone.parse("2026-01-01 12:00:00") do
+      get memo_url(one)
+      travel 1.minute
+      get memo_url(two) # 順序: two, one
+    end
+
+    # 同期リフレッシュ自体が prefetch された場合は記録しない（順序を崩さない）。
+    assert_no_difference -> { MemoViewHistory.maximum(:view_sequence) } do
+      get sidebar_memo_list_memos_url(sidebar_view: "history", open_memo_id: one.id),
+        headers: { "X-Kbmemo-Sidebar-Sync" => "1", "X-Sec-Purpose" => "prefetch" }
+    end
+    assert_response :success
+    assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{two.id},#{one.id}']"
   end
 
   test "show from search keeps memo open without syncing directory sidebar" do

@@ -179,12 +179,6 @@ module MemosHelper
     @memos.map(&:id).join(",")
   end
 
-  def memo_sidebar_history_link_data
-    return {} unless defined?(@sidebar_view) && @sidebar_view == "history"
-
-    { turbo_prefetch: false }
-  end
-
   # サイドバー用: policy_scope 内のディレクトリを parent_id でグルーピング（ルート行は除外）
   def memo_directory_nav_children_index(directories)
     all = Array(directories)

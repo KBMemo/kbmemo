@@ -33,6 +33,12 @@ class MemosController < ApplicationController
 
     if params[:open_memo_id].present?
       @memo = policy_scope(Memo).find_by(id: params[:open_memo_id])
+      # 表示中メモの履歴記録をこの同期リフレッシュで行う。Turbo の prefetch キャッシュ再利用で
+      # 実クリックがサーバーに届かない場合でも、ここで move-to-top を成立させる。
+      # この同期エンドポイント自体が prefetch された場合は記録しない（順序を崩さない）。
+      if !turbo_prefetch_request? && record_view_for(@memo)
+        load_sidebar_memos_list # 記録後の最新順で一覧を再構築する
+      end
     end
     render partial: "memos/sidebar_memo_list_container", layout: false
   end
@@ -491,11 +497,18 @@ class MemosController < ApplicationController
   def record_memo_view_history
     return if sidebar_sync_request?
     return if turbo_prefetch_request?
-    account = rodauth.rails_account
-    return unless account && @memo&.persisted?
-    return unless policy(@memo).show?
 
-    MemoViewHistory.record!(account: account, memo: @memo)
+    record_view_for(@memo)
+  end
+
+  # メモの表示履歴を記録する（記録できたら true）。
+  def record_view_for(memo)
+    account = rodauth.rails_account
+    return false unless account && memo&.persisted?
+    return false unless policy(memo).show?
+
+    MemoViewHistory.record!(account: account, memo: memo)
+    true
   end
 
   def sidebar_sync_request?
