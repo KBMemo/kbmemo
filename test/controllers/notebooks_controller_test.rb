@@ -197,6 +197,29 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to notebook_path(notebook, memo_id: memo.id)
   end
 
+  test "create_blank creates a new memo and appends it to the notebook end" do
+    notebook = notebooks(:one)
+    last_position = notebook.notebook_memos.where(parent_id: nil).maximum(:position).to_i
+
+    assert_difference -> { Memo.count }, 1 do
+      assert_difference -> { notebook.notebook_memos.count }, 1 do
+        post create_blank_notebook_notebook_memos_url(notebook)
+      end
+    end
+
+    new_entry = notebook.notebook_memos.order(:position, :id).last
+    assert_nil new_entry.parent_id
+    assert_equal last_position + 1, new_entry.position
+    assert_redirected_to edit_memo_path(new_entry.memo_id)
+  end
+
+  test "notebook sidebar shows the new-memo button for the owner" do
+    notebook = notebooks(:one)
+    get notebook_url(notebook)
+    assert_response :success
+    assert_select "form[action=?]", create_blank_notebook_notebook_memos_path(notebook)
+  end
+
   test "add docs_sync read-only memo to notebook when user can view but not edit" do
     notebook = notebooks(:two)
     memo = memos(:two)

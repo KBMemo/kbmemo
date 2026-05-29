@@ -123,6 +123,15 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "show links to the notebook the memo belongs to" do
+    memo = memos(:one)
+    notebook = notebooks(:one)
+
+    get memo_url(memo)
+    assert_response :success
+    assert_select "a[href=?]", notebook_path(notebook, memo_id: memo.id), text: notebook.title
+  end
+
   test "show skips memo view history for sidebar sync requests" do
     memo = memos(:one)
     assert_no_difference -> { MemoViewHistory.where(account_id: accounts(:one).id, memo_id: memo.id).count } do
@@ -418,6 +427,15 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_equal two.id, body["Second memo"]["memo_id"]
     assert_not body["Missing"]["resolved"]
     assert_nil body["Missing"]["memo_id"]
+  end
+
+  test "edit shows a back link to the notebook the memo belongs to" do
+    memo = memos(:one)
+    notebook = notebooks(:one)
+
+    get edit_memo_url(memo)
+    assert_response :success
+    assert_select "a[href=?]", notebook_path(notebook, memo_id: memo.id)
   end
 
   test "edit has memo draft stimulus bindings" do

@@ -20,6 +20,14 @@ ruby:
                 board_path(memo.board),
                 class: "underline decoration-[var(--kb-border-strong)] hover:text-[var(--kb-text-primary)]",
                 title: "カンバンボードを開く"
+            - if memo.notebook.present? && policy(memo.notebook).show?
+              span.kb-text-subtle aria-hidden="true" ·
+              span.inline-flex.min-w-0.items-center.gap-1
+                i class="h-3.5 w-3.5 shrink-0 kb-text-subtle" aria-hidden="true" data-lucide="book-open"
+                = link_to memo.notebook.title,
+                  notebook_path(memo.notebook, memo_id: memo.id),
+                  class: "min-w-0 truncate underline decoration-[var(--kb-border-strong)] hover:text-[var(--kb-text-primary)]",
+                  title: "ノートブックを開く"
             - dir = memo.memo_directory
             - if metadata_editable
               span.kb-text-subtle aria-hidden="true" ·

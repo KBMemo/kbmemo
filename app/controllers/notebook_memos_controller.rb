@@ -19,6 +19,19 @@ class NotebookMemosController < ApplicationController
     head :not_found
   end
 
+  def create_blank
+    authorize @notebook, :manage_memos?
+
+    memo = Memo.new(account: rodauth.rails_account, memo_directory_id: default_memo_directory_id)
+    authorize memo, :create?
+    memo.save!
+
+    Notebooks::AddMemo.call(notebook: @notebook, memo: memo)
+    redirect_to edit_memo_path(memo), notice: "メモを作成して末尾に追加しました。"
+  rescue Notebooks::Error => e
+    redirect_to notebook_path(@notebook), alert: e.message
+  end
+
   def destroy
     authorize @notebook, :manage_memos?
 
@@ -33,5 +46,9 @@ class NotebookMemosController < ApplicationController
 
   def set_notebook
     @notebook = policy_scope(Notebook).find(params[:notebook_id])
+  end
+
+  def default_memo_directory_id
+    MemoDirectory::UserSpace.default_home_directory(rodauth.rails_account.id).id
   end
 end

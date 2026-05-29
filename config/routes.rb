@@ -66,7 +66,11 @@ Rails.application.routes.draw do
       get :available_memos
     end
 
-    resources :notebook_memos, only: %i[create destroy], path: "memos"
+    resources :notebook_memos, only: %i[create destroy], path: "memos" do
+      collection do
+        post :create_blank
+      end
+    end
   end
 
   resources :memos do
