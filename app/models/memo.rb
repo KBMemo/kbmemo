@@ -11,6 +11,7 @@
 #  slug_manual       :boolean          default(FALSE), not null
 #  title             :string           not null
 #  title_manual      :boolean          default(FALSE), not null
+#  uid               :string           not null
 #  visibility        :integer          default("owner_read_write"), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
@@ -28,6 +29,7 @@
 #  index_memos_on_memo_directory_id  (memo_directory_id)
 #  index_memos_on_memo_group_id      (memo_group_id)
 #  index_memos_on_slug               (slug) UNIQUE
+#  index_memos_on_uid                (uid) UNIQUE
 #
 # Foreign Keys
 #
@@ -74,19 +76,25 @@ class Memo < ApplicationRecord
     owner_read_write: 4
   }
 
+  # ULID（Crockford Base32, 26 桁・大文字）。クライアント生成可能な安定識別子。
+  UID_FORMAT = /\A[0-9A-HJKMNP-TV-Z]{26}\z/
+
   validates :title, presence: true
   validates :slug, uniqueness: { allow_blank: true }
+  validates :uid, presence: true, uniqueness: true, format: { with: UID_FORMAT }
   validates :memo_group_id, presence: true, if: -> { group_read? || group_read_write? }
   validate :memo_group_must_include_owner, if: -> { group_read? || group_read_write? }
   validate :memo_directory_must_be_assignable_location
   validate :kanban_placement_consistency
 
+  before_validation :assign_uid
   before_validation :assign_default_memo_directory
   before_validation :clear_memo_group_when_not_group_visibility
   before_validation :normalize_unfilled_title_marker
   before_validation :prepare_title_from_body_and_manual
   before_validation :prepare_slug_from_title_and_manual
   before_validation :normalize_slug_for_storage
+  before_create :assign_uid
   after_create :ensure_global_slug_suffix_after_create
   after_commit :reindex_outgoing_wiki_links, on: %i[create update], if: :memo_wiki_links_need_outgoing_reindex?
   after_commit :reindex_inbound_wiki_links, on: :update, if: :memo_wiki_links_need_inbound_reindex?
@@ -254,6 +262,13 @@ class Memo < ApplicationRecord
     else
       errors.add(:memo_directory, "Home / Share / Public / System の直下には保存できません")
     end
+  end
+
+  # クライアント（オフライン）から渡された uid は正規化（大文字化）して尊重し、
+  # 無ければサーバー側で ULID を採番する。冪等なので before_validation / before_create の双方から呼ぶ。
+  def assign_uid
+    normalized = uid.to_s.strip.upcase
+    self.uid = normalized.presence || ULID.generate.to_s
   end
 
   def assign_default_memo_directory

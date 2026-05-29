@@ -11,6 +11,7 @@
 #  slug_manual       :boolean          default(FALSE), not null
 #  title             :string           not null
 #  title_manual      :boolean          default(FALSE), not null
+#  uid               :string           not null
 #  visibility        :integer          default("owner_read_write"), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
@@ -28,6 +29,7 @@
 #  index_memos_on_memo_directory_id  (memo_directory_id)
 #  index_memos_on_memo_group_id      (memo_group_id)
 #  index_memos_on_slug               (slug) UNIQUE
+#  index_memos_on_uid                (uid) UNIQUE
 #
 # Foreign Keys
 #
@@ -243,5 +245,29 @@ class MemoTest < ActiveSupport::TestCase
     m = memos(:one)
     m.assign_attributes(visibility: :group_read, memo_group_id: memo_groups(:alpha).id)
     assert m.valid?
+  end
+
+  test "assigns a ULID uid on create when none given" do
+    m = Memo.create!(body: "= Auto uid", account: accounts(:one), memo_directory: memo_directories(:work))
+    assert_match Memo::UID_FORMAT, m.uid
+  end
+
+  test "respects and upcases a client-provided uid" do
+    client_uid = ULID.generate.to_s.downcase
+    m = Memo.create!(uid: client_uid, body: "= Client uid", account: accounts(:one), memo_directory: memo_directories(:work))
+    assert_equal client_uid.upcase, m.uid
+  end
+
+  test "uid must be unique" do
+    m = Memo.new(uid: memos(:one).uid, body: "= Dup", account: accounts(:one), memo_directory: memo_directories(:work))
+    assert_not m.valid?
+    assert m.errors[:uid].any?
+  end
+
+  test "rejects malformed uid" do
+    m = Memo.new(body: "= Bad", account: accounts(:one), memo_directory: memo_directories(:work))
+    m.uid = "not-a-valid-ulid"
+    assert_not m.valid?
+    assert m.errors[:uid].any?
   end
 end

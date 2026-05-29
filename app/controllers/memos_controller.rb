@@ -190,6 +190,7 @@ class MemosController < ApplicationController
         format.json do
           render json: {
             id: @memo.id,
+            uid: @memo.uid,
             draft_url: draft_memo_url(@memo),
             edit_path: edit_memo_path(@memo),
             title_unfilled: @memo.title_unfilled?,
@@ -335,6 +336,7 @@ class MemosController < ApplicationController
         end
         format.json do
           render json: {
+            uid: @memo.uid,
             saved_at: @memo.updated_at.iso8601(3),
             title: @memo.title,
             title_manual: @memo.title_manual,

@@ -85,3 +85,5 @@ gem "administrate", "~> 1.0"
 gem "asciidoctor-katex", "~> 0.4"
 
 gem "mini_racer", "~> 0.21.1"
+
+gem "ruby-ulid", "~> 1.0", require: "ulid"
