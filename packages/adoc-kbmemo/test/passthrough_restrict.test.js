@@ -38,4 +38,43 @@ describe('restrictPassthroughInSource', () => {
 
     expect(restrictPassthroughInSource(source)).toBe('\\pass:[safe]')
   })
+
+  it('does not neutralize stem block delimiters', () => {
+    const source = `.stem title
+[stem]
+++++
+E=mc^2
+++++`
+
+    expect(restrictPassthroughInSource(source)).toBe(source)
+  })
+
+  it('does not neutralize latexmath block delimiters', () => {
+    const source = `[latexmath]
+++++
+\\sqrt{4}
+++++`
+
+    expect(restrictPassthroughInSource(source)).toBe(source)
+  })
+
+  it('still neutralizes a plain block passthrough next to a stem block', () => {
+    const source = `[stem]
+++++
+E=mc^2
+++++
+
+++++
+<script>alert(1)</script>
+++++`
+
+    expect(restrictPassthroughInSource(source)).toBe(`[stem]
+++++
+E=mc^2
+++++
+
+....
+<script>alert(1)</script>
+....`)
+  })
 })

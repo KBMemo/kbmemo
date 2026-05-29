@@ -1,0 +1,181 @@
+= テスト健全化ロードマップ（既知の失敗の解決フェーズ）
+
+最近の機能追加（passthrough 制限・メモ管理画面・ディレクトリ picker・コードブロックツールバー等）に伴い、
+いくつかのテストが恒常的に失敗、または並列実行で不安定になっている。
+本書はそれらを **実測で分類** し、フェーズ単位で解決する計画をまとめる。
+
+== 調査方法
+
+* 失敗テストを `-i` で個別指定し、**単一ワーカー（`PARALLEL_WORKERS=1`）で隔離実行**して再現。
+  単体で再現 → 仕様ドリフト／回帰。単体では通る → 並列の状態共有（フレーキー）。
+* サンドボックスの `BUNDLE_PATH` で `Bundler::GemNotFound` になるため `env -u BUNDLE_PATH bin/rails test ...` で実行する。
+
+== 既知の失敗一覧（分類）
+
+[cols="3,2,3,1"]
+|===
+|テスト |箇所 |原因 |分類
+
+|`MemosHelperTest#memo_html_renders_stem_block_with_title_via_katex`
+|`test/helpers/memos_helper_test.rb:160`
+|`[stem]` ブロックの `++++` を passthrough 制限が literal 化し `<pre>` 化。KaTeX に渡らない。
+|A 回帰
+
+|`MemosHelperTest#memo_html_renders_stem_and_latexmath_via_katex`
+|`test/helpers/memos_helper_test.rb:174`
+|同上（表示ブロック `[stem]\n++++` が `katex-display` にならない）。インライン `stem:[]` は正常。
+|A 回帰
+
+|`MemosControllerTest#edit_has_memo_draft_stimulus_bindings`
+|`test/controllers/memos_controller_test.rb:386`
+|`data-controller="memo-directory-dnd"` の完全一致を期待。実際は `memo-directory-nav-open memo-directory-dnd memo-directory-dialog` と結合。
+|B 仕様ドリフト
+
+|`MemosControllerTest#show_displays_memo_directory_path_in_metadata`
+|`test/controllers/memos_controller_test.rb:886`
+|編集可能な所有者には picker が表示され、`a[href=memo_path(?, memo_directory_id:)]` のプレーンリンクは出ない。
+|B 仕様ドリフト
+
+|`MemosControllerTest#show_tag_links_open_sidebar_tag_tab`
+|`test/controllers/memos_controller_test.rb:939`
+|`sidebar_view=tag` リンクのテキストがタグ名（"Ideas"）でなくタブ文言（"タグ"）。show のタグチップ markup 変更。
+|B 仕様ドリフト
+
+|`MemosControllerTest#draft_saves_all_fields_without_validations`
+|`test/controllers/memos_controller_test.rb:436`
+|`title_manual:false` + 明示 `slug:"draft-slug"` 時、テストはタイトル派生 `draft-title-…` を期待。実際は明示 slug `draft-slug-…` を保持。
+|C 要判断
+
+|===
+
+[cols="1,4"]
+|===
+|分類 |意味
+
+|A 回帰 |本リポジトリの直近変更が壊した。最優先で実装修正。
+|B 仕様ドリフト |UI 仕様が正しく進化し、テストの固定アサーションが陳腐化。テスト側を新仕様に追従。
+|C 要判断 |期待と実装が食い違い、どちらが正しいか仕様判断が必要。
+|D 潜在 |並列テストの状態共有による将来的フレーキー要因（下記）。
+|===
+
+NOTE: 上記 A〜C の 6 件は **単一ワーカーでも決定的に失敗** する。共有 Git 作業ツリーによるフレーキー（D）が直接の原因ではない。
+
+== Phase 1（A・完了）: STEM/latexmath ブロックを passthrough 制限の対象外にする
+
+[NOTE]
+====
+実装済み。`MemoAdocPassthroughRestrictor#stem_block?`（Ruby）と `isStemBlock`（JS `passthrough_restrict.js`）で、
+開始 `++++` 直上の連続メタ行に `[stem]` / `[latexmath]` / `[asciimath]` があるブロックを neutralize 対象外にした。
+KaTeX 2 件と restrictor の除外／非除外テストが緑（Ruby 40 runs・JS 8 tests）。
+====
+
+=== 原因
+
+`MemoAdocPassthroughRestrictor#restrict_block_passthrough` は `++++` 区切りを **無条件で** literal（`....`）へ置換する。
+しかし `[stem]` / `[latexmath]` / `[asciimath]` 属性を持つ `++++` ブロックは passthrough（生 HTML）ではなく
+**数式ブロック**であり、Asciidoctor + `asciidoctor-katex` が KaTeX へ変換する対象。これを literal 化すると数式が壊れる。
+
+[source,asciidoc]
+----
+[stem]
+++++
+E=mc^2
+++++
+----
+
+=== 対応
+
+* 開始 `++++` の直前の行が `^\[(stem|latexmath|asciimath)\b` にマッチする場合、そのブロックは neutralize の対象から外す（区切りを残す）。
+* インライン `stem:[]` / `latexmath:[]` は元から passthrough 置換の対象外（`pass:[` / `+++` のみ対象）なので変更不要。
+
+=== セキュリティ上の安全性
+
+数式ブロックの出力は KaTeX による MathML/HTML であり、生 HTML の埋め込み経路ではない。
+よって除外しても passthrough（`<script>` 等）の Stored XSS 対策は損なわれない。
+
+=== 検証
+
+* `test/helpers/memos_helper_test.rb` の KaTeX 2 件が緑。
+* `test/services/memo_adoc_passthrough_restrictor_test.rb` に「`[stem]` ブロックは literal 化しない」「`[pass]`/無属性 `++++` は従来どおり literal 化」を追加。
+* JS 側 `packages/adoc-kbmemo/src/passthrough_restrict.js` と `packages/adoc-kbmemo/test/passthrough_restrict.test.js` にも同等の除外を反映（表示・プレビューの整合）。
+
+== Phase 2（B）: UI 仕様ドリフトのテスト追従
+
+実装は正しく、テストの固定アサーションを新 UI へ更新する。
+
+* **dnd バインディング** (`:386`): `assert_includes ..., 'data-controller="memo-directory-dnd"'` を
+  `assert_select '[data-controller~="memo-directory-dnd"]'`（語単位一致）へ。
+* **ディレクトリ表示** (`:886`): 所有者は picker 表示が正。`labeled_path_from_root` のテキスト存在と
+  picker（`data-controller*="memo-directory-parent-picker"` / `data-directory-path`）を検証する形へ変更。
+  非編集ユーザー向けのプレーンリンク検証が必要なら、別アカウント（閲覧のみ）でのケースに切り出す。
+* **タグチップ** (`:939`): show のタグチップの現行 markup を確認し、`tag_id` リンクのテキストがタグ名になる要素を正しく指す。
+  サイドバータブ "タグ" と取り違えないよう、チップのコンテナ配下に限定したセレクタにする。
+
+=== 検証
+
+* 対象 3 件が単一ワーカーで緑。
+* 退行確認のため `test/controllers/memos_controller_test.rb` 全体を実行。
+
+== Phase 3（C）: draft の slug 派生挙動を確定
+
+=== 論点
+
+`PATCH draft` で `title_manual:false` かつ明示 `slug` がある場合の優先順位:
+
+. 明示 slug を尊重（現実装。`draft-slug-…`）
+. タイトルから再派生し明示 slug を無視（旧テスト期待。`draft-title-…`）
+
+ファイル保存後の slug は手動のみ（編集 UI のヒント文）という方針と、ドラフト段階の自動同期の関係を整理する。
+
+=== 対応
+
+* `app/controllers/memos_controller.rb#draft` と Memo の slug 派生ロジックを確認し、意図する仕様を決定。
+* 現実装（明示尊重）を正とするなら、テストの期待値を `draft-slug-#{id}` に修正。
+* タイトル派生を正とするなら実装を修正し、テストは現状維持。
+* いずれにせよ「明示 slug あり」「slug 空 + title_manual:false」の両ケースを別テストで固定する。
+
+== Phase 4（D）: 並列テストの Git 作業ツリー隔離（潜在フレーキー対策）
+
+直接原因ではないが、別系統の不安定要因として恒久対応する。
+
+=== 現状の問題
+
+`config/environments/test.rb` で作業ツリーを boot 時に一度だけ算出している。
+
+[source,ruby]
+----
+suffix = [ ENV["TEST_ENV_NUMBER"], Process.pid.to_s ].compact.join("_")
+config.x.memo_git_work_tree = Rails.root.join("tmp", "memo_git_test", suffix).to_s
+----
+
+* `parallelize(workers:)` は boot **後** に fork するため、この時点の `TEST_ENV_NUMBER` は nil、`Process.pid` は親プロセス。
+  結果として **全ワーカーが同一ツリーを共有**する。
+* DB はトランザクションでロールバックされるが、`MemoRepository` がファイルへ書く Git 作業ツリーは
+  **テスト間・ワーカー間でロールバックされない**。draft/commit/move 系の状態が漏れ、表示系テスト
+  （`display_as_draft?` 分岐など）に間欠的な影響を与え得る。
+
+=== 対応案
+
+* `parallelize_setup do |worker| … end` でワーカー番号を含めたパスへ `config.x.memo_git_work_tree` を再設定し、
+  起動時にディレクトリを作り直す（ワーカー分離）。
+* さらに `ActiveSupport::TestCase` の `setup`/`teardown` で、テストごとに一意の一時ツリー
+  （`tmp/memo_git_test/<worker>/<uuid>`）へ向け、`teardown` で削除（テスト分離）。
+  `MemoRepository.new` は呼び出し時に `config.x.memo_git_work_tree` を読むため、setup での差し替えが効く。
+* `parallelize_teardown` で残骸を掃除。
+
+=== 検証
+
+* 全テストを既定の並列ワーカー数で複数回実行し、失敗集合が安定（空）であることを確認。
+
+== 推奨順序
+
+. Phase 1（回帰、最優先・低リスク）— *完了*
+. Phase 2（テスト追従、低リスク）
+. Phase 3（仕様判断、要合意）
+. Phase 4（テスト基盤、独立して着手可）
+
+== 関連
+
+* passthrough 制限: `docs/architecture/memo-adoc-passthrough-restriction.adoc`
+* 記法カバレッジ: `docs/architecture/asciidoc-syntax-coverage-roadmap.adoc`
+* 表示パイプライン: `docs/architecture/kbmemo-docs-in-app.adoc`

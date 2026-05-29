@@ -5,6 +5,10 @@
 class MemoAdocPassthroughRestrictor
   BLOCK_PASSTHROUGH_DELIM = "++++"
 
+  # [stem] / [latexmath] / [asciimath] ブロックの ++++ は passthrough（生 HTML）ではなく
+  # 数式ブロック（KaTeX 変換対象）なので neutralize しない。
+  STEM_BLOCK_ATTR = /\A\[(?:stem|latexmath|asciimath)\b/
+
   class << self
     def restrict(text)
       new(text).restrict
@@ -45,6 +49,11 @@ class MemoAdocPassthroughRestrictor
         scan += 1
       end
 
+      if stem_block?(lines, open_line)
+        index = close_line == open_line ? open_line + 1 : close_line + 1
+        next
+      end
+
       lines[open_line] = lines[open_line].sub(BLOCK_PASSTHROUGH_DELIM, "....")
 
       if close_line == open_line
@@ -58,6 +67,21 @@ class MemoAdocPassthroughRestrictor
     end
 
     lines.join("\n")
+  end
+
+  # 開始 ++++ の直上にある連続メタ行（属性 [..] / タイトル .xxx）に
+  # stem/latexmath/asciimath 属性があれば数式ブロックとみなす。
+  def stem_block?(lines, open_line)
+    i = open_line - 1
+    while i >= 0
+      line = lines[i].to_s.strip
+      break if line.empty?
+      return true if line.match?(STEM_BLOCK_ATTR)
+      break unless line.start_with?("[", ".")
+
+      i -= 1
+    end
+    false
   end
 
   def restrict_inline_passthrough(source)

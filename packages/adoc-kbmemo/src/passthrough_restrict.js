@@ -1,5 +1,9 @@
 const BLOCK_PASSTHROUGH_DELIM = '++++'
 
+// [stem] / [latexmath] / [asciimath] ブロックの ++++ は passthrough（生 HTML）ではなく
+// 数式ブロック（KaTeX 変換対象）なので neutralize しない。
+const STEM_BLOCK_ATTR = /^\[(?:stem|latexmath|asciimath)\b/
+
 /**
  * Neutralize AsciiDoc passthrough markup before HTML conversion.
  * Stored source is unchanged; call only on preview/show pipelines.
@@ -37,6 +41,11 @@ function restrictBlockPassthrough(source) {
       scan++
     }
 
+    if (isStemBlock(lines, openLine)) {
+      index = closeLine === openLine ? openLine + 1 : closeLine + 1
+      continue
+    }
+
     lines[openLine] = lines[openLine].replace(BLOCK_PASSTHROUGH_DELIM, '....')
 
     if (closeLine === openLine) {
@@ -50,6 +59,21 @@ function restrictBlockPassthrough(source) {
   }
 
   return lines.join('\n')
+}
+
+/**
+ * 開始 ++++ の直上にある連続メタ行に stem/latexmath/asciimath 属性があれば数式ブロック。
+ * @param {string[]} lines
+ * @param {number} openLine
+ */
+function isStemBlock(lines, openLine) {
+  for (let i = openLine - 1; i >= 0; i--) {
+    const line = lines[i]?.trim() ?? ''
+    if (line === '') break
+    if (STEM_BLOCK_ATTR.test(line)) return true
+    if (!line.startsWith('[') && !line.startsWith('.')) break
+  }
+  return false
 }
 
 /**
