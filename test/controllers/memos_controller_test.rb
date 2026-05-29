@@ -1009,4 +1009,82 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     get memos_url
     assert_response :redirect
   end
+
+  test "manage renders directory tree and memos for the selected directory" do
+    get manage_memos_url(memo_directory_id: memo_directories(:work).id)
+    assert_response :success
+    assert_includes response.body, "ディレクトリ・メモ管理"
+    assert_includes response.body, memos(:one).title
+    assert_includes response.body, memos(:two).title
+  end
+
+  test "bulk_add_tags adds tags to the selected memos while keeping existing ones" do
+    existing_one = memos(:one).tags.pluck(:name)
+    patch bulk_add_tags_memos_url, params: {
+      memo_ids: [ memos(:one).id, memos(:two).id ],
+      tag_list: "alpha, beta"
+    }
+    assert_response :redirect
+    one_tags = memos(:one).reload.tags.pluck(:name)
+    assert_includes one_tags, "alpha"
+    assert_includes one_tags, "beta"
+    existing_one.each { |name| assert_includes one_tags, name }
+
+    two_tags = memos(:two).reload.tags.pluck(:name)
+    assert_includes two_tags, "alpha"
+    assert_includes two_tags, "beta"
+  end
+
+  test "bulk_remove_tags removes only the matching tags" do
+    memo = memos(:one)
+    memo.assign_tags_from_list("keep, drop")
+    memo.save!
+
+    patch bulk_remove_tags_memos_url, params: { memo_ids: [ memo.id ], tag_list: "drop" }
+    assert_response :redirect
+    assert_equal %w[keep], memo.reload.tags.pluck(:name)
+  end
+
+  test "bulk_move_directory moves the selected memos" do
+    memo = Memo.create!(title: "Bulk move memo", body: "x", memo_directory: memo_directories(:work), account_id: accounts(:one).id)
+    target = memo_directories(:home_u_one)
+    patch bulk_move_directory_memos_url, params: {
+      memo_ids: [ memo.id ],
+      target_directory_id: target.id
+    }
+    assert_response :redirect
+    assert_equal target.id, memo.reload.memo_directory_id
+  end
+
+  test "bulk_move_directory rejects top-level buckets" do
+    memo = Memo.create!(title: "Bulk reject memo", body: "x", memo_directory: memo_directories(:work), account_id: accounts(:one).id)
+    patch bulk_move_directory_memos_url, params: {
+      memo_ids: [ memo.id ],
+      target_directory_id: memo_directories(:home).id
+    }
+    assert_response :redirect
+    assert_equal memo_directories(:work).id, memo.reload.memo_directory_id
+  end
+
+  test "bulk_add_to_notebook adds the selected memos to the notebook" do
+    notebook = notebooks(:one)
+    post bulk_add_to_notebook_memos_url, params: {
+      memo_ids: [ memos(:one).id ],
+      notebook_id: notebook.id
+    }
+    assert_response :redirect
+    assert NotebookMemo.exists?(notebook_id: notebook.id, memo_id: memos(:one).id)
+  end
+
+  test "bulk actions skip memos the user cannot edit" do
+    other = Memo.create!(
+      title: "Other account memo",
+      body: "body",
+      memo_directory: memo_directories(:home_u_two),
+      account_id: accounts(:two).id
+    )
+    patch bulk_add_tags_memos_url, params: { memo_ids: [ other.id ], tag_list: "x" }
+    assert_response :redirect
+    assert_empty other.reload.tags
+  end
 end

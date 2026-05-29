@@ -80,6 +80,9 @@ if (import.meta.hot) {
   })
 }
 
+import MemoBulkManageController from "./memo_bulk_manage_controller"
+application.register("memo-bulk-manage", MemoBulkManageController)
+
 import MemoSearchController from "./memo_search_controller"
 application.register("memo-search", MemoSearchController)
 

@@ -74,6 +74,11 @@ Rails.application.routes.draw do
       get :wiki_completions
       get :wiki_link_labels
       get :sidebar_memo_list
+      get :manage
+      patch :bulk_add_tags
+      patch :bulk_remove_tags
+      patch :bulk_move_directory
+      post :bulk_add_to_notebook
     end
 
     member do

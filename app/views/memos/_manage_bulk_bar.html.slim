@@ -1,0 +1,39 @@
+ruby:
+  tag_suggestions_id = "manage_bulk_tag_suggestions"
+  input_classes = "kb-input block w-full min-w-0 rounded-md px-2 py-1.5 text-sm"
+
+.kb-card.mb-3.p-3 class="md:sticky md:top-4 md:z-10"
+  .mb-3.flex.flex-wrap.items-center.gap-3
+    label.inline-flex.items-center.gap-2.text-sm.kb-text-secondary
+      input type="checkbox" data-memo-bulk-manage-target="selectAll" data-action="change->memo-bulk-manage#toggleAll"
+      span すべて選択
+    span.text-sm.font-medium.kb-text-primary
+      span data-memo-bulk-manage-target="count" 0
+      | 件選択中
+
+  .flex.flex-col.gap-3
+    = form_with url: bulk_add_tags_memos_path, method: :patch, data: { memo_bulk_manage_target: "form", action: "submit->memo-bulk-manage#injectSelection" } do
+      = hidden_field_tag :memo_directory_id, filter_dir_id
+      .flex.flex-wrap.items-end.gap-2
+        .min-w-0.flex-1
+          label.mb-1.block.text-xs.font-medium.kb-text-muted for="bulk_tag_list" タグ（カンマ区切り）
+          = text_field_tag :tag_list, nil, id: "bulk_tag_list", placeholder: "例: 重要, レビュー待ち", autocomplete: "off", list: tag_suggestions_id, class: input_classes
+          datalist id=tag_suggestions_id
+            - memo_tag_names_for_datalist.each do |name|
+              option value=name
+        = button_tag "追加", type: "submit", class: "kb-chrome-btn-secondary shrink-0 px-3 py-1.5 text-sm", data: { memo_bulk_manage_target: "submitButton" }
+        = button_tag "削除", type: "submit", formaction: bulk_remove_tags_memos_path, class: "kb-chrome-btn-secondary shrink-0 px-3 py-1.5 text-sm", data: { memo_bulk_manage_target: "submitButton" }
+
+    = form_with url: bulk_move_directory_memos_path, method: :patch, data: { memo_bulk_manage_target: "form", action: "submit->memo-bulk-manage#injectSelection" } do
+      = hidden_field_tag :memo_directory_id, filter_dir_id
+      .flex.flex-wrap.items-center.gap-2
+        = render "shared/directory_tree_picker", label_text: "移動先", field_name: "target_directory_id", field_id: "bulk_move_target", selected_directory: nil, directory_options: (@memo_directories_for_nav || []), placeholder_text: "ディレクトリを選択", hidden_field_data: {}
+        = button_tag "移動", type: "submit", class: "kb-chrome-btn-secondary shrink-0 px-3 py-1.5 text-sm", data: { memo_bulk_manage_target: "submitButton" }
+
+    - if notebooks.any?
+      = form_with url: bulk_add_to_notebook_memos_path, method: :post, data: { memo_bulk_manage_target: "form", action: "submit->memo-bulk-manage#injectSelection" } do
+        = hidden_field_tag :memo_directory_id, filter_dir_id
+        .flex.flex-wrap.items-center.gap-2
+          label.shrink-0.text-xs.font-medium.kb-text-muted for="bulk_notebook_id" ノートブックへ追加
+          = select_tag :notebook_id, options_from_collection_for_select(notebooks, :id, :title), id: "bulk_notebook_id", include_blank: "選択してください", class: "#{input_classes} max-w-xs"
+          = button_tag "追加", type: "submit", class: "kb-chrome-btn-secondary shrink-0 px-3 py-1.5 text-sm", data: { memo_bulk_manage_target: "submitButton" }

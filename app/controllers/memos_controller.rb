@@ -37,6 +37,86 @@ class MemosController < ApplicationController
     render partial: "memos/sidebar_memo_list_container", layout: false
   end
 
+  # 左: ディレクトリツリー / 右: チェックボックス付きメモ一覧 + 一括操作
+  def manage
+    authorize Memo, :index?
+    @notebooks = Notebook.where(account_id: rodauth.rails_account&.id).order(:title)
+  end
+
+  def bulk_add_tags
+    authorize Memo, :index?
+    labels = parse_tag_labels(params[:tag_list])
+    return redirect_back_to_manage(alert: "追加するタグを入力してください。") if labels.empty?
+
+    tags = labels.map { |label| Tag.resolve_label!(label) }
+    count = each_authorized_memo(:update?) do |memo|
+      memo.tags = (memo.tags.to_a + tags).uniq
+      memo.save(validate: false)
+      memo.touch
+      true
+    end
+    redirect_back_to_manage(notice: "#{count} 件のメモにタグを追加しました。")
+  end
+
+  def bulk_remove_tags
+    authorize Memo, :index?
+    normalized = parse_tag_labels(params[:tag_list]).map(&:downcase)
+    return redirect_back_to_manage(alert: "削除するタグを入力してください。") if normalized.empty?
+
+    count = each_authorized_memo(:update?) do |memo|
+      remaining = memo.tags.reject { |tag| normalized.include?(tag.normalized_name) }
+      next false if remaining.size == memo.tags.size
+
+      memo.tags = remaining
+      memo.save(validate: false)
+      memo.touch
+      true
+    end
+    redirect_back_to_manage(notice: "#{count} 件のメモからタグを削除しました。")
+  end
+
+  def bulk_move_directory
+    authorize Memo, :index?
+    dir = policy_scope(MemoDirectory).find_by(id: params[:target_directory_id])
+    return redirect_back_to_manage(alert: "移動先ディレクトリを選んでください。") if dir.nil?
+    if dir.root? || dir.top_level_bucket?
+      return redirect_back_to_manage(alert: "Home / Share / Public の直下には保存できません。")
+    end
+
+    count = each_authorized_memo(:update?) do |memo|
+      next false if memo.memo_directory_id == dir.id
+
+      apply_directory_change!(memo, dir)
+      true
+    end
+    redirect_back_to_manage(notice: "#{count} 件のメモを移動しました。")
+  rescue MemoRepository::Error => e
+    redirect_back_to_manage(alert: e.message)
+  end
+
+  def bulk_add_to_notebook
+    authorize Memo, :index?
+    notebook = policy_scope(Notebook).find_by(id: params[:notebook_id])
+    return redirect_back_to_manage(alert: "ノートブックを選んでください。") if notebook.nil?
+
+    authorize notebook, :manage_memos?
+    added = 0
+    skipped = 0
+    policy_scope(Memo).where(id: Array(params[:memo_ids])).each do |memo|
+      next unless policy(memo).add_to_notebook?
+
+      begin
+        Notebooks::AddMemo.call(notebook: notebook, memo: memo)
+        added += 1
+      rescue Notebooks::Error
+        skipped += 1
+      end
+    end
+    notice = "#{added} 件のメモをノートブックに追加しました。"
+    notice += "（#{skipped} 件は既に別のノートブックに所属のためスキップ）" if skipped.positive?
+    redirect_back_to_manage(notice: notice)
+  end
+
   def index
     authorize Memo
     if params[:q].present? && params[:sidebar_view] != "search"
@@ -361,6 +441,25 @@ class MemosController < ApplicationController
     end
 
     memo.save(validate: false)
+  end
+
+  def parse_tag_labels(raw)
+    raw.to_s.split(/[,，]/).map(&:strip).reject(&:blank?).uniq
+  end
+
+  # 選択メモのうち permission を満たすものに対して block を実行し、変更があった件数を返す。
+  def each_authorized_memo(permission)
+    count = 0
+    policy_scope(Memo).where(id: Array(params[:memo_ids])).each do |memo|
+      next unless policy(memo).public_send(permission)
+
+      count += 1 if yield(memo)
+    end
+    count
+  end
+
+  def redirect_back_to_manage(**flash_opts)
+    redirect_to manage_memos_path(memo_directory_id: params[:memo_directory_id].presence), **flash_opts
   end
 
   # show は set_memo・authorize のあと未ログインでも全体公開のみ閲覧可。それ以外の action は通常どおり require_account。

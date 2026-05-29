@@ -1,6 +1,13 @@
 module ApplicationHelper
   def memos_wide_layout?
+    return false if memos_manage_screen?
+
     %w[memos memo_directories tags].include?(controller.controller_path)
+  end
+
+  # ディレクトリ・メモ一括管理画面（左ツリー／右一覧の独自 2 ペイン）
+  def memos_manage_screen?
+    controller.controller_path == "memos" && controller.action_name == "manage"
   end
 
   def notebook_show_wide_layout?
@@ -14,7 +21,7 @@ module ApplicationHelper
 
   # メモ一覧サイドバーなしで、ヘッダー・本文を広幅にする画面
   def wide_content_layout?
-    memos_wide_layout? || notebook_show_wide_layout? || controller.controller_path.in?(%w[memo_diagrams boards]) || theme_studio_layout?
+    memos_wide_layout? || memos_manage_screen? || notebook_show_wide_layout? || controller.controller_path.in?(%w[memo_diagrams boards]) || theme_studio_layout?
   end
 
   def theme_studio_layout?
