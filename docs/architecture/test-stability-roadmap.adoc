@@ -119,23 +119,32 @@ E=mc^2
 * `test/controllers/memos_controller_test.rb` 全体（単一ワーカー）で 81 runs・残る失敗は Phase 3 の
   `draft_saves_all_fields`（slug 派生）1 件のみ。Phase 1/2 起因の退行なし。
 
-== Phase 3（C）: draft の slug 派生挙動を確定
+== Phase 3（C・完了）: draft の slug 派生挙動を確定
 
-=== 論点
+=== 決定
 
-`PATCH draft` で `title_manual:false` かつ明示 `slug` がある場合の優先順位:
+**明示 slug を優先**する現実装を正とした。`Memo#prepare_slug_from_title_and_manual` は
+`file_committed_at` があると早期 return し、明示 slug を保持する（一度コミットしたら維持）。
+初回コミット前かつ slug 空のときのみタイトルから派生する。
 
-. 明示 slug を尊重（現実装。`draft-slug-…`）
-. タイトルから再派生し明示 slug を無視（旧テスト期待。`draft-title-…`）
+[cols="3,2"]
+|===
+|条件 |slug
 
-ファイル保存後の slug は手動のみ（編集 UI のヒント文）という方針と、ドラフト段階の自動同期の関係を整理する。
+|コミット済み（`file_committed_at` あり）+ 明示 slug |明示 slug を保持（`draft-slug-<id>`）
+|初回コミット前 + slug 空 + `title_manual:false` |タイトルから派生（`derived-heading-<id>`）
+|===
 
-=== 対応
+=== 対応（実施済み）
 
-* `app/controllers/memos_controller.rb#draft` と Memo の slug 派生ロジックを確認し、意図する仕様を決定。
-* 現実装（明示尊重）を正とするなら、テストの期待値を `draft-slug-#{id}` に修正。
-* タイトル派生を正とするなら実装を修正し、テストは現状維持。
-* いずれにせよ「明示 slug あり」「slug 空 + title_manual:false」の両ケースを別テストで固定する。
+* `draft saves all fields without validations` の期待値を `draft-slug-#{id}` に修正。
+* `draft derives slug from title for an uncommitted memo when slug is blank` を新設し、
+  コミット前のタイトル派生を固定。
+* 実装変更は不要（現実装が決定どおり）。
+
+=== 検証
+
+* `test/controllers/memos_controller_test.rb` 全体（単一ワーカー）で 82 runs・0 failures。
 
 == Phase 4（D）: 並列テストの Git 作業ツリー隔離（潜在フレーキー対策）
 
@@ -174,7 +183,7 @@ config.x.memo_git_work_tree = Rails.root.join("tmp", "memo_git_test", suffix).to
 
 . Phase 1（回帰、最優先・低リスク）— *完了*
 . Phase 2（テスト追従、低リスク）— *完了*
-. Phase 3（仕様判断、要合意）
+. Phase 3（仕様判断、要合意）— *完了（明示 slug 優先で確定）*
 . Phase 4（テスト基盤、独立して着手可）
 
 == 関連

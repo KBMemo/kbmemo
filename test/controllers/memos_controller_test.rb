@@ -433,12 +433,33 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     memo.reload
     assert_equal "= Draft title\n\nBody.", memo.body
     assert_equal "Draft title", memo.title
-    assert_equal "draft-title-#{memo.id}", memo.slug
+    # 一度コミット済み（file_committed_at あり）のメモは、明示指定した slug を優先して保持する。
+    assert_equal "draft-slug-#{memo.id}", memo.slug
     assert_equal({ "k" => 1 }, memo.properties)
     assert_includes memo.tags.map(&:name), "draft-tag"
     assert_not memo.title_manual
     body = JSON.parse(response.body)
     assert_equal memo.title, body["title"]
+  end
+
+  test "draft derives slug from title for an uncommitted memo when slug is blank" do
+    memo = Memo.new(
+      title: "Tmp",
+      body: "tmp",
+      memo_directory: memo_directories(:work),
+      account_id: accounts(:one).id
+    )
+    memo.save!
+    assert_nil memo.file_committed_at
+
+    patch draft_memo_url(memo),
+      params: { memo: { body: "= Derived heading", title_manual: false, slug: "" } },
+      as: :json
+    assert_response :success
+    memo.reload
+    assert_equal "Derived heading", memo.title
+    # 初回コミット前 + 自動モード（slug 空）はタイトルから派生する。
+    assert_equal "derived-heading-#{memo.id}", memo.slug
   end
 
   test "body draft save works even when properties field is currently invalid on client" do
