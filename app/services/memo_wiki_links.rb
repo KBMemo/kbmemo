@@ -73,7 +73,8 @@ class MemoWikiLinks
     return "" if key.blank?
 
     slug_part = key.include?("/") ? key.rpartition("/").last : key
-    if (match = slug_part.match(/\A(.+)-(\d+)\z/))
+    # 末尾の識別子（数値 id または ULID）を落としてタイトル候補を得る。
+    if (match = slug_part.match(/\A(.+)-(?:\d+|[0-9A-HJKMNP-TV-Z]{26})\z/i))
       stem = match[1].to_s.tr("-", " ").squeeze(" ").strip
       return stem.presence || slug_part
     end

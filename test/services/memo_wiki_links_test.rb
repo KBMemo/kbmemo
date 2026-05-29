@@ -97,6 +97,12 @@ class MemoWikiLinksTest < ActiveSupport::TestCase
     assert_equal "my note", MemoWikiLinks.derive_title_from_target("home/work/my-note-99")
   end
 
+  test "derive_title_from_target strips a trailing ULID suffix" do
+    ulid = ULID.generate.to_s
+    assert_equal "second memo", MemoWikiLinks.derive_title_from_target("second-memo-#{ulid}")
+    assert_equal "my note", MemoWikiLinks.derive_title_from_target("home/work/my-note-#{ulid}")
+  end
+
   test "substitute broken link records target for custom label" do
     body = "[[Real Title|short label]]"
     linker = linker(source: @one)

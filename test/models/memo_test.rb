@@ -270,4 +270,26 @@ class MemoTest < ActiveSupport::TestCase
     assert_not m.valid?
     assert m.errors[:uid].any?
   end
+
+  test "slug_stem strips a trailing numeric id" do
+    assert_equal "first-memo", Memo.slug_stem("first-memo-42")
+  end
+
+  test "slug_stem strips a trailing ULID suffix" do
+    ulid = ULID.generate.to_s.downcase
+    assert_equal "first-memo", Memo.slug_stem("first-memo-#{ulid}")
+  end
+
+  test "slug_stem keeps stem when there is no id-like suffix" do
+    assert_equal "plain-note", Memo.slug_stem("plain-note")
+  end
+
+  test "slug_stem strips explicit memo_id even when not purely numeric tail" do
+    assert_equal "note", Memo.slug_stem("note-7", memo_id: 7)
+  end
+
+  test "global_slug_for replaces a ULID suffix with the id suffix" do
+    ulid = ULID.generate.to_s
+    assert_equal "note-5", Memo.global_slug_for("note-#{ulid}", 5)
+  end
 end

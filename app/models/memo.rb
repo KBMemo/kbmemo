@@ -78,6 +78,9 @@ class Memo < ApplicationRecord
 
   # ULID（Crockford Base32, 26 桁・大文字）。クライアント生成可能な安定識別子。
   UID_FORMAT = /\A[0-9A-HJKMNP-TV-Z]{26}\z/
+  # スラッグ末尾の識別子サフィックス。レガシーの数値 id（-42）または ULID（-{ulid}）。
+  # normalize_slug_fragment で小文字化されるため大文字小文字を問わない。
+  SLUG_TRAILING_ID = /-(?:\d+|[0-9A-HJKMNP-TV-Z]{26})\z/i
 
   validates :title, presence: true
   validates :slug, uniqueness: { allow_blank: true }
@@ -105,13 +108,13 @@ class Memo < ApplicationRecord
     raw.parameterize(separator: "-").presence
   end
 
-  # 末尾の -{id} を除いたスラッグ本体（Wiki リンクのレガシー表記との互換用）。
+  # 末尾の識別子（数値 id または ULID）を除いたスラッグ本体（Wiki リンクのレガシー表記との互換用）。
   def self.slug_stem(value, memo_id: nil)
     frag = normalize_slug_fragment(value)
     return nil if frag.blank?
 
-    stem = frag.sub(/-\d+\z/, "")
-    stem = stem.sub(/-#{memo_id}\z/, "") if memo_id.present?
+    stem = frag.sub(SLUG_TRAILING_ID, "")
+    stem = stem.sub(/-#{Regexp.escape(memo_id.to_s)}\z/i, "") if memo_id.present?
     stem.presence || "memo"
   end
 
