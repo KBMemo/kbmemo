@@ -146,13 +146,11 @@ E=mc^2
 
 * `test/controllers/memos_controller_test.rb` 全体（単一ワーカー）で 82 runs・0 failures。
 
-== Phase 4（D）: 並列テストの Git 作業ツリー隔離（潜在フレーキー対策）
+== Phase 4（D・完了）: 並列テストの Git 作業ツリー隔離
 
-直接原因ではないが、別系統の不安定要因として恒久対応する。
+=== 確認できた問題
 
-=== 現状の問題
-
-`config/environments/test.rb` で作業ツリーを boot 時に一度だけ算出している。
+`config/environments/test.rb` で作業ツリーを boot 時に一度だけ算出していた。
 
 [source,ruby]
 ----
@@ -160,31 +158,64 @@ suffix = [ ENV["TEST_ENV_NUMBER"], Process.pid.to_s ].compact.join("_")
 config.x.memo_git_work_tree = Rails.root.join("tmp", "memo_git_test", suffix).to_s
 ----
 
-* `parallelize(workers:)` は boot **後** に fork するため、この時点の `TEST_ENV_NUMBER` は nil、`Process.pid` は親プロセス。
-  結果として **全ワーカーが同一ツリーを共有**する。
-* DB はトランザクションでロールバックされるが、`MemoRepository` がファイルへ書く Git 作業ツリーは
-  **テスト間・ワーカー間でロールバックされない**。draft/commit/move 系の状態が漏れ、表示系テスト
-  （`display_as_draft?` 分岐など）に間欠的な影響を与え得る。
+* `parallelize(workers:)` は boot **後** に fork するため、`TEST_ENV_NUMBER` は nil、`Process.pid` は親プロセス。
+  結果として **全ワーカーが同一ツリーを共有**していた（同時書き込みの競合）。
+* さらにワーカー**内**でもツリーがテスト間でロールバックされず、アセット系テストで状態が漏れていた
+  （例: `companion diagram svg` が書いた `flow.svg` が `list includes diagram` テストに残り、
+  `svg_missing` 判定を崩す）。
 
-=== 対応案
+=== 対応（実施済み）
 
-* `parallelize_setup do |worker| … end` でワーカー番号を含めたパスへ `config.x.memo_git_work_tree` を再設定し、
-  起動時にディレクトリを作り直す（ワーカー分離）。
-* さらに `ActiveSupport::TestCase` の `setup`/`teardown` で、テストごとに一意の一時ツリー
-  （`tmp/memo_git_test/<worker>/<uuid>`）へ向け、`teardown` で削除（テスト分離）。
-  `MemoRepository.new` は呼び出し時に `config.x.memo_git_work_tree` を読むため、setup での差し替えが効く。
-* `parallelize_teardown` で残骸を掃除。
+* `ActiveSupport::TestCase` に **テストごとの一意な作業ツリー**を設定。
+  `setup` で `tmp/memo_git_test/t-<hex>` を作り `config.x.memo_git_work_tree` を差し替え、`teardown` で削除。
+  `MemoRepository.new` は呼び出し時に config を読むため差し替えが効く。
+* `config/environments/test.rb` の boot 時算出は非並列実行時のフォールバックである旨にコメント修正。
+* 併せて発見した別系統の共有 tmp 競合を修正:
+  `test/services/kbmemo_asciidoc_samples/seed_test.rb` の teardown が
+  共有親ディレクトリを `rm_rf` していたため、一意フィクスチャファイルのみ `rm_f` するよう変更。
+  （他の `tmp` 利用テストは `SecureRandom` の一意サブディレクトリで元から安全。）
 
 === 検証
 
-* 全テストを既定の並列ワーカー数で複数回実行し、失敗集合が安定（空）であることを確認。
+* 全テストを既定の並列ワーカー数で **4 回連続実行**し、失敗集合が安定（フレーキーなし）。
+  `seed_test` / `memo_attachments_test` の間欠失敗は解消。
+* 残る決定的失敗は Phase 5 の 2 系統のみ（並列・単一いずれでも再現）。
+
+== Phase 5（追加発見）: フルスイートで表面化した決定的失敗
+
+Phase 4 でフルスイートを並列実行した結果、当初カタログ外の **決定的（単一ワーカーでも再現）** な失敗が判明した。
+フレーキーではなく、別タスクとして扱う。
+
+[cols="3,2,3,1"]
+|===
+|テスト |箇所 |原因 |分類
+
+|`MemoDiagramsControllerTest#edit_*`（2 件）
+|`app/views/memo_diagrams/edit.html.slim:16`
+|Slim のドット記法に角括弧クラス `bg-[var(--kb-bg-muted)]` を含めており parse エラー（ページ全体が描画不能）。AGENTS.md の Slim ルール違反。
+|実バグ
+
+|`MemosControllerDocsSyncTest#sidebar_tab_links_stay_on_show_when_docs_sync_memo_is_not_file-committed`
+|`test/controllers/memos_controller_docs_sync_test.rb:33`
+|`.kb-sidebar-tab-bar a[href=memo_path(?, sidebar_view: "tag")]` が見つからない。docs_sync メモのサイドバータブ href の仕様ドリフト。
+|要確認
+
+|===
+
+=== 対応案
+
+* **Slim parse**（実バグ・低リスク）: `edit.html.slim:16` を `div class="… bg-[var(--kb-bg-muted)] …"` 形式へ書き換える
+  （ドット記法をやめる）。表示と editor ページの回復が目的。
+* **docs_sync サイドバー**（要確認）: docs_sync メモ表示時のタブ href の現行仕様を確認し、
+  実装が正なら Phase 2 と同様にテストを追従、テストが正なら実装を修正。
 
 == 推奨順序
 
 . Phase 1（回帰、最優先・低リスク）— *完了*
 . Phase 2（テスト追従、低リスク）— *完了*
 . Phase 3（仕様判断、要合意）— *完了（明示 slug 優先で確定）*
-. Phase 4（テスト基盤、独立して着手可）
+. Phase 4（テスト基盤、独立して着手可）— *完了*
+. Phase 5（フルスイートで判明した決定的失敗）— 未着手
 
 == 関連
 

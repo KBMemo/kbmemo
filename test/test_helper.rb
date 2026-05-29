@@ -1,6 +1,7 @@
 ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
+require "fileutils"
 
 module ActiveSupport
   class TestCase
@@ -10,6 +11,21 @@ module ActiveSupport
     # Dependent fixtures must use explicit account_id when accounts.yml sets explicit ids
     # (YAML `account: one` resolves to identify(:one), not the row's primary key).
     fixtures :all
+
+    # テストごとに独立した Git 作業ツリーを割り当て、テスト間・並列ワーカー間で
+    # ファイル状態（draft/commit/アセット）が漏れるフレーキーを防ぐ。
+    # config.x.memo_git_work_tree は boot 時に一度だけ算出されるため、ここで毎回差し替える。
+    # MemoRepository は呼び出し時に config を読むので、この差し替えが効く（DB はトランザクションで
+    # ロールバックされるが、作業ツリーのファイルはロールバックされないため明示的に分離する）。
+    setup do
+      @memo_git_work_tree = Rails.root.join("tmp", "memo_git_test", "t-#{SecureRandom.hex(8)}")
+      FileUtils.mkdir_p(@memo_git_work_tree)
+      Rails.application.config.x.memo_git_work_tree = @memo_git_work_tree.to_s
+    end
+
+    teardown do
+      FileUtils.rm_rf(@memo_git_work_tree) if @memo_git_work_tree
+    end
 
     setup { normalize_memo_slug_fixtures! }
 

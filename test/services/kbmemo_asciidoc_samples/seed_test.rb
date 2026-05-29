@@ -32,7 +32,9 @@ class KbmemoAsciidocSamplesSeedTest < ActiveSupport::TestCase
   end
 
   teardown do
-    FileUtils.rm_rf(@fixture_path.dirname)
+    # 親ディレクトリは並列ワーカー間で共有されるため、一意なフィクスチャファイルのみ削除する
+    # （dirname ごと消すと他ワーカー実行中のフィクスチャを巻き込む）。
+    FileUtils.rm_f(@fixture_path)
   end
 
   def seed(**opts)
