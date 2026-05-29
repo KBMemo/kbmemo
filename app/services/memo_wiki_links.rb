@@ -12,7 +12,7 @@ class MemoWikiLinks
   LINK_PATTERN = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/.freeze
 
   MemoRef = Data.define(:id, :memo_directory_id, :title)
-  Resolved = Data.define(:id, :title, :by) # :title | :slug | :uid
+  Resolved = Data.define(:id, :title, :by, :uid) # :title | :slug | :uid
 
   def initialize(scope:, source_memo: nil)
     @scope = scope
@@ -120,7 +120,7 @@ class MemoWikiLinks
     memo_id = @memo_id_by_uid[uid]
     return nil unless memo_id
 
-    Resolved.new(memo_id, @title_by_id[memo_id], :uid)
+    Resolved.new(memo_id, @title_by_id[memo_id], :uid, uid)
   end
 
   def escape_asciidoc_link_text(text)
@@ -162,14 +162,14 @@ class MemoWikiLinks
   end
 
   def resolved_from_ref(ref, by)
-    Resolved.new(ref.id, ref.title, by)
+    Resolved.new(ref.id, ref.title, by, @uid_by_id[ref.id])
   end
 
   def resolve_global_slug(slug_key)
     memo_id = @slug_by_key[slug_key]
     return nil unless memo_id
 
-    Resolved.new(memo_id, @title_by_id[memo_id], :slug)
+    Resolved.new(memo_id, @title_by_id[memo_id], :slug, @uid_by_id[memo_id])
   end
 
   def resolve_slug_stem(stem_key)
@@ -177,7 +177,7 @@ class MemoWikiLinks
     return nil if ids.blank? || ids.size != 1
 
     memo_id = ids.first
-    Resolved.new(memo_id, @title_by_id[memo_id], :slug)
+    Resolved.new(memo_id, @title_by_id[memo_id], :slug, @uid_by_id[memo_id])
   end
 
   def source_directory_id
@@ -213,7 +213,7 @@ class MemoWikiLinks
     memo_id = @slug_by_directory[[ dir_id, slug_key ]]
     return nil unless memo_id
 
-    Resolved.new(memo_id, @title_by_id[memo_id], :slug)
+    Resolved.new(memo_id, @title_by_id[memo_id], :slug, @uid_by_id[memo_id])
   end
 
   def normalize_directory_full_path(path)
@@ -232,12 +232,14 @@ class MemoWikiLinks
     @slug_stem_index = Hash.new { |h, k| h[k] = [] }
     @slug_by_directory = {}
     @title_by_id = {}
+    @uid_by_id = {}
     @memo_id_by_uid = {}
     @directory_ids_by_full_path = {}
     directory_ids = []
     @scope.pluck(:id, :title, :memo_directory_id, :slug, :uid).each do |id, title, dir_id, slug, uid|
       directory_ids << dir_id
       @title_by_id[id] = title
+      @uid_by_id[id] = uid.to_s.upcase if uid.present?
       @titles_index[normalize_title(title)] << MemoRef.new(id, dir_id, title)
       @memo_id_by_uid[uid.to_s.upcase] = id if uid.present?
       next if slug.blank?

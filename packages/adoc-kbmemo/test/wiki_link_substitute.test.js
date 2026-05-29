@@ -19,7 +19,16 @@ describe('substituteWikiLinksForPreview', () => {
     expect(out).toBe('See [.memo-wiki-broken]#テスト#.')
   })
 
-  it('resolves targets from the labels map', () => {
+  it('resolves targets from the labels map using memo_uid', () => {
+    const uid = '01KDWPVPF8KRVQ2FP8BPQCZ4VZ'
+    const labels = new Map([
+      ['second-memo', { resolved: true, slug: true, memo_id: 42, memo_uid: uid, display: 'Second memo' }],
+    ])
+    const out = substituteWikiLinksForPreview('See [[second-memo]].', labels)
+    expect(out).toBe(`See link:/memos/${uid}[Second memo].`)
+  })
+
+  it('falls back to memo_id when memo_uid is absent', () => {
     const labels = new Map([
       ['second-memo', { resolved: true, slug: true, memo_id: 42, display: 'Second memo' }],
     ])

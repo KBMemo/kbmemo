@@ -45,10 +45,26 @@ function escapeAsciidocUnquoted(text) {
 }
 
 /**
+ * @param {string | number | null | undefined} memoRef
+ */
+function memoLinkRef(memoRef) {
+  if (memoRef == null || memoRef === '') return null
+  return memoRef
+}
+
+/**
+ * @param {{ memo_uid?: string | null, memo_id?: number | null } | null | undefined} entry
+ */
+function memoLinkRefFromEntry(entry) {
+  if (!entry?.resolved) return null
+  return memoLinkRef(entry.memo_uid ?? entry.memo_id)
+}
+
+/**
  * Asciidoctor プレビュー用に Wiki リンクを展開する（DB 上の [[...]] は変更しない）。
  *
  * @param {string} source
- * @param {Map<string, { display?: string, resolved?: boolean, slug?: boolean, memo_id?: number | null }>} labels
+ * @param {Map<string, { display?: string, resolved?: boolean, slug?: boolean, memo_id?: number | null, memo_uid?: string | null }>} labels
  */
 export function substituteWikiLinksForPreview(source, labels) {
   if (!source) return source
@@ -69,10 +85,14 @@ export function substituteWikiLinksForPreview(source, labels) {
         const displayLabel = customLabel || target
         const entry = labels.get(target)
 
-        if (entry?.resolved && entry.memo_id != null) {
+        if (entry?.resolved) {
+          const memoRef = memoLinkRefFromEntry(entry)
+          if (memoRef == null) {
+            return `[.memo-wiki-broken]#${escapeAsciidocUnquoted(displayLabel)}#`
+          }
           const linkLabel =
             customLabel || (entry.slug ? (entry.display ?? target) : target)
-          return `link:${wikiMemoLinkPath(entry.memo_id)}[${escapeAsciidocLinkText(linkLabel)}]`
+          return `link:${wikiMemoLinkPath(memoRef)}[${escapeAsciidocLinkText(linkLabel)}]`
         }
 
         return `[.memo-wiki-broken]#${escapeAsciidocUnquoted(displayLabel)}#`

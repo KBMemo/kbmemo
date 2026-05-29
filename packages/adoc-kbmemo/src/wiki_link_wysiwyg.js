@@ -1,11 +1,13 @@
 import { RangeSet, RangeSetBuilder, StateEffect, StateField } from "@codemirror/state"
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view"
 import { getViewportLineRange, shouldDecorateEditorLine } from "./viewport_lazy"
+import { wikiMemoLinkPath } from "../hostConfig.js"
 
 const WIKI_LINK = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g
 const LINK_LABEL = /((?:[^\\\]]|\\.)*)/
+const MEMO_LINK_TOKEN = String.raw`(?:\d+|[0-9A-HJKMNP-TV-Z]{26})`
 const ASCIIDOC_MEMO_LINK = new RegExp(
-  String.raw`link:(?:/memos/(\d+)|memos/(\d+))\[` + LINK_LABEL.source + String.raw`\]`,
+  String.raw`link:(?:/memos/(${MEMO_LINK_TOKEN})|memos/(${MEMO_LINK_TOKEN}))\[` + LINK_LABEL.source + String.raw`\]`,
   "gi"
 )
 const ASCIIDOC_URL_LINK =
@@ -70,17 +72,17 @@ function unescapeLinkLabel(text) {
   return text.replace(/\\\]/g, "]")
 }
 
-function memoHref(memoId) {
-  return `/memos/${memoId}`
+function memoHref(memoRef) {
+  return wikiMemoLinkPath(memoRef)
 }
 
 function isUrlHref(href) {
   return /^(https?:|ftp:|mailto:|callto:|file:)/i.test(href)
 }
 
-function memoIdFromHref(href) {
-  const m = href.match(/^\/?memos\/(\d+)$/i)
-  return m ? Number(m[1]) : null
+function memoLinkRefFromHref(href) {
+  const m = href.match(new RegExp(`^\\/?memos\\/(${MEMO_LINK_TOKEN})$`, "i"))
+  return m ? m[1] : null
 }
 
 /** wysiwyg_lite のインライン装飾から除外するリンク範囲 */
@@ -97,11 +99,11 @@ export function linkExclusionRanges(text, lineFrom) {
 }
 
 class LinkLabelWidget extends WidgetType {
-  constructor(label, { broken = false, memoId = null, href = null, external = false } = {}) {
+  constructor(label, { broken = false, memoRef = null, href = null, external = false } = {}) {
     super()
     this.label = label
     this.broken = broken
-    this.memoId = memoId
+    this.memoRef = memoRef
     this.href = href
     this.external = external
   }
@@ -110,17 +112,17 @@ class LinkLabelWidget extends WidgetType {
     return (
       other.label === this.label &&
       other.broken === this.broken &&
-      other.memoId === this.memoId &&
+      other.memoRef === this.memoRef &&
       other.href === this.href &&
       other.external === this.external
     )
   }
 
   toDOM() {
-    const navigable = !this.broken && (this.memoId != null || this.href)
+    const navigable = !this.broken && (this.memoRef != null || this.href)
     if (navigable) {
       const a = document.createElement("a")
-      a.href = this.memoId != null ? memoHref(this.memoId) : this.href
+      a.href = this.memoRef != null ? memoHref(this.memoRef) : this.href
       a.className = "cm-memo-wiki-link cm-memo-wiki-link--open"
       if (this.external) {
         a.target = "_blank"
@@ -139,14 +141,14 @@ class LinkLabelWidget extends WidgetType {
   }
 
   ignoreEvent(event) {
-    if (this.broken || (this.memoId == null && !this.href)) return false
+    if (this.broken || (this.memoRef == null && !this.href)) return false
     return event.type === "mousedown" || event.type === "click"
   }
 }
 
-function linkWidget(label, entry, { href = null, external = false, memoId = null } = {}) {
-  if (memoId != null) {
-    return new LinkLabelWidget(label, { memoId, broken: false })
+function linkWidget(label, entry, { href = null, external = false, memoRef = null } = {}) {
+  if (memoRef != null) {
+    return new LinkLabelWidget(label, { memoRef, broken: false })
   }
   if (href) {
     return new LinkLabelWidget(label, { href, external, broken: false })
@@ -156,7 +158,7 @@ function linkWidget(label, entry, { href = null, external = false, memoId = null
   }
   return new LinkLabelWidget(label, {
     broken: !entry.resolved,
-    memoId: entry.resolved ? entry.memo_id : null
+    memoRef: entry.resolved ? (entry.memo_uid ?? entry.memo_id ?? null) : null
   })
 }
 
@@ -192,7 +194,7 @@ function collectResolveTargets(doc) {
 
     for (const match of text.matchAll(ASCIIDOC_LINK)) {
       const href = match[1].trim()
-      if (!href || isUrlHref(href) || memoIdFromHref(href)) continue
+      if (!href || isUrlHref(href) || memoLinkRefFromHref(href)) continue
       targets.add(href)
     }
 
@@ -266,7 +268,7 @@ function decorateWikiLink(specs, atomicRanges, match, lineFrom, labels) {
 function decorateAsciiDocMemoLink(specs, atomicRanges, match, lineFrom) {
   const fullFrom = lineFrom + match.index
   const fullTo = fullFrom + match[0].length
-  const memoId = Number(match[1] || match[2])
+  const memoRef = match[1] || match[2]
   const label = unescapeLinkLabel(match[3])
   const bracketOpen = match[0].indexOf("[")
   const innerFrom = fullFrom + bracketOpen + 1
@@ -279,7 +281,7 @@ function decorateAsciiDocMemoLink(specs, atomicRanges, match, lineFrom) {
     innerFrom,
     innerTo,
     [[innerTo, fullTo]],
-    linkWidget(label, null, { memoId })
+    linkWidget(label, null, { memoRef })
   )
   return true
 }
@@ -307,7 +309,7 @@ function decorateAsciiDocUrlLink(specs, atomicRanges, match, lineFrom) {
 
 function decorateAsciiDocLink(specs, atomicRanges, match, lineFrom, labels) {
   const href = match[1].trim()
-  if (isUrlHref(href) || memoIdFromHref(href)) return false
+  if (isUrlHref(href) || memoLinkRefFromHref(href)) return false
 
   const fullFrom = lineFrom + match.index
   const fullTo = fullFrom + match[0].length

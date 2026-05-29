@@ -32,9 +32,9 @@ class MemoWikiCompletions
     (same_dir + other).first(MAX * 3)
   end
 
-  # 候補表示はタイトル、確定時の挿入はグローバルスラッグ（[[slug-id]]）。
+  # 候補表示はタイトル、確定時の挿入は uid（[[uid]]）。オフライン作成メモでもリンク先が安定する。
   def entry_for(memo)
-    insert = memo.slug.to_s.presence
+    insert = memo.uid.to_s.presence
     return nil if insert.blank?
 
     { label: memo.title, insert: insert }

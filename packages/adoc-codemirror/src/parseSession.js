@@ -64,7 +64,7 @@ function wikiLabelsCacheKey(wikiLabels) {
   if (!wikiLabels || wikiLabels.size === 0) return ''
   return [...wikiLabels.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, entry]) => `${key}\t${entry.resolved ? 1 : 0}\t${entry.memo_id ?? ''}`)
+    .map(([key, entry]) => `${key}\t${entry.resolved ? 1 : 0}\t${entry.memo_uid ?? ''}\t${entry.memo_id ?? ''}`)
     .join('\n')
 }
 

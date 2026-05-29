@@ -16,6 +16,17 @@ class MemoWikiLinkLabelsTest < ActiveSupport::TestCase
     assert entry[:slug]
     assert_equal @two.title, entry[:display]
     assert_equal @two.id, entry[:memo_id]
+    assert_equal @two.uid, entry[:memo_uid]
+  end
+
+  test "uid target returns title display" do
+    labels = resolver.call([@two.uid])
+    entry = labels[@two.uid]
+    assert entry[:resolved]
+    assert entry[:slug]
+    assert_equal @two.title, entry[:display]
+    assert_equal @two.id, entry[:memo_id]
+    assert_equal @two.uid, entry[:memo_uid]
   end
 
   test "title target keeps target as display" do

@@ -10,19 +10,19 @@ class MemoWikiCompletionsTest < ActiveSupport::TestCase
     @target = memos(:two)
   end
 
-  test "suggests title label with slug insert for searchable memo" do
+  test "suggests title label with uid insert for searchable memo" do
     entries = completions.call("Second")
     entry = entries.find { |e| e[:label] == @target.title }
     assert entry
-    assert_equal @target.slug, entry[:insert]
-    assert_not entries.any? { |e| e[:label] == @target.slug }
+    assert_equal @target.uid, entry[:insert]
+    assert_not entries.any? { |e| e[:label] == @target.uid }
   end
 
-  test "empty query suggests title label with slug insert" do
+  test "empty query suggests title label with uid insert" do
     entries = completions.call("")
     entry = entries.find { |e| e[:label] == @target.title }
     assert entry
-    assert_equal @target.slug, entry[:insert]
+    assert_equal @target.uid, entry[:insert]
   end
 
   test "excludes source memo from results" do

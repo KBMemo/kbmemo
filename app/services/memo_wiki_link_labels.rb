@@ -24,14 +24,16 @@ class MemoWikiLinkLabels
         display: canonical_id_based ? resolved.title : target,
         resolved: true,
         slug: canonical_id_based,
-        memo_id: resolved.id
+        memo_id: resolved.id,
+        memo_uid: resolved.uid
       }
     else
       {
         display: target,
         resolved: false,
         slug: false,
-        memo_id: nil
+        memo_id: nil,
+        memo_uid: nil
       }
     end
   end

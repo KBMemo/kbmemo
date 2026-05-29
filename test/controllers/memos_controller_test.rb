@@ -421,7 +421,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert body.is_a?(Array)
     entry = body.find { |e| e["label"] == "Second memo" }
     assert entry
-    assert_equal memos(:two).slug, entry["insert"]
+    assert_equal memos(:two).uid, entry["insert"]
   end
 
   test "guest cannot access wiki completions" do
@@ -440,6 +440,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_equal two.title, body[two.slug]["display"]
     assert body[two.slug]["slug"]
     assert_equal two.id, body[two.slug]["memo_id"]
+    assert_equal two.uid, body[two.slug]["memo_uid"]
     assert_equal "Second memo", body["Second memo"]["display"]
     assert_not body["Second memo"]["slug"]
     assert_equal two.id, body["Second memo"]["memo_id"]
