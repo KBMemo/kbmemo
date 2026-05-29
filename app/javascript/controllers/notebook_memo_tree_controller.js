@@ -23,11 +23,6 @@ export default class extends Controller {
     document.documentElement.classList.remove("notebook-memo-tree-dragging")
   }
 
-  prepareDrag(event) {
-    const row = event.currentTarget.closest("[data-notebook-memo-id]")
-    if (row) row.draggable = true
-  }
-
   allowDrop(event) {
     event.preventDefault()
     event.dataTransfer.dropEffect = "move"

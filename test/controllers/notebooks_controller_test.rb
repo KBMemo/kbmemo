@@ -220,6 +220,46 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action=?]", create_blank_notebook_notebook_memos_path(notebook)
   end
 
+  test "create_blank with parent_id appends a child inheriting the parent directory and tags" do
+    notebook = notebooks(:one)
+    parent = notebook_memos(:one_one)
+    parent_memo = parent.memo
+    parent_memo.tags = [Tag.resolve_label!("InheritedTag")]
+    parent_dir_id = parent_memo.memo_directory_id
+
+    assert_difference -> { notebook.notebook_memos.where(parent_id: parent.id).count }, 1 do
+      post create_blank_notebook_notebook_memos_url(notebook), params: { parent_id: parent.id }
+    end
+
+    child = notebook.notebook_memos.where(parent_id: parent.id).order(:position, :id).last
+    assert_equal parent.id, child.parent_id
+    assert_equal parent_dir_id, child.memo.memo_directory_id
+    assert_equal ["InheritedTag"], child.memo.tags.map(&:name)
+    assert_redirected_to edit_memo_path(child.memo_id)
+  end
+
+  test "create_blank ignores a parent_id from another notebook" do
+    notebook = notebooks(:one)
+    foreign_parent = notebook_memos(:one_one)
+    other_notebook = notebooks(:two)
+
+    post create_blank_notebook_notebook_memos_url(other_notebook), params: { parent_id: foreign_parent.id }
+    assert_response :redirect
+
+    new_entry = other_notebook.notebook_memos.order(:created_at, :id).last
+    assert_nil new_entry.parent_id
+  end
+
+  test "notebook tree rows render a child-add button carrying the parent_id" do
+    notebook = notebooks(:one)
+    get notebook_url(notebook)
+    assert_response :success
+    assert_select "form[action=?] input[name=?][value=?]",
+      create_blank_notebook_notebook_memos_path(notebook),
+      "parent_id",
+      notebook_memos(:one_one).id.to_s
+  end
+
   test "add docs_sync read-only memo to notebook when user can view but not edit" do
     notebook = notebooks(:two)
     memo = memos(:two)

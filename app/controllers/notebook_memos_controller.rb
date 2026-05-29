@@ -22,11 +22,18 @@ class NotebookMemosController < ApplicationController
   def create_blank
     authorize @notebook, :manage_memos?
 
-    memo = Memo.new(account: rodauth.rails_account, memo_directory_id: default_memo_directory_id)
+    parent_entry = blank_memo_parent_entry
+    parent_memo = parent_entry&.memo
+
+    memo = Memo.new(
+      account: rodauth.rails_account,
+      memo_directory_id: parent_memo&.memo_directory_id || default_memo_directory_id
+    )
     authorize memo, :create?
     memo.save!
+    memo.tags = parent_memo.tags.to_a if parent_memo
 
-    Notebooks::AddMemo.call(notebook: @notebook, memo: memo)
+    Notebooks::AddMemo.call(notebook: @notebook, memo: memo, parent_id: parent_entry&.id)
     redirect_to edit_memo_path(memo), notice: "メモを作成して末尾に追加しました。"
   rescue Notebooks::Error => e
     redirect_to notebook_path(@notebook), alert: e.message
@@ -50,5 +57,13 @@ class NotebookMemosController < ApplicationController
 
   def default_memo_directory_id
     MemoDirectory::UserSpace.default_home_directory(rodauth.rails_account.id).id
+  end
+
+  # 子メモ追加時の親エントリ。同じノートブックに属する notebook_memo のみ受理する。
+  def blank_memo_parent_entry
+    raw = params[:parent_id].presence
+    return nil unless raw
+
+    @notebook.notebook_memos.includes(:memo).find_by(id: raw)
   end
 end

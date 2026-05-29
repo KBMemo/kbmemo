@@ -1,11 +1,16 @@
 ruby:
-  drop_action = row_drop ? row_drop.map { |key, val| "#{key}->#{val}" }.join(" ") : nil
+  row_actions = []
+  row_actions << "dragstart->notebook-memo-tree#entryDragStart dragend->notebook-memo-tree#entryDragEnd" if can_manage
+  row_actions << row_drop.map { |key, val| "#{key}->#{val}" }.join(" ") if row_drop
+  row_action = row_actions.presence&.join(" ")
+  row_classes = "group flex min-w-0 flex-1 items-center gap-0.5"
+  row_classes += " cursor-grab" if can_manage
 
-.flex.min-w-0.flex-1.items-center.gap-0.5 data-notebook-memo-row="" data-notebook-memo-id=entry.id data-parent-id=entry.parent_id data-position=entry.position data-action=drop_action
-  - if can_manage
-    span.inline-flex.shrink-0.cursor-grab.select-none.pl-0.5.kb-text-subtle.hover:kb-text-secondary role="button" tabindex="0" title="ドラッグして順序・階層を変更" draggable="true" data-action="dragstart->notebook-memo-tree#entryDragStart dragend->notebook-memo-tree#entryDragEnd mousedown->notebook-memo-tree#prepareDrag"
-      i.h-3.5.w-3.5 aria-hidden="true" data-lucide="grip-vertical"
+div class=row_classes data-notebook-memo-row="" data-notebook-memo-id=entry.id data-parent-id=entry.parent_id data-position=entry.position draggable=(can_manage ? "true" : nil) title=(can_manage ? "ドラッグして順序・階層を変更" : nil) data-action=row_action
   = link_to @notebook.display_label_for_memo(entry),
     notebook_memo_path_for_viewer(@notebook, entry.memo),
     class: notebook_memo_tree_row_classes(entry, selected_memo: @selected_memo),
     draggable: "false"
+  - if can_manage
+    = button_to create_blank_notebook_notebook_memos_path(@notebook), method: :post, params: { parent_id: entry.id }, form_class: "contents", draggable: "false", title: "子メモを追加", class: "shrink-0 inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded kb-text-subtle opacity-0 transition hover:kb-text-secondary focus:opacity-100 focus-visible:opacity-100 group-hover:opacity-100" do
+      i class="h-3.5 w-3.5" aria-hidden="true" data-lucide="plus"
