@@ -31,6 +31,9 @@ application.register("memo-show-metadata", MemoShowMetadataController)
 import MemoShowContextMenuController from "./memo_show_context_menu_controller"
 application.register("memo-show-context-menu", MemoShowContextMenuController)
 
+import CodeBlockToolsController from "./code_block_tools_controller"
+application.register("code-block-tools", CodeBlockToolsController)
+
 import BoardAddMemoController from "./board_add_memo_controller"
 application.register("board-add-memo", BoardAddMemoController)
 

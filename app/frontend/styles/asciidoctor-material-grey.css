@@ -795,6 +795,91 @@
   padding-bottom: 0;
 }
 
+/* JS ツールバー（言語バッジ + コピー / 図トグル）が付いたら CSS バッジは隠す */
+.memo-body .listingblock.has-code-tools > .content pre.highlight code[data-lang]::before,
+.memo-body .listingblock.has-code-tools > .content code[data-lang]::before {
+  content: none;
+}
+
+.memo-body .listingblock > .content .kb-code-toolbar {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.4rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.memo-body .listingblock > .content .kb-code-lang {
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--mg-primary);
+}
+
+.memo-body .listingblock > .content .kb-code-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.4rem;
+  border: 1px solid var(--mg-divider);
+  border-radius: 4px;
+  background: var(--mg-code-bg);
+  color: var(--mg-text-muted, var(--mg-text));
+  font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.memo-body .listingblock > .content .kb-code-btn:hover {
+  color: var(--mg-primary);
+  border-color: var(--mg-primary);
+}
+
+.memo-body .listingblock > .content .kb-code-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.memo-body .listingblock > .content .kb-code-copy.is-copied {
+  color: #15803d;
+  border-color: #15803d;
+}
+
+.memo-body .listingblock > .content .kb-code-diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0.5rem 0;
+  overflow-x: auto;
+}
+
+.memo-body .listingblock > .content .kb-code-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.memo-body .listingblock > .content .kb-code-diagram-status {
+  font-size: 0.8125rem;
+  color: var(--mg-text-muted, var(--mg-text));
+}
+
+.memo-body .listingblock > .content .kb-code-diagram-error {
+  font-size: 0.8125rem;
+  color: #b91c1c;
+}
+
 /* Source callouts (listing markers + colist footnotes) */
 .memo-body b.conum,
 .memo-body i.conum,

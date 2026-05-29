@@ -9,6 +9,20 @@ class MemoDiagram
   PLANTUML_EXTENSIONS = %w[.puml .plantuml .uml].freeze
   ALLOWED_EXTENSIONS = (MERMAID_EXTENSIONS + PLANTUML_EXTENSIONS).freeze
 
+  # 図としてレンダリングできるソースブロックの言語名（[source,<name>]）→ エンジン。
+  ENGINE_BY_LANG = {
+    "plantuml" => :plantuml,
+    "puml" => :plantuml,
+    "uml" => :plantuml,
+    "mermaid" => :mermaid
+  }.freeze
+  ENGINE_NAMES = ENGINE_BY_LANG.keys.freeze
+
+  # [source,<lang>] の言語名から正規化したエンジン記号を返す（対象外は nil）。
+  def self.engine_from_lang(name)
+    ENGINE_BY_LANG[name.to_s.strip.downcase]
+  end
+
   DIAGRAM_MACRO = /diagram::([^\[\]]+?)(\[[^\]]*\])?/
 
   def self.engine_for_filename(filename)

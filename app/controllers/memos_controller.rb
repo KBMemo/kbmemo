@@ -1,6 +1,6 @@
 class MemosController < ApplicationController
   prepend_before_action :record_memo_view_history, only: %i[show edit]
-  prepend_before_action :set_memo, only: %i[show edit update destroy draft commit revert_draft checklist_toggle update_directory update_tags]
+  prepend_before_action :set_memo, only: %i[show edit update destroy draft commit revert_draft checklist_toggle update_directory update_tags render_diagram]
   before_action :set_memo_groups_for_form, only: %i[new create edit update]
   include MemoSidebar
 
@@ -132,6 +132,25 @@ class MemosController < ApplicationController
 
   def show
     authorize @memo
+  end
+
+  # メモ表示中の [source,plantuml] / [source,mermaid] ブロックを
+  # Kroki でレンダリングして SVG を返す（図 ⇄ ソースのトグル用）。保存はしない。
+  def render_diagram
+    authorize @memo, :show_diagram?
+    engine = MemoDiagram.engine_from_lang(params[:engine])
+    unless engine
+      return render json: { error: "対応していないダイアグラム種別です（plantuml / mermaid）" }, status: :unprocessable_entity
+    end
+
+    source = params[:source].to_s
+    return render json: { error: "ソースが空です" }, status: :unprocessable_entity if source.strip.blank?
+
+    normalized = MemoDiagram.normalize_source(engine, source)
+    svg = MemoDiagramRenderer.render(engine: engine, source: normalized)
+    render json: { svg: svg }
+  rescue MemoDiagram::InvalidPath, MemoDiagramRenderer::Error, MemoDiagramRenderer::Unavailable => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def new

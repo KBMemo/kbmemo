@@ -405,11 +405,20 @@ module MemosHelper
 
   def memo_body_tag_options(memo)
     opts = { class: "memo-body asciidoctor kb-card p-6", data: { theme_slot: "memo-body" } }
-    return opts unless memo_wiki_create_enabled?(memo)
+    controllers = [ "code-block-tools" ]
 
-    opts[:data][:controller] = "memo-wiki-create"
-    opts[:data][:memo_wiki_create_create_url_value] = memos_path
-    opts[:data][:memo_wiki_create_memo_directory_id_value] = memo_wiki_create_directory_id(memo)
+    # コードブロックのコピー／図トグル。図レンダリングは保存済みメモのみ（Kroki プロキシ）。
+    if memo&.persisted?
+      opts[:data][:code_block_tools_render_url_value] = render_diagram_memo_path(memo)
+    end
+
+    if memo_wiki_create_enabled?(memo)
+      controllers << "memo-wiki-create"
+      opts[:data][:memo_wiki_create_create_url_value] = memos_path
+      opts[:data][:memo_wiki_create_memo_directory_id_value] = memo_wiki_create_directory_id(memo)
+    end
+
+    opts[:data][:controller] = controllers.join(" ")
     opts
   end
 

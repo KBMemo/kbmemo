@@ -1087,4 +1087,57 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_empty other.reload.tags
   end
+
+  test "render_diagram returns sanitized svg for a plantuml source block" do
+    sign_in_as(:one)
+    memo = memos(:one)
+    svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>uml</text></svg>'
+    with_stubbed_kroki(svg) do
+      post render_diagram_memo_url(memo),
+        params: { engine: "plantuml", source: "@startuml\nA -> B\n@enduml" },
+        as: :json
+    end
+    assert_response :success
+    assert_equal svg, response.parsed_body["svg"]
+  end
+
+  test "render_diagram rejects an unsupported engine" do
+    sign_in_as(:one)
+    post render_diagram_memo_url(memos(:one)),
+      params: { engine: "ruby", source: "puts 1" },
+      as: :json
+    assert_response :unprocessable_entity
+    assert response.parsed_body["error"].present?
+  end
+
+  test "render_diagram rejects a blank source" do
+    sign_in_as(:one)
+    post render_diagram_memo_url(memos(:one)),
+      params: { engine: "mermaid", source: "   " },
+      as: :json
+    assert_response :unprocessable_entity
+  end
+
+  test "render_diagram is not found for memos the user cannot view" do
+    sign_in_as(:two)
+    private_memo = Memo.create!(
+      title: "Private",
+      body: "secret",
+      memo_directory: memo_directories(:work),
+      account_id: accounts(:one).id,
+      visibility: :owner_read_write
+    )
+    post render_diagram_memo_url(private_memo),
+      params: { engine: "plantuml", source: "@startuml\nA->B\n@enduml" },
+      as: :json
+    assert_response :not_found
+  end
+
+  test "memo body wires the code-block-tools controller with a render url" do
+    sign_in_as(:one)
+    get memo_url(memos(:one))
+    assert_response :success
+    assert_includes response.body, "code-block-tools"
+    assert_includes response.body, "data-code-block-tools-render-url-value"
+  end
 end

@@ -89,6 +89,7 @@ Rails.application.routes.draw do
       patch :checklist_toggle
       patch :update_directory
       patch :update_tags
+      post :render_diagram
       post "assets", to: "memo_assets#create", as: :assets
       get "assets/*filename/view", to: "memo_assets#view", as: :asset_view, format: false
       get "assets/*filename", to: "memo_assets#show", as: :asset, format: false
