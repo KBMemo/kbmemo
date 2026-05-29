@@ -538,8 +538,14 @@ class MemosController < ApplicationController
   end
 
   def set_memo
-    base = policy_scope(Memo)
-    @memo = base.includes(:tags, :memo_directory, :account, :memo_group, :board).find(params[:id])
+    base = policy_scope(Memo).includes(:tags, :memo_directory, :account, :memo_group, :board)
+    key = params[:id].to_s
+    @memo =
+      if key.upcase.match?(Memo::UID_FORMAT)
+        base.find_by!(uid: key.upcase)
+      else
+        base.find(key)
+      end
   end
 
   def memo_params

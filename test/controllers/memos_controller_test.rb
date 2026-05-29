@@ -6,6 +6,24 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "shows a memo addressed by its uid" do
+    one = memos(:one)
+    get "/memos/#{one.uid}"
+    assert_response :success
+    assert_includes response.body, one.title
+  end
+
+  test "uid lookup is case-insensitive" do
+    one = memos(:one)
+    get "/memos/#{one.uid.downcase}"
+    assert_response :success
+  end
+
+  test "unknown uid returns not found" do
+    get "/memos/#{ULID.generate}"
+    assert_response :not_found
+  end
+
   test "index search finds memos by title or body across directories" do
     m = memos(:one)
     m.update_columns(title: "UniqueSearchToken", body: "body")

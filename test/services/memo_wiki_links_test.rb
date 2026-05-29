@@ -27,6 +27,24 @@ class MemoWikiLinksTest < ActiveSupport::TestCase
     assert_equal "Ref link:/memos/#{@two.id}[#{@two.title}]", out
   end
 
+  test "substitute resolves memo by uid and displays title" do
+    body = "Ref [[#{@two.uid}]]"
+    out = linker(source: @one).substitute(body)
+    assert_equal "Ref link:/memos/#{@two.id}[#{@two.title}]", out
+  end
+
+  test "substitute resolves uid case-insensitively" do
+    body = "[[#{@two.uid.downcase}]]"
+    out = linker(source: @one).substitute(body)
+    assert_equal "link:/memos/#{@two.id}[#{@two.title}]", out
+  end
+
+  test "substitute uid link allows custom label override" do
+    body = "[[#{@two.uid}|alias]]"
+    out = linker(source: @one).substitute(body)
+    assert_equal "link:/memos/#{@two.id}[alias]", out
+  end
+
   test "substitute resolves legacy stem slug without id suffix" do
     body = "Ref [[second-memo]]"
     out = linker(source: @one).substitute(body)

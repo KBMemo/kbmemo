@@ -2,6 +2,7 @@
 
 # メモ本文の Wiki リンクを AsciiDoc の内部リンクへ展開する。
 #   [[タイトル]] / [[タイトル|表示名]]
+#   [[uid]]（ULID。端末側で採番できる安定識別子。オフライン作成メモの相互リンク用）
 #   [[slug-{memo_id}]]（アプリ全体で一意なスラッグ。ディレクトリ移動の影響を受けない）
 #   [[slug-{memo_id}|表示名]]
 #   [[stem]] — レガシー: 末尾 -{id} なしの表記（同一 scope 内で stem が一意のときのみ）
@@ -11,7 +12,7 @@ class MemoWikiLinks
   LINK_PATTERN = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/.freeze
 
   MemoRef = Data.define(:id, :memo_directory_id, :title)
-  Resolved = Data.define(:id, :title, :by) # :title | :slug
+  Resolved = Data.define(:id, :title, :by) # :title | :slug | :uid
 
   def initialize(scope:, source_memo: nil)
     @scope = scope
@@ -106,7 +107,19 @@ class MemoWikiLinks
   end
 
   def link_display_label(resolved, target)
-    resolved.by == :slug ? resolved.title : target
+    # slug / uid は人間可読でないため、解決できたメモのタイトルを表示する。
+    resolved.by == :title ? target : resolved.title
+  end
+
+  # 完全一致の uid（ULID）解決。slug より優先する（グローバルで一意・移動の影響なし）。
+  def resolve_uid(key)
+    uid = key.to_s.strip.upcase
+    return nil unless uid.match?(Memo::UID_FORMAT)
+
+    memo_id = @memo_id_by_uid[uid]
+    return nil unless memo_id
+
+    Resolved.new(memo_id, @title_by_id[memo_id], :uid)
   end
 
   def escape_asciidoc_link_text(text)
@@ -118,6 +131,10 @@ class MemoWikiLinks
     return nil if key.blank?
 
     load_index!
+
+    if (resolved = resolve_uid(key))
+      return resolved
+    end
 
     if key.include?("/")
       path_slug = resolve_path_slug(key)
@@ -168,6 +185,10 @@ class MemoWikiLinks
 
   def resolve_path_slug(target)
     _dir_part, _, slug_part = target.rpartition("/")
+    if (resolved = resolve_uid(slug_part))
+      return resolved
+    end
+
     slug_key = slug_part.strip.downcase
     return nil if slug_key.blank?
 
@@ -210,12 +231,14 @@ class MemoWikiLinks
     @slug_stem_index = Hash.new { |h, k| h[k] = [] }
     @slug_by_directory = {}
     @title_by_id = {}
+    @memo_id_by_uid = {}
     @directory_ids_by_full_path = {}
     directory_ids = []
-    @scope.pluck(:id, :title, :memo_directory_id, :slug).each do |id, title, dir_id, slug|
+    @scope.pluck(:id, :title, :memo_directory_id, :slug, :uid).each do |id, title, dir_id, slug, uid|
       directory_ids << dir_id
       @title_by_id[id] = title
       @titles_index[normalize_title(title)] << MemoRef.new(id, dir_id, title)
+      @memo_id_by_uid[uid.to_s.upcase] = id if uid.present?
       next if slug.blank?
 
       slug_key = slug.downcase

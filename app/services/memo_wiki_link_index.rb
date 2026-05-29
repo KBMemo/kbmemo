@@ -2,7 +2,8 @@
 
 # メモ本文から Wiki リンクを解決し、memo_wiki_links テーブルを更新する。
 class MemoWikiLinkIndex
-  MEMO_HREF_PATTERN = /link:\/memos\/(\d+)\[/.freeze
+  # link:/memos/{id}[ と link:/memos/{uid}[（ULID）の双方を拾う。
+  MEMO_HREF_PATTERN = /link:\/memos\/([0-9A-Za-z]+)\[/.freeze
 
   class << self
     def rebuild_for(memo)
@@ -17,8 +18,9 @@ class MemoWikiLinkIndex
         target_ids << resolved.id if resolved
       end
 
-      extract_memo_hrefs(memo.body).each do |memo_id|
-        target_ids << memo_id if scope.exists?(id: memo_id)
+      extract_memo_hrefs(memo.body).each do |token|
+        resolved_id = resolve_href_token(scope, token)
+        target_ids << resolved_id if resolved_id
       end
 
       target_ids.delete(memo.id)
@@ -68,13 +70,23 @@ class MemoWikiLinkIndex
         patterns << "[[/#{path}/#{slug}|"
       end
 
-      href = "link:/memos/#{memo.id}["
-      patterns << href
+      patterns << "link:/memos/#{memo.id}["
+      patterns << "link:/memos/#{memo.uid}[" if memo.uid.present?
 
       patterns.uniq
     end
 
     private
+
+    # link:/memos/{token}[ の token（数値 id または uid）を scope 内のメモ id へ解決する。
+    def resolve_href_token(scope, token)
+      if token.match?(/\A\d+\z/)
+        id = token.to_i
+        scope.exists?(id: id) ? id : nil
+      else
+        scope.where(uid: token.upcase).pick(:id)
+      end
+    end
 
     def resolution_scope_for(memo)
       MemoPolicy::Scope.new(memo.account, Memo.all).resolve
@@ -111,16 +123,16 @@ class MemoWikiLinkIndex
     def extract_memo_hrefs(text)
       return [] if text.blank?
 
-      ids = []
+      tokens = []
       in_fenced = false
       text.each_line do |line|
         if line.match?(/\A```/)
           in_fenced = !in_fenced
         elsif !in_fenced
-          line.scan(MEMO_HREF_PATTERN) { ids << Regexp.last_match(1).to_i }
+          line.scan(MEMO_HREF_PATTERN) { tokens << Regexp.last_match(1) }
         end
       end
-      ids.uniq
+      tokens.uniq
     end
   end
 end

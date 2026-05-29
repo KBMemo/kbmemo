@@ -18,11 +18,12 @@ class MemoWikiLinkLabels
   def entry_for(target)
     resolved = @resolver.resolve_target(target)
     if resolved
-      slug_based = resolved.by == :slug
+      # slug / uid は人間可読でないため、解決時はメモのタイトルを表示する。
+      canonical_id_based = resolved.by != :title
       {
-        display: slug_based ? resolved.title : target,
+        display: canonical_id_based ? resolved.title : target,
         resolved: true,
-        slug: slug_based,
+        slug: canonical_id_based,
         memo_id: resolved.id
       }
     else
