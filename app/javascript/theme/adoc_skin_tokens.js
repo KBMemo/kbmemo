@@ -151,6 +151,11 @@ export function adocSkinsYamlToVariables(yaml) {
     if (cssVar) variables[cssVar] = value.trim()
   }
 
+  // asciidoctor-skins では black が本文テキスト色。明示があれば本文テキストへ反映し、
+  // 無い場合のみ白背景前提の暗パレット向けに on-primary(white) を本文へフォールバックする。
+  if (variables["--mg-text-strong"] && !variables["--mg-text"]) {
+    variables["--mg-text"] = variables["--mg-text-strong"]
+  }
   if (variables["--mg-on-primary"] && !variables["--mg-text"]) {
     variables["--mg-text"] = variables["--mg-on-primary"]
   }

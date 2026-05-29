@@ -12,6 +12,7 @@ import {
 } from "../theme/theme.js"
 import { adocSkinsYamlToVariables } from "../theme/adoc_skin_tokens.js"
 import {
+  ASCIIDOCTOR_SKIN_PRESETS,
   findAsciiDoctorSkinPreset,
 } from "../theme/asciidoctor_skin_presets.js"
 import {
@@ -76,9 +77,29 @@ export default class extends Controller {
       panel.hidden = panel.dataset.sampleName !== this.sampleValue
     })
 
+    this.populateAdocPresets()
     this.renderTokenList()
     this.renderCustomThemeList()
     this.applyDraftPreview()
+  }
+
+  populateAdocPresets() {
+    if (!this.hasAdocPresetTarget) return
+    const current = this.adocPresetTarget.value
+    const placeholder = document.createElement("option")
+    placeholder.value = ""
+    placeholder.textContent = "（プリセットなし）"
+
+    this.adocPresetTarget.replaceChildren(
+      placeholder,
+      ...ASCIIDOCTOR_SKIN_PRESETS.map((preset) => {
+        const option = document.createElement("option")
+        option.value = preset.id
+        option.textContent = preset.label
+        return option
+      })
+    )
+    this.adocPresetTarget.value = current
   }
 
   disconnect() {

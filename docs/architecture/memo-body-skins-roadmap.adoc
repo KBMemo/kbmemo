@@ -98,7 +98,7 @@ themes.css の本文上書きを `[data-kb-skin="auto"]` 限定へ / `memo-skins
 
 |4
 |Theme Studio の asciidoctor-skins 配色プリセット拡充（配色のみ）。
-|未着手
+|完了
 |===
 
 == 留意点
@@ -122,4 +122,12 @@ themes.css の本文上書きを `[data-kb-skin="auto"]` 限定へ / `memo-skins
   外部 `@import` を除去（追跡・外部取得の遮断）し、`CUSTOM_SKIN_CSS_LIMIT`（20,000 文字）で肥大化を制限する。
   CSS 実行能力は無いため JS 実行リスクは無い。スコープは作者の責務（`.memo-body` 配下推奨）とし、
   汎用フルスキン層は `:not([data-kb-skin^="custom-skin-"])` で除外して material-grey 基底に重ねる構成。
+* Phase 4 実装メモ:
+  ** Theme Studio の「AsciiDoc プリセット」を asciidoctor-skins の `:root` パレット由来で拡充
+     （material grey/blue/green/teal/red/purple/orange/brown、dark、clean、tufte、fedora、gazette、
+     notebook、ubuntu、italian-pop、monospace の計 17）。`<option>` は `populateAdocPresets()` で
+     `ASCIIDOCTOR_SKIN_PRESETS` から動的生成し、追加時に view 修正が不要。
+  ** `adocSkinsYamlToVariables` の本文テキスト導出を修正。asciidoctor-skins では `black` が本文色のため、
+     `black` があれば `--mg-text` を `black` 由来にし、無い暗パレットのみ `white`(on-primary) へフォールバック。
+     これで白背景パレット適用時に本文が白く潰れる不具合を解消。
 * Slim のドット記法は `[` を含むクラス名を解釈できないため、角括弧ユーティリティは `class="..."` で書く。

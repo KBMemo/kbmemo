@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
 import { adocSkinsYamlToVariables } from "../adoc_skin_tokens.js"
+import {
+  ASCIIDOCTOR_SKIN_PRESETS,
+  findAsciiDoctorSkinPreset,
+} from "../asciidoctor_skin_presets.js"
 import { exportThemeYaml, parseThemeImport } from "../theme_yaml.js"
 
 describe("theme_yaml", () => {
@@ -58,5 +62,37 @@ chrome:
     expect(adocSkinsYamlToVariables({ primarycolor: "#abc" })).toEqual({
       "--mg-primary": "#abc",
     })
+  })
+
+  it("ships an expanded set of asciidoctor-skins presets with valid palettes", () => {
+    expect(ASCIIDOCTOR_SKIN_PRESETS.length).toBeGreaterThanOrEqual(15)
+
+    const ids = ASCIIDOCTOR_SKIN_PRESETS.map((preset) => preset.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    for (const id of ["material-grey", "material-blue", "fedora", "ubuntu", "notebook"]) {
+      expect(ids).toContain(id)
+    }
+
+    for (const preset of ASCIIDOCTOR_SKIN_PRESETS) {
+      const vars = adocSkinsYamlToVariables(preset.yaml)
+      expect(vars["--mg-primary"]).toMatch(/^#/)
+      // 白背景パレットで本文テキストが白へ潰れない
+      if (vars["--mg-surface"] === "#FFFFFF") {
+        expect(vars["--mg-text"]).not.toBe("#FFFFFF")
+      }
+    }
+
+    expect(findAsciiDoctorSkinPreset("ubuntu")?.label).toBe("Ubuntu")
+  })
+
+  it("derives body text from black before white fallback", () => {
+    const vars = adocSkinsYamlToVariables({
+      maincolor: "#FFFFFF",
+      black: "#000000",
+      white: "#FFFFFF",
+    })
+    expect(vars["--mg-surface"]).toBe("#FFFFFF")
+    expect(vars["--mg-text-strong"]).toBe("#000000")
+    expect(vars["--mg-text"]).toBe("#000000")
   })
 })
