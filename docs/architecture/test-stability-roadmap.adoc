@@ -99,22 +99,25 @@ E=mc^2
 * `test/services/memo_adoc_passthrough_restrictor_test.rb` に「`[stem]` ブロックは literal 化しない」「`[pass]`/無属性 `++++` は従来どおり literal 化」を追加。
 * JS 側 `packages/adoc-kbmemo/src/passthrough_restrict.js` と `packages/adoc-kbmemo/test/passthrough_restrict.test.js` にも同等の除外を反映（表示・プレビューの整合）。
 
-== Phase 2（B）: UI 仕様ドリフトのテスト追従
+== Phase 2（B・完了）: UI 仕様ドリフトのテスト追従
 
-実装は正しく、テストの固定アサーションを新 UI へ更新する。
+実装は正しく、テストの固定アサーションを新 UI へ更新した。
 
 * **dnd バインディング** (`:386`): `assert_includes ..., 'data-controller="memo-directory-dnd"'` を
-  `assert_select '[data-controller~="memo-directory-dnd"]'`（語単位一致）へ。
-* **ディレクトリ表示** (`:886`): 所有者は picker 表示が正。`labeled_path_from_root` のテキスト存在と
-  picker（`data-controller*="memo-directory-parent-picker"` / `data-directory-path`）を検証する形へ変更。
-  非編集ユーザー向けのプレーンリンク検証が必要なら、別アカウント（閲覧のみ）でのケースに切り出す。
-* **タグチップ** (`:939`): show のタグチップの現行 markup を確認し、`tag_id` リンクのテキストがタグ名になる要素を正しく指す。
-  サイドバータブ "タグ" と取り違えないよう、チップのコンテナ配下に限定したセレクタにする。
+  `assert_select '[data-controller~="memo-directory-dnd"]'`（語単位一致）へ変更。
+* **ディレクトリ表示** (`:886`): 所有者は picker 表示が正のため、picker の隠しフィールド
+  `input#memo_show_directory_id_<id>[value=…]` が選択中ディレクトリを反映することを検証。
+  非編集ユーザー向けのプレーンリンクは、公開メモを別アカウント（閲覧のみ）で開く
+  `show shows directory path link for a viewer who cannot edit` を新設して担保。
+* **タグチップ** (`:939`): 所有者ではタグが入力 UI になりチップリンクは出ないため、
+  公開メモを閲覧専用ユーザーで開き、`memo_path(?, sidebar_view: "tag", tag_id:)` リンクの
+  テキストがタグ名であることを検証する形へ変更。
 
 === 検証
 
-* 対象 3 件が単一ワーカーで緑。
-* 退行確認のため `test/controllers/memos_controller_test.rb` 全体を実行。
+* 対象テストが単一ワーカーで緑。
+* `test/controllers/memos_controller_test.rb` 全体（単一ワーカー）で 81 runs・残る失敗は Phase 3 の
+  `draft_saves_all_fields`（slug 派生）1 件のみ。Phase 1/2 起因の退行なし。
 
 == Phase 3（C）: draft の slug 派生挙動を確定
 
@@ -170,7 +173,7 @@ config.x.memo_git_work_tree = Rails.root.join("tmp", "memo_git_test", suffix).to
 == 推奨順序
 
 . Phase 1（回帰、最優先・低リスク）— *完了*
-. Phase 2（テスト追従、低リスク）
+. Phase 2（テスト追従、低リスク）— *完了*
 . Phase 3（仕様判断、要合意）
 . Phase 4（テスト基盤、独立して着手可）
 

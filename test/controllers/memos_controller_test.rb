@@ -383,7 +383,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "memo-body-editor"
     assert_includes response.body, wiki_completions_memos_path(format: :json)
     assert_includes response.body, wiki_link_labels_memos_path(format: :json)
-    assert_includes response.body, 'data-controller="memo-directory-dnd"'
+    assert_select '[data-controller~="memo-directory-dnd"]'
     assert_includes response.body, "memo-draft#preventSubmit"
     assert_includes response.body, "memo-draft#suppressEnterSubmit"
     assert_includes response.body, "memo_slug_field"
@@ -883,6 +883,23 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, memo.memo_directory.labeled_path_from_root
     assert_includes response.body, memo.slug
+    # 編集可能な所有者はディレクトリ picker が表示される（選択中ディレクトリを反映）。
+    assert_select "input#memo_show_directory_id_#{memo.id}[value=?]", memo.memo_directory_id.to_s
+  end
+
+  test "show shows directory path link for a viewer who cannot edit" do
+    memo = Memo.create!(
+      title: "PublicDirShown",
+      body: "body",
+      memo_directory: memo_directories(:public_u_one),
+      account_id: accounts(:one).id,
+      visibility: :public_everyone
+    )
+    t = 1.hour.ago.change(usec: 0)
+    memo.update_columns(file_committed_at: t, updated_at: t)
+    sign_in_as(:two)
+    get memo_url(memo)
+    assert_response :success
     assert_select "a[href=?]", memo_path(memo, memo_directory_id: memo.memo_directory_id),
       text: memo.memo_directory.labeled_path_from_root
   end
@@ -930,10 +947,20 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show tag links open sidebar tag tab" do
-    memo = memos(:one)
-    tag = memo.tags.first!
+    # 編集可能な所有者はタグが入力 UI になるため、閲覧専用ユーザーでチップのリンクを検証する。
+    memo = Memo.new(
+      title: "PublicTagged",
+      body: "body",
+      memo_directory: memo_directories(:public_u_one),
+      account_id: accounts(:one).id,
+      visibility: :public_everyone
+    )
+    memo.assign_tags_from_list("Ideas")
+    memo.save!
     t = 1.hour.ago.change(usec: 0)
     memo.update_columns(file_committed_at: t, updated_at: t)
+    tag = memo.tags.first!
+    sign_in_as(:two)
     get memo_url(memo)
     assert_response :success
     assert_select "a[href=?]", memo_path(memo, sidebar_view: "tag", tag_id: tag.id), text: tag.name
