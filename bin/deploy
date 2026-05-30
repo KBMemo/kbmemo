@@ -26,7 +26,8 @@ Options:
 
 Environment:
   KBMEMO_SYSTEMD_UNIT   systemd unit name (default: kbmemo)
-  KBMEMO_HEALTH_URL     health check URL (default: http://127.0.0.1:$PORT/up)
+  KBMEMO_HEALTH_URL     health check URL (default: https://kbmemo.net/up)
+  KBMEMO_HEALTH_HOST    Host header for localhost checks (default: kbmemo.net)
   KBMEMO_GIT_REMOTE     git remote (default: origin)
 
 Example:
@@ -47,6 +48,21 @@ run() {
 
 step() {
   echo "==> $*"
+}
+
+health_check() {
+  local url="$1"
+  local host_header="${KBMEMO_HEALTH_HOST:-}"
+
+  if [[ -z "${host_header}" && "${url}" =~ ^https?://(127\.0\.0\.1|localhost)([:/]|$) ]]; then
+    host_header="kbmemo.net"
+  fi
+
+  if [[ -n "${host_header}" ]]; then
+    curl -fsS -H "Host: ${host_header}" "${url}"
+  else
+    curl -fsS "${url}"
+  fi
 }
 
 while [[ $# -gt 0 ]]; do
@@ -82,7 +98,7 @@ done
 # shellcheck source=scripts/production_env.sh
 source "${APP_ROOT}/scripts/production_env.sh"
 
-HEALTH_URL="${KBMEMO_HEALTH_URL:-http://127.0.0.1:${PORT:-3007}/up}"
+HEALTH_URL="${KBMEMO_HEALTH_URL:-https://kbmemo.net/up}"
 
 step "deploy kbmemo (${APP_ROOT}, RAILS_ENV=${RAILS_ENV})"
 
@@ -120,10 +136,10 @@ if [[ "${SKIP_RESTART}" -eq 0 ]]; then
 
   step "health check ${HEALTH_URL}"
   if [[ "${DRY_RUN}" -eq 1 ]]; then
-    run curl -fsS "${HEALTH_URL}"
+    run health_check "${HEALTH_URL}"
   else
     for attempt in 1 2 3 4 5; do
-      if curl -fsS "${HEALTH_URL}" >/dev/null; then
+      if health_check "${HEALTH_URL}" >/dev/null; then
         echo "health check OK"
         break
       fi
