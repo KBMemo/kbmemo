@@ -404,6 +404,10 @@ module MemosHelper
     # コードブロックのコピー／図トグル。図レンダリングは保存済みメモのみ（Kroki プロキシ）。
     if memo&.persisted?
       opts[:data][:code_block_tools_render_url_value] = render_diagram_memo_path(memo)
+      if policy(memo).update?
+        opts[:data][:code_block_tools_svg_edit_url_value] =
+          memo_svg_source_edit_url_template(memo)
+      end
     end
 
     if memo_wiki_create_enabled?(memo)
@@ -414,6 +418,10 @@ module MemosHelper
 
     opts[:data][:controller] = controllers.join(" ")
     opts
+  end
+
+  def memo_svg_source_edit_url_template(memo)
+    edit_svg_source_memo_path(memo, 0).sub("/svg_sources/0/edit", "/svg_sources/__INDEX__/edit")
   end
 
   def memo_body_stimulus_data(memo)

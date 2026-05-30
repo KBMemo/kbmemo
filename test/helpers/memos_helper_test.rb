@@ -419,4 +419,11 @@ class MemosHelperTest < ActionView::TestCase
     root_label = pairs.find { |_l, id| id == root_id }&.first
     assert_equal "（最上位）", root_label
   end
+
+  test "memo_svg_source_edit_url_template uses numeric placeholder for route constraint" do
+    memo = memos(:one)
+    template = memo_svg_source_edit_url_template(memo)
+    assert_includes template, "/svg_sources/__INDEX__/edit"
+    assert_not_includes template, "/svg_sources/0/edit"
+  end
 end

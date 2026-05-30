@@ -829,31 +829,42 @@
   min-width: 1.5rem;
   height: 1.5rem;
   padding: 0 0.4rem;
-  border: 1px solid var(--mg-divider);
+  border: none;
   border-radius: 4px;
-  background: var(--mg-code-bg);
-  color: var(--mg-text-muted, var(--mg-text));
+  background: transparent;
+  color: var(--mg-primary);
   font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 600;
+  letter-spacing: 0.03em;
   line-height: 1;
   cursor: pointer;
-  transition: color 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+  transition: color 0.12s ease, opacity 0.12s ease;
 }
 
 .memo-body .listingblock > .content .kb-code-btn:hover {
   color: var(--mg-primary);
-  border-color: var(--mg-primary);
+  opacity: 0.75;
+}
+
+.memo-body .listingblock > .content a.kb-code-btn {
+  color: var(--mg-primary);
+  text-decoration: none;
+}
+
+.memo-body .listingblock > .content a.kb-code-btn:hover {
+  color: var(--mg-primary);
+  text-decoration: none;
 }
 
 .memo-body .listingblock > .content .kb-code-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.45;
   cursor: progress;
 }
 
 .memo-body .listingblock > .content .kb-code-copy.is-copied {
   color: #15803d;
-  border-color: #15803d;
+  opacity: 1;
 }
 
 .memo-body .listingblock > .content .kb-code-diagram {

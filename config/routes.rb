@@ -94,6 +94,8 @@ Rails.application.routes.draw do
       patch :update_directory
       patch :update_tags
       post :render_diagram
+      get "svg_sources/:index/edit", to: "memo_svg_sources#edit", as: :edit_svg_source, constraints: { index: /\d+/ }
+      patch "svg_sources/:index", to: "memo_svg_sources#update", as: :svg_source, constraints: { index: /\d+/ }
       post "assets", to: "memo_assets#create", as: :assets
       get "assets/*filename/view", to: "memo_assets#view", as: :asset_view, format: false
       get "assets/*filename", to: "memo_assets#show", as: :asset, format: false

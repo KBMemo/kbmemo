@@ -1,0 +1,23 @@
+- content_for :title, "SVG 編集 · #{@memo.title}"
+
+.svg-edit-page
+  header.svg-edit-page__header.flex.flex-shrink-0.flex-wrap.items-center.justify-between.gap-2.border-b.kb-border.px-4.py-2
+    div.min-w-0
+      h1.text-base.font-semibold.kb-text-primary SVG 編集
+      p.mt-0.5.truncate.text-sm.kb-text-secondary
+        | #{@memo.title}
+        span.kb-text-muted.ml-2 ブロック #{@index + 1}
+    .flex.flex-shrink-0.flex-wrap.gap-2
+      = link_to "メモを表示", memo_path(@memo), class: "rounded-md border kb-border bg-white px-3 py-1.5 text-sm font-medium kb-text-primary kb-hover-row"
+      - if policy(@memo).update?
+        = link_to "メモを編集", edit_memo_path(@memo), class: "rounded-md border kb-border bg-white px-3 py-1.5 text-sm font-medium kb-text-primary kb-hover-row"
+
+  - if flash[:alert].present?
+    p.svg-edit-page__alert.mx-4.mt-2.rounded-md.border.border-red-200.bg-red-50.px-3.py-2.text-sm.text-red-700 = flash[:alert]
+
+  = form_with url: svg_source_memo_path(@memo, @index), method: :patch, class: "svg-edit-page__form", data: { controller: "memo-svg-editor", memo_svg_editor_asset_base_value: "/svgedit", memo_svg_editor_source_value: @source, action: "submit->memo-svg-editor#beforeSubmit" } do
+    textarea.hidden name="source" data-memo-svg-editor-target="sourceField"
+    #svg-editor-container data-memo-svg-editor-target="container"
+    .svg-edit-page__actions.flex.flex-shrink-0.gap-2.border-t.kb-border.px-4.py-2
+      = submit_tag "保存してソースに反映", class: "kb-chrome-btn-primary px-4 py-2 text-sm"
+      = link_to "キャンセル", memo_path(@memo), class: "rounded-md border kb-border bg-white px-4 py-2 text-sm font-medium kb-text-primary kb-hover-row"

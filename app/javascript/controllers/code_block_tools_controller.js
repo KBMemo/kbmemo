@@ -30,6 +30,7 @@ const CHECK_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" 
 export default class extends Controller {
   static values = {
     renderUrl: String,
+    svgEditUrl: String,
   }
 
   connect() {
@@ -37,6 +38,8 @@ export default class extends Controller {
   }
 
   decorate() {
+    let svgBlockIndex = 0
+
     this.element.querySelectorAll(".listingblock").forEach((block) => {
       if (block.dataset.codeToolsReady === "1") return
       const content = block.querySelector(":scope > .content")
@@ -61,9 +64,25 @@ export default class extends Controller {
         toolbar.appendChild(this.buildToggleButton(block, content, code, lang))
       }
 
+      if (lang === "svg" && this.hasSvgEditUrlValue) {
+        toolbar.appendChild(this.buildSvgEditLink(svgBlockIndex))
+        svgBlockIndex += 1
+      }
+
       toolbar.appendChild(this.buildCopyButton(code))
       content.insertBefore(toolbar, content.firstChild)
     })
+  }
+
+  buildSvgEditLink(index) {
+    const link = document.createElement("a")
+    link.className = "kb-code-btn kb-code-edit"
+    link.textContent = "編集"
+    link.title = "SVG を編集"
+    link.href = this.svgEditUrlValue.replace("__INDEX__", String(index))
+    link.target = "_blank"
+    link.rel = "noopener"
+    return link
   }
 
   buildCopyButton(code) {
@@ -135,33 +154,61 @@ export default class extends Controller {
     const state = { rendered: false, loading: false }
 
     button.addEventListener("click", async () => {
-      const showingSource = button.dataset.mode === "source"
-      if (showingSource) {
-        if (state.loading) return
-        if (!state.rendered) {
-          const ok = await this.renderInto(figure, code, lang, state, button, labels)
-          if (!ok) {
-            // 失敗時はソースを残したままエラーを表示（再クリックで再試行）。
-            figure.hidden = false
-            if (pre) pre.hidden = false
-            return
-          }
-        }
-        if (pre) pre.hidden = true
-        figure.hidden = false
-        button.dataset.mode = "diagram"
-        button.textContent = "ソース"
-        button.title = "ソースを表示"
-      } else {
-        figure.hidden = true
-        if (pre) pre.hidden = false
-        button.dataset.mode = "source"
-        button.textContent = labels.display
-        button.title = labels.displayTitle
-      }
+      await this.toggleDiagram(button, content, code, lang, figure, pre, state, labels)
     })
 
+    if (lang === "svg") {
+      queueMicrotask(() => {
+        this.showDiagramInitially(button, content, code, lang, figure, pre, state, labels)
+      })
+    }
+
     return button
+  }
+
+  async showDiagramInitially(button, content, code, lang, figure, pre, state, labels) {
+    if (pre) pre.hidden = true
+    const ok = await this.renderInto(figure, code, lang, state, button, labels)
+    if (ok) {
+      figure.hidden = false
+      button.dataset.mode = "diagram"
+      button.textContent = "ソース"
+      button.title = "ソースを表示"
+      return
+    }
+
+    figure.hidden = false
+    if (pre) pre.hidden = false
+    button.dataset.mode = "source"
+    button.textContent = labels.display
+    button.title = labels.displayTitle
+  }
+
+  async toggleDiagram(button, content, code, lang, figure, pre, state, labels) {
+    const showingSource = button.dataset.mode === "source"
+    if (showingSource) {
+      if (state.loading) return
+      if (!state.rendered) {
+        const ok = await this.renderInto(figure, code, lang, state, button, labels)
+        if (!ok) {
+          // 失敗時はソースを残したままエラーを表示（再クリックで再試行）。
+          figure.hidden = false
+          if (pre) pre.hidden = false
+          return
+        }
+      }
+      if (pre) pre.hidden = true
+      figure.hidden = false
+      button.dataset.mode = "diagram"
+      button.textContent = "ソース"
+      button.title = "ソースを表示"
+    } else {
+      figure.hidden = true
+      if (pre) pre.hidden = false
+      button.dataset.mode = "source"
+      button.textContent = labels.display
+      button.title = labels.displayTitle
+    }
   }
 
   async renderInto(figure, code, lang, state, button, labels) {
