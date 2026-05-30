@@ -494,6 +494,8 @@ sudo tail -f /var/log/nginx/kbmemo.net.error.log
 
 リポジトリ同梱の `bin/deploy` で pull・依存関係・マイグレーション・アセットビルド・再起動を一括実行できます。
 
+`bin/deploy` のヘルスチェックは既定で **https://kbmemo.net/up**（nginx 経由）を叩きます。`config.hosts` に `127.0.0.1` が無いため、`http://127.0.0.1:3007/up` を直接叩くと Host Authorization で拒否されます。アプリだけ確認する場合は `KBMEMO_HEALTH_URL=http://127.0.0.1:3007/up` とし、`bin/deploy` が `Host: kbmemo.net` ヘッダーを付与します。
+
 [source,bash]
 ----
 cd /home/kensei/sites/kbmemo
