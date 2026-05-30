@@ -33,8 +33,9 @@ export default class extends Controller {
     event.stopPropagation()
     this.hide()
 
+    const image = this.imageFromEvent(event)
     const selected = this.selectedText()
-    this.showMenu(event.clientX, event.clientY, this.buildMenuItems(selected))
+    this.showMenu(event.clientX, event.clientY, this.buildMenuItems({ selected, image }))
     this.addGlobalListeners()
   }
 
@@ -46,14 +47,32 @@ export default class extends Controller {
     return false
   }
 
-  selectedText() {
-    return (window.getSelection()?.toString() ?? "").trim()
+  /** @param {Event} event @returns {HTMLImageElement | null} */
+  imageFromEvent(event) {
+    const target = event.target
+    if (!(target instanceof Element)) return null
+
+    const img = target.closest(".memo-body img")
+    if (!(img instanceof HTMLImageElement)) return null
+    if (!img.src) return null
+
+    return img
   }
 
-  /** @param {string} selected */
-  buildMenuItems(selected) {
+  /** @param {{ selected: string, image: HTMLImageElement | null }} options */
+  buildMenuItems({ selected, image }) {
     /** @type {MenuItem[]} */
-    const items = [
+    const items = []
+
+    if (image) {
+      items.push({
+        label: "画像をダウンロード",
+        action: () => this.downloadImage(image),
+      })
+      items.push({ separator: true })
+    }
+
+    items.push(
       {
         label: "選択テキストをコピー",
         disabled: !selected,
@@ -65,7 +84,7 @@ export default class extends Controller {
         label: "メモの先頭へ",
         action: () => this.scrollToTop(),
       },
-    ]
+    )
 
     if (this.canEditValue) {
       items.push({
@@ -84,6 +103,53 @@ export default class extends Controller {
     })
 
     return items
+  }
+
+  selectedText() {
+    return (window.getSelection()?.toString() ?? "").trim()
+  }
+
+  /** @param {HTMLImageElement} img */
+  async downloadImage(img) {
+    const url = img.currentSrc || img.src
+    if (!url) return
+
+    const filename = this.filenameFromImageUrl(url)
+
+    try {
+      const response = await fetch(url, { credentials: "same-origin" })
+      if (!response.ok) throw new Error("fetch failed")
+
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      this.triggerDownload(blobUrl, filename)
+      URL.revokeObjectURL(blobUrl)
+    } catch {
+      this.triggerDownload(url, filename)
+    }
+  }
+
+  /** @param {string} url @param {string} filename */
+  triggerDownload(url, filename) {
+    const anchor = document.createElement("a")
+    anchor.href = url
+    anchor.download = filename
+    anchor.rel = "noopener"
+    anchor.style.display = "none"
+    document.body.append(anchor)
+    anchor.click()
+    anchor.remove()
+  }
+
+  /** @param {string} url */
+  filenameFromImageUrl(url) {
+    try {
+      const path = new URL(url, window.location.origin).pathname
+      const segment = path.split("/").filter(Boolean).pop()
+      return segment ? decodeURIComponent(segment) : "image"
+    } catch {
+      return "image"
+    }
   }
 
   /** @param {string} text */
