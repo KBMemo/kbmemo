@@ -282,7 +282,7 @@ class Memo < ApplicationRecord
   # 無ければサーバー側で ULID を採番する。冪等なので before_validation / before_create の双方から呼ぶ。
   def assign_uid
     normalized = uid.to_s.strip.upcase
-    self.uid = normalized.presence || ULID.generate.to_s
+    self.uid = normalized.presence || ::ULID.generate.to_s
   end
 
   def assign_default_memo_directory

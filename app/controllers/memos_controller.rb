@@ -140,13 +140,13 @@ class MemosController < ApplicationController
     authorize @memo
   end
 
-  # メモ表示中の [source,plantuml] / [source,mermaid] ブロックを
-  # Kroki でレンダリングして SVG を返す（図 ⇄ ソースのトグル用）。保存はしない。
+  # メモ表示中の [source,plantuml] / [source,mermaid] / [source,svg] ブロックを
+  # レンダリングして SVG を返す（図・画像 ⇄ ソースのトグル用）。保存はしない。
   def render_diagram
     authorize @memo, :show_diagram?
     engine = MemoDiagram.engine_from_lang(params[:engine])
     unless engine
-      return render json: { error: "対応していないダイアグラム種別です（plantuml / mermaid）" }, status: :unprocessable_entity
+      return render json: { error: "対応していない種別です（plantuml / mermaid / svg）" }, status: :unprocessable_entity
     end
 
     source = params[:source].to_s

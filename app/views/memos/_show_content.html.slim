@@ -16,10 +16,12 @@ ruby:
               | 更新 #{memo.updated_at.strftime("%Y-%m-%d %H:%M")}
             - if memo.board.present? && policy(memo.board).show?
               span.kb-text-subtle aria-hidden="true" ·
-              = link_to memo.board.title,
-                board_path(memo.board),
-                class: "underline decoration-[var(--kb-border-strong)] hover:text-[var(--kb-text-primary)]",
-                title: "カンバンボードを開く"
+              span.inline-flex.min-w-0.items-center.gap-1
+                i class="h-3.5 w-3.5 shrink-0 kb-text-subtle" aria-hidden="true" data-lucide="kanban"
+                = link_to memo.board.title,
+                  board_path(memo.board),
+                  class: "min-w-0 truncate underline decoration-[var(--kb-border-strong)] hover:text-[var(--kb-text-primary)]",
+                  title: "カンバンボードを開く"
             - if memo.notebook.present? && policy(memo.notebook).show?
               span.kb-text-subtle aria-hidden="true" ·
               span.inline-flex.min-w-0.items-center.gap-1

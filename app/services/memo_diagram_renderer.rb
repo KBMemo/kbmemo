@@ -22,13 +22,18 @@ class MemoDiagramRenderer
   end
 
   def render(engine:, source:)
-    kroki_type = MemoDiagram.kroki_type(engine)
-    uri = URI.parse("#{@base_url}/#{kroki_type}/svg")
-    response = post_svg(uri, Utf8Bytes.coerce(source))
-    svg_body = Utf8Bytes.coerce(response.body)
-    raise Error, "Kroki が空の SVG を返しました" if svg_body.blank?
+    body = Utf8Bytes.coerce(source)
+    svg_body = if engine == :svg
+      MemoSvgSanitizer.sanitize!(body)
+    else
+      kroki_type = MemoDiagram.kroki_type(engine)
+      uri = URI.parse("#{@base_url}/#{kroki_type}/svg")
+      response = post_svg(uri, body)
+      MemoSvgSanitizer.sanitize!(Utf8Bytes.coerce(response.body))
+    end
+    raise Error, "空の SVG です" if svg_body.blank?
 
-    MemoSvgSanitizer.sanitize!(svg_body)
+    svg_body
   rescue MemoAssets::InvalidFile => e
     raise Error, e.message
   rescue SocketError, Errno::ECONNREFUSED, Net::OpenTimeout, Net::ReadTimeout => e
