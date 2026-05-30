@@ -49,4 +49,19 @@ class MemoDiagramTest < ActiveSupport::TestCase
     assert_includes out, "@startuml"
     assert_not_includes out, "```"
   end
+
+  test "engine_from_lang accepts svg" do
+    assert_equal :svg, MemoDiagram.engine_from_lang("svg")
+  end
+
+  test "normalize_source strips svg markdown fences" do
+    fenced = <<~SRC
+      ```svg
+      <svg xmlns="http://www.w3.org/2000/svg"><circle r="1"/></svg>
+      ```
+    SRC
+    out = MemoDiagram.normalize_source(:svg, fenced)
+    assert_includes out, "<svg"
+    assert_not_includes out, "```"
+  end
 end

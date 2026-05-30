@@ -1230,6 +1230,33 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_equal svg, response.parsed_body["svg"]
   end
 
+  test "render_diagram returns sanitized svg for an svg source block" do
+    sign_in_as(:one)
+    memo = memos(:one)
+    source = <<~SVG
+      <svg xmlns="http://www.w3.org/2000/svg">
+        <circle r="10"/>
+        <script>alert(1)</script>
+      </svg>
+    SVG
+    post render_diagram_memo_url(memo),
+      params: { engine: "svg", source: source },
+      as: :json
+    assert_response :success
+    body = response.parsed_body["svg"]
+    assert_includes body, "<circle"
+    assert_not_includes body, "script"
+  end
+
+  test "render_diagram rejects invalid svg source" do
+    sign_in_as(:one)
+    post render_diagram_memo_url(memos(:one)),
+      params: { engine: "svg", source: "not svg" },
+      as: :json
+    assert_response :unprocessable_entity
+    assert response.parsed_body["error"].present?
+  end
+
   test "render_diagram rejects an unsupported engine" do
     sign_in_as(:one)
     post render_diagram_memo_url(memos(:one)),

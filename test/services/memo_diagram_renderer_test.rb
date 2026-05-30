@@ -38,4 +38,12 @@ class MemoDiagramRendererTest < ActiveSupport::TestCase
     assert_includes message, "構文エラー"
     assert_includes message, "Kroki エラー"
   end
+
+  test "render sanitizes inline svg source without kroki" do
+    source = '<svg xmlns="http://www.w3.org/2000/svg"><circle r="1"/><script>alert(1)</script></svg>'
+    svg = MemoDiagramRenderer.render(engine: :svg, source: source)
+
+    assert_includes svg, "<circle"
+    assert_not_includes svg, "script"
+  end
 end

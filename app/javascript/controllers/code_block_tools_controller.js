@@ -3,7 +3,26 @@ import { Controller } from "@hotwired/stimulus"
 // メモ表示のコードブロック（.listingblock）にツールバーを付与する。
 // - すべての source ブロックに言語バッジ + コピーボタン
 // - plantuml / mermaid ブロックには「図 ⇄ ソース」トグル（Kroki プロキシで遅延描画）
+// - svg ブロックには「画像 ⇄ ソース」トグル（サーバー側サニタイズ）
 const DIAGRAM_LANGS = new Set(["plantuml", "puml", "uml", "mermaid"])
+const TOGGLE_LANGS = new Set([...DIAGRAM_LANGS, "svg"])
+
+function toggleLabels(lang) {
+  if (lang === "svg") {
+    return {
+      display: "画像",
+      displayTitle: "画像として表示",
+      loading: "読み込み中…",
+      errorFallback: "画像の表示に失敗しました。",
+    }
+  }
+  return {
+    display: "図",
+    displayTitle: "図として表示",
+    loading: "図を生成中…",
+    errorFallback: "図の生成に失敗しました。",
+  }
+}
 
 const COPY_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`
 const CHECK_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>`
@@ -38,7 +57,7 @@ export default class extends Controller {
         toolbar.appendChild(badge)
       }
 
-      if (this.hasRenderUrlValue && DIAGRAM_LANGS.has(lang)) {
+      if (this.hasRenderUrlValue && TOGGLE_LANGS.has(lang)) {
         toolbar.appendChild(this.buildToggleButton(block, content, code, lang))
       }
 
@@ -99,12 +118,13 @@ export default class extends Controller {
   }
 
   buildToggleButton(block, content, code, lang) {
+    const labels = toggleLabels(lang)
     const button = document.createElement("button")
     button.type = "button"
     button.className = "kb-code-btn kb-code-toggle"
     button.dataset.mode = "source"
-    button.textContent = "図"
-    button.title = "図として表示"
+    button.textContent = labels.display
+    button.title = labels.displayTitle
 
     const pre = content.querySelector(":scope > pre")
     const figure = document.createElement("div")
@@ -119,7 +139,7 @@ export default class extends Controller {
       if (showingSource) {
         if (state.loading) return
         if (!state.rendered) {
-          const ok = await this.renderInto(figure, code, lang, state, button)
+          const ok = await this.renderInto(figure, code, lang, state, button, labels)
           if (!ok) {
             // 失敗時はソースを残したままエラーを表示（再クリックで再試行）。
             figure.hidden = false
@@ -136,19 +156,19 @@ export default class extends Controller {
         figure.hidden = true
         if (pre) pre.hidden = false
         button.dataset.mode = "source"
-        button.textContent = "図"
-        button.title = "図として表示"
+        button.textContent = labels.display
+        button.title = labels.displayTitle
       }
     })
 
     return button
   }
 
-  async renderInto(figure, code, lang, state, button) {
+  async renderInto(figure, code, lang, state, button, labels) {
     state.loading = true
     button.disabled = true
     figure.hidden = false
-    figure.innerHTML = `<span class="kb-code-diagram-status">図を生成中…</span>`
+    figure.innerHTML = `<span class="kb-code-diagram-status">${labels.loading}</span>`
 
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content")
     try {
@@ -169,11 +189,11 @@ export default class extends Controller {
         return true
       }
       figure.innerHTML = ""
-      figure.appendChild(this.errorNode(data.error || "図の生成に失敗しました。"))
+      figure.appendChild(this.errorNode(data.error || labels.errorFallback))
       return false
     } catch {
       figure.innerHTML = ""
-      figure.appendChild(this.errorNode("Kroki に接続できませんでした。"))
+      figure.appendChild(this.errorNode(lang === "svg" ? "画像の表示に失敗しました。" : "Kroki に接続できませんでした。"))
       return false
     } finally {
       state.loading = false
