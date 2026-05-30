@@ -492,6 +492,40 @@ sudo tail -f /var/log/nginx/kbmemo.net.error.log
 
 == 更新デプロイ（2 回目以降）
 
+リポジトリ同梱の `bin/deploy` で pull・依存関係・マイグレーション・アセットビルド・再起動を一括実行できます。
+
+[source,bash]
+----
+cd /home/kensei/sites/kbmemo
+bin/deploy
+----
+
+`main` など特定ブランチを明示する場合:
+
+[source,bash]
+----
+bin/deploy --branch main
+----
+
+`systemctl` だけ手動にしたい場合（`--skip-restart`）:
+
+[source,bash]
+----
+bin/deploy --skip-restart
+sudo systemctl restart kbmemo
+----
+
+初回のみ、`kensei` ユーザーがパスワードなしで再起動できるよう sudoers を設定すると便利です（任意）:
+
+[source,bash]
+----
+sudo visudo -f /etc/sudoers.d/kbmemo-deploy
+# 次の 1 行を追加:
+# kensei ALL=(root) NOPASSWD: /bin/systemctl restart kbmemo, /bin/systemctl status kbmemo
+----
+
+手動で同等の作業を行う場合:
+
 [source,bash]
 ----
 cd /home/kensei/sites/kbmemo
@@ -542,6 +576,7 @@ SQLite は可能ならメンテナンス時間にコピーするか、ファイ�
 |===
 |操作 |コマンド
 
+|更新デプロイ |`cd /home/kensei/sites/kbmemo && bin/deploy`
 |起動 / 停止 / 再起動 |`sudo systemctl start|stop|restart kbmemo`
 |状態 |`sudo systemctl status kbmemo`
 |アプリログ（追跡） |`sudo journalctl -u kbmemo -f`
