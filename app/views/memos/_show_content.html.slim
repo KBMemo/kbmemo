@@ -56,6 +56,8 @@ ruby:
     .flex.flex-shrink-0.flex-wrap.items-center.gap-2
       - if memo.docs_sync_read_only?
         span.text-sm.kb-text-muted docs/ 同期
+      - elsif memo.google_calendar_read_only?
+        span.text-sm.kb-text-muted Google Calendar
       - elsif memo.display_as_draft? && policy(memo).update?
         = button_to "コミット", commit_memo_path(memo), method: :patch, title: "ファイルへ保存して、Gitに記録", class: "kb-chrome-btn-primary", data: { theme_slot: "btn-primary" }
         = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-secondary"
@@ -76,6 +78,15 @@ ruby:
           | （
           code.font-mono.text-xs = source_path
           | ）
+
+  - if memo.google_calendar_read_only?
+    .mb-4.rounded-md.border.kb-border.px-3.py-2.text-sm.kb-text-secondary
+      | このメモは Google Calendar から同期されています。KBMemo 上では閲覧のみです。変更は Google Calendar 側で行い、
+      = link_to "プロフィール", edit_profile_path, class: "kb-chrome-link underline"
+      |  から同期してください。
+      - if memo.google_calendar_html_link.present?
+        span.kb-text-muted.ml-1
+          = link_to "Google Calendar で開く", memo.google_calendar_html_link, class: "kb-chrome-link underline", target: "_blank", rel: "noopener"
 
   = render "memos/show_tags", memo: memo, editable: metadata_editable
 

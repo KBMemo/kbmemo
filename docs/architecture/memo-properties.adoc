@@ -92,6 +92,10 @@ AsciiDoc 本文と双方向同期が必要な場合はサービスを正とす�
 |オブジェクト
 |アプリ内 docs 同期。`source_path`, `read_only` 等。`docs/architecture/kbmemo-docs-in-app.adoc`
 
+|`google_calendar`
+|オブジェクト
+|Google Calendar 同期。`event_id`, `calendar_id`, `etag`, `html_link` 等。link:google-calendar-sync.adoc[google-calendar-sync.adoc]
+
 |`asciidoc_sample`
 |オブジェクト
 |記法サンプル seed の冪等キー。`syntax_ref_id`
@@ -122,5 +126,5 @@ AsciiDoc 本文と双方向同期が必要な場合はサービスを正とす�
 
 * `AGENTS.md` — エージェント向け入口
 * `docs/architecture/database.adoc` — PostgreSQL・credentials・SQLite インポート
-* `docs/architecture/kanban-mvp.adoc` — カンバン（列・配置は DB）
+* `docs/architecture/google-calendar-sync.adoc` — Google Calendar 同期
 * `docs/architecture/kbmemo-docs-in-app.adoc` — `docs_sync`

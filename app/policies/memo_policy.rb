@@ -24,7 +24,7 @@ class MemoPolicy < ApplicationPolicy
   end
 
   def update?
-    return false if record.docs_sync_read_only?
+    return false if record.sync_read_only?
     return false if record.system_space_memo? && !user&.admin?
     return false unless user
     return true if record.account_id == user.id
@@ -36,7 +36,7 @@ class MemoPolicy < ApplicationPolicy
 
   # ノートブックへの追加: 通常メモは update?、docs/ 同期（閲覧専用）は show? のみ。
   def add_to_notebook?
-    return show? if record.docs_sync_read_only?
+    return show? if record.sync_read_only?
 
     update?
   end
@@ -59,7 +59,7 @@ class MemoPolicy < ApplicationPolicy
   alias edit_diagram? update?
 
   def destroy?
-    return false if record.docs_sync_read_only?
+    return false if record.sync_read_only?
     return true if record.system_space_memo? && user&.admin?
 
     user.present? && record.account_id == user.id

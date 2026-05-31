@@ -582,7 +582,7 @@ module MemosHelper
       controller: "memo-show-context-menu",
       action: "contextmenu->memo-show-context-menu#open",
       memo_show_context_menu_edit_url_value: memo_show_edit_href(memo),
-      memo_show_context_menu_can_edit_value: policy(memo).update? && !memo.docs_sync_read_only?,
+      memo_show_context_menu_can_edit_value: policy(memo).update? && !memo.sync_read_only?,
       memo_show_context_menu_has_backlinks_value: memo_backlink_memos(memo).any?,
       memo_show_context_menu_backlinks_anchor_value: dom_id(memo, :backlinks)
     }

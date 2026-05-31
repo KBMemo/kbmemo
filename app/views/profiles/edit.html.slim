@@ -45,6 +45,50 @@ section.mt-10
     = link_to "メモ一覧へ", memos_path, class: "kb-chrome-btn-secondary px-4 py-2"
 
 section.mt-10
+  h2 class=kb_section_title Google Calendar
+  p.mt-1.text-sm.kb-text-secondary
+    | 予定をメモとして取り込み、カンバンの予定日（scheduled_on）に反映します。読み取り専用で同期されます。
+  - if GoogleCalendar::Credentials.valid?
+    - if @account.google_calendar_connected?
+      p.mt-2.text-xs.text-emerald-700 Google Calendar 連携済み
+      - if @account.google_calendar_meta["last_synced_at"].present?
+        p.mt-1.text-xs.kb-text-muted
+          | 最終同期:
+          = @account.google_calendar_meta["last_synced_at"]
+      .mt-4.flex.flex-wrap.gap-3
+        = button_to "今すぐ同期", google_calendar_sync_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }
+        = button_to "連携を解除", google_calendar_disconnect_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "Google Calendar 連携を解除しますか？" } }
+    - else
+      p.mt-2.text-xs.text-amber-700 未連携
+      .mt-4
+        = link_to "Google Calendar と連携", google_calendar_connect_path, class: "kb-chrome-btn-primary px-4 py-2 inline-block", data: { theme_slot: "btn-primary" }
+  - else
+    p.mt-2.text-xs.text-amber-700
+      - if (reason = GoogleCalendar::Credentials.misconfiguration_reason)
+        = reason
+      - else
+        | OAuth 未設定
+    p.mt-2.text-xs.kb-text-muted
+      | 1. Google Cloud Console で「OAuth 2.0 クライアント ID」を
+      strong Web アプリケーション
+      |  として作成
+      br
+      | 2. 承認済みリダイレクト URI に次を
+      strong 完全一致
+      |  で登録:
+    code.mt-2.block.overflow-x-auto.rounded.kb-chrome-panel.px-3.py-2.text-xs = @google_calendar_callback_url
+    p.mt-2.text-xs.kb-text-muted
+      | 3.
+      code.kb-code-inline bin/rails credentials:edit
+      |  で
+      code.kb-code-inline google_calendar.client_id
+      |  /
+      code.kb-code-inline client_secret
+      |  を設定（
+      code.kb-code-inline config/credentials/google_calendar.example.yml
+      |  参照）。設定後はアプリを再起動。
+
+section.mt-10
   h2 class=kb_section_title クリップ API トークン
   p.mt-1.text-sm.kb-text-secondary
     | Chrome 拡張やブックマークレットからメモを保存する際に使います。Bearer トークンとして

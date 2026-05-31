@@ -10,16 +10,15 @@ class BoardScheduleCalendar
     @board = board
     @month = month.to_date.beginning_of_month
     @selected_day = normalize_selected_day(selected_day)
-    board_memos = memos_scope.where(board_id: board.id).to_a
-    scheduled = board_memos.select { |memo| memo.scheduled_on.present? }
+    scheduled = load_scheduled_memos(memos_scope)
     month_range = @month..@month.end_of_month
     @month_memos = scheduled
       .select { |memo| month_range.cover?(memo.scheduled_on) }
-      .sort_by { |memo| [ memo.scheduled_on, memo.title ] }
+      .sort_by { |memo| schedule_sort_key(memo) }
     @dates_with_items = @month_memos.map(&:scheduled_on).to_set
     @list_items = scheduled
       .select { |memo| memo.scheduled_on == @selected_day }
-      .sort_by { |memo| [ memo.scheduled_on, memo.title ] }
+      .sort_by { |memo| schedule_sort_key(memo) }
     @weeks = build_weeks
   end
 
@@ -48,6 +47,33 @@ class BoardScheduleCalendar
   end
 
   private
+
+  # ボード上カード（scheduled_on あり）と Google Calendar 同期メモ（board 外）を含める。
+  def load_scheduled_memos(memos_scope)
+    scheduled_on_sql = MemoPropertiesSql.json_text_at("scheduled_on")
+    gcal_event_sql = MemoPropertiesSql.json_text_at("google_calendar", "event_id")
+    memos_scope
+      .where("#{scheduled_on_sql} IS NOT NULL AND #{scheduled_on_sql} != ''")
+      .where(
+        "memos.board_id = ? OR (#{gcal_event_sql} IS NOT NULL AND #{gcal_event_sql} != '')",
+        board.id
+      )
+      .includes(:kanban_column)
+      .to_a
+  end
+
+  def schedule_sort_key(memo)
+    starts_at = memo.properties.dig("google_calendar", "starts_at")
+    sort_time =
+      if starts_at.present?
+        Time.zone.parse(starts_at.to_s)
+      else
+        memo.scheduled_on
+      end
+    [ memo.scheduled_on, sort_time, memo.title.to_s ]
+  rescue ArgumentError, TypeError
+    [ memo.scheduled_on, memo.scheduled_on, memo.title.to_s ]
+  end
 
   def normalize_selected_day(day)
     candidate = day.presence || Date.current

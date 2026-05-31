@@ -8,8 +8,9 @@
         - calendar.list_items.each do |memo|
           li.rounded-md.border.kb-border.px-2.py-2
             = link_to memo.title, memo_path(memo), class: "block text-sm font-medium kb-text-primary hover:opacity-80 line-clamp-2", data: { turbo: false }
-            - if memo.kanban_column
-              p.mt-1.text-[10px].kb-text-muted = memo.kanban_column.name
+            - meta = board_schedule_item_meta(memo)
+            - if meta.present?
+              p.mt-1.text-[10px].kb-text-muted = meta
     - else
       p.text-sm.kb-text-muted この日の予定はありません。
-      p.mt-1.text-xs.kb-text-subtle カードの予定日を設定するとここに表示されます。
+      p.mt-1.text-xs.kb-text-subtle カンバンカードの予定日や Google Calendar から取り込んだ予定がここに表示されます。

@@ -1,0 +1,146 @@
+= Google Calendar 同期（Phase 1）
+
+Google Calendar の予定を KBMemo の **メモ** として取り込み、既存の `scheduled_on`（カンバン予定サイドバー）とメモ show で表示する。
+
+前提: link:memo-properties.adoc[memo-properties.adoc]（properties が正）、link:kanban-mvp.adoc[kanban-mvp.adoc]（`scheduled_on`）。
+
+== Phase 1 スコープ
+
+[cols="1,3"]
+|===
+|含む |含まない
+
+|Google OAuth（Calendar 読み取り）
+|双方向同期（KBMemo → GCal）
+
+|1 イベント = 1 メモ（upsert）
+|繰り返しマスタとインスタンスの手動編集
+
+|`properties.google_calendar` + `scheduled_on`
+|Meet 参加・招待者の双方向更新
+
+|読み取り専用（`read_only: true`）
+|複数カレンダー選択 UI
+
+|手動 sync（プロフィール）+ `kbmemo:google_calendar:sync` + Job
+|Webhook（push 通知）
+|===
+
+== データモデル
+
+=== Account
+
+[cols="1,3"]
+|===
+|列 / フィールド |用途
+
+|`google_calendar_refresh_token`（暗号化 text）
+|OAuth refresh token
+
+|`google_calendar_meta`（json）
+|`calendar_id`（既定 `primary`）、`sync_token`、`connected_at`、`last_synced_at`
+|===
+
+OAuth クライアント ID / secret は **Rails credentials**（`google_calendar.client_id` / `client_secret`）。テンプレート: `config/credentials/google_calendar.example.yml`。
+
+=== Memo（1 イベント = 1 メモ）
+
+* 配置: `home/u-{account_id}/calendar/`（`MemoDirectory::UserSpace.ensure_subdirectory!`）
+* タグ: 固定 `google-calendar`
+* 本文: AsciiDoc（説明・場所・Google リンク）
+* `scheduled_on`: イベント開始日（`YYYY-MM-DD`）。カンバン予定 UI 再利用
+
+[source,json]
+----
+{
+  "scheduled_on": "2026-06-01",
+  "google_calendar": {
+    "calendar_id": "primary",
+    "event_id": "abc123",
+    "etag": "\"1234567890\"",
+    "html_link": "https://www.google.com/calendar/event?eid=...",
+    "starts_at": "2026-06-01T10:00:00+09:00",
+    "ends_at": "2026-06-01T11:00:00+09:00",
+    "all_day": false,
+    "location": "会議室 A",
+    "synced_at": "2026-05-31T16:00:00+09:00",
+    "read_only": true
+  }
+}
+----
+
+* **冪等キー:** `google_calendar.calendar_id` + `google_calendar.event_id`
+* **更新検知:** `etag` 変更時に title / body / properties を更新
+* **取消:** API 上 `status: cancelled` のイベントに紐づく同期メモは削除
+
+== 同期フロー
+
+[source,text]
+----
+プロフィール「Google Calendar と連携」
+  → OAuth consent（offline + calendar.readonly）
+  → refresh_token を Account に保存
+  → GoogleCalendarSyncJob または手動 sync
+
+GoogleCalendar::Sync
+  → events.list（syncToken または timeMin/timeMax）
+  → EventMapper で Memo upsert
+  → 取消イベントは Memo 削除
+----
+
+* 初回: 過去 7 日〜未来 90 日（定数 `GoogleCalendar::Sync`）
+* 2 回目以降: `google_calendar_meta.sync_token` で差分（410 時は full sync にフォールバック）
+
+== トラブルシュート
+
+=== Error 401: invalid_client
+
+Google の OAuth 画面で `invalid_client` が出る場合、**client_id / client_secret が GCP の値と一致していない**ことがほとんどです。
+
+* `bin/rails credentials:edit` の `google_calendar` がテンプレート（`your-client-id`）のまま → 実値に差し替える
+* OAuth クライアント種別が **Web アプリケーション** ではない（Desktop 等）
+* client_secret をコピーするときに前後空白・改行が混入
+* credentials 変更後に **アプリ未再起動**（古い値がプロセスに残る）
+* 別環境用の client_id を本番 credentials に入れている
+
+確認:
+
+[source,bash]
+----
+bin/rails runner "c=GoogleCalendar::Credentials; puts({ valid: c.valid?, reason: c.misconfiguration_reason, client_id: c.client_id&.slice(0,20) }.inspect)"
+----
+
+プロフィール画面に表示される **承認済みリダイレクト URI** を Google Cloud Console に完全一致で登録する（不一致の場合は通常 `redirect_uri_mismatch`）。
+
+== 操作
+
+=== ユーザー
+
+* プロフィール: 連携 / 解除 / 今すぐ同期
+* メモ show: 同期元バナー + Google Calendar リンク
+
+=== 運用
+
+[source,bash]
+----
+# 全連携アカウント
+bin/rails kbmemo:google_calendar:sync
+
+# 特定アカウント
+ACCOUNT_ID=1 bin/rails kbmemo:google_calendar:sync
+DRY_RUN=1 bin/rails kbmemo:google_calendar:sync
+----
+
+== 関連コード
+
+* `app/services/google_calendar/` — OAuth, Client, EventMapper, Sync
+* `app/models/concerns/account_google_calendar.rb`
+* `app/models/concerns/memo_google_calendar.rb`
+* `app/controllers/google_calendar_connections_controller.rb`
+* `app/jobs/google_calendar_sync_job.rb`
+* `lib/tasks/google_calendar.rake`
+
+== 関連ドキュメント
+
+* link:memo-properties.adoc[memo-properties.adoc]
+* link:kanban-mvp.adoc[kanban-mvp.adoc]

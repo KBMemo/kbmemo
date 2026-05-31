@@ -35,6 +35,23 @@ module BoardsHelper
     month.strftime("%Y年%-m月")
   end
 
+  def board_schedule_item_meta(memo)
+    if memo.google_calendar_synced?
+      gcal = memo.properties.fetch("google_calendar", {})
+      label = "Google Calendar"
+      if gcal["all_day"]
+        "#{label} · 終日"
+      elsif gcal["starts_at"].present?
+        time = Time.zone.parse(gcal["starts_at"].to_s)
+        "#{label} · #{time.strftime('%H:%M')}"
+      else
+        label
+      end
+    elsif memo.kanban_column
+      memo.kanban_column.name
+    end
+  end
+
   def board_schedule_day_cell_classes(calendar, day)
     classes = [
       "kb-board-schedule-day",

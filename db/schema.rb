@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_31_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_31_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -43,6 +43,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_31_170000) do
     t.string "clip_api_token_digest"
     t.string "clip_api_token_prefix"
     t.string "email", null: false
+    t.json "google_calendar_meta", default: {}, null: false
+    t.text "google_calendar_refresh_token"
     t.string "nickname"
     t.text "openai_api_key"
     t.string "password_hash"

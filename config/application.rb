@@ -22,7 +22,7 @@ module Kbmemo
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
     #
-    # config.time_zone = "Central Time (US & Canada)"
+    config.time_zone = "Tokyo"
     # config.eager_load_paths << Rails.root.join("extras")
 
     # メモ本文の Git 作業ツリー（環境変数 MEMO_GIT_WORK_TREE で上書き）

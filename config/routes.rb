@@ -25,6 +25,11 @@ Rails.application.routes.draw do
     delete :clip_api_token, action: :destroy_clip_api_token
   end
 
+  get "google_calendar/connect", to: "google_calendar_connections#connect", as: :google_calendar_connect
+  get "google_calendar/callback", to: "google_calendar_connections#callback", as: :google_calendar_callback
+  post "google_calendar/sync", to: "google_calendar_connections#sync", as: :google_calendar_sync
+  delete "google_calendar/disconnect", to: "google_calendar_connections#disconnect", as: :google_calendar_disconnect
+
   if Rails.env.development?
     mount LetterOpenerWeb::Engine, at: "/letter_opener"
   end

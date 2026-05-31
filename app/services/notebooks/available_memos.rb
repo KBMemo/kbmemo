@@ -30,7 +30,7 @@ module Notebooks
     def addable?(memo)
       return false unless MemoPolicy.new(@user, memo).add_to_notebook?
 
-      memo.notebook_memo.nil? || memo.docs_sync_read_only?
+      memo.notebook_memo.nil? || memo.sync_read_only?
     end
   end
 end

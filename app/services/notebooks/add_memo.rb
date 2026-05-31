@@ -15,7 +15,7 @@ module Notebooks
     def call
       existing = @memo.notebook_memo
       if existing.present? && existing.notebook_id != @notebook.id
-        if @memo.docs_sync_read_only?
+        if @memo.sync_read_only?
           existing.destroy!
         else
           raise Error, "このメモは既に別のノートブックに含まれています"

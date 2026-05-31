@@ -3,6 +3,11 @@
 class ProfilesController < ApplicationController
   def edit
     @account = rodauth.rails_account
+    @google_calendar_callback_url = google_calendar_callback_url(
+      host: request.host,
+      port: google_calendar_callback_port,
+      protocol: google_calendar_callback_protocol
+    )
   end
 
   def update
@@ -37,5 +42,15 @@ class ProfilesController < ApplicationController
       permitted.delete(:openai_api_key)
     end
     permitted
+  end
+
+  def google_calendar_callback_port
+    return nil if request.standard_port?
+
+    request.port
+  end
+
+  def google_calendar_callback_protocol
+    request.ssl? ? "https" : "http"
   end
 end

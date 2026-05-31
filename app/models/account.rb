@@ -2,17 +2,19 @@
 #
 # Table name: accounts
 #
-#  id                        :bigint           not null, primary key
-#  admin                     :boolean          default(FALSE), not null
-#  clip_api_token_created_at :datetime
-#  clip_api_token_digest     :string
-#  clip_api_token_prefix     :string
-#  email                     :string           not null
-#  nickname                  :string
-#  openai_api_key            :text
-#  password_hash             :string
-#  status                    :integer          default("unverified"), not null
-#  theme_preference          :json             not null
+#  id                            :bigint           not null, primary key
+#  admin                         :boolean          default(FALSE), not null
+#  clip_api_token_created_at     :datetime
+#  clip_api_token_digest         :string
+#  clip_api_token_prefix         :string
+#  email                         :string           not null
+#  google_calendar_meta          :json             not null
+#  google_calendar_refresh_token :text
+#  nickname                      :string
+#  openai_api_key                :text
+#  password_hash                 :string
+#  status                        :integer          default("unverified"), not null
+#  theme_preference              :json             not null
 #
 # Indexes
 #
@@ -22,6 +24,7 @@
 class Account < ApplicationRecord
   include Rodauth::Rails.model
   include AccountThemePreference
+  include AccountGoogleCalendar
   enum :status, { unverified: 1, verified: 2, closed: 3 }
 
   encrypts :openai_api_key
