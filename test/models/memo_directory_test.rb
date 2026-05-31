@@ -115,6 +115,15 @@ class MemoDirectoryTest < ActiveSupport::TestCase
     assert_equal only_parent, solo.delete_navigation_fallback
   end
 
+  test "root full_path may be empty string" do
+    dir = MemoDirectory.new(path_segment: "", label: "ルート", parent_id: nil)
+    dir.valid?
+
+    assert_not dir.errors.added?(:full_path, :blank)
+    assert_equal "", dir.full_path
+    assert dir.root?
+  end
+
   test "ensure_root is idempotent and returns fixture root" do
     existing = memo_directories(:root)
     assert_equal existing.id, MemoDirectory.ensure_root!.id

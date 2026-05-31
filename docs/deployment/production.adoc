@@ -96,7 +96,8 @@ SOURCE=/home/kensei/sites/kbmemo/storage/production.sqlite3 bin/rails kbmemo:db:
 
 * **primary DB のみ** 対象（Solid Cache / Queue / Cable の SQLite は通常空に近いため未対応）。
 * 既定で PostgreSQL 側の既存データは **削除してから** インポートする（`CLEAR=0` で追記モード）。
-* 開発用 Gem `sqlite3` が必要（`:development` グループ）。
+* 開発用 Gem `sqlite3` が必要（`require: false` — import 実行時のみ読み込む）。
+* 本番で import する場合は deploy 後に `bundle install` を再実行すること（`sqlite3` は production bundle に含まれる）。
 * アカウント・メモ・ディレクトリを移行した場合は、後述の「初回データ投入」の bootstrap / CLI 管理者作成は **スキップ可能**（既存データを使う）。
 
 移行後の確認:

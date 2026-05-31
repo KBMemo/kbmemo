@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "json"
-require "sqlite3"
 
 module Kbmemo
   module Db
@@ -39,7 +38,7 @@ module Kbmemo
       def initialize(path:, clear:)
         @path = Pathname.new(path)
         @clear = clear
-        @sqlite = SQLite3::Database.new(@path.to_s)
+        @sqlite = sqlite3_database
         @sqlite.results_as_hash = false
         @counts = {}
       end
@@ -208,6 +207,14 @@ module Kbmemo
         @boolean_columns ||= {}
         @boolean_columns[table] ||= ActiveRecord::Base.connection.columns(table).select { |c| c.type == :boolean }.map(&:name)
         @boolean_columns[table].include?(column)
+      end
+
+      def sqlite3_database
+        require "sqlite3"
+        SQLite3::Database.new(@path.to_s)
+      rescue LoadError
+        raise LoadError,
+          "sqlite3 gem is required for kbmemo:db:import_sqlite — run `bundle install` on this host"
       end
     end
   end

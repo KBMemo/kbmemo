@@ -34,6 +34,9 @@ gem "thruster", require: false
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 gem "image_processing", "~> 1.2"
 
+# One-time SQLite → PostgreSQL import (kbmemo:db:import_sqlite). require: false — not loaded at boot.
+gem "sqlite3", ">= 2.1", require: false
+
 
 # Use asciidoctor for markdown conversion
 gem "asciidoctor"
@@ -61,8 +64,6 @@ group :development do
   gem "web-console"
   gem "annotaterb"
   gem "letter_opener_web", "~> 3.0"
-  # SQLite → PostgreSQL 移行（bin/rails kbmemo:db:import_sqlite）のみ
-  gem "sqlite3", ">= 2.1", require: false
 end
 
 group :test do

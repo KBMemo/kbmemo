@@ -29,7 +29,8 @@ class MemoDirectory < ApplicationRecord
   has_many :boards, inverse_of: :memo_directory, dependent: :restrict_with_exception
 
   validates :label, presence: true, allow_blank: true
-  validates :full_path, presence: true, uniqueness: true
+  validates :full_path, uniqueness: true
+  validates :full_path, presence: true, unless: :root?
   validates :path_segment, uniqueness: { scope: :parent_id }, unless: :root?
   validate :path_segment_rules
   validate :path_segment_immutable, on: :update
