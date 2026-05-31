@@ -43,13 +43,15 @@ class MemoViewHistory < ApplicationRecord
     return unless account && memo&.persisted?
 
     transaction do
-      locked_scope = where(account_id: account.id).lock
-      next_seq = locked_scope.maximum(:view_sequence).to_i + 1
-      entry = locked_scope.find_or_initialize_by(memo_id: memo.id)
+      account_id = account.id
+      # PostgreSQL は集約 + FOR UPDATE を許可しないため、行ロックと MAX 取得を分ける。
+      where(account_id: account_id).lock.load
+      next_seq = where(account_id: account_id).maximum(:view_sequence).to_i + 1
+      entry = where(account_id: account_id).lock.find_or_initialize_by(memo_id: memo.id)
       entry.viewed_at = Time.current
       entry.view_sequence = next_seq
       entry.save!
-      trim_old_entries(account.id)
+      trim_old_entries(account_id)
     end
   end
 
