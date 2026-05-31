@@ -40,6 +40,8 @@
 #  memo_group_id      (memo_group_id => memo_groups.id)
 #
 class Memo < ApplicationRecord
+  include MemoPropertyOptions
+
   TITLE_PLACEHOLDER = " - 未入力 - ".freeze
 
   belongs_to :memo_directory

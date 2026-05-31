@@ -15,6 +15,26 @@ class BoardsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, board_columns(:one_todo).name
   end
 
+  test "show renders schedule sidebar with calendar" do
+    get board_url(boards(:one))
+    assert_response :success
+    assert_select "#board_schedule_sidebar_shell"
+    assert_select "#board_schedule_panel"
+    assert_select ".kb-board-schedule-calendar"
+    assert_select ".kb-board-schedule-list"
+  end
+
+  test "show lists scheduled memos for selected day" do
+    board = boards(:one)
+    memo = memos(:one)
+    BoardKanban::AddMemo.call(board: board, memo: memo, column: board_columns(:one_todo))
+    memo.update!(scheduled_on: Date.new(2026, 5, 15))
+
+    get board_url(board, schedule_month: "2026-05", schedule_day: "2026-05-15")
+    assert_response :success
+    assert_includes response.body, memo.title
+  end
+
   test "create board with default columns" do
     assert_difference("Board.count", 1) do
       post boards_url, params: { board: { title: "New board" } }

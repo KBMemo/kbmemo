@@ -18,7 +18,7 @@ KBMemo サイトを本番サーバー（**https://kbmemo.net**）へデプロイ
 
 |アプリ実行ユーザー |`kensei`（配置パスと一致）
 
-|データベース |**SQLite**（`storage/production*.sqlite3`）。単一 VPS 構成の既定
+|データベース |**PostgreSQL**（開発: `bowmore:5432`、本番 deploy: `localhost`）。接続情報は **Rails credentials**（`db.*`）
 
 |DNS |`kbmemo.net`（必要なら `www`）の A/AAAA を本サーバー IP に向ける
 |===
@@ -41,7 +41,7 @@ KBMemo サイトを本番サーバー（**https://kbmemo.net**）へデプロイ
                               v
                     [/home/kensei/sites/kbmemo]
                     Thruster + Puma (PORT=3007, SOLID_QUEUE_IN_PUMA)
-                    SQLite x4 → storage/production*.sqlite3
+                    PostgreSQL x4 → kbmemo_production*
                     memo_git_worktree/  (storage 配下)
                               |
                               v (任意・推奨)
@@ -52,18 +52,59 @@ KBMemo サイトを本番サーバー（**https://kbmemo.net**）へデプロイ
 * **メモ本文**: DB の AsciiDoc が正。Git 作業ツリーは `MemoRepository`
 * **図（Mermaid 等）**: Kroki 未起動時は図の保存・レンダリングでエラー
 
-=== データベース（SQLite / MySQL / PostgreSQL）
+=== データベース（PostgreSQL）
 
-[cols="2,3",options="header"]
-|===
-|DB |本番での位置づけ
+詳細（開発セットアップ・credentials 構造・Rodauth 連携）は link:../architecture/database.adoc[database.adoc] を参照。
 
-|**SQLite** |**推奨（現状の既定）**。単一サーバー・低〜中程度の同時利用。追加の DB サーバー不要
-|PostgreSQL |同時書き込み・複数アプリサーバー・本格検索が必要になったら移行候補
-|MySQL |既存インフラが MySQL の場合のみ。新規なら PostgreSQL を優先
-|===
+* **PostgreSQL** を使用する（`memos.properties` 等の JSON を正しく扱うため）。
+* **開発** は別ホスト（例: `bowmore:5432`）。**本番 deploy サーバー** からは `localhost` で接続する想定。
+* 本番は **primary / cache / queue / cable** の 4 データベース（`config/database.yml` の `production:` 参照）。
+* **接続情報（ホスト・ユーザー・パスワード・DB 名）は Rails credentials** に書く。`bin/rails credentials:edit` で `config/credentials/db.example.yml` と同じ構造の `db:` セクションを追加する。復号には `RAILS_MASTER_KEY`（または `config/master.key`）が必要。
 
-本手順は **SQLite のまま** 進めます。`db:prepare` で `storage/production*.sqlite3` が作成されます。
+[source,bash]
+----
+# 開発マシン — credentials に db.development / db.test を設定
+bin/rails credentials:edit
+
+# 本番サーバー — 同じ credentials.yml.enc を使う場合は master.key を .env.production の RAILS_MASTER_KEY に設定
+# 本番用に db.production だけ差し替える場合も credentials:edit で db.production を localhost 向けに書く
+----
+
+[source,bash]
+----
+# 本番サーバー（初回）— ロールと DB 作成例（postgres ユーザーで実行）
+sudo -u postgres createuser -P kbmemo
+sudo -u postgres createdb -O kbmemo kbmemo_production
+sudo -u postgres createdb -O kbmemo kbmemo_production_cache
+sudo -u postgres createdb -O kbmemo kbmemo_production_queue
+sudo -u postgres createdb -O kbmemo kbmemo_production_cable
+----
+
+`bin/deploy` / `db:prepare` でマイグレーションが適用される。
+
+==== 旧 SQLite からの移行
+
+既存の `storage/production*.sqlite3` または `storage/development.sqlite3` がある場合、link:../architecture/database.adoc#_旧_sqlite_からのデータ移行[database.adoc — 旧 SQLite からのデータ移行] も参照。
+
+[source,bash]
+----
+# PostgreSQL にスキーマを用意したあと（db:prepare）
+bin/rails kbmemo:db:import_sqlite
+# 本番 SQLite を指定する例
+SOURCE=/home/kensei/sites/kbmemo/storage/production.sqlite3 bin/rails kbmemo:db:import_sqlite
+----
+
+* **primary DB のみ** 対象（Solid Cache / Queue / Cable の SQLite は通常空に近いため未対応）。
+* 既定で PostgreSQL 側の既存データは **削除してから** インポートする（`CLEAR=0` で追記モード）。
+* 開発用 Gem `sqlite3` が必要（`:development` グループ）。
+* アカウント・メモ・ディレクトリを移行した場合は、後述の「初回データ投入」の bootstrap / CLI 管理者作成は **スキップ可能**（既存データを使う）。
+
+移行後の確認:
+
+[source,bash]
+----
+bundle exec rails runner "puts({ accounts: Account.count, memos: Memo.count }.inspect)"
+----
 
 == サーバー準備（初回のみ）
 
@@ -76,7 +117,7 @@ KBMemo サイトを本番サーバー（**https://kbmemo.net**）へデプロイ
 sudo apt update
 sudo apt install -y \
   nginx certbot python3-certbot-nginx \
-  git curl build-essential libssl-dev libyaml-dev libvips42 sqlite3 \
+  git curl build-essential libssl-dev libyaml-dev libvips42 libpq-dev postgresql-client \
   mecab libmecab2 mecab-ipadic-utf8
 ----
 
@@ -173,6 +214,8 @@ MECAB_PATH=/usr/lib/x86_64-linux-gnu/libmecab.so.2
 SOLID_QUEUE_IN_PUMA=true
 
 KROKI_URL=http://127.0.0.1:8001
+
+# DB 接続は credentials（db.production）。ここには RAILS_MASTER_KEY のみでよい。
 
 # BYOK 利用時
 # ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY=...
@@ -565,12 +608,12 @@ curl -fsS https://kbmemo.net/up
 
 `/home/kensei/sites/kbmemo` 配下:
 
-* `storage/production*.sqlite3`
+* PostgreSQL データベース（`kbmemo_production` 他 3 DB）— `pg_dump` 等
 * `storage/memo_git_worktree/`
 * Active Storage
-* `.env.production`（`RAILS_MASTER_KEY` 含む）
+* `.env.production`（`RAILS_MASTER_KEY` 含む。credentials 復号用）
 
-SQLite は可能ならメンテナンス時間にコピーするか、ファイルシステムスナップショットを使用してください。
+PostgreSQL は `pg_dump` / `pg_dumpall` でバックアップする（メンテナンス時間帯推奨）。
 
 == 運用コマンド
 

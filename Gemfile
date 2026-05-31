@@ -4,8 +4,8 @@ source "https://rubygems.org"
 gem "rails", "~> 8.1.3"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
-# Use sqlite3 as the database for Active Record
-gem "sqlite3", ">= 2.1"
+# Use PostgreSQL as the database for Active Record
+gem "pg", "~> 1.5"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
@@ -61,6 +61,8 @@ group :development do
   gem "web-console"
   gem "annotaterb"
   gem "letter_opener_web", "~> 3.0"
+  # SQLite → PostgreSQL 移行（bin/rails kbmemo:db:import_sqlite）のみ
+  gem "sqlite3", ">= 2.1", require: false
 end
 
 group :test do

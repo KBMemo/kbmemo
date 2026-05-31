@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class BoardsController < ApplicationController
+  include BoardScheduleSidebar
+
   after_action :verify_authorized
 
   before_action :set_board, only: %i[show edit update destroy move_card available_memos]
@@ -14,6 +16,7 @@ class BoardsController < ApplicationController
   def show
     authorize @board
     load_kanban_data
+    load_board_schedule_sidebar(@board)
   end
 
   def new

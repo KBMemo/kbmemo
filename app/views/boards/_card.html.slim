@@ -14,5 +14,9 @@ article.rounded-md.border.kb-border.p-3.shadow-sm.hover:opacity-95[id=card_dom_i
             span class="rounded bg-[var(--kb-bg-muted)] px-1.5 py-0.5 text-[10px] kb-text-secondary" = tag.name
           - if memo.tags.size > 3
             span class="text-[10px] kb-text-subtle" = "+#{memo.tags.size - 3}"
-      p class="mt-2 text-[10px] kb-text-subtle" = l(memo.updated_at, format: :short)
+      = form_with url: schedule_board_board_card_path(board, memo), method: :patch, class: "mt-2 flex items-center gap-1", data: { turbo_frame: "board_schedule_panel" } do
+        label.sr-only for="scheduled_on_#{memo.id}" 予定日
+        = date_field_tag :scheduled_on, memo.scheduled_on, id: "scheduled_on_#{memo.id}", class: "kb-input max-w-[9rem] rounded px-1.5 py-0.5 text-[10px]", title: "予定日"
+        = submit_tag "保存", class: "text-[10px] kb-text-secondary underline decoration-[var(--kb-border-strong)] hover:text-[var(--kb-text-primary)]"
+      p class="mt-1 text-[10px] kb-text-subtle" = l(memo.updated_at, format: :short)
     = button_to "外す", board_board_card_path(board, memo), method: :delete, form: { data: { turbo_confirm: "ボードから外しますか？メモ自体は削除されません。" } }, class: "shrink-0 text-[10px] kb-text-subtle hover:text-red-600", title: "ボードから外す"

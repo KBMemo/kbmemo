@@ -59,7 +59,8 @@ class KbmemoDocsSyncTest < ActiveSupport::TestCase
     result = KbmemoDocs::Sync.call(account: @account, docs_root: @docs_root)
 
     assert_equal 1, result.updated
-    memo = Memo.find_by!("json_extract(properties, '$.docs_sync.source_path') = ?", "architecture/hello.adoc")
+    path_sql = MemoPropertiesSql.json_text_at("docs_sync", "source_path")
+    memo = Memo.where("#{path_sql} = ?", "architecture/hello.adoc").first!
     assert_includes memo.body, "Updated body."
   end
 

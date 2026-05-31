@@ -1,0 +1,102 @@
+= データベース（PostgreSQL）
+
+KBMemo のアプリ DB は **PostgreSQL** です。`memos.properties` 等の JSON 型を正しく扱うため、SQLite は **ランタイムでは使用しません**（旧データ移行時のみ一時的に読み込む）。
+
+== 接続情報
+
+* **正は Rails credentials** の `db.<env>` セクション（環境変数 `KBMEMO_DB_*` は使わない）。
+* テンプレート: `config/credentials/db.example.yml`
+* 読み取り: `config/db_credentials.rb` → `config/database.yml`
+
+[cols="1,2,3"]
+|===
+|環境 |接続先の想定 |credentials キー
+
+|development
+|別ホスト（例: `bowmore:5432`）
+|`db.development` — `host`, `port`, `username`, `password`, `database`
+
+|test
+|development と同じホスト上の別 DB
+|`db.test`
+
+|production
+|deploy サーバーから `localhost`
+|`db.production` — 上記に加え `cache_database`, `queue_database`, `cable_database`
+|===
+
+[source,bash]
+----
+bin/rails credentials:edit
+# config/credentials/db.example.yml と同じ db: 構造を追記
+----
+
+復号には `config/master.key` または環境変数 `RAILS_MASTER_KEY` が必要です。
+
+== 開発環境の初回セットアップ
+
+[source,bash]
+----
+bundle install
+npm ci
+
+bin/rails credentials:edit   # db.development / db.test を設定
+bin/rails db:prepare           # スキーマ作成・マイグレーション
+bin/rails db:seed              # 任意（ディレクトリ構造の整備等）
+bin/dev                        # または bin/setup --skip-server
+----
+
+* `db:prepare` 後、`MemoDirectory.root` が無いと seed やアカウント作成が失敗する場合があります。`db/seeds.rb` は `MemoDirectory.ensure_root!` から始まります。
+* Rodauth は Active Record と同じ PostgreSQL 接続を `Sequel.postgres(extensions: :activerecord_connection)` で再利用します（`app/misc/rodauth_main.rb`）。
+
+== 旧 SQLite からのデータ移行
+
+`storage/development.sqlite3` や本番の `storage/production*.sqlite3` がある場合、**primary DB のみ** PostgreSQL へコピーできます。
+
+[source,bash]
+----
+# スキーマを用意したあと
+bin/rails kbmemo:db:import_sqlite
+
+# ソースファイルを指定
+SOURCE=storage/development.sqlite3 bin/rails kbmemo:db:import_sqlite
+SOURCE=/home/kensei/sites/kbmemo/storage/production.sqlite3 bin/rails kbmemo:db:import_sqlite
+
+# 既存 PG データを消さず追記（通常は使わない）
+CLEAR=0 bin/rails kbmemo:db:import_sqlite
+----
+
+* 実装: `lib/kbmemo/db/sqlite_importer.rb`、Rake: `kbmemo:db:import_sqlite`（`lib/tasks/kbmemo_db.rake`）
+* 対象テーブル: accounts, memo_directories, tags, boards, board_columns, memos, memo_tags, notebooks 等（Solid Cache / Queue / Cable の DB は対象外）
+* 既定（`CLEAR=1`）では PostgreSQL primary の既存行を **削除してから** インポートします
+* 開発用 Gem `sqlite3`（`:development` グループ）が必要
+* SQLite の boolean / JSON は PostgreSQL 向けに変換されます
+* **Git 作業ツリー**（`storage/memo_git_worktree/`）は DB とは別。インポート後もそのまま利用できます
+
+移行後の確認例:
+
+[source,bash]
+----
+bin/rails runner "puts({ accounts: Account.count, memos: Memo.count, dirs: MemoDirectory.count }.inspect)"
+----
+
+SQLite からディレクトリ・アカウントを移した場合は、本番手順の「メモディレクトリ bootstrap」や「初回管理者 CLI 作成」は **不要** なことが多いです（既存データをそのまま使う）。
+
+== 本番
+
+本番 deploy の手順（4 DB 作成、`db:prepare`、バックアップ等）は link:../deployment/production.adoc[production.adoc] を参照してください。
+
+== 関連コード
+
+* `config/database.yml` — adapter / pool。接続パラメータは credentials 経由
+* `config/db_credentials.rb` — credentials 読み取り
+* `config/credentials/db.example.yml` — 設定テンプレート
+* `app/misc/rodauth_main.rb` — Rodauth + Sequel（PostgreSQL）
+* `app/models/concerns/memo_properties_sql.rb` — `memos.properties` の JSON パス SQL
+* `lib/kbmemo/db/sqlite_importer.rb` — SQLite → PostgreSQL インポート
+
+== 関連ドキュメント
+
+* link:memo-properties.adoc[memo-properties.adoc] — `memos.properties` 設計
+* link:memo-directory-layout.adoc[memo-directory-layout.adoc] — メモディレクトリ階層
+* `AGENTS.md` — エージェント向け入口

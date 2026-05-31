@@ -135,8 +135,9 @@ module KbmemoAsciidocSamples
     end
 
     def find_existing(id)
+      marker_sql = MemoPropertiesSql.json_text_at(MARKER_KEY, "syntax_ref_id")
       by_marker = Memo.where(account_id: @account.id)
-        .where("json_extract(properties, '$.#{MARKER_KEY}.syntax_ref_id') = ?", id)
+        .where("#{marker_sql} = ?", id)
         .first
       return by_marker if by_marker
 
@@ -256,8 +257,9 @@ module KbmemoAsciidocSamples
     end
 
     def roadmap_slug
+      path_sql = MemoPropertiesSql.json_text_at("docs_sync", "source_path")
       Memo.where(account_id: @account.id)
-        .where("json_extract(properties, '$.docs_sync.source_path') = ?", ROADMAP_SOURCE)
+        .where("#{path_sql} = ?", ROADMAP_SOURCE)
         .pick(:slug)
     end
 

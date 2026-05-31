@@ -114,4 +114,10 @@ class MemoDirectoryTest < ActiveSupport::TestCase
     solo = MemoDirectory.create!(parent: only_parent, path_segment: "solo", label: "Solo")
     assert_equal only_parent, solo.delete_navigation_fallback
   end
+
+  test "ensure_root is idempotent and returns fixture root" do
+    existing = memo_directories(:root)
+    assert_equal existing.id, MemoDirectory.ensure_root!.id
+    assert_equal existing.id, MemoDirectory.root.id
+  end
 end

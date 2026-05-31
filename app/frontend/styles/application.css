@@ -296,3 +296,19 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   display: block;
   max-width: 100%;
 }
+
+.kb-board-schedule-day--has-items {
+  position: relative;
+}
+
+.kb-board-schedule-day--has-items::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--kb-accent, #6366f1);
+  transform: translateX(-50%);
+}

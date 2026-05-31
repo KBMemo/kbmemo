@@ -47,8 +47,16 @@ class MemoDirectory < ApplicationRecord
   SYSTEM_PROTECTED_PATHS = %w[system system/docs system/help].freeze
   SYSTEM_FIXED_CHILD_SEGMENTS = %w[docs help].freeze
 
+  def self.ensure_root!
+    find_or_create_by!(full_path: "") do |dir|
+      dir.path_segment = ""
+      dir.label = "ルート"
+      dir.parent_id = nil
+    end
+  end
+
   def self.root
-    find_by!(full_path: "")
+    ensure_root!
   end
 
   def root?

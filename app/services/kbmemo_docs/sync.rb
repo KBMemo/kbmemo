@@ -102,8 +102,9 @@ module KbmemoDocs
     end
 
     def existing_docs_sync_index
+      path_sql = MemoPropertiesSql.json_text_at("docs_sync", "source_path")
       Memo.where(account_id: @account.id)
-        .where("json_extract(properties, '$.docs_sync.source_path') IS NOT NULL")
+        .where("#{path_sql} IS NOT NULL")
         .index_by { |memo| memo.properties.dig("docs_sync", "source_path") }
     end
 

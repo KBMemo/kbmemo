@@ -1,0 +1,5 @@
+= turbo_stream.replace "board_schedule_panel" do
+  = render "boards/schedule_sidebar", board: @board, schedule_calendar: @schedule_calendar
+
+= turbo_stream.replace dom_id(@memo, :board_card) do
+  = render "boards/card", board: @board, memo: @memo, column: @column, visible_memo_ids: @visible_memo_ids

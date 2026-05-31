@@ -1,40 +1,69 @@
-# SQLite. Versions 3.8.0 and up are supported.
-#   gem install sqlite3
-#
-#   Ensure the SQLite 3 gem is defined in your Gemfile
-#   gem "sqlite3"
-#
+# PostgreSQL — 接続情報は Rails credentials（db.<env>）が正。
+# 編集: bin/rails credentials:edit
+# テンプレート: config/credentials/db.example.yml
+
+<%
+  require_relative "db_credentials"
+
+  def pg_connection(env = Rails.env)
+    DbCredentials.connection_options(env)
+  end
+
+  def pg_database(key, env = Rails.env)
+    DbCredentials.fetch(key, env)
+  end
+%>
+
 default: &default
-  adapter: sqlite3
-  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  timeout: 5000
+  adapter: postgresql
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
 
 development:
   <<: *default
-  database: storage/development.sqlite3
+  host: <%= pg_connection(:development)[:host] %>
+  port: <%= pg_connection(:development)[:port] %>
+  username: <%= pg_connection(:development)[:username] %>
+  password: <%= pg_connection(:development)[:password] %>
+  database: <%= pg_database(:database, :development) %>
 
-# Warning: The database defined as "test" will be erased and
-# re-generated from your development database when you run "rake".
-# Do not set this db to the same as development or production.
 test:
   <<: *default
-  database: storage/test.sqlite3
+  host: <%= pg_connection(:test)[:host] %>
+  port: <%= pg_connection(:test)[:port] %>
+  username: <%= pg_connection(:test)[:username] %>
+  password: <%= pg_connection(:test)[:password] %>
+  database: <%= pg_database(:database, :test) %>
 
-# Store production database in the storage/ directory, which by default
-# is mounted as a persistent Docker volume in config/deploy.yml.
 production:
   primary:
     <<: *default
-    database: storage/production.sqlite3
+    host: <%= pg_connection(:production)[:host] %>
+    port: <%= pg_connection(:production)[:port] %>
+    username: <%= pg_connection(:production)[:username] %>
+    password: <%= pg_connection(:production)[:password] %>
+    database: <%= pg_database(:database, :production) %>
   cache:
     <<: *default
-    database: storage/production_cache.sqlite3
+    host: <%= pg_connection(:production)[:host] %>
+    port: <%= pg_connection(:production)[:port] %>
+    username: <%= pg_connection(:production)[:username] %>
+    password: <%= pg_connection(:production)[:password] %>
+    database: <%= pg_database(:cache_database, :production) %>
     migrations_paths: db/cache_migrate
   queue:
     <<: *default
-    database: storage/production_queue.sqlite3
+    host: <%= pg_connection(:production)[:host] %>
+    port: <%= pg_connection(:production)[:port] %>
+    username: <%= pg_connection(:production)[:username] %>
+    password: <%= pg_connection(:production)[:password] %>
+    database: <%= pg_database(:queue_database, :production) %>
     migrations_paths: db/queue_migrate
   cable:
     <<: *default
-    database: storage/production_cable.sqlite3
+    host: <%= pg_connection(:production)[:host] %>
+    port: <%= pg_connection(:production)[:port] %>
+    username: <%= pg_connection(:production)[:username] %>
+    password: <%= pg_connection(:production)[:password] %>
+    database: <%= pg_database(:cable_database, :production) %>
     migrations_paths: db/cable_migrate

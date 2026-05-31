@@ -1,0 +1,126 @@
+= メモ properties（オプション項目）設計方針
+
+このドキュメントは KBMemo における **メモのオプション項目・試行錯誤中のメタデータ** の置き場所を定義する。
+前提として、メモ本文の正は DB の AsciiDoc プレーン文字列（`AGENTS.md`）である。
+
+== 基本方針
+
+* **試行錯誤しやすいオプション項目の正は `memos.properties`（JSON）** とする。
+* UI・機能を足すときは、まず properties にキーを追加し、`Memo` 上の薄いアクセサ（concern / サービス）で読み書きする。
+* **本文（AsciiDoc）や Git 作業ツリーには書かない。** 表示専用の派生情報も properties を正とする。
+* カンバン列・ノートブック所属など **プロダクトの中核スキーマ** は従来どおり専用テーブル／カラムを正とする（`docs/architecture/kanban-mvp.adoc` 等）。
+* **RDBMS は PostgreSQL**（`memos.properties` 等の JSON 型を正しく扱う）。開発は別ホスト（既定 `bowmore:5432`）、本番 deploy は `localhost`。
+
+== PostgreSQL と JSON
+
+* アプリ DB は **PostgreSQL**（SQLite は使用しない）。
+* `memos.properties` / `accounts.theme_preference` 等は **json 型**（将来必要なら jsonb へ変更可）。
+* JSON パス検索の SQL 断片は `MemoPropertiesSql`（`app/models/concerns/memo_properties_sql.rb`）に集約する。例: `properties -> 'docs_sync' ->> 'source_path'`。
+* 接続設定: `config/database.yml` + **Rails credentials**（`config/credentials/db.example.yml` 参照）。詳細は link:database.adoc[database.adoc]。
+
+== properties に置くもの / 置かないもの
+
+[cols="1,3"]
+|===
+|properties に置く |専用スキーマに置く
+
+|機能実験・UI 試行錯誤中の付帯情報
+|複数画面・API で必須の参照整合性（FK）
+
+|メモ単位の UI 状態（チェックリスト進捗、予定日 等）
+|ボード列・順序、ノートブック階層、ディレクトリ配置
+
+|インポート／同期の補助メタ（`docs_sync` 等）
+|公開範囲（`visibility`）、所有者（`account_id`）
+
+|ユーザーが YAML で直接触れるオプション
+|全文検索・一覧ソートの主キー（必要になった段階で昇格を検討）
+|===
+
+== キー設計
+
+* **トップレベルキーは snake_case の英小文字**（例: `scheduled_on`, `source_url`）。
+* **日付・日時は ISO 8601 文字列**（日付のみは `YYYY-MM-DD`）。Ruby 側で `Date.iso8601` / `Time#iso8601` に揃える。
+* **ネストはドット記法ではなく JSON オブジェクト**（例: `docs_sync: { source_path: "...", read_only: true }`）。
+* 値を消すときは **キーごと削除**（`null` を残さない）。
+* 既存キーと意味が被る場合は **新キーを増やさず既存を拡張** するか、移行手順を doc に書いてからリネームする。
+
+== 実装パターン
+
+=== 1. concern でのアクセサ（推奨）
+
+試行錯誤向けの単一値・小さな API は `MemoPropertyOptions`（`app/models/concerns/memo_property_options.rb`）に集約する。
+
+[source,ruby]
+----
+# properties["scheduled_on"] <=> "2026-05-15"
+memo.scheduled_on = Date.current
+memo.save!
+----
+
+* 読み取りは `properties` を直接触らずアクセサ経由に統一する。
+* 書き込みは `properties.stringify_keys.dup` してから `self.properties =` で置き換える（インプレース破壊を避ける）。
+
+=== 2. サービスでの同期（構造が本文と連動する場合）
+
+AsciiDoc 本文と双方向同期が必要な場合はサービスを正とする（例: `MemoChecklist` が `properties["checkboxes"]` を本文のチェックリストと同期）。
+
+=== 3. 編集 UI
+
+* 上級者向け: メモ編集フォームの **properties YAML** から直接編集可能。
+* 機能 UI: カンバンカード等から PATCH し、内部ではアクセサ経由で properties を更新する。
+
+== 登録済みキー（参照）
+
+[cols="2,1,3"]
+|===
+|キー |型 |用途・参照
+
+|`checkboxes`
+|配列
+|インタラクティブチェックリストの行 ID・ラベル・checked。`MemoChecklist`
+
+|`scheduled_on`
+|日付文字列
+|カンバン予定日。`MemoPropertyOptions#scheduled_on`。`BoardScheduleCalendar`
+
+|`source_url`
+|文字列
+|Clip API 等の取り込み元 URL
+
+|`docs_sync`
+|オブジェクト
+|アプリ内 docs 同期。`source_path`, `read_only` 等。`docs/architecture/kbmemo-docs-in-app.adoc`
+
+|`asciidoc_sample`
+|オブジェクト
+|記法サンプル seed の冪等キー。`syntax_ref_id`
+|===
+
+新キーを足したら **この表に追記** する。
+
+== 専用カラムへの昇格
+
+次のいずれかに当てはまったら、properties から専用カラム／テーブルへの移行を検討する。
+
+* 一覧・集計で **全メモ横断の SQL 検索・ソート** がボトルネックになった
+* **外部 API の契約** としてキーが固定化された
+* **複数機能が同じキーに強く依存** し、型・バリデーションが必須になった
+
+昇格時はマイグレーションでデータをコピーし、しばらくアクセサ内で新旧両方を読むか、一度限りの backfill を行う。
+
+== 関連コード
+
+* `config/db_credentials.rb` — credentials から DB 接続を読む
+* `app/models/concerns/memo_properties_sql.rb` — properties JSON 検索（PostgreSQL）
+* `app/models/concerns/memo_property_options.rb` — 試行錯誤向けアクセサ
+* `app/services/memo_checklist.rb` — チェックリスト同期
+* `app/services/board_schedule_calendar.rb` — 予定日カレンダー
+* `app/helpers/memos_helper.rb` — properties YAML 表示・編集
+
+== 関連ドキュメント
+
+* `AGENTS.md` — エージェント向け入口
+* `docs/architecture/database.adoc` — PostgreSQL・credentials・SQLite インポート
+* `docs/architecture/kanban-mvp.adoc` — カンバン（列・配置は DB）
+* `docs/architecture/kbmemo-docs-in-app.adoc` — `docs_sync`

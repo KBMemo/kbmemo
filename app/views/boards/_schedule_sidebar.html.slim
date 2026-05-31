@@ -1,0 +1,4 @@
+= turbo_frame_tag "board_schedule_panel" do
+  .flex.h-full.min-h-0.flex-col
+    = render "boards/schedule_calendar", board: board, calendar: schedule_calendar
+    = render "boards/schedule_list", board: board, calendar: schedule_calendar

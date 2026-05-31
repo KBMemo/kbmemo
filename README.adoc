@@ -4,6 +4,26 @@ KBMemo（Kanban + Blog + Memo）のアプリケーションサイト。
 
 概要・設計ドキュメントは link:README.md[README.md] を参照。
 
+== 開発環境
+
+PostgreSQL への接続は **Rails credentials**（`db.development` / `db.test`）に書きます。詳細は link:docs/architecture/database.adoc[docs/architecture/database.adoc] を参照してください。
+
+[source,bash]
+----
+bundle install && npm ci
+bin/rails credentials:edit    # db.development / db.test（テンプレート: config/credentials/db.example.yml）
+bin/rails db:prepare
+bin/rails db:seed             # 任意
+bin/dev                       # または bin/setup
+----
+
+旧 `storage/development.sqlite3` からデータを移す場合:
+
+[source,bash]
+----
+bin/rails kbmemo:db:import_sqlite
+----
+
 == テスト
 
 Minitest（`test/`）を使用しています。

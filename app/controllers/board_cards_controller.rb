@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class BoardCardsController < ApplicationController
+  include BoardScheduleSidebar
+
   after_action :verify_authorized
 
   before_action :set_board
@@ -60,6 +62,29 @@ class BoardCardsController < ApplicationController
     end
   end
 
+  def schedule
+    memo = policy_scope(Memo).where(board_id: @board.id).find(params[:id])
+    authorize memo, :update?
+    authorize @board, :update?
+
+    memo.scheduled_on = parse_scheduled_on_param
+    memo.save!
+    @memo = memo
+    @column = memo.kanban_column
+    load_kanban_data
+    load_board_schedule_sidebar(@board)
+
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to board_schedule_redirect_path, notice: "予定日を更新しました。" }
+    end
+  rescue ActiveRecord::RecordInvalid => e
+    respond_to do |format|
+      format.turbo_stream { head :unprocessable_entity }
+      format.html { redirect_to @board, alert: e.record.errors.full_messages.to_sentence }
+    end
+  end
+
   private
 
   def set_board
@@ -76,5 +101,23 @@ class BoardCardsController < ApplicationController
     visible_ids = policy_scope(Memo).where(board_id: @board.id).pluck(:id)
     @board_columns = @board.board_columns.includes(memos: :tags).order(:position)
     @visible_memo_ids = visible_ids.to_set
+  end
+
+  def parse_scheduled_on_param
+    raw = params[:scheduled_on].to_s.strip
+    return nil if raw.blank?
+
+    Date.iso8601(raw)
+  rescue ArgumentError
+    nil
+  end
+
+  def board_schedule_redirect_path
+    day = @memo.scheduled_on || @schedule_calendar&.selected_day || Date.current
+    board_path(
+      @board,
+      schedule_month: day.strftime("%Y-%m"),
+      schedule_day: day.strftime("%Y-%m-%d")
+    )
   end
 end

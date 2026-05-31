@@ -307,6 +307,9 @@ end
 |チェックリスト進捗
 |`properties["checkboxes"]` があれば `完了数/総数`（例: `2/5`）
 
+|予定日
+|`properties["scheduled_on"]`（ISO 8601 日付）。左サイドバーのカレンダー・予定一覧。`MemoPropertyOptions`
+
 |更新日時
 |任意。`updated_at` の相対表示
 |===
@@ -525,8 +528,10 @@ MVP で許可する操作:
 
 * `app/javascript/controllers/memo_directory_dnd_controller.js` — DnD + Turbo Stream パターン
 * `app/services/memo_checklist.rb` — チェックリスト進捗表示
+* `app/services/board_schedule_calendar.rb` — 予定日カレンダー（properties）
 * `app/policies/memo_policy.rb` — カード権限
 * `docs/architecture/memo-directory-layout.adoc` — ディレクトリ設計
+* `docs/architecture/memo-properties.adoc` — properties オプション項目の方針
 
 == 変更履歴
 

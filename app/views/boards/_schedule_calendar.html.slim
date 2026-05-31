@@ -1,0 +1,20 @@
+.kb-board-schedule-calendar.shrink-0.border-b.kb-border.px-3.py-3
+  .mb-2.flex.items-center.justify-between.gap-2
+    = link_to "‹", board_schedule_month_path(board, calendar.prev_month, selected_day: calendar.selected_day), class: "kb-chrome-btn-secondary inline-flex h-7 w-7 items-center justify-center p-0 text-sm", title: "前の月", data: { turbo_frame: "board_schedule_panel" }
+    p.text-sm.font-semibold.kb-text-primary = board_schedule_month_label(calendar.month)
+    = link_to "›", board_schedule_month_path(board, calendar.next_month, selected_day: calendar.selected_day), class: "kb-chrome-btn-secondary inline-flex h-7 w-7 items-center justify-center p-0 text-sm", title: "次の月", data: { turbo_frame: "board_schedule_panel" }
+  table.w-full.border-collapse.text-center
+    thead
+      tr
+        - BoardScheduleCalendar::WEEKDAY_LABELS.each do |label|
+          th class="pb-1 text-[10px] font-medium uppercase tracking-wide kb-text-muted" = label
+    tbody
+      - calendar.weeks.each do |week|
+        tr
+          - week.each do |day|
+            td class="p-0.5"
+              = link_to day.day,
+                board_schedule_day_path(board, day),
+                class: board_schedule_day_cell_classes(calendar, day),
+                title: l(day, format: :long),
+                data: { turbo_frame: "board_schedule_panel" }

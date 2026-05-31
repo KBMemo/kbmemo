@@ -294,4 +294,15 @@ class MemoTest < ActiveSupport::TestCase
     legacy = ULID.generate.to_s
     assert_equal "note-#{Memo.slug_suffix_for(uid)}", Memo.global_slug_for("note-#{legacy}", uid)
   end
+
+  test "scheduled_on reads and writes ISO8601 date in properties" do
+    memo = memos(:one)
+    memo.scheduled_on = Date.new(2026, 5, 15)
+    assert_equal "2026-05-15", memo.properties["scheduled_on"]
+    assert_equal Date.new(2026, 5, 15), memo.scheduled_on
+
+    memo.scheduled_on = nil
+    assert_nil memo.scheduled_on
+    assert_not memo.properties.key?("scheduled_on")
+  end
 end

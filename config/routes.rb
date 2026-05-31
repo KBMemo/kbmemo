@@ -55,7 +55,11 @@ Rails.application.routes.draw do
       end
     end
 
-    resources :board_cards, only: %i[create destroy], path: "cards"
+    resources :board_cards, only: %i[create destroy], path: "cards" do
+      member do
+        patch :schedule
+      end
+    end
   end
 
   resources :notebooks do

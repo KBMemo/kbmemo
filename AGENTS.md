@@ -6,6 +6,14 @@
 
 - **正は DB の AsciiDoc プレーン文字列／CM は見せ方のみ。** サーバー側の変換・表示は Asciidoctor（`MemoWikiLinks` 等）。
 
+## メモ properties（オプション項目）
+
+- **試行錯誤しやすいオプション項目の正は `memos.properties`（JSON）。** 専用 DB カラムは、横断検索・契約固定・強い整合性が必要になるまで増やさない。
+- 読み書きは `properties` を直接散在させず、`MemoPropertyOptions` 等の **薄いアクセサ / サービス** に集約する。
+- **DB 接続情報** も環境変数ではなく **Rails credentials**（`db.<env>`）。テンプレート `config/credentials/db.example.yml`
+- 詳細・登録済みキー一覧: `docs/architecture/memo-properties.adoc`
+- DB セットアップ・旧 SQLite インポート: `docs/architecture/database.adoc`
+
 ## WYSIWYG ブロック編集（`@kbmemo/adoc-wysiwyg`）
 
 - **編集対象は AsciiDoc ソース（ユニット内 CodeMirror）のみ。** Asciidoctor が出力したプレビュー HTML は表示用。contentEditable や HTML 逆変換で本文を書き換えない。
@@ -20,4 +28,6 @@
 ## Stack (short)
 
 - Rails 8, Rodauth, Pundit, Turbo, Stimulus, Vite
+- DB: PostgreSQL。接続情報は **Rails credentials**（`db.development` / `db.test` / `db.production`）。テンプレート `config/credentials/db.example.yml`
+- 旧 SQLite 移行: `bin/rails kbmemo:db:import_sqlite`（`docs/architecture/database.adoc`）
 - メモ本文: AsciiDoc（サーバーは Asciidoctor）、Git 作業ツリーは `MemoRepository`

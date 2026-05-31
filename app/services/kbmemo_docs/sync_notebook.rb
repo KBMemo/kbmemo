@@ -59,9 +59,10 @@ module KbmemoDocs
     end
 
     def docs_sync_memos
+      path_sql = MemoPropertiesSql.json_text_at("docs_sync", "source_path")
       Memo.where(account_id: @account.id)
-        .where("json_extract(properties, '$.docs_sync.source_path') IS NOT NULL")
-        .order(Arel.sql("json_extract(properties, '$.docs_sync.source_path')"))
+        .where("#{path_sql} IS NOT NULL")
+        .order(Arel.sql(path_sql))
         .to_a
     end
 

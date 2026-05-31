@@ -6,8 +6,11 @@ KBMemo (Kanban + Blog + Memo) のアプリサイト。
 
 | Document | Description |
 |----------|-------------|
+| [docs/architecture/database.adoc](docs/architecture/database.adoc) | PostgreSQL・credentials・旧 SQLite インポート |
 | [docs/deployment/production.adoc](docs/deployment/production.adoc) | 本番デプロイ手順（Ubuntu 24.04 + nginx、https://kbmemo.net） |
+| [docs/architecture/memo-properties.adoc](docs/architecture/memo-properties.adoc) | メモ `properties` JSON の設計方針 |
 | [docs/architecture/memo-directory-layout.adoc](docs/architecture/memo-directory-layout.adoc) | メモディレクトリ階層と Git パス |
+| [docs/architecture/kanban-mvp.adoc](docs/architecture/kanban-mvp.adoc) | カンバン MVP 仕様 |
 | [docs/architecture/memo-body-editor-roadmap.adoc](docs/architecture/memo-body-editor-roadmap.adoc) | 本文 CodeMirror / AsciiDoc エディタの作成指針・ロードマップ |
 | [docs/architecture/memo-adoc-passthrough-restriction.adoc](docs/architecture/memo-adoc-passthrough-restriction.adoc) | メモ表示・プレビュー時の AsciiDoc passthrough 制限（XSS 対策） |
 
