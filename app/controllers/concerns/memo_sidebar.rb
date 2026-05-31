@@ -68,7 +68,8 @@ module MemoSidebar
         @memo_search_query.present? ? base.search_text(@memo_search_query) : base.none
       when "tag"
         if @current_tag
-          base.joins(:memo_tags).where(memo_tags: { tag_id: @current_tag.id }).distinct
+          ids = policy_scope(Memo).joins(:memo_tags).where(memo_tags: { tag_id: @current_tag.id }).distinct.pluck(:id)
+          base.where(id: ids)
         else
           base.none
         end

@@ -11,12 +11,23 @@ class MemoWikiBacklinks
   def call
     return [] unless @target.persisted?
 
+    ids = link_source_ids
+    return [] if ids.empty?
+
+    @scope
+      .where(id: ids)
+      .includes(:account, :memo_directory, :tags)
+      .sort_by { |memo| [ -memo.updated_at.to_i, memo.title.downcase ] }
+  end
+
+  private
+
+  def link_source_ids
     @scope
       .where.not(id: @target.id)
       .joins(:outgoing_wiki_links)
       .where(memo_wiki_links: { target_memo_id: @target.id })
-      .includes(:account, :memo_directory, :tags)
       .distinct
-      .sort_by { |memo| [ -memo.updated_at.to_i, memo.title.downcase ] }
+      .pluck(:id)
   end
 end
