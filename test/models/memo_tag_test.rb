@@ -2,7 +2,7 @@
 #
 # Table name: memo_tags
 #
-#  id      :integer          not null, primary key
+#  id      :bigint           not null, primary key
 #  memo_id :integer          not null
 #  tag_id  :integer          not null
 #
@@ -14,8 +14,8 @@
 #
 # Foreign Keys
 #
-#  memo_id  (memo_id => memos.id)
-#  tag_id   (tag_id => tags.id)
+#  fk_rails_...  (memo_id => memos.id)
+#  fk_rails_...  (tag_id => tags.id)
 #
 require "test_helper"
 

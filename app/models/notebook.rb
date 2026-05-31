@@ -4,7 +4,7 @@
 #
 # Table name: notebooks
 #
-#  id                :integer          not null, primary key
+#  id                :bigint           not null, primary key
 #  description       :text             default(""), not null
 #  publication_kind  :integer          default("notes"), not null
 #  published_at      :datetime
@@ -24,8 +24,8 @@
 #
 # Foreign Keys
 #
-#  account_id         (account_id => accounts.id)
-#  memo_directory_id  (memo_directory_id => memo_directories.id)
+#  fk_rails_...  (account_id => accounts.id)
+#  fk_rails_...  (memo_directory_id => memo_directories.id)
 #
 class Notebook < ApplicationRecord
   GUEST_KINDS = %w[blog manual].freeze

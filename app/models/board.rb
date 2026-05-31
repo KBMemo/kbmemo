@@ -4,7 +4,7 @@
 #
 # Table name: boards
 #
-#  id                :integer          not null, primary key
+#  id                :bigint           not null, primary key
 #  title             :string           not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
@@ -18,8 +18,8 @@
 #
 # Foreign Keys
 #
-#  account_id         (account_id => accounts.id)
-#  memo_directory_id  (memo_directory_id => memo_directories.id)
+#  fk_rails_...  (account_id => accounts.id)
+#  fk_rails_...  (memo_directory_id => memo_directories.id)
 #
 class Board < ApplicationRecord
   DEFAULT_COLUMN_NAMES = %w[Todo Doing Done].freeze

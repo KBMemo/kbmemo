@@ -4,7 +4,7 @@
 #
 # Table name: memo_group_memberships
 #
-#  id            :integer          not null, primary key
+#  id            :bigint           not null, primary key
 #  created_at    :datetime         not null
 #  updated_at    :datetime         not null
 #  account_id    :integer          not null
@@ -18,8 +18,8 @@
 #
 # Foreign Keys
 #
-#  account_id     (account_id => accounts.id)
-#  memo_group_id  (memo_group_id => memo_groups.id)
+#  fk_rails_...  (account_id => accounts.id)
+#  fk_rails_...  (memo_group_id => memo_groups.id)
 #
 class MemoGroupMembership < ApplicationRecord
   belongs_to :memo_group

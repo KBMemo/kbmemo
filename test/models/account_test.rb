@@ -4,7 +4,7 @@
 #
 # Table name: accounts
 #
-#  id                        :integer          not null, primary key
+#  id                        :bigint           not null, primary key
 #  admin                     :boolean          default(FALSE), not null
 #  clip_api_token_created_at :datetime
 #  clip_api_token_digest     :string
@@ -19,7 +19,7 @@
 # Indexes
 #
 #  index_accounts_on_clip_api_token_digest  (clip_api_token_digest) UNIQUE
-#  index_accounts_on_email                  (email) UNIQUE WHERE status IN (1, 2)
+#  index_accounts_on_email                  (email) UNIQUE WHERE (status = ANY (ARRAY[1, 2]))
 #
 require "test_helper"
 

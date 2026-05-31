@@ -4,7 +4,7 @@
 #
 # Table name: memo_directories
 #
-#  id           :integer          not null, primary key
+#  id           :bigint           not null, primary key
 #  full_path    :string           not null
 #  label        :string           default(""), not null
 #  path_segment :string           default(""), not null
@@ -19,7 +19,7 @@
 #
 # Foreign Keys
 #
-#  parent_id  (parent_id => memo_directories.id)
+#  fk_rails_...  (parent_id => memo_directories.id)
 #
 root:
   path_segment: ""

@@ -4,7 +4,7 @@
 #
 # Table name: notebook_memos
 #
-#  id            :integer          not null, primary key
+#  id            :bigint           not null, primary key
 #  chapter_title :string
 #  position      :integer          default(0), not null
 #  created_at    :datetime         not null
@@ -23,9 +23,9 @@
 #
 # Foreign Keys
 #
-#  memo_id      (memo_id => memos.id)
-#  notebook_id  (notebook_id => notebooks.id)
-#  parent_id    (parent_id => notebook_memos.id)
+#  fk_rails_...  (memo_id => memos.id)
+#  fk_rails_...  (notebook_id => notebooks.id)
+#  fk_rails_...  (parent_id => notebook_memos.id)
 #
 class NotebookMemo < ApplicationRecord
   belongs_to :notebook

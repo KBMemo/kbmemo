@@ -6,7 +6,7 @@
 #
 # Table name: memo_wiki_links
 #
-#  id             :integer          not null, primary key
+#  id             :bigint           not null, primary key
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
 #  source_memo_id :integer          not null
@@ -20,8 +20,8 @@
 #
 # Foreign Keys
 #
-#  source_memo_id  (source_memo_id => memos.id) ON DELETE => cascade
-#  target_memo_id  (target_memo_id => memos.id) ON DELETE => cascade
+#  fk_rails_...  (source_memo_id => memos.id) ON DELETE => cascade
+#  fk_rails_...  (target_memo_id => memos.id) ON DELETE => cascade
 #
 class MemoWikiLink < ApplicationRecord
   belongs_to :source_memo, class_name: "Memo"

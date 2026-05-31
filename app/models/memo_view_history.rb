@@ -4,7 +4,7 @@
 #
 # Table name: memo_view_histories
 #
-#  id            :integer          not null, primary key
+#  id            :bigint           not null, primary key
 #  view_sequence :bigint           not null
 #  viewed_at     :datetime         not null
 #  created_at    :datetime         not null
@@ -22,8 +22,8 @@
 #
 # Foreign Keys
 #
-#  account_id  (account_id => accounts.id)
-#  memo_id     (memo_id => memos.id)
+#  fk_rails_...  (account_id => accounts.id)
+#  fk_rails_...  (memo_id => memos.id)
 #
 class MemoViewHistory < ApplicationRecord
   MAX_PER_ACCOUNT = 50
