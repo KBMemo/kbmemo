@@ -10,7 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_30_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_31_170000) do
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_catalog.plpgsql"
+
   create_table "account_login_change_keys", force: :cascade do |t|
     t.datetime "deadline", null: false
     t.string "key", null: false
@@ -46,7 +49,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_30_130000) do
     t.integer "status", default: 1, null: false
     t.json "theme_preference", default: {}, null: false
     t.index ["clip_api_token_digest"], name: "index_accounts_on_clip_api_token_digest", unique: true
-    t.index ["email"], name: "index_accounts_on_email", unique: true, where: "status IN (1, 2)"
+    t.index ["email"], name: "index_accounts_on_email", unique: true, where: "(status = ANY (ARRAY[1, 2]))"
   end
 
   create_table "board_columns", force: :cascade do |t|
@@ -138,7 +141,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_30_130000) do
     t.integer "kanban_position", default: 0, null: false
     t.integer "memo_directory_id", null: false
     t.integer "memo_group_id"
-    t.json "properties", default: {}, null: false
+    t.jsonb "properties", default: {}, null: false
     t.string "slug"
     t.boolean "slug_manual", default: false, null: false
     t.string "title", null: false

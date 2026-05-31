@@ -14,7 +14,7 @@
 == PostgreSQL と JSON
 
 * アプリ DB は **PostgreSQL**（SQLite は使用しない）。
-* `memos.properties` / `accounts.theme_preference` 等は **json 型**（将来必要なら jsonb へ変更可）。
+* `memos.properties` は **jsonb 型**（等価比較・インデックス向け）。`accounts.theme_preference` 等は json 型のまま。
 * JSON パス検索の SQL 断片は `MemoPropertiesSql`（`app/models/concerns/memo_properties_sql.rb`）に集約する。例: `properties -> 'docs_sync' ->> 'source_path'`。
 * 接続設定: `config/database.yml` + **Rails credentials**（`config/credentials/db.example.yml` 参照）。詳細は link:database.adoc[database.adoc]。
 

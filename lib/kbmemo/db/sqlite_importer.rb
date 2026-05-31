@@ -143,8 +143,17 @@ module Kbmemo
 
       def json_column?(table, column)
         @json_columns ||= {}
-        @json_columns[table] ||= ActiveRecord::Base.connection.columns(table).select { |c| c.type == :json }.map(&:name)
+        @json_columns[table] ||= ActiveRecord::Base.connection.columns(table).select { |c| json_column_type?(c) }.map(&:name)
         @json_columns[table].include?(column)
+      end
+
+      def json_column_type?(column)
+        column.type.in?(%i[json jsonb]) || column.sql_type.to_s.match?(/\Ajson/i)
+      end
+
+      def json_cast(table, column)
+        sql_type = ActiveRecord::Base.connection.columns(table).find { |c| c.name == column }&.sql_type.to_s.downcase
+        sql_type.include?("jsonb") ? "::jsonb" : "::json"
       end
 
       def shared_columns(table)
@@ -193,7 +202,7 @@ module Kbmemo
       def quote_value(value, table, column)
         case value
         when Hash, Array
-          ActiveRecord::Base.connection.quote(value.to_json) + "::json"
+          ActiveRecord::Base.connection.quote(value.to_json) + json_cast(table, column)
         else
           if boolean_column?(table, column)
             ActiveRecord::Base.connection.quote(value == true || value == 1)

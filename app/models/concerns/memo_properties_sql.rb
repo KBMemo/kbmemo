@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# PostgreSQL 上の memos.properties（json）向け SQL 断片。
+# PostgreSQL 上の memos.properties（jsonb）向け SQL 断片。
 # 方針: docs/architecture/memo-properties.adoc
 module MemoPropertiesSql
   module_function

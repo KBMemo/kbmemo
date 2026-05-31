@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# メモの試行錯誤向けオプション項目。正は memos.properties（JSON）。
+# メモの試行錯誤向けオプション項目。正は memos.properties（jsonb）。
 # 方針: docs/architecture/memo-properties.adoc
 module MemoPropertyOptions
   extend ActiveSupport::Concern

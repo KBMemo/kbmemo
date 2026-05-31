@@ -2,11 +2,11 @@
 #
 # Table name: memos
 #
-#  id                :integer          not null, primary key
+#  id                :bigint           not null, primary key
 #  body              :text             default(""), not null
 #  file_committed_at :datetime
 #  kanban_position   :integer          default(0), not null
-#  properties        :json             not null
+#  properties        :jsonb            not null
 #  slug              :string
 #  slug_manual       :boolean          default(FALSE), not null
 #  title             :string           not null
@@ -33,11 +33,11 @@
 #
 # Foreign Keys
 #
-#  account_id         (account_id => accounts.id)
-#  board_id           (board_id => boards.id)
-#  kanban_column_id   (kanban_column_id => board_columns.id)
-#  memo_directory_id  (memo_directory_id => memo_directories.id)
-#  memo_group_id      (memo_group_id => memo_groups.id)
+#  fk_rails_...  (account_id => accounts.id)
+#  fk_rails_...  (board_id => boards.id)
+#  fk_rails_...  (kanban_column_id => board_columns.id)
+#  fk_rails_...  (memo_directory_id => memo_directories.id)
+#  fk_rails_...  (memo_group_id => memo_groups.id)
 #
 require "test_helper"
 
