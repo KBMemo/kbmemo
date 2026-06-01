@@ -48,6 +48,11 @@ class Notebook < ApplicationRecord
 
   scope :published, -> { where.not(published_at: nil) }
   scope :guest_visible, -> { published.where(publication_kind: GUEST_KINDS) }
+  scope :order_by_latest_memo_updated_at, lambda {
+    left_joins(:memos)
+      .group("notebooks.id")
+      .order(Arel.sql("MAX(memos.updated_at) DESC NULLS LAST"))
+  }
 
   def published?
     published_at.present?

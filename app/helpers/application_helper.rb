@@ -35,6 +35,36 @@ module ApplicationHelper
     "max-w-3xl"
   end
 
+  def nav_boards_trigger_class
+    classes = [ "kb-chrome-link", "inline-flex", "items-center", "gap-0.5" ]
+    classes << "font-semibold" if controller_path == "boards"
+    classes.join(" ")
+  end
+
+  def nav_board_menu_item_class(board)
+    classes = [ "kb-menu-item", "block", "truncate", "px-3", "py-2", "max-w-xs" ]
+    if controller_path == "boards" && action_name == "show" && defined?(@board) && @board&.id == board.id
+      classes << "font-semibold"
+      classes << "kb-text-primary"
+    end
+    classes.join(" ")
+  end
+
+  def nav_notebooks_trigger_class
+    classes = [ "kb-chrome-link", "inline-flex", "items-center", "gap-0.5" ]
+    classes << "font-semibold" if controller_path == "notebooks"
+    classes.join(" ")
+  end
+
+  def nav_notebook_menu_item_class(notebook)
+    classes = [ "kb-menu-item", "block", "truncate", "px-3", "py-2", "max-w-xs" ]
+    if controller_path == "notebooks" && action_name == "show" && defined?(@notebook) && @notebook&.id == notebook.id
+      classes << "font-semibold"
+      classes << "kb-text-primary"
+    end
+    classes.join(" ")
+  end
+
   def new_memo_path_with_current_directory
     opts = memo_sidebar_nav_query.dup
     unless defined?(@sidebar_view) && @sidebar_view == "tag"

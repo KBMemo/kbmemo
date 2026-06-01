@@ -1,0 +1,14 @@
+.relative[data-controller="nav-dropdown"]
+  button class=nav_notebooks_trigger_class type="button" data-nav-dropdown-target="button" data-action="nav-dropdown#toggle" aria-expanded="false" aria-haspopup="true"
+    span ノートブック
+    svg.h-4.w-4.flex-shrink-0.kb-text-muted[xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"]
+      path[stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"]
+  .kb-menu-panel.absolute.left-0.top-full.z-50.mt-1.hidden.min-w-52.overflow-y-auto.rounded-md.py-1.text-sm class="max-h-[min(24rem,70vh)]" data-nav-dropdown-target="panel" role="menu"
+    = link_to "ノートブック一覧", notebooks_path, class: "kb-menu-item block px-3 py-2 font-medium", role: "menuitem"
+    - if @nav_notebooks.any?
+      hr.my-1.border.kb-border
+      - @nav_notebooks.each do |notebook|
+        = link_to notebook.title, notebook_path(notebook), class: nav_notebook_menu_item_class(notebook), role: "menuitem", title: notebook.title
+    - else
+      hr.my-1.border.kb-border
+      p.px-3.py-2.text-xs.kb-text-muted role="none" ノートブックがありません

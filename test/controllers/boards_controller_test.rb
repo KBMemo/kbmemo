@@ -7,6 +7,9 @@ class BoardsControllerTest < ActionDispatch::IntegrationTest
     get boards_url
     assert_response :success
     assert_includes response.body, boards(:one).title
+    assert_select "[data-controller='nav-dropdown']"
+    assert_select "[data-nav-dropdown-target='panel'] a[href=?]", board_path(boards(:one))
+    assert_select "[data-nav-dropdown-target='panel'] a[href=?]", boards_path
   end
 
   test "show renders kanban" do
