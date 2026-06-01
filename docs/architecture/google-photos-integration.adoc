@@ -1,0 +1,365 @@
+= Google フォト連携 — 検討材料（未実装）
+
+Google フォト（Google Photos）の写真を KBMemo のメモで活用する方法を整理する。
+**現状は未実装**であり、別途機能化を検討する際の材料として残す。
+
+前提: link:memo-body-editor-roadmap.adoc[メモ本文エディタ ロードマップ]（Phase 5f 画像アセット）、link:google-calendar-sync.adoc[Google Calendar 同期]（OAuth 連携の先例）、`AGENTS.md`（本文の正は DB の AsciiDoc）。
+
+== 現状（2026-05）
+
+=== KBMemo にあるもの
+
+[cols="1,3"]
+|===
+|領域 |内容
+
+|画像の正
+|Git 作業ツリー `{slug}.assets/` + 本文 `image::filename[]`（`MemoAssets`）
+
+|アップロード
+|メモ編集 UI・D&D・クリップボード貼り付け（PNG/JPEG/GIF/WebP/SVG、最大 10MB）
+
+|外部 HTML からの画像取り込み
+|`ClipImageImporter` — 公開 HTTP 画像を取得してアセット化（Clip API 向け）
+
+|Google 連携（実装済み）
+|Google Calendar 同期のみ（`photoslibrary` 等は未使用）
+|===
+
+=== KBMemo にないもの
+
+* Google フォト OAuth / Photos Library API 連携
+* Google フォト共有リンクの自動展開・埋め込み
+* Google フォトアルバム ↔ メモの自動同期
+
+== ユースケース整理
+
+[cols="2,3,1"]
+|===
+|やりたいこと |期待する体験 |優先度（仮）
+
+|旅行・イベントの写真を日記メモに載せる
+|数枚選んで本文に `image::` 挿入
+|高
+
+|アルバム単位で「このノートブック＝この旅行」と紐づけたい
+|アルバム取り込み or 一括挿入
+|中
+
+|Google フォト上の原本を参照リンクだけ残したい
+|本文に URL、または properties にメタデータ
+|中
+
+|カレンダー予定メモにその日の写真を添える
+|Calendar 同期メモ + Photos の日付検索
+|低（組み合わせ機能）
+
+|全写真のミラー同期
+|KBMemo を Google フォトのバックアップ代替にする
+|低（スコープ外寄り）
+|===
+
+== 今すぐ使える方法（実装不要）
+
+=== 1. ダウンロード → メモにアップロード（推奨）
+
+* Google フォト（Web / アプリ）から端末に保存
+* メモ編集画面で画像アップロード → `{slug}.assets/` へ保存
+* 本文: `image::photo.jpg[]`
+
+**長所:** 既存機能のみ。オフライン表示・Git 履歴・権限モデルと整合。
+
+**短所:** 手作業。大量取り込みは非効率。
+
+**関連:** `app/services/memo_assets.rb`、`docs/architecture/memo-body-editor-roadmap.adoc` Phase 5f。
+
+=== 2. 共有リンクを本文に記載
+
+[source,asciidoc]
+----
+https://photos.google.com/share/...
+----
+
+**長所:** 手軽。KBMemo ストレージを消費しない。
+
+**短所:** メモ内に画像は表示されない。共有設定変更・リンク失効で参照不能。検索・プレビューに載らない。
+
+=== 3. Google Takeout → 選択アップロード
+
+* Takeout で ZIP 取得 → 必要なファイルだけメモへアップロード
+
+**向く用途:** 大量アーカイブからのピックアップ。**向かない用途:** 日常の随時連携。
+
+=== 4. 外部 URL の `image::https://...[]`（非推奨）
+
+AsciiDoc 自体は外部 URL 画像を書けるが、KBMemo の設計方針は **アセットを Git に置くこと**。
+
+Google フォトの URL は認証・期限・リダイレクトが絡み、`ClipImageImporter` も **ログイン必須ページには未対応**。実運用では表示切れのリスクが高い。
+
+== 既存インフラとの関係
+
+=== メモ画像（Phase 5f）
+
+[source,text]
+----
+ユーザー操作
+  → POST /memos/:id/assets（MemoAssets#upload）
+  → MemoRepository.write_asset!（Git 作業ツリー）
+  → 本文 image::filename[]
+  → 表示時 imagesdir = /memos/:id/assets/
+----
+
+* SVG は `MemoSvgSanitizer` でサニタイズ
+* 未参照アセットの自動削除方針は **未決定**（ロードマップ TODO）
+
+=== Web クリップ + 画像ローカライズ
+
+[source,text]
+----
+POST /api/v1/clips
+  → ClipAsciidocProcessor
+  → ClipImageImporter.localize!（公開 img src を GET → MemoAssets）
+  → Pandoc で AsciiDoc 化
+----
+
+* `ClipImageImporter` は `data:` / `blob:` / 既存 `/memos/:id/assets/` をスキップ
+* Google フォトの HTML ページ・認証付き CDN URL には **そのままでは使えない**
+
+=== Google Calendar 連携（先例）
+
+Calendar 同期は次のパターンで実装済み:
+
+* Account に refresh token + meta JSON
+* OAuth scope は読み取り専用
+* 取り込み結果は **メモ**（本文 AsciiDoc + `properties.google_calendar`）
+* 手動 sync + Job + rake
+
+Photos 連携を作る場合、**OAuth・credentials・プロフィール UI** の骨格は流用可能。
+ただし **1 イベント = 1 メモ** のような自動 upsert より、**ユーザーが選んだ写真だけアセット化** の方が自然。
+
+== Google Photos Library API の制約
+
+実装検討時に必ず確認する外部制約。
+
+[cols="1,3"]
+|===
+|項目 |内容
+
+|API
+|https://developers.google.com/photos/library[Photos Library API]
+
+|OAuth scope（例）
+|`https://www.googleapis.com/auth/photoslibrary.readonly`（閲覧）、アップロード系は別 scope
+
+|アクセス範囲
+|**アプリ経由でアップロードしたメディア**中心の利用が Google ポリシー上の前提。ユーザーが Google フォトに直接入れた全写真へ、任意アプリが自由に触れるわけではない、という理解が必要（要最新ポリシー確認）
+
+|認証
+|GCP プロジェクト + OAuth 同意画面 + 検証（Calendar と同型）
+
+|クォータ
+|list / get 系 API に日次上限あり。大量一括同期は設計要注意
+
+|メディア取得
+|`baseUrl` + `mediaItemId` — **ダウンロード時に access token 必須**。恒久公開 URL を KBMemo 本文に直書きする方式は不可
+|===
+
+**結論:** API 連携しても、KBMemo 側では **バイト列を取得して `{slug}.assets/` に保存** する形が、既存の `image::` モデルと整合する。
+
+== 連携方式の候補
+
+=== 方式 A — 手動ピッカー（Phase 1 候補）
+
+[source,text]
+----
+プロフィール「Google フォトと連携」（OAuth）
+  → メモ編集 UI「Google フォトから選ぶ」
+  → アルバム / 日付 / 検索でサムネ一覧
+  → 選択 → Photos API で bytes GET
+  → MemoAssets.upload 相当で Git 保存
+  → 本文に image::filename[] を挿入
+----
+
+[cols="1,1"]
+|===
+|長所 |短所
+
+|Calendar と同様に **ユーザー明示操作**
+|OAuth・ピッカー UI の新規開発
+
+|正は引き続き Git アセット
+|Photos API ポリシー・クォータの調査必須
+
+|双方向同期不要
+|元写真と KBMemo アセットの **重複ストレージ**
+|===
+
+=== 方式 B — properties に出典メタのみ（画像はアップロード済み）
+
+アップロード後、または方式 A と組み合わせて `properties.google_photos` に出典を残す。
+
+[source,json]
+----
+{
+  "google_photos": {
+    "media_item_id": "AbCdEf...",
+    "product_url": "https://photos.google.com/...",
+    "album_id": "...",
+    "imported_at": "2026-05-31T12:00:00+09:00"
+  }
+}
+----
+
+**用途:** 「KBMemo のコピーと Google 上の原本」の対応付け、再取得・差し替え UI の将来拡張。
+
+**注意:** properties は試行錯誤向け。固定契約化する前に link:memo-properties.adoc[memo-properties.adoc] の昇格基準を確認。
+
+=== 方式 C — アルバム → ノートブック一括（Phase 2 候補）
+
+* Google フォトのアルバム 1 つ ↔ ノートブック 1 冊
+* 初回: アルバム内全メディアをメモ 1 枚ずつ、または 1 メモにギャラリー形式で取り込み
+* 差分 sync は **更新日時ベース** 程度まで（双方向はスコープ外）
+
+**リスク:** 枚数が多いと Git リポジトリ肥大化、sync 時間、API クォータ。
+
+=== 方式 D — Calendar 連携メモへの写真添付（Phase 3 候補）
+
+* `properties.google_calendar.starts_at` の日付で Photos `mediaItems.search`（要 API 対応範囲確認）
+* 該当写真サムネを提案 → ユーザー承認でアセット化
+
+**依存:** Calendar 同期 + Photos 連携の両方。UX 設計が複雑。
+
+=== 方式 E — 共有リンクの oEmbed / スクレイピング
+
+Google 公式の安定 oEmbed が無い、利用規約・認証の観点から **非推奨**。Clip 系とも相性が悪い。
+
+== 推奨スコープ案（未承認）
+
+[cols="1,3"]
+|===
+|フェーズ |内容
+
+|Phase 0（現状）
+|手動ダウンロード + アップロード、共有 URL 記載
+
+|Phase 1
+|OAuth + メモ編集からの **1 枚ピッカー** → `MemoAssets` 保存 + `image::` 挿入
+
+|Phase 2
+|任意で `properties.google_photos`、未参照アセット整理方針の確定
+
+|Phase 3
+|アルバム一括、Calendar 日付連動（需要があれば）
+|===
+
+Phase 1 で **含まない** 想定:
+
+* KBMemo → Google フォト アップロード（双方向）
+* 全写真の自動ミラー同期
+* Google フォト上の編集・削除の反映
+* 共有リンクだけでのインライン表示（アセット化なし）
+
+== データモデル（案）
+
+=== Account（Calendar と同型）
+
+[cols="1,3"]
+|===
+|列 / フィールド |用途
+
+|`google_photos_refresh_token`（暗号化 text）
+|OAuth refresh token（Calendar と token 分離するか共用するかは要決定）
+
+|`google_photos_meta`（json）
+|`connected_at`, `last_used_at` 等
+|===
+
+**未決事項:** Calendar と **同一 OAuth クライアントで scope 追加** するか、Photos 専用連携ボタンにするか。
+
+=== Memo / アセット
+
+* 画像バイトの正: 従来どおり `{slug}.assets/`（変更なし）
+* 出典メタ: 任意で `properties.google_photos`（方式 B）
+* 本文: `image::filename[]`（変更なし）
+
+**冪等キー案:** `media_item_id` + 取り込み先メモ ID（同一写真の二重アップロード防止 UI）
+
+== セキュリティ・運用
+
+[cols="1,3"]
+|===
+|観点 |方針案
+
+|OAuth
+|最小 scope（readonly）。トークンは Account に暗号化保存（Calendar 先例）
+
+|XSS
+|既存 `MemoSvgSanitizer` は SVG 用。JPEG 等はバイナリとして保存、AsciiDoc safe モードは現状維持
+
+|ストレージ
+|Git 作業ツリー肥大化 — アルバム一括は上限（枚数 / 総 MB）を決める
+
+|プライバシー
+|他ユーザーとのメモ共有・ノートブック公開時、Google 由来メタ（位置情報等）を properties に残すか要検討
+
+|削除
+|Google フォト側で削除しても KBMemo アセットは残る（Calendar と同様、一方向取り込み）
+|===
+
+== 方式比較（まとめ）
+
+[cols="2,2,2,2"]
+|===
+|方法 |メモ内表示 |実装コスト |持続性
+
+|手動アップロード
+|◎
+|なし
+|◎（Git 正）
+
+|共有リンクのみ
+|×（リンク）
+|なし
+|△（設定・失効）
+
+|Clip / 外部 URL
+|△
+|低
+|×（Google 非対応）
+
+|Photos API ピッカー
+|◎
+|高
+|◎（アセット化後）
+
+|アルバム自動 sync
+|◎
+|很高
+|△（容量・クォータ）
+|===
+
+== 実装時の参照コード（既存）
+
+* `app/services/memo_assets.rb` — アップロード・配信
+* `app/services/memo_attachments.rb` — 添付一覧・`image::` 参照状態
+* `app/services/clip_image_importer.rb` — 外部画像 GET の先例
+* `app/services/google_calendar/` — OAuth・sync・EventMapper の構成先例
+* `app/controllers/memo_assets_controller.rb`
+* `app/javascript/controllers/memo_attachments_controller.js`
+
+== 関連ドキュメント
+
+* link:memo-body-editor-roadmap.adoc[memo-body-editor-roadmap.adoc] — Phase 5f 画像
+* link:google-calendar-sync.adoc[google-calendar-sync.adoc] — Google OAuth 先例
+* link:memo-properties.adoc[memo-properties.adoc] — properties 設計
+* link:memo-adoc-passthrough-restriction.adoc[memo-adoc-passthrough-restriction.adoc] — 本文制限・SVG XSS
+
+== 次のアクション（検討時チェックリスト）
+
+. Google Photos Library API の **最新利用ポリシー** と scope を確認する
+. Phase 1 を **1 枚ピッカー** に絞るか、リンクのみ運用で足りるかを決める
+. Calendar OAuth と **トークン統合 vs 分離** を決める
+. 取り込み上限（1 回あたり枚数・ファイルサイズ）を `MemoAssets::MAX_BYTES` と整合させる
+. `properties.google_photos` を Phase 1 から入れるか、Phase 2 に回すか
+. 未参照アセット削除方針（Phase 5f TODO）と Photos 一括取り込みの整合
+. プロトタイプ前に **1 アカウント・1 アルバム・10 枚** 程度の PoC 見積もり
