@@ -123,6 +123,7 @@ step "db:migrate"
 run bundle exec rails db:migrate
 
 step "assets:precompile"
+run bundle exec vite build --force
 run bundle exec rails assets:precompile
 
 if [[ -f "${APP_ROOT}/start.sh" ]]; then

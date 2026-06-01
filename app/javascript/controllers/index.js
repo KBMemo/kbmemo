@@ -98,9 +98,6 @@ application.register("notebook-memo-tree", NotebookMemoTreeController)
 import UserMenuController from "./user_menu_controller"
 application.register("user-menu", UserMenuController)
 
-import NavDropdownController from "./nav_dropdown_controller"
-application.register("nav-dropdown", NavDropdownController)
-
 import ThemeStudioController from "./theme_studio_controller"
 application.register("theme-studio", ThemeStudioController)
 

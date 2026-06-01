@@ -8,8 +8,8 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, notebooks(:one).title
     assert_includes response.body, "Blog"
-    assert_select "[data-nav-dropdown-target='panel'] a[href=?]", notebook_path(notebooks(:one))
-    assert_select "[data-nav-dropdown-target='panel'] a[href=?]", notebooks_path
+    assert_select "[data-user-menu-target='panel'] a[href=?]", notebook_path(notebooks(:one))
+    assert_select "[data-user-menu-target='panel'] a[href=?]", notebooks_path
   end
 
   test "create notebook" do
