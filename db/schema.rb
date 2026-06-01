@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_31_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_01_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -50,8 +50,40 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_31_180000) do
     t.string "password_hash"
     t.integer "status", default: 1, null: false
     t.json "theme_preference", default: {}, null: false
+    t.datetime "tsuzura_api_token_created_at"
+    t.string "tsuzura_api_token_digest"
+    t.string "tsuzura_api_token_prefix"
     t.index ["clip_api_token_digest"], name: "index_accounts_on_clip_api_token_digest", unique: true
     t.index ["email"], name: "index_accounts_on_email", unique: true, where: "(status = ANY (ARRAY[1, 2]))"
+    t.index ["tsuzura_api_token_digest"], name: "index_accounts_on_tsuzura_api_token_digest", unique: true
+  end
+
+  create_table "active_storage_attachments", force: :cascade do |t|
+    t.bigint "blob_id", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.bigint "record_id", null: false
+    t.string "record_type", null: false
+    t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
+    t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
+  end
+
+  create_table "active_storage_blobs", force: :cascade do |t|
+    t.bigint "byte_size", null: false
+    t.string "checksum"
+    t.string "content_type"
+    t.datetime "created_at", null: false
+    t.string "filename", null: false
+    t.string "key", null: false
+    t.text "metadata"
+    t.string "service_name", null: false
+    t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
+  end
+
+  create_table "active_storage_variant_records", force: :cascade do |t|
+    t.bigint "blob_id", null: false
+    t.string "variation_digest", null: false
+    t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
   create_table "board_columns", force: :cascade do |t|
@@ -199,10 +231,48 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_31_180000) do
     t.index ["normalized_name"], name: "index_tags_on_normalized_name", unique: true
   end
 
+  create_table "tsuzura_album_items", force: :cascade do |t|
+    t.string "album_id", limit: 26, null: false
+    t.datetime "created_at", null: false
+    t.string "media_item_id", limit: 26, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["album_id", "media_item_id"], name: "index_tsuzura_album_items_on_album_id_and_media_item_id", unique: true
+    t.index ["album_id", "position"], name: "index_tsuzura_album_items_on_album_id_and_position"
+  end
+
+  create_table "tsuzura_albums", id: { type: :string, limit: 26 }, force: :cascade do |t|
+    t.string "cover_media_id", limit: 26
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.bigint "owner_account_id", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["cover_media_id"], name: "index_tsuzura_albums_on_cover_media_id"
+    t.index ["owner_account_id"], name: "index_tsuzura_albums_on_owner_account_id"
+  end
+
+  create_table "tsuzura_media_items", id: { type: :string, limit: 26 }, force: :cascade do |t|
+    t.datetime "captured_at"
+    t.string "checksum"
+    t.datetime "created_at", null: false
+    t.jsonb "exif", default: {}, null: false
+    t.integer "height"
+    t.string "kind", default: "image", null: false
+    t.string "original_filename"
+    t.bigint "owner_account_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "width"
+    t.index ["checksum"], name: "index_tsuzura_media_items_on_checksum"
+    t.index ["owner_account_id"], name: "index_tsuzura_media_items_on_owner_account_id"
+  end
+
   add_foreign_key "account_login_change_keys", "accounts", column: "id"
   add_foreign_key "account_password_reset_keys", "accounts", column: "id"
   add_foreign_key "account_remember_keys", "accounts", column: "id"
   add_foreign_key "account_verification_keys", "accounts", column: "id"
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "board_columns", "boards"
   add_foreign_key "boards", "accounts"
   add_foreign_key "boards", "memo_directories"
@@ -225,4 +295,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_31_180000) do
   add_foreign_key "notebook_memos", "notebooks"
   add_foreign_key "notebooks", "accounts"
   add_foreign_key "notebooks", "memo_directories"
+  add_foreign_key "tsuzura_album_items", "tsuzura_albums", column: "album_id"
+  add_foreign_key "tsuzura_album_items", "tsuzura_media_items", column: "media_item_id"
 end

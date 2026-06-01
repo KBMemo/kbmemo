@@ -469,6 +469,75 @@ sudo systemctl reload nginx
 curl -fsS https://kbmemo.net/up
 ----
 
+=== Tsuzura（media.kbmemo.net）
+
+link:../architecture/media-platform.adoc[media-platform.adoc] Phase 1。写真 API（`kbmemo-media`）を **https://media.kbmemo.net** で公開する。
+
+* **upstream 例:** `localhost:3008`（Thruster + Puma、`PORT=3008`）
+* **TLS:** `certbot --nginx -d media.kbmemo.net`
+* **Rodauth 共有:** KBMemo と同一 PostgreSQL `accounts`、同一 `_kbmemo_session` Cookie（本番は `domain: .kbmemo.net` を両アプリで揃える）
+* **ヘルス:** `curl -fsS https://media.kbmemo.net/up`
+
+`/etc/nginx/sites-available/media.kbmemo.net`:
+
+[source,nginx]
+----
+upstream tsuzura {
+    server localhost:3008;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name media.kbmemo.net;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name media.kbmemo.net;
+
+    ssl_certificate     /etc/letsencrypt/live/media.kbmemo.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/media.kbmemo.net/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    access_log /var/log/nginx/media.kbmemo.net.access.log;
+    error_log  /var/log/nginx/media.kbmemo.net.error.log;
+
+    client_max_body_size 100M;
+
+    location / {
+        proxy_pass http://tsuzura;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300;
+    }
+}
+----
+
+[source,bash]
+----
+sudo ln -sf /etc/nginx/sites-available/media.kbmemo.net /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo certbot --nginx -d media.kbmemo.net
+sudo systemctl reload nginx
+curl -fsS https://media.kbmemo.net/up
+----
+
+KBMemo 側の環境変数（`.env.production` 例）:
+
+[source,bash]
+----
+TSUZURA_BASE_URL=https://media.kbmemo.net
+TSUZURA_PUBLIC_URL=https://media.kbmemo.net
+KBMEMO_TSUZURA_INTERNAL_SECRET=…  # credentials tsuzura.internal_secret と同一
+----
+
 === `/cable` の確認
 
 [source,bash]

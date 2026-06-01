@@ -124,3 +124,35 @@ section.mt-10
     = button_to "トークンを発行", clip_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }, form: { data: { turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
     - if @account.clip_api_token_configured?
       = button_to "トークンを無効化", clip_api_token_profile_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "API からのクリップができなくなります。続行しますか？" } }
+
+section.mt-10
+  h2 class=kb_section_title Tsuzura CLI トークン
+  p.mt-1.text-sm.kb-text-secondary
+    | Tsuzura（
+    code.kb-code-inline media.kbmemo.net
+    | ）へ写真を一括登録する CLI (
+    code.kb-code-inline tsuzura import
+    | ) 用です。環境変数
+    code.kb-code-inline TSUZURA_API_TOKEN
+    | に設定してください。
+  - if @account.tsuzura_api_token_configured?
+    p.mt-2.text-xs.text-emerald-700
+      | 設定済み（先頭:
+      code.kb-code-inline = @account.tsuzura_api_token_prefix
+      | ）
+    - if @account.tsuzura_api_token_created_at
+      p.mt-1.text-xs.kb-text-muted
+        | 発行日時:
+        = l(@account.tsuzura_api_token_created_at, format: :long)
+  - else
+    p.mt-2.text-xs.text-amber-700 未設定 — CLI からの登録は利用できません
+
+  - if flash[:tsuzura_api_token]
+    .mt-4.rounded-md.border.border-amber-300.bg-amber-50.p-4
+      p.text-sm.font-medium.text-amber-900 発行したトークン（再表示できません）
+      code.mt-2.block.overflow-x-auto.rounded.kb-chrome-panel.px-3.py-2.text-xs.kb-text-primary = flash[:tsuzura_api_token]
+
+  .mt-4.flex.flex-wrap.gap-3
+    = button_to "トークンを発行", tsuzura_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }, form: { data: { turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
+    - if @account.tsuzura_api_token_configured?
+      = button_to "トークンを無効化", tsuzura_api_token_profile_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "CLI からの登録ができなくなります。続行しますか？" } }

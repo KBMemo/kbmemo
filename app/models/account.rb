@@ -15,11 +15,15 @@
 #  password_hash                 :string
 #  status                        :integer          default("unverified"), not null
 #  theme_preference              :json             not null
+#  tsuzura_api_token_created_at  :datetime
+#  tsuzura_api_token_digest      :string
+#  tsuzura_api_token_prefix      :string
 #
 # Indexes
 #
-#  index_accounts_on_clip_api_token_digest  (clip_api_token_digest) UNIQUE
-#  index_accounts_on_email                  (email) UNIQUE WHERE (status = ANY (ARRAY[1, 2]))
+#  index_accounts_on_clip_api_token_digest     (clip_api_token_digest) UNIQUE
+#  index_accounts_on_email                     (email) UNIQUE WHERE (status = ANY (ARRAY[1, 2]))
+#  index_accounts_on_tsuzura_api_token_digest  (tsuzura_api_token_digest) UNIQUE
 #
 class Account < ApplicationRecord
   include Rodauth::Rails.model
@@ -73,6 +77,42 @@ class Account < ApplicationRecord
   end
 
   def self.digest_clip_api_token(token)
+    value = token.to_s.strip
+    return nil if value.blank?
+
+    Digest::SHA256.hexdigest(value)
+  end
+
+  def tsuzura_api_token_configured?
+    tsuzura_api_token_digest.present?
+  end
+
+  def generate_tsuzura_api_token!
+    raw = "tsuzura_#{SecureRandom.urlsafe_base64(32)}"
+    update!(
+      tsuzura_api_token_digest: self.class.digest_tsuzura_api_token(raw),
+      tsuzura_api_token_prefix: raw[0, 16],
+      tsuzura_api_token_created_at: Time.current
+    )
+    raw
+  end
+
+  def revoke_tsuzura_api_token!
+    update!(
+      tsuzura_api_token_digest: nil,
+      tsuzura_api_token_prefix: nil,
+      tsuzura_api_token_created_at: nil
+    )
+  end
+
+  def self.find_by_tsuzura_api_token(token)
+    digest = digest_tsuzura_api_token(token)
+    return nil if digest.blank?
+
+    find_by(tsuzura_api_token_digest: digest)
+  end
+
+  def self.digest_tsuzura_api_token(token)
     value = token.to_s.strip
     return nil if value.blank?
 

@@ -97,4 +97,6 @@ Rails.application.configure do
     "kbmemo.net",
     "www.kbmemo.net"
   ]
+
+  config.session_store :cookie_store, key: "_kbmemo_session", domain: ".kbmemo.net"
 end

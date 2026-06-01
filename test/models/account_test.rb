@@ -17,11 +17,15 @@
 #  password_hash                 :string
 #  status                        :integer          default("unverified"), not null
 #  theme_preference              :json             not null
+#  tsuzura_api_token_created_at  :datetime
+#  tsuzura_api_token_digest      :string
+#  tsuzura_api_token_prefix      :string
 #
 # Indexes
 #
-#  index_accounts_on_clip_api_token_digest  (clip_api_token_digest) UNIQUE
-#  index_accounts_on_email                  (email) UNIQUE WHERE (status = ANY (ARRAY[1, 2]))
+#  index_accounts_on_clip_api_token_digest     (clip_api_token_digest) UNIQUE
+#  index_accounts_on_email                     (email) UNIQUE WHERE (status = ANY (ARRAY[1, 2]))
+#  index_accounts_on_tsuzura_api_token_digest  (tsuzura_api_token_digest) UNIQUE
 #
 require "test_helper"
 

@@ -23,6 +23,8 @@ Rails.application.routes.draw do
   resource :profile, only: %i[edit update] do
     post :clip_api_token, action: :create_clip_api_token
     delete :clip_api_token, action: :destroy_clip_api_token
+    post :tsuzura_api_token, action: :create_tsuzura_api_token
+    delete :tsuzura_api_token, action: :destroy_tsuzura_api_token
   end
 
   get "google_calendar/connect", to: "google_calendar_connections#connect", as: :google_calendar_connect
@@ -126,5 +128,9 @@ Rails.application.routes.draw do
   namespace :api do
     match "clips", to: "clips#options", via: :options
     resources :clips, only: :create
+  end
+
+  namespace :internal do
+    post "tsuzura/authorize", to: "tsuzura#authorize"
   end
 end
