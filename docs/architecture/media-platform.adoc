@@ -1,7 +1,7 @@
-= Tsuzura（葛籠）— メディアプラットフォーム設計方針（Phase 0・未実装）
+= Tsuzura（葛籠）— メディアプラットフォーム設計方針
 
 KBMemo で写真・画像を **大規模に扱い・編集し・共有する** ための全体設計。
-**製品名 Tsuzura**（葛籠・つづら）。**現状は未実装**の Phase 0 ドキュメント。実装は別リポジトリ（`kbmemo-media`）＋ KBMemo 連携で進める。
+**製品名 Tsuzura**（葛籠・つづら）。Phase 0 方針 + **Phase 1 確定事項**（2026-05）。実装は別リポジトリ（`kbmemo-media`）＋ KBMemo 連携。
 
 前提: `AGENTS.md`（メモ本文の正は DB の AsciiDoc）、link:memo-body-editor-roadmap.adoc[memo-body-editor-roadmap.adoc]（Phase 5f 現行 Git アセット）、link:google-calendar-sync.adoc[google-calendar-sync.adoc]（外部サービス連携の先例）、link:google-photos-integration.adoc[google-photos-integration.adoc]（Google フォト取り込みは Tsuzura の入力源の一つ）。
 
@@ -41,7 +41,7 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 |**Tsuzura（別アプリ）+ KBMemo（文章・共有 UX）** の二層
 
 |画像バイトの正
-|オブジェクトストレージ（S3 / R2 / MinIO 等）+ Tsuzura DB。**Git `{slug}.assets/` は大規模写真向けではない**
+|Tsuzura + **Active Storage**（Phase 1 は **Local**、後に S3 互換へ移行）。**Git `{slug}.assets/` は大規模写真向けではない**
 
 |共有の主 UX
 |**メモ本文ごと見せる**（KBMemo show）。アルバム単体 URL は副次
@@ -52,6 +52,289 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 |KBMemo 単体への全機能組み込み
 |**非推奨**（容量・編集・動画生成・外部 API と相性が悪い）
 |===
+
+== Phase 1 確定事項（2026-05）
+
+**スコープ:** **CLI バッチ登録** + **KBMemo 連携のみ** で始める（Tsuzura Web UI・動画・顔検出は Phase 1 外）。
+
+[cols="1,3"]
+|===
+|項目 |決定
+
+|Tsuzura 実装
+|**Rails 8 API-only**（`kbmemo-media`）
+
+|Phase 1 の入口
+|**CLI** でディレクトリ／ファイルを一括登録 → アルバム作成 → 出力 ULID をメモ本文に貼る（または KBMemo API で追記）
+
+|ストレージ
+|**Active Storage `local`** で開始。本番もディスク配下（例: `storage/tsuzura/`）。後から **S3 互換**（**RustFS** 等、正式版待ち可）へ **設定差し替え** で移行
+
+|デプロイ
+|**kbmemo.net の nginx 配下**。`media.kbmemo.net` → localhost の Tsuzura（例: `3008`）。TLS は既存 certbot / nginx と同型
+
+|認証
+|**Rodauth 共有のみ**（Phase 1）。同一 `accounts` / 同一セッション Cookie（`.kbmemo.net`）。サービス間 JWT は Phase 1 非ゴール
+
+|AsciiDoc 参照 ID
+|**ULID**（26 文字・Crockford Base32、`Memo#uid` と同形式）。`album::01J…[]` / `image::media:01J…[]`
+
+|メモ添付 vs 葛籠
+|下記「<<memo-vs-tsuzura,メモ添付と Tsuzura の使い分け>>」
+
+|顔検出（将来）
+|**サーバー側**処理。文案は「<<face-privacy,顔検出とプライバシー>>」
+
+|動画・CDN（将来）
+|Phase 1 では動画なし。「<<video-delivery,動画配信と CDN>>」— **別 CDN は使わず低帯域** から開始
+|===
+
+=== Phase 1 完了条件（案）
+
+* `kbmemo-media`: Album / MediaItem API、Active Storage local、Rodauth セッション認証
+* CLI: `tsuzura import --album TITLE ./photos/` → ULID 一覧 + AsciiDoc 断片 stdout
+* `kbmemo_site`: `album::` / `image::media:` の **表示**（`MemoPolicy#show?` + Tsuzura signed URL）、CLI 用ドキュメント
+* nginx: `media.kbmemo.net` プロキシ、`/up` ヘルス
+
+=== CLI（Phase 1）
+
+リポジトリ `kbmemo-media` に **`tsuzura` CLI**（Ruby Thor / Rust 等は実装時決定）。
+
+[source,bash]
+----
+# 例: ディレクトリをアルバムに一括登録
+tsuzura import --album "2024 夏 北海道" ./photos/
+# → stdout: album ULID + image::media:ULID[] 断片（KBMemo に貼る）
+
+tsuzura albums list
+tsuzura media show 01JHBCDF1234567890ABCDEF
+----
+
+* 認証: Rodauth セッション Cookie ファイル、または `TSUZURA_API_TOKEN`
+* Phase 1 非ゴール: インタラクティブ TUI、自動メモ PATCH（手動貼付で可）
+
+== メモ添付と Tsuzura の使い分け [[memo-vs-tsuzura]]
+
+[cols="2,2,2"]
+|===
+| |**メモ添付（Git `MemoAssets`）** |**Tsuzura（葛籠）**
+
+|向くもの
+|スクショ 1 枚、図の PNG、**そのメモ専用** の小ファイル
+|旅行写真 **一括**、アルバム、**複数メモから参照** したい原本
+
+|上限の目安
+|1 ファイル 10MB、Git commit 単位
+|枚数・総量 **大**（ストレージは Active Storage → 将来 RustFS）
+
+|本文記法
+|`image::filename.jpg[]`（相対・Git アセット）
+|`image::media:01JHB…[]` / `album::01JHA…[]`（ULID）
+
+|公開
+|メモの `visibility` に従う（`/memos/:id/assets/...`）
+|メモ show 経由で Tsuzura URL 解決（**メモが見えないと画像も見えない**）
+
+|オフライン Git
+|メモと一緒に clone 可能
+|不可（DB + blob が正）
+|===
+
+**UI 文案（案）:**
+
+* メモ編集ヘルプ: 「**1〜2 枚の添付** → メモに直接アップロード。**大量の写真** → Tsuzura（CLI で登録して `image::media:` で挿入）。」
+* Tsuzura CLI 完了時: 「KBMemo メモに以下を貼り付け:」+ AsciiDoc 断片
+
+**移行:** Git アセットから Tsuzura への自動移行は **Phase 1 非ゴール**。必要なら将来 `tsuzura import --from-memo` を検討。
+
+== AsciiDoc 参照（ULID） [[asciidoc-ulid]]
+
+* **Album ID** / **MediaItem ID** はいずれも **ULID**（`Memo#uid` と同じ `UID_FORMAT`）。
+* マクロ内の ID は **小文字可**（正規化して lookup）。
+
+[source,asciidoc]
+----
+= 2024 夏 北海道
+
+album::01JHABCD1234567890ABCDEF[]
+
+函館の朝。
+
+image::media:01JHBCDF1234567890ABCDEF[width=720]
+image::media:01JHBCEF1234567890ABCDEF[]
+----
+
+* `album::` … Tsuzura がアルバム内サムネグリッド（または先頭 N 枚）を HTML 化
+* `image::media:…` … 1 枚。`media:` プレフィックスで Git アセットと区別（`MemoDiagramMacro` 同型の拡張）
+
+**properties（任意）:**
+
+[source,json]
+----
+{
+  "media_album_id": "01JHABCD1234567890ABCDEF",
+  "media_item_ids": ["01JHBCDF1234567890ABCDEF"]
+}
+----
+
+== ストレージ（Active Storage → S3 互換）
+
+=== Phase 1
+
+* **Rails Active Storage**、`config.active_storage.service = :local`
+* 本番ディスク: 例 `/home/kensei/sites/kbmemo-media/storage`（容量監視必須）
+* サムネ（thumb / web）は **アップロード Job** で生成し、別 blob として保存（Phase 1 最小: web のみでも可）
+
+=== 移行（Phase 後半）
+
+* 目的: **RustFS** 等の **S3 互換** バックエンド（ベータ終了後に本番切替を検討）
+* 手順案: `active_storage` の `mirror` / `direct_upload` 設定変更 + `rails active_storage:migrate` 相当の blob コピー Job
+* **URL 契約を変えない:** KBMemo 本文の ULID と Tsuzura API は不変。バックエンドのみ差し替え
+
+== デプロイ（nginx）
+
+link:../deployment/production.adoc[production.adoc] の kbmemo と同型。
+
+[source,text]
+----
+https://media.kbmemo.net
+  → nginx server_name media.kbmemo.net
+  → proxy_pass http://127.0.0.1:3008  （Tsuzura Thruster+Puma）
+  → TLS: certbot -d media.kbmemo.net
+----
+
+* **Cookie:** Rodauth 共有時は `domain: .kbmemo.net` を両アプリで揃える
+* **CORS:** Phase 1 は CLI とサーバー間のみ。ブラウザから media API を直接叩く UI は Phase 2 以降
+* **ヘルス:** `bin/deploy` 相当を Tsuzura 用に用意（`KBMEMO_HEALTH_URL` パターン流用）
+
+== 認証（Rodauth 共有） [[rodauth-shared]]
+
+Phase 1 は **方式 A のみ**:
+
+* Tsuzura DB に **同一 PostgreSQL** の `accounts` / Rodauth テーブルを参照（KBMemo と同 DB または read replica — 実装時に 1 本化）
+* `app/misc/rodauth_main.rb` 相当を Tsuzura に持ち、**セッション Cookie 名・secret** を KBMemo と共有
+* CLI: **ブラウザログイン後の Cookie ファイル**、または **`tsuzura_api_token`**（Clip API 同型・Phase 1 で CLI 専用トークン 1 種で可）
+
+**Phase 1 非ゴール:** サービス間 JWT、Tsuzura 独自ユーザー登録
+
+== 顔検出とプライバシー [[face-privacy]]
+
+**実装タイミング:** Phase 4 以降。**処理場所:** Tsuzura **サーバー**（アップロード済み画像を Job で解析）。
+
+=== 設計原則（推奨・確定方向）
+
+**顔検出データはアカウント（個人）単位で保持し、システム内での共有・横断利用は行わない。**
+
+[cols="1,3"]
+|===
+|項目 |方針
+
+|スコープ
+|`FaceRegion` / 顔クラスタ ID は **`owner_account_id` に紐づく** MediaItem にのみ付随
+
+|他ユーザー
+|同一アルバム・グループ共有メモ上の写真でも、**他アカウントの顔検出結果は参照不可**
+
+|横断利用
+|全ユーザー横断の顔インデックス、類似顔検索、**学習用データセット化** は **行わない**
+
+|運用・分析
+|管理者も **原則閲覧しない**（障害調査時の最小アクセスは監査ログ付き例外とする）
+
+|再検出
+|別ユーザーが同じバイト列にアクセスできる場合でも、**検出 Job はそのユーザーの操作時のみ** 走らせ、結果はそのユーザーの MediaItem に紐づく（共有キャッシュしない）
+|===
+
+**理由:** 顔座標・クラスタは **生物学的特徴に近いメタデータ** になり得る。個人単位の閉じた利用に限定すると、説明責任・漏えいリスク・「システムが顔を覚えている」不安を抑えられる。
+
+**共有メモとの関係:** 公開されるのは **ぼかし済み画像（Rendition）** のみ。顔検出の生データは **編集者アカウント内** に留める。
+
+=== 利用目的（サービス説明用）
+
+* 共有前に **プライバシー保護**（顔のぼかし）を支援するため、**当該アカウントがアップロードした** 写真内の **顔の位置** を自動検出する。
+* **顔認証・特定個人の実名识别** には使用しない。
+* **他ユーザーのデータとの突合・プロファイリング** には使用しない。
+
+=== プライバシーポリシー文案（ドラフト）
+
+____
+【Tsuzura（葛籠）— 顔検出機能に関する説明】
+
+1. 概要
+Tsuzura の顔検出機能は、お客様が写真を共有する前に、写り込んだ顔をぼかすなどのプライバシー保護を行いやすくするための補助機能です。
+
+2. 処理する情報
+• お客様が Tsuzura にアップロードした画像データ
+• 当該お客様の画像から得られる顔領域の座標情報（バウンディングボックス）および、**当該お客様のアカウント内でのみ** 意味を持つ匿名の内部 ID（人物クラスタ用）
+
+3. 利用目的
+• **お客様本人** の顔のぼかし等の編集処理の提案・適用
+• **お客様本人** の共有前確認（未処理の顔がある場合の警告表示）
+
+4. 行わないこと
+• 第三者への顔データの販売・提供
+• 本人確認や広告ターゲティングのための利用
+• KBMemo / Tsuzura 内の **他のお客様** のデータとの共有・突合・横断分析
+• サービス改善のための **顔データの学習利用**（モデル改善は匿名化された合成データ等、別途明示した場合を除く）
+• 生体認証
+
+5. 保存と分離
+• 顔検出結果は **お客様ごとのアカウントに紐づけて** 保存します。他のお客様や運営者が、お客様の顔検出結果を **一覧・検索・再利用することはありません**（法令・障害対応等、必要最小限の例外を除く）。
+• 共有アルバムや KBMemo 上の公開メモを通じて他者が画像を閲覧できる場合でも、**顔検出のメタデータ自体は公開されません**。
+
+6. 保存期間
+• 顔座標・内部 ID は、編集完了後またはお客様が当該メディアを削除した時点から **90 日以内** に削除する（方針案。実装時に確定）。
+• 元画像は Tsuzura の通常のメディア保存期間に従う。
+
+7. 第三者提供
+法令に基づく場合を除き、顔検出結果を第三者に提供しません。解析処理を外部 API に委託する場合は、契約上の DPA を締結し、**当該お客様の当該画像の処理に限定** し、委託先での二次利用を禁止します。
+
+8. お客様の選択
+顔検出は任意機能です。手動でのぼかしのみを利用することもできます。自動検出結果は、共有前に必ずプレビューで確認できます。
+
+9. お問い合わせ
+kbmemo.net の運営者連絡先（本番運用開始時に URL を記載）までご連絡ください。
+____
+
+※ 本番公開前に **利用規約・プライバシーポリシー全体** へ組み込み、必要に応じて法務レビューすること。
+
+== 動画配信と CDN [[video-delivery]]
+
+=== 「公開 CDN」とは
+
+**CDN（Content Delivery Network）** は、動画・画像ファイルを **世界中のエッジサーバーにキャッシュ** し、視聴者の近くから配信する仕組み（Cloudflare、CloudFront 等）。
+
+* **メリット:** 大規模配信・海外向け・オリジン帯域の削減
+* **デメリット:** 設定・コスト・**公開 URL の拡散**（キャッシュ・署名管理）
+
+=== 方針（帯域コストを低く）
+
+Phase 1 では **動画機能なし**。将来 Phase 5 で動画を足すときも、**最初は CDN なし** でよい。
+
+[cols="1,3"]
+|===
+|施策 |内容
+
+|配信経路
+|**nginx → Tsuzura（または RustFS）** のみ。公開バケットに生 URL は置かない
+
+|認可
+|**MemoPolicy 連動の signed URL**（短 TTL）。一覧ページで `<video autoplay>` 禁止
+
+|エンコード
+|720p 上限・H.264・適度なビットレート（スライドショー用途）
+
+|画像
+|web 用リサイズ済み Rendition のみ配信。原本 DL はオーナーのみ
+
+|キャッシュ
+|nginx `proxy_cache` またはブラウザ `Cache-Control`（private）。**全公開 CDN は必要になるまで導入しない**
+
+|帯域監視
+|nginx access log + アラート。月次上限の soft cap（運用で決定）
+|===
+
+**まとめ:** 「公開 CDN」= 別途 CDN サービスで動画を世界中配信すること。**低帯域優先** なら **認証付き直配信 + 小さい派生ファイル** で足り、KBMemo 個人〜小規模運用では Phase 5 初期も CDN 不要。
 
 == 背景：現行 KBMemo の画像
 
@@ -219,10 +502,10 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 |エンティティ |概要
 
 |`Album`
-|タイトル、説明（短）、cover_media_id、owner_account_id、日付範囲
+|id（**ULID** PK）、タイトル、説明（短）、cover_media_id、owner_account_id、日付範囲
 
 |`MediaItem`
-|kind（image / video）、storage_key、checksum、width/height、EXIF JSON、captured_at
+|id（**ULID** PK）、kind（image / video）、checksum、width/height、EXIF JSON、captured_at。バイトは **Active Storage** attachment
 
 |`AlbumItem`
 |album_id、media_item_id、position
@@ -242,29 +525,7 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 
 === KBMemo 側
 
-**本文（正）** — AsciiDoc に参照を書く:
-
-[source,asciidoc]
-----
-= 2024 夏 北海道
-
-album::01HALBUM_ID[]
-
-旅行 2 日目。朝食の後、函館山へ。
-
-image::media:01HPHOTO_A[width=720]
-image::media:01HPHOTO_B[]
-----
-
-**properties（任意）** — 試行錯誤・索引用（link:memo-properties.adoc[memo-properties.adoc]）:
-
-[source,json]
-----
-{
-  "media_album_id": "01HALBUM_ID",
-  "media_item_ids": ["01HPHOTO_A", "01HPHOTO_B"]
-}
-----
+AsciiDoc の ULID 記法は「<<asciidoc-ulid,AsciiDoc 参照（ULID）>>」を正とする。
 
 **アルバムとメモの関係（案）:**
 
@@ -319,15 +580,19 @@ image::media:01HPHOTO_B[]
 
 == 認証・認可
 
+Phase 1 は「<<rodauth-shared>>」に確定。以下は全体像。
+
 === アカウント
 
 [cols="1,3"]
 |===
 |案 |内容
 
-|**A（推奨検討）** |同一 `accounts.id` を Tsuzura DB でも参照。Rodauth セッション or サービス間 JWT
+|**A（Phase 1・確定）** |Rodauth **セッション共有**、同一 `accounts`
 
-|**B** |Tsuzura 独自ユーザー — 同期コスト大。非推奨
+|**B** |Tsuzura 独自ユーザー — 非推奨
+
+|**C（将来）** |サービス間 JWT — Phase 1 非ゴール
 |===
 
 === 画像の閲覧
@@ -339,7 +604,7 @@ image::media:01HPHOTO_B[]
 
 === 外部 API
 
-* KBMemo `clip_api_token` と同型の **Tsuzura API トークン**（`account.tsuzura_api_token_*` 等）
+* KBMemo `clip_api_token` と同型の **Tsuzura CLI トークン**（`account.tsuzura_api_token_*` 等 — Phase 1 は CLI 用のみ）
 * スコープ: upload / read / album_manage
 
 == ストレージ・非機能要件
@@ -352,16 +617,16 @@ image::media:01HPHOTO_B[]
 |メモ比 **~1000 倍**。Git 非使用
 
 |オブジェクトストレージ
-|S3 互換 + CDN（Cloudflare R2 等）
+|Phase 1: **Active Storage local**。将来: S3 互換（RustFS 等）
 
 |サムネ
 |アップロード時非同期生成（thumb / web）
 
 |バックアップ
-|DB + bucket ライフサイクル。Git バックアップとは別系統
+|Tsuzura DB + blob ディスク（→ 将来 bucket）。Git バックアップとは別系統
 
 |既存 Git アセット
-|小さい添付・SVG ダイアグラムは **当面 `MemoAssets` 継続**（Tsuzura 移行必須ではない）
+|小さい添付・SVG ダイアグラムは **当面 `MemoAssets` 継続**（<<memo-vs-tsuzura,使い分け>>）
 |===
 
 == KBMemo 連携（表示・編集）
@@ -373,14 +638,14 @@ image::media:01HPHOTO_B[]
 memo.body（AsciiDoc）
   → MemoAdocIncludes / 既存前処理
   → MediaMacro（新）: album:: / image::media: / video::media:
-  → Tsuzura API（内部）で URL 解決 + CDN
+  → Tsuzura API（内部）で URL 解決（Phase 1 は nginx 直配信、CDN なし）
   → Asciidoctor.convert（safe）
 ----
 
-=== 編集 UX（案）
+=== Phase 1 編集 UX
 
-* メモ編集: 「Tsuzura から選ぶ」「アルバムを埋め込む」→ Tsuzura ピッカー（iframe or API）
-* アルバム画面（Tsuzura UI）: 「KBMemo でメモを書く」→ 新規 Memo + `properties.media_album_id`
+* CLI 出力の AsciiDoc をメモに **手動貼付**（Phase 1）
+* Phase 2 以降: メモ編集 UI「Tsuzura から選ぶ」、Tsuzura Web アルバム UI
 
 == API 概要（たたき・未確定）
 
@@ -425,41 +690,40 @@ KBMemo 内部（サーバー間）:
 |===
 |Phase |内容
 
-|**0（本 doc）**
-|方針固定。名称 Tsuzura。API たたき。リポジトリ分割方針
+|**0**
+|本 doc。Tsuzura 名称・境界
 
-|**1 — Tsuzura MVP**
-|`media.kbmemo.net` で upload、Album、list、S3、owner。KBMemo 外から curl 可能
+|**1（着手）**
+|**CLI バッチ登録** + **KBMemo 連携**（`album::` / `image::media:` ULID 表示）。Rails 8 API-only、Active Storage local、Rodauth 共有、`media.kbmemo.net` nginx
 
-|**2 — KBMemo 連携**
-|`media:` / `album:` マクロ表示、「アルバムにメモを作る」、Policy 連携 signed URL
+|**2**
+|Tsuzura Web UI（一覧・単体 upload）、メモ編集ピッカー
 
-|**3 — 一括 + 基本編集**
-|batch upload、crop/rotate、EditStack
+|**3**
+|crop/rotate、EditStack
 
-|**4 — プライバシー編集**
-|手動 blur → 顔検出 + 除外、共有前警告
+|**4**
+|サーバー顔検出 + ぼかし（<<face-privacy>>）
 
-|**5 — 動画**
-|ffmpeg Job、スライドショー export、KBMemo 埋め込み
+|**5**
+|ffmpeg スライドショー（<<video-delivery>>・CDN なし開始）
 
-|**6 — 外部安定化 + 取り込み**
-|API トークン、Google フォト import、監視・クォータ
+|**6**
+|Active Storage → **RustFS / S3 互換**移行、Google フォト import、外部 API 安定化
 |===
 
 === Phase ごとの非ゴール
 
-* **Phase 1:** 編集、動画、KBMemo UI、Google フォト
-* **Phase 2:** 顔検出、ffmpeg、Git アセットからの自動移行
-* **Phase 3:** ML 顔認識、4K 動画
+* **Phase 1:** Web UI、編集、顔検出、動画、S3/RustFS、Google フォト、サービス間 JWT
+* **Phase 2:** 顔検出、ffmpeg、Git アセット自動移行
+* **Phase 5 初期:** 公開 CDN
 
 == Cursor Agent での進め方
 
 === リポジトリ
 
-* **Phase 0〜1:** `kbmemo_site` は **本 doc のみ**（Tsuzura 実装は別 repo）
-* **Phase 1 実装開始:** 新リポジトリ `kbmemo-media`、本番 **`https://media.kbmemo.net`**
-* KBMemo 連携は **Phase 2** で `kbmemo_site` に PR
+* **Phase 1 実装:** 新リポジトリ `kbmemo-media` + **`kbmemo_site` 連携 PR**（同一 Phase）
+* 本番 **`https://media.kbmemo.net`**（nginx upstream 例: `3008`）
 
 === 1 Phase = 1 Agent セッション（目安）
 
@@ -467,10 +731,15 @@ KBMemo 内部（サーバー間）:
 ----
 Phase 1 プロンプト例:
 
-  docs/architecture/media-platform.adoc Phase 1 に従い、
-  新リポジトリ kbmemo-media（製品名 Tsuzura）に
-  media.kbmemo.net 向け Album + MediaItem + S3 upload API を実装。
-  KBMemo 連携は Phase 2 なので触らない。
+  docs/architecture/media-platform.adoc Phase 1 に従う。
+
+  kbmemo-media: Rails 8 API-only、Active Storage local、Rodauth 共有、
+    Album/MediaItem（ULID）、POST /v1/media/batch、CLI tsuzura import。
+
+  kbmemo_site: album:: / image::media: マクロ（ULID）、MemoPolicy 連動表示、
+    POST /internal/tsuzura/authorize。
+
+  nginx media.kbmemo.net の server ブロック例を production  doc へ追記。
 ----
 
 **各セッションに含めるもの:**
@@ -487,16 +756,22 @@ Phase 1 プロンプト例:
 * `app/services/clip_asciidoc_processor.rb` — 外部 → メモ取り込み
 * link:google-calendar-sync.adoc[google-calendar-sync.adoc] — OAuth・別サービス sync の構成
 
-== 未決事項（実装前に決める）
+== 未決事項（Phase 1 実装時）
 
-. Tsuzura リポジトリのフレームワーク（Rails 8 API-only 推奨候補）
-. オブジェクトストレージ prod 先（R2 / S3 / MinIO）
-. `media.kbmemo.net` の TLS・デプロイ（kbmemo.net nginx 配下 vs 別ホスト）
-. Rodauth 共有 vs サービス間 JWT
-. `album::` / `image::media:` マクロの AsciiDoc 拡張方式（`MemoDiagramMacro` 同型）
-. 小さい `MemoAssets`（Git）と Tsuzura の **使い分けガイド**（UI 文言）
-. 顔検出の実行場所（サーバー vs クライアント）とプライバシーポリシー
-. 動画の公開 CDN と帯域コスト上限
+. Tsuzura の **PORT**（例: 3008）と systemd ユニット名
+. CLI 認証: **Cookie ファイル** vs **tsuzura_api_token** のどちらを先に実装するか
+. KBMemo と Tsuzura の **DB 同一インスタンス** vs 別 DB + accounts 同期（Rodauth 共有の簡素化）
+. Active Storage local の **本番パス** とディスククォータ
+. RustFS 移行時期の判断基準（容量 % / ベータ終了公告）
+
+== 確定済み（2026-05）
+
+* Rails 8 API-only、Phase 1 = CLI + KBMemo 連携
+* Active Storage local → 将来 S3 互換（RustFS）
+* nginx `media.kbmemo.net`、Rodauth 共有
+* マクロ ID は ULID、メモ添付との使い分け（<<memo-vs-tsuzura>>）
+* 顔検出: サーバー、**アカウント単位で保持・システム内共有なし**（<<face-privacy>>）
+* 動画: CDN なし低帯域（<<video-delivery>>）
 
 == 関連ドキュメント
 
