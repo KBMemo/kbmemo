@@ -3,7 +3,7 @@
 Google フォト（Google Photos）の写真を KBMemo のメモで活用する方法を整理する。
 **現状は未実装**であり、別途機能化を検討する際の材料として残す。
 
-前提: link:memo-body-editor-roadmap.adoc[メモ本文エディタ ロードマップ]（Phase 5f 画像アセット）、link:google-calendar-sync.adoc[Google Calendar 同期]（OAuth 連携の先例）、link:media-platform.adoc[media-platform.adoc]（メディア全体設計・本 doc の位置づけ）、`AGENTS.md`（本文の正は DB の AsciiDoc）。
+前提: link:memo-body-editor-roadmap.adoc[メモ本文エディタ ロードマップ]（Phase 5f 画像アセット）、link:google-calendar-sync.adoc[Google Calendar 同期]（OAuth 連携の先例）、link:media-platform.adoc[media-platform.adoc]（Tsuzura メディア全体設計・本 doc の位置づけ）、`AGENTS.md`（本文の正は DB の AsciiDoc）。
 
 == 現状（2026-05）
 
@@ -356,7 +356,7 @@ Phase 1 で **含まない** 想定:
 
 == 上位設計
 
-* link:media-platform.adoc[media-platform.adoc] — Google フォト取り込み先は Media サービス（Phase 6 以降）。KBMemo 直組み込みよりこちらを正とする
+* link:media-platform.adoc[media-platform.adoc] — Google フォト取り込み先は Tsuzura（Phase 6 以降）。KBMemo 直組み込みよりこちらを正とする
 
 == 次のアクション（検討時チェックリスト）
 

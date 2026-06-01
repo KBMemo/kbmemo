@@ -1,9 +1,35 @@
-= メディアプラットフォーム — 設計方針（Phase 0・未実装）
+= Tsuzura（葛籠）— メディアプラットフォーム設計方針（Phase 0・未実装）
 
 KBMemo で写真・画像を **大規模に扱い・編集し・共有する** ための全体設計。
-**現状は未実装**の Phase 0 ドキュメント。実装は別リポジトリ（`kbmemo-media` 想定）＋ KBMemo 連携で進める。
+**製品名 Tsuzura**（葛籠・つづら）。**現状は未実装**の Phase 0 ドキュメント。実装は別リポジトリ（`kbmemo-media`）＋ KBMemo 連携で進める。
 
-前提: `AGENTS.md`（メモ本文の正は DB の AsciiDoc）、link:memo-body-editor-roadmap.adoc[memo-body-editor-roadmap.adoc]（Phase 5f 現行 Git アセット）、link:google-calendar-sync.adoc[google-calendar-sync.adoc]（外部サービス連携の先例）、link:google-photos-integration.adoc[google-photos-integration.adoc]（Google フォト取り込みは Media の入力源の一つ）。
+前提: `AGENTS.md`（メモ本文の正は DB の AsciiDoc）、link:memo-body-editor-roadmap.adoc[memo-body-editor-roadmap.adoc]（Phase 5f 現行 Git アセット）、link:google-calendar-sync.adoc[google-calendar-sync.adoc]（外部サービス連携の先例）、link:google-photos-integration.adoc[google-photos-integration.adoc]（Google フォト取り込みは Tsuzura の入力源の一つ）。
+
+== 名称
+
+[cols="1,3"]
+|===
+|種別 |値
+
+|製品名（ユーザー向け）
+|**Tsuzura**（表記: 葛籠、読み: つづら）
+
+|キャッチ（案）
+|KBMemo の写真籠 — 集めた写真をメモと一緒に
+
+|公開 URL（Phase 1 目標）
+|`https://media.kbmemo.net`
+
+|開発名・リポジトリ
+|`kbmemo-media`（`kbmemo_site` と対）
+
+|KBMemo 本体
+|`kbmemo_site` — `https://kbmemo.net`
+|===
+
+* **Tsuzura** … アルバムに写真を **集める容器** のイメージ。一括登録・写真集・メモへの束ねに合わせて選定（2026-05）。
+* **media** … 一般名詞のため製品名には使わない。サブドメイン `media.kbmemo.net` のみ技術 URL として使用。
+* ドキュメント内の「MediaItem / Media DB」等は **Tsuzura サービスのデータモデル名**（技術呼称）。
 
 == 要約（意思決定）
 
@@ -12,16 +38,16 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 |決定 |内容
 
 |アーキテクチャ
-|**Media サービス（別アプリ）+ KBMemo（文章・共有 UX）** の二層
+|**Tsuzura（別アプリ）+ KBMemo（文章・共有 UX）** の二層
 
 |画像バイトの正
-|オブジェクトストレージ（S3 / R2 / MinIO 等）+ Media DB。**Git `{slug}.assets/` は大規模写真向けではない**
+|オブジェクトストレージ（S3 / R2 / MinIO 等）+ Tsuzura DB。**Git `{slug}.assets/` は大規模写真向けではない**
 
 |共有の主 UX
 |**メモ本文ごと見せる**（KBMemo show）。アルバム単体 URL は副次
 
 |外部利用
-|Media REST API + トークン（KBMemo はクライアントの一つ）
+|Tsuzura REST API + トークン（KBMemo はクライアントの一つ）
 
 |KBMemo 単体への全機能組み込み
 |**非推奨**（容量・編集・動画生成・外部 API と相性が悪い）
@@ -50,9 +76,9 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 
 == プロダクト像
 
-=== Media サービス（`kbmemo-media` 想定）
+=== Tsuzura（`kbmemo-media`）
 
-写真・動画アセットの **保管・整理・加工・配信** を担う。
+`media.kbmemo.net` で公開する写真・動画アプリ。写真・動画アセットの **保管・整理・加工・配信** を担う。
 
 * 一括アップロード（EXIF 付き）
 * アルバム（写真集）
@@ -67,7 +93,7 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 * アルバムに付随する **長文メモ**（旅行記、キャプション、Wiki リンク）
 * **メモ URL で本文ごと共有**（公開 / グループ）
 * Notebook・カンバン等、既存プロダクトとの統合
-* Media 参照マクロの **表示時解決**
+* Tsuzura 参照マクロの **表示時解決**
 
 == ユースケース
 
@@ -76,15 +102,15 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 |やりたいこと |主担当 |優先度
 
 |スマホ・PC から写真を **一括登録**
-|Media
+|Tsuzura
 |高
 
 |日付・旅行単位で **アルバム** に整理
-|Media
+|Tsuzura
 |高
 
 |アルバムに **説明・旅行記（メモ）** を付ける
-|Media（短）+ KBMemo（長）
+|Tsuzura（短）+ KBMemo（長）
 |高
 
 |メモを **本文ごと共有**（写真はその中に埋め込み）
@@ -92,23 +118,23 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 |高
 
 |写真の **トリミング・回転**
-|Media
+|Tsuzura
 |高
 
 |**特定の人以外** の顔を隠す
-|Media
+|Tsuzura
 |中（段階導入）
 
 |選択した写真から **ショート動画**（スライドショー）
-|Media
+|Tsuzura
 |中
 
 |KBMemo **以外**（専用アプリ・バッチ）から同じ写真 DB を使う
-|Media API
+|Tsuzura API
 |高
 
 |Google フォトから取り込み
-|Media（入力）— link:google-photos-integration.adoc[google-photos-integration.adoc]
+|Tsuzura（入力）— link:google-photos-integration.adoc[google-photos-integration.adoc]
 |中
 
 |メモ編集内の **小さな添付**（スクショ 1 枚等）
@@ -121,10 +147,11 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 [source,text]
 ----
                     ┌──────────────────────────────────┐
-  外部クライアント ──►│  kbmemo-media（別アプリ・未実装）  │
-  一括 upload        │  • Album / MediaItem / VideoExport │
-  編集 UI            │  • PostgreSQL + S3/R2 + CDN        │
-  ffmpeg Job         │  • REST API + API トークン        │
+  外部クライアント ──►│  Tsuzura（media.kbmemo.net）      │
+  一括 upload        │  repo: kbmemo-media               │
+  編集 UI            │  • Album / MediaItem / VideoExport │
+  ffmpeg Job         │  • PostgreSQL + S3/R2 + CDN        │
+                    │  • REST API + API トークン        │
                     └───────────────┬──────────────────┘
                                     │ media_id / album_id
                                     │ 認可連携（signed URL 等）
@@ -147,14 +174,14 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 |KBMemo メモ show URL。AsciiDoc 全文 + 埋め込みアルバム・写真
 
 |**アルバム単体（副）**
-|Media `/albums/:id` — 写真集だけ見せる。KBMemo メモへのリンク optional
+|Tsuzura `/albums/:id` — 写真集だけ見せる。KBMemo メモへのリンク optional
 |===
 
-== KBMemo と Media の境界
+== KBMemo と Tsuzura の境界
 
 [cols="2,2,2"]
 |===
-|関心 |Media |KBMemo
+|関心 |Tsuzura |KBMemo
 
 |バイト列（原本・派生・動画）
 |◎ |×
@@ -172,7 +199,7 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 |× |◎
 
 |公開範囲（public / group / owner）
-|Media 側は **KBMemo 判定に従う派生 URL** を推奨 |◎（正）
+|Tsuzura 側は **KBMemo 判定に従う派生 URL** を推奨 |◎（正）
 
 |Notebook / カンバン / タグ
 |× |◎
@@ -181,11 +208,11 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 |× |メモ `.adoc` のみ（画像 Git 化は小物のみ継続）
 |===
 
-**原則:** 画像の「倉庫と加工場」は Media。「意味と公開の物語」は KBMemo。
+**原則:** 画像の「加工と籠への収納」は Tsuzura。「意味と公開の物語」は KBMemo。
 
 == データモデル（案）
 
-=== Media 側（`kbmemo-media`）
+=== Tsuzura 側（`kbmemo-media`）
 
 [cols="1,3"]
 |===
@@ -280,13 +307,13 @@ image::media:01HPHOTO_B[]
 === ショート動画
 
 * 入力: 選択 `media_item_ids[]`、表示秒数、トランジション、解像度
-* 処理: Media 内 Job + **ffmpeg**（Solid Queue 相当の worker。**KBMemo Puma 内では実行しない**）
+* 処理: Tsuzura 内 Job + **ffmpeg**（Solid Queue 相当の worker。**KBMemo Puma 内では実行しない**）
 * 出力: 新 `MediaItem`（kind: video）または `VideoExport` レコード
 * KBMemo 本文: `video::media:01HVIDEO[]` または既存 video マクロ拡張（YouTube 以外の self-host）
 
 === Google フォト
 
-* 取り込み **先** は Media（バイト + メタ）
+* 取り込み **先** は Tsuzura（バイト + メタ）
 * KBMemo 連携は「アルバム取り込み後にメモ作成」
 * 詳細: link:google-photos-integration.adoc[google-photos-integration.adoc]（本 doc の入力チャネルとして位置づけ）
 
@@ -298,21 +325,21 @@ image::media:01HPHOTO_B[]
 |===
 |案 |内容
 
-|**A（推奨検討）** |同一 `accounts.id` を Media DB でも参照。Rodauth セッション or サービス間 JWT
+|**A（推奨検討）** |同一 `accounts.id` を Tsuzura DB でも参照。Rodauth セッション or サービス間 JWT
 
-|**B** |Media 独自ユーザー — 同期コスト大。非推奨
+|**B** |Tsuzura 独自ユーザー — 同期コスト大。非推奨
 |===
 
 === 画像の閲覧
 
-**推奨:** メモ経由の表示では **KBMemo `MemoPolicy#show?` が通った場合のみ** Media が signed URL を発行。
+**推奨:** メモ経由の表示では **KBMemo `MemoPolicy#show?` が通った場合のみ** Tsuzura が signed URL を発行。
 
-* Media に独自 public フラグだけ持つと、メモとズレやすい
-* アルバム単体 URL は Media 側 `AlbumPolicy`（将来）
+* Tsuzura に独自 public フラグだけ持つと、メモとズレやすい
+* アルバム単体 URL は Tsuzura 側 `AlbumPolicy`（将来）
 
 === 外部 API
 
-* KBMemo `clip_api_token` と同型の **Media API トークン**（`account.media_api_token_*` 等）
+* KBMemo `clip_api_token` と同型の **Tsuzura API トークン**（`account.tsuzura_api_token_*` 等）
 * スコープ: upload / read / album_manage
 
 == ストレージ・非機能要件
@@ -334,7 +361,7 @@ image::media:01HPHOTO_B[]
 |DB + bucket ライフサイクル。Git バックアップとは別系統
 
 |既存 Git アセット
-|小さい添付・SVG ダイアグラムは **当面 `MemoAssets` 継続**（移行必須ではない）
+|小さい添付・SVG ダイアグラムは **当面 `MemoAssets` 継続**（Tsuzura 移行必須ではない）
 |===
 
 == KBMemo 連携（表示・編集）
@@ -346,18 +373,18 @@ image::media:01HPHOTO_B[]
 memo.body（AsciiDoc）
   → MemoAdocIncludes / 既存前処理
   → MediaMacro（新）: album:: / image::media: / video::media:
-  → Media API（内部）で URL 解決 + CDN
+  → Tsuzura API（内部）で URL 解決 + CDN
   → Asciidoctor.convert（safe）
 ----
 
 === 編集 UX（案）
 
-* メモ編集: 「Media から選ぶ」「アルバムを埋め込む」→ Media ピッカー（iframe or API）
-* アルバム画面（Media UI）: 「KBMemo でメモを書く」→ 新規 Memo + `properties.media_album_id`
+* メモ編集: 「Tsuzura から選ぶ」「アルバムを埋め込む」→ Tsuzura ピッカー（iframe or API）
+* アルバム画面（Tsuzura UI）: 「KBMemo でメモを書く」→ 新規 Memo + `properties.media_album_id`
 
 == API 概要（たたき・未確定）
 
-Media サービス（`/v1`）:
+Tsuzura サービス（`media.kbmemo.net/v1`）:
 
 [cols="1,3"]
 |===
@@ -390,7 +417,7 @@ Media サービス（`/v1`）:
 
 KBMemo 内部（サーバー間）:
 
-* `POST /internal/media/authorize` — memo_id + media_ids → 短期 signed URL バッチ（要認証）
+* `POST /internal/tsuzura/authorize` — memo_id + media_ids → 短期 signed URL バッチ（要認証）
 
 == フェーズ計画
 
@@ -399,10 +426,10 @@ KBMemo 内部（サーバー間）:
 |Phase |内容
 
 |**0（本 doc）**
-|方針固定。API たたき。リポジトリ分割方針
+|方針固定。名称 Tsuzura。API たたき。リポジトリ分割方針
 
-|**1 — Media MVP**
-|upload、Album、list、S3、owner。KBMemo 外から curl 可能
+|**1 — Tsuzura MVP**
+|`media.kbmemo.net` で upload、Album、list、S3、owner。KBMemo 外から curl 可能
 
 |**2 — KBMemo 連携**
 |`media:` / `album:` マクロ表示、「アルバムにメモを作る」、Policy 連携 signed URL
@@ -430,8 +457,8 @@ KBMemo 内部（サーバー間）:
 
 === リポジトリ
 
-* **Phase 0〜1:** `kbmemo_site` は **本 doc のみ**（実装なし）
-* **Phase 1 実装開始:** 新リポジトリ `kbmemo-media`（Rails API または Sinatra 等 — Phase 1 開始時に決定）
+* **Phase 0〜1:** `kbmemo_site` は **本 doc のみ**（Tsuzura 実装は別 repo）
+* **Phase 1 実装開始:** 新リポジトリ `kbmemo-media`、本番 **`https://media.kbmemo.net`**
 * KBMemo 連携は **Phase 2** で `kbmemo_site` に PR
 
 === 1 Phase = 1 Agent セッション（目安）
@@ -441,7 +468,8 @@ KBMemo 内部（サーバー間）:
 Phase 1 プロンプト例:
 
   docs/architecture/media-platform.adoc Phase 1 に従い、
-  新リポジトリ kbmemo-media に Album + MediaItem + S3 upload API を実装。
+  新リポジトリ kbmemo-media（製品名 Tsuzura）に
+  media.kbmemo.net 向け Album + MediaItem + S3 upload API を実装。
   KBMemo 連携は Phase 2 なので触らない。
 ----
 
@@ -461,17 +489,18 @@ Phase 1 プロンプト例:
 
 == 未決事項（実装前に決める）
 
-. Media リポジトリのフレームワーク（Rails 8 API-only 推奨候補）
+. Tsuzura リポジトリのフレームワーク（Rails 8 API-only 推奨候補）
 . オブジェクトストレージ prod 先（R2 / S3 / MinIO）
+. `media.kbmemo.net` の TLS・デプロイ（kbmemo.net nginx 配下 vs 別ホスト）
 . Rodauth 共有 vs サービス間 JWT
 . `album::` / `image::media:` マクロの AsciiDoc 拡張方式（`MemoDiagramMacro` 同型）
-. 小さい `MemoAssets`（Git）と Media の **使い分けガイド**（UI 文言）
+. 小さい `MemoAssets`（Git）と Tsuzura の **使い分けガイド**（UI 文言）
 . 顔検出の実行場所（サーバー vs クライアント）とプライバシーポリシー
 . 動画の公開 CDN と帯域コスト上限
 
 == 関連ドキュメント
 
-* link:google-photos-integration.adoc[google-photos-integration.adoc] — Google フォト取り込み（Media 入力）
+* link:google-photos-integration.adoc[google-photos-integration.adoc] — Google フォト取り込み（Tsuzura 入力）
 * link:memo-body-editor-roadmap.adoc[memo-body-editor-roadmap.adoc] — 現行 Git 画像（Phase 5f）
 * link:memo-properties.adoc[memo-properties.adoc] — `media_album_id` 等の properties 方針
 * link:google-calendar-sync.adoc[google-calendar-sync.adoc] — 外部サービス連携先例
