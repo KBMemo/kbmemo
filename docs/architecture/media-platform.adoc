@@ -1,0 +1,486 @@
+= メディアプラットフォーム — 設計方針（Phase 0・未実装）
+
+KBMemo で写真・画像を **大規模に扱い・編集し・共有する** ための全体設計。
+**現状は未実装**の Phase 0 ドキュメント。実装は別リポジトリ（`kbmemo-media` 想定）＋ KBMemo 連携で進める。
+
+前提: `AGENTS.md`（メモ本文の正は DB の AsciiDoc）、link:memo-body-editor-roadmap.adoc[memo-body-editor-roadmap.adoc]（Phase 5f 現行 Git アセット）、link:google-calendar-sync.adoc[google-calendar-sync.adoc]（外部サービス連携の先例）、link:google-photos-integration.adoc[google-photos-integration.adoc]（Google フォト取り込みは Media の入力源の一つ）。
+
+== 要約（意思決定）
+
+[cols="1,3"]
+|===
+|決定 |内容
+
+|アーキテクチャ
+|**Media サービス（別アプリ）+ KBMemo（文章・共有 UX）** の二層
+
+|画像バイトの正
+|オブジェクトストレージ（S3 / R2 / MinIO 等）+ Media DB。**Git `{slug}.assets/` は大規模写真向けではない**
+
+|共有の主 UX
+|**メモ本文ごと見せる**（KBMemo show）。アルバム単体 URL は副次
+
+|外部利用
+|Media REST API + トークン（KBMemo はクライアントの一つ）
+
+|KBMemo 単体への全機能組み込み
+|**非推奨**（容量・編集・動画生成・外部 API と相性が悪い）
+|===
+
+== 背景：現行 KBMemo の画像
+
+[cols="1,3"]
+|===
+|現状 |限界
+
+|`MemoAssets` + Git `{slug}.assets/`
+|メモ添付の小ファイル向け。10MB/ファイル、メモ単位 commit
+
+|本文 `image::filename[]` + `imagesdir`
+|メモ内表示は成立。メモ横断ライブラリ・編集版管理なし
+
+|`MemoPolicy` / `visibility`
+|メモ単位の共有。画像コレクション単位の UX なし
+
+|Clip API + `ClipImageImporter`
+|公開 HTTP 画像の取り込み。Google フォト等の認証付き源は別途
+|===
+
+**規模感（要件）:** 画像ストレージはメモ本文に比べ **おおよそ 1000 倍** を想定する。
+
+== プロダクト像
+
+=== Media サービス（`kbmemo-media` 想定）
+
+写真・動画アセットの **保管・整理・加工・配信** を担う。
+
+* 一括アップロード（EXIF 付き）
+* アルバム（写真集）
+* 編集（トリミング、回転、顔のぼかし等）
+* 選択写真からのショート動画生成
+* 外部クライアント向け API
+
+=== KBMemo（既存 `kbmemo_site`）
+
+**文章・ストーリー・公開範囲** を担う。
+
+* アルバムに付随する **長文メモ**（旅行記、キャプション、Wiki リンク）
+* **メモ URL で本文ごと共有**（公開 / グループ）
+* Notebook・カンバン等、既存プロダクトとの統合
+* Media 参照マクロの **表示時解決**
+
+== ユースケース
+
+[cols="2,2,1"]
+|===
+|やりたいこと |主担当 |優先度
+
+|スマホ・PC から写真を **一括登録**
+|Media
+|高
+
+|日付・旅行単位で **アルバム** に整理
+|Media
+|高
+
+|アルバムに **説明・旅行記（メモ）** を付ける
+|Media（短）+ KBMemo（長）
+|高
+
+|メモを **本文ごと共有**（写真はその中に埋め込み）
+|KBMemo
+|高
+
+|写真の **トリミング・回転**
+|Media
+|高
+
+|**特定の人以外** の顔を隠す
+|Media
+|中（段階導入）
+
+|選択した写真から **ショート動画**（スライドショー）
+|Media
+|中
+
+|KBMemo **以外**（専用アプリ・バッチ）から同じ写真 DB を使う
+|Media API
+|高
+
+|Google フォトから取り込み
+|Media（入力）— link:google-photos-integration.adoc[google-photos-integration.adoc]
+|中
+
+|メモ編集内の **小さな添付**（スクショ 1 枚等）
+|既存 `MemoAssets`（Git）でも可
+|継続
+|===
+
+== システム構成
+
+[source,text]
+----
+                    ┌──────────────────────────────────┐
+  外部クライアント ──►│  kbmemo-media（別アプリ・未実装）  │
+  一括 upload        │  • Album / MediaItem / VideoExport │
+  編集 UI            │  • PostgreSQL + S3/R2 + CDN        │
+  ffmpeg Job         │  • REST API + API トークン        │
+                    └───────────────┬──────────────────┘
+                                    │ media_id / album_id
+                                    │ 認可連携（signed URL 等）
+                                    ▼
+                    ┌──────────────────────────────────┐
+  閲覧者 ◄──────────│  kbmemo_site（KBMemo）            │
+  /memos/:id        │  • AsciiDoc 本文（正）            │
+                    │  • album / media 参照マクロ       │
+                    │  • MemoPolicy 共有               │
+                    └──────────────────────────────────┘
+----
+
+=== 共有の二モード
+
+[cols="1,3"]
+|===
+|モード |用途
+
+|**ストーリー共有（主）**
+|KBMemo メモ show URL。AsciiDoc 全文 + 埋め込みアルバム・写真
+
+|**アルバム単体（副）**
+|Media `/albums/:id` — 写真集だけ見せる。KBMemo メモへのリンク optional
+|===
+
+== KBMemo と Media の境界
+
+[cols="2,2,2"]
+|===
+|関心 |Media |KBMemo
+
+|バイト列（原本・派生・動画）
+|◎ |×
+
+|アルバム構造・並び・EXIF 索引
+|◎ |参照のみ
+
+|トリミング・回転・顔ぼかし
+|◎ |×
+
+|スライドショー動画生成
+|◎ |×
+
+|AsciiDoc 本文・Wiki リンク
+|× |◎
+
+|公開範囲（public / group / owner）
+|Media 側は **KBMemo 判定に従う派生 URL** を推奨 |◎（正）
+
+|Notebook / カンバン / タグ
+|× |◎
+
+|Git 作業ツリー
+|× |メモ `.adoc` のみ（画像 Git 化は小物のみ継続）
+|===
+
+**原則:** 画像の「倉庫と加工場」は Media。「意味と公開の物語」は KBMemo。
+
+== データモデル（案）
+
+=== Media 側（`kbmemo-media`）
+
+[cols="1,3"]
+|===
+|エンティティ |概要
+
+|`Album`
+|タイトル、説明（短）、cover_media_id、owner_account_id、日付範囲
+
+|`MediaItem`
+|kind（image / video）、storage_key、checksum、width/height、EXIF JSON、captured_at
+
+|`AlbumItem`
+|album_id、media_item_id、position
+
+|`MediaRendition`
+|media_item_id、variant（thumb / web / edited）、storage_key
+
+|`EditStack`
+|media_item_id、非破壊編集 JSON（rotate、crop、blur_regions[]）
+
+|`VideoExport`
+|入力 media_ids[]、status、output_media_item_id、ffmpeg パラメータ
+
+|`FaceRegion`（任意・Phase 後半）
+|検出框、cluster_id、blur 対象フラグ
+|===
+
+=== KBMemo 側
+
+**本文（正）** — AsciiDoc に参照を書く:
+
+[source,asciidoc]
+----
+= 2024 夏 北海道
+
+album::01HALBUM_ID[]
+
+旅行 2 日目。朝食の後、函館山へ。
+
+image::media:01HPHOTO_A[width=720]
+image::media:01HPHOTO_B[]
+----
+
+**properties（任意）** — 試行錯誤・索引用（link:memo-properties.adoc[memo-properties.adoc]）:
+
+[source,json]
+----
+{
+  "media_album_id": "01HALBUM_ID",
+  "media_item_ids": ["01HPHOTO_A", "01HPHOTO_B"]
+}
+----
+
+**アルバムとメモの関係（案）:**
+
+* 1 アルバム : 0..1 **メインメモ**（KBMemo `Memo`、`properties.media_album_id`）
+* または 1 Notebook : 1 アルバム（旅行記ノートブック）
+
+== 機能詳細
+
+=== 一括登録
+
+* API: `POST /v1/media/batch` または presigned URL 連続 PUT
+* EXIF `DateTimeOriginal` でソート・アルバム自動提案
+* 重複排除: `checksum` 同一なら `MediaItem` を再利用（任意 Phase）
+
+=== 画像編集
+
+[cols="1,2,1"]
+|===
+|機能 |方式 |Phase
+
+|回転・トリミング
+|EditStack + 新 Rendition
+|3
+
+|手動ぼかし矩形
+|Canvas UI → blur_regions
+|3
+
+|顔検出 → 指定以外を blur
+|サーバー ML または WASM。除外リスト
+|4
+
+|共有前警告
+|「未ぼかしの顔が N 件」— 公開 UX
+|4
+|===
+
+**編集の正:** 非破壊 **EditStack** を推奨（原本 blob は保持、表示は派生 Rendition）。
+
+=== ショート動画
+
+* 入力: 選択 `media_item_ids[]`、表示秒数、トランジション、解像度
+* 処理: Media 内 Job + **ffmpeg**（Solid Queue 相当の worker。**KBMemo Puma 内では実行しない**）
+* 出力: 新 `MediaItem`（kind: video）または `VideoExport` レコード
+* KBMemo 本文: `video::media:01HVIDEO[]` または既存 video マクロ拡張（YouTube 以外の self-host）
+
+=== Google フォト
+
+* 取り込み **先** は Media（バイト + メタ）
+* KBMemo 連携は「アルバム取り込み後にメモ作成」
+* 詳細: link:google-photos-integration.adoc[google-photos-integration.adoc]（本 doc の入力チャネルとして位置づけ）
+
+== 認証・認可
+
+=== アカウント
+
+[cols="1,3"]
+|===
+|案 |内容
+
+|**A（推奨検討）** |同一 `accounts.id` を Media DB でも参照。Rodauth セッション or サービス間 JWT
+
+|**B** |Media 独自ユーザー — 同期コスト大。非推奨
+|===
+
+=== 画像の閲覧
+
+**推奨:** メモ経由の表示では **KBMemo `MemoPolicy#show?` が通った場合のみ** Media が signed URL を発行。
+
+* Media に独自 public フラグだけ持つと、メモとズレやすい
+* アルバム単体 URL は Media 側 `AlbumPolicy`（将来）
+
+=== 外部 API
+
+* KBMemo `clip_api_token` と同型の **Media API トークン**（`account.media_api_token_*` 等）
+* スコープ: upload / read / album_manage
+
+== ストレージ・非機能要件
+
+[cols="1,3"]
+|===
+|項目 |方針
+
+|容量
+|メモ比 **~1000 倍**。Git 非使用
+
+|オブジェクトストレージ
+|S3 互換 + CDN（Cloudflare R2 等）
+
+|サムネ
+|アップロード時非同期生成（thumb / web）
+
+|バックアップ
+|DB + bucket ライフサイクル。Git バックアップとは別系統
+
+|既存 Git アセット
+|小さい添付・SVG ダイアグラムは **当面 `MemoAssets` 継続**（移行必須ではない）
+|===
+
+== KBMemo 連携（表示・編集）
+
+=== 表示パイプライン（案）
+
+[source,text]
+----
+memo.body（AsciiDoc）
+  → MemoAdocIncludes / 既存前処理
+  → MediaMacro（新）: album:: / image::media: / video::media:
+  → Media API（内部）で URL 解決 + CDN
+  → Asciidoctor.convert（safe）
+----
+
+=== 編集 UX（案）
+
+* メモ編集: 「Media から選ぶ」「アルバムを埋め込む」→ Media ピッカー（iframe or API）
+* アルバム画面（Media UI）: 「KBMemo でメモを書く」→ 新規 Memo + `properties.media_album_id`
+
+== API 概要（たたき・未確定）
+
+Media サービス（`/v1`）:
+
+[cols="1,3"]
+|===
+|Method / Path |用途
+
+|`POST /v1/media`
+|単体アップロード
+
+|`POST /v1/media/batch`
+|一括アップロード
+
+|`GET /v1/media/:id`
+|メタ + rendition URLs
+
+|`POST /v1/albums`
+|アルバム作成
+
+|`GET /v1/albums/:id`
+|アルバム + items
+
+|`PATCH /v1/media/:id/edits`
+|EditStack 更新 → Rendition 再生成 Job
+
+|`POST /v1/video_exports`
+|スライドショー生成 Job
+
+|`GET /v1/video_exports/:id`
+|Job 状態・出力 media_id
+|===
+
+KBMemo 内部（サーバー間）:
+
+* `POST /internal/media/authorize` — memo_id + media_ids → 短期 signed URL バッチ（要認証）
+
+== フェーズ計画
+
+[cols="1,3"]
+|===
+|Phase |内容
+
+|**0（本 doc）**
+|方針固定。API たたき。リポジトリ分割方針
+
+|**1 — Media MVP**
+|upload、Album、list、S3、owner。KBMemo 外から curl 可能
+
+|**2 — KBMemo 連携**
+|`media:` / `album:` マクロ表示、「アルバムにメモを作る」、Policy 連携 signed URL
+
+|**3 — 一括 + 基本編集**
+|batch upload、crop/rotate、EditStack
+
+|**4 — プライバシー編集**
+|手動 blur → 顔検出 + 除外、共有前警告
+
+|**5 — 動画**
+|ffmpeg Job、スライドショー export、KBMemo 埋め込み
+
+|**6 — 外部安定化 + 取り込み**
+|API トークン、Google フォト import、監視・クォータ
+|===
+
+=== Phase ごとの非ゴール
+
+* **Phase 1:** 編集、動画、KBMemo UI、Google フォト
+* **Phase 2:** 顔検出、ffmpeg、Git アセットからの自動移行
+* **Phase 3:** ML 顔認識、4K 動画
+
+== Cursor Agent での進め方
+
+=== リポジトリ
+
+* **Phase 0〜1:** `kbmemo_site` は **本 doc のみ**（実装なし）
+* **Phase 1 実装開始:** 新リポジトリ `kbmemo-media`（Rails API または Sinatra 等 — Phase 1 開始時に決定）
+* KBMemo 連携は **Phase 2** で `kbmemo_site` に PR
+
+=== 1 Phase = 1 Agent セッション（目安）
+
+[source,text]
+----
+Phase 1 プロンプト例:
+
+  docs/architecture/media-platform.adoc Phase 1 に従い、
+  新リポジトリ kbmemo-media に Album + MediaItem + S3 upload API を実装。
+  KBMemo 連携は Phase 2 なので触らない。
+----
+
+**各セッションに含めるもの:**
+
+* 本 doc の Phase 番号
+* 完了条件（API 3 本、test N 件）
+* やらないこと（非ゴール）
+
+=== 参照コード（KBMemo 側・連携時）
+
+* `app/services/memo_assets.rb` — 小物アップロードの先例
+* `app/policies/memo_policy.rb` — 共有モデル
+* `app/models/account.rb` — `clip_api_token` パターン
+* `app/services/clip_asciidoc_processor.rb` — 外部 → メモ取り込み
+* link:google-calendar-sync.adoc[google-calendar-sync.adoc] — OAuth・別サービス sync の構成
+
+== 未決事項（実装前に決める）
+
+. Media リポジトリのフレームワーク（Rails 8 API-only 推奨候補）
+. オブジェクトストレージ prod 先（R2 / S3 / MinIO）
+. Rodauth 共有 vs サービス間 JWT
+. `album::` / `image::media:` マクロの AsciiDoc 拡張方式（`MemoDiagramMacro` 同型）
+. 小さい `MemoAssets`（Git）と Media の **使い分けガイド**（UI 文言）
+. 顔検出の実行場所（サーバー vs クライアント）とプライバシーポリシー
+. 動画の公開 CDN と帯域コスト上限
+
+== 関連ドキュメント
+
+* link:google-photos-integration.adoc[google-photos-integration.adoc] — Google フォト取り込み（Media 入力）
+* link:memo-body-editor-roadmap.adoc[memo-body-editor-roadmap.adoc] — 現行 Git 画像（Phase 5f）
+* link:memo-properties.adoc[memo-properties.adoc] — `media_album_id` 等の properties 方針
+* link:google-calendar-sync.adoc[google-calendar-sync.adoc] — 外部サービス連携先例
+* link:memo-directory-layout.adoc[memo-directory-layout.adoc] — メモ配置・共有ディレクトリ
+
+== 関連コード（KBMemo・現状）
+
+* `app/services/memo_assets.rb`
+* `app/services/memo_attachments.rb`
+* `app/policies/memo_policy.rb`
+* `app/controllers/memo_assets_controller.rb`
+* `config/routes.rb` — `namespace :api`（Clip）

@@ -128,4 +128,5 @@ AsciiDoc 本文と双方向同期が必要な場合はサービスを正とす�
 * `docs/architecture/database.adoc` — PostgreSQL・credentials・SQLite インポート
 * `docs/architecture/google-calendar-sync.adoc` — Google Calendar 同期
 * link:google-photos-integration.adoc[google-photos-integration.adoc] — Google フォト連携（検討材料・未実装）
+* link:media-platform.adoc[media-platform.adoc] — メディアプラットフォーム全体（Phase 0・未実装）
 * `docs/architecture/kbmemo-docs-in-app.adoc` — `docs_sync`
