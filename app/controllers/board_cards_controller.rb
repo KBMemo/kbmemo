@@ -114,10 +114,11 @@ class BoardCardsController < ApplicationController
 
   def board_schedule_redirect_path
     day = @memo.scheduled_on || @schedule_calendar&.selected_day || Date.current
-    board_path(
+    board_schedule_path(
       @board,
-      schedule_month: day.strftime("%Y-%m"),
-      schedule_day: day.strftime("%Y-%m-%d")
+      month: day.beginning_of_month,
+      day: day,
+      view: @schedule_calendar&.view || "day"
     )
   end
 end

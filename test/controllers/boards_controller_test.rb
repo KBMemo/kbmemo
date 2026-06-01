@@ -22,6 +22,21 @@ class BoardsControllerTest < ActionDispatch::IntegrationTest
     assert_select "#board_schedule_panel"
     assert_select ".kb-board-schedule-calendar"
     assert_select ".kb-board-schedule-list"
+    assert_select ".kb-sidebar-tab-bar a", text: "日"
+    assert_select ".kb-sidebar-tab-bar a", text: "週"
+    assert_select ".kb-sidebar-tab-bar a", text: "月"
+  end
+
+  test "show renders week schedule view" do
+    board = boards(:one)
+    memo = memos(:one)
+    BoardKanban::AddMemo.call(board: board, memo: memo, column: board_columns(:one_todo))
+    memo.update!(scheduled_on: Date.new(2026, 5, 15))
+
+    get board_url(board, schedule_month: "2026-05", schedule_day: "2026-05-15", schedule_view: "week")
+    assert_response :success
+    assert_includes response.body, memo.title
+    assert_select ".kb-sidebar-tab.is-active", text: "週"
   end
 
   test "show lists scheduled memos for selected day" do

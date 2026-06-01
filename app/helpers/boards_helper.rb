@@ -14,21 +14,68 @@ module BoardsHelper
           .sort_by { |memo| [ memo.kanban_position, memo.id ] }
   end
 
-  def board_schedule_month_path(board, month, selected_day: nil)
-    day = selected_day || default_schedule_day_for_month(month)
+  def board_schedule_path(board, month:, day:, view: "day")
     board_path(
       board,
-      schedule_month: month.strftime("%Y-%m"),
-      schedule_day: day.strftime("%Y-%m-%d")
+      schedule_month: month.to_date.strftime("%Y-%m"),
+      schedule_day: day.to_date.strftime("%Y-%m-%d"),
+      schedule_view: view
     )
   end
 
-  def board_schedule_day_path(board, day)
-    board_path(
+  def board_schedule_month_path(board, month, selected_day: nil, view: nil)
+    day = selected_day || default_schedule_day_for_month(month)
+    board_schedule_path(
       board,
-      schedule_month: day.strftime("%Y-%m"),
-      schedule_day: day.strftime("%Y-%m-%d")
+      month: month,
+      day: day,
+      view: view || current_board_schedule_view
     )
+  end
+
+  def board_schedule_day_path(board, day, view: nil)
+    board_schedule_path(
+      board,
+      month: day.beginning_of_month,
+      day: day,
+      view: view || current_board_schedule_view
+    )
+  end
+
+  def board_schedule_week_path(board, week_anchor_day, view: "week")
+    board_schedule_path(
+      board,
+      month: week_anchor_day.beginning_of_month,
+      day: week_anchor_day,
+      view: view
+    )
+  end
+
+  def board_schedule_view_tab_path(board, view)
+    calendar = @schedule_calendar
+    day = calendar&.selected_day || Date.current
+    month = calendar&.month || day.beginning_of_month
+    board_schedule_path(board, month: month, day: day, view: view)
+  end
+
+  def board_schedule_view_tab_classes(view)
+    base = "kb-sidebar-tab min-w-0 flex-1 rounded-md px-1.5 py-1.5 text-center text-[11px] font-medium transition #{kb_focus_ring}"
+    active = @schedule_calendar&.view == view
+    [ base, active ? "is-active" : nil ].compact.join(" ")
+  end
+
+  def board_schedule_list_heading(calendar)
+    if calendar.week_view?
+      if calendar.week_start.month == calendar.week_end.month && calendar.week_start.year == calendar.week_end.year
+        "#{calendar.week_start.strftime('%-m月%-d日')} – #{calendar.week_end.strftime('%-d日')}"
+      else
+        "#{l(calendar.week_start, format: :short)} – #{l(calendar.week_end, format: :short)}"
+      end
+    elsif calendar.month_view?
+      board_schedule_month_label(calendar.month)
+    else
+      l(calendar.selected_day, format: :long)
+    end
   end
 
   def board_schedule_month_label(month)
@@ -66,6 +113,10 @@ module BoardsHelper
   end
 
   private
+
+  def current_board_schedule_view
+    @schedule_calendar&.view.presence || "day"
+  end
 
   def default_schedule_day_for_month(month)
     month_date = month.to_date.beginning_of_month

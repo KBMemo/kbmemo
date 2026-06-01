@@ -1,0 +1,4 @@
+.kb-sidebar-tab-bar.mx-3.mt-2.flex.shrink-0.rounded-lg.p-0.5
+  = link_to "日", board_schedule_view_tab_path(board, "day"), class: board_schedule_view_tab_classes("day"), data: { turbo_frame: "board_schedule_panel" }
+  = link_to "週", board_schedule_view_tab_path(board, "week"), class: board_schedule_view_tab_classes("week"), data: { turbo_frame: "board_schedule_panel" }
+  = link_to "月", board_schedule_view_tab_path(board, "month"), class: board_schedule_view_tab_classes("month"), data: { turbo_frame: "board_schedule_panel" }

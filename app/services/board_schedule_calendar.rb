@@ -3,11 +3,13 @@
 # カンバンボード左サイドバー用: 月カレンダーと選択日の予定一覧。
 class BoardScheduleCalendar
   WEEKDAY_LABELS = %w[月 火 水 木 金 土 日].freeze
+  VIEWS = %w[day week month].freeze
 
-  attr_reader :board, :month, :selected_day, :weeks, :dates_with_items, :list_items
+  attr_reader :board, :month, :selected_day, :weeks, :dates_with_items, :list_items, :view, :list_groups
 
-  def initialize(board:, memos_scope:, month:, selected_day: nil)
+  def initialize(board:, memos_scope:, month:, selected_day: nil, view: "day")
     @board = board
+    @view = normalize_view(view)
     @month = month.to_date.beginning_of_month
     @selected_day = normalize_selected_day(selected_day)
     scheduled = load_scheduled_memos(memos_scope)
@@ -16,9 +18,8 @@ class BoardScheduleCalendar
       .select { |memo| month_range.cover?(memo.scheduled_on) }
       .sort_by { |memo| schedule_sort_key(memo) }
     @dates_with_items = @month_memos.map(&:scheduled_on).to_set
-    @list_items = scheduled
-      .select { |memo| memo.scheduled_on == @selected_day }
-      .sort_by { |memo| schedule_sort_key(memo) }
+    @list_items = items_for_day(scheduled, @selected_day)
+    @list_groups = build_list_groups(scheduled)
     @weeks = build_weeks
   end
 
@@ -46,7 +47,68 @@ class BoardScheduleCalendar
     @dates_with_items.include?(day)
   end
 
+  def day_view?
+    view == "day"
+  end
+
+  def week_view?
+    view == "week"
+  end
+
+  def month_view?
+    view == "month"
+  end
+
+  def week_start
+    @selected_day.beginning_of_week(:monday)
+  end
+
+  def week_end
+    @selected_day.end_of_week(:monday)
+  end
+
+  def prev_week_day
+    week_start - 7
+  end
+
+  def next_week_day
+    week_start + 7
+  end
+
+  def list_empty?
+    day_view? ? list_items.empty? : list_groups.empty?
+  end
+
   private
+
+  def normalize_view(raw)
+    view = raw.to_s.presence || "day"
+    VIEWS.include?(view) ? view : "day"
+  end
+
+  def items_for_day(scheduled, day)
+    scheduled
+      .select { |memo| memo.scheduled_on == day }
+      .sort_by { |memo| schedule_sort_key(memo) }
+  end
+
+  def build_list_groups(scheduled)
+    memos =
+      case view
+      when "week"
+        range = week_start..week_end
+        scheduled.select { |memo| range.cover?(memo.scheduled_on) }
+      when "month"
+        @month_memos
+      else
+        []
+      end
+
+    memos
+      .group_by(&:scheduled_on)
+      .sort_by { |date, _| date }
+      .map { |date, items| { date: date, memos: items.sort_by { |memo| schedule_sort_key(memo) } } }
+  end
 
   # ボード上カード（scheduled_on あり）と Google Calendar 同期メモ（board 外）を含める。
   def load_scheduled_memos(memos_scope)

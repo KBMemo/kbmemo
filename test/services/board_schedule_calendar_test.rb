@@ -83,4 +83,52 @@ class BoardScheduleCalendarTest < ActiveSupport::TestCase
 
     assert_not_includes calendar.list_items, other_memo
   end
+
+  test "week view groups memos within selected week" do
+    @memo.update!(scheduled_on: Date.new(2026, 5, 15))
+    other = memos(:two)
+    BoardKanban::AddMemo.call(board: @board, memo: other, column: board_columns(:one_todo))
+    other.update!(scheduled_on: Date.new(2026, 5, 17))
+
+    calendar = BoardScheduleCalendar.new(
+      board: @board,
+      memos_scope: Memo.where(account_id: @account.id),
+      month: Date.new(2026, 5, 1),
+      selected_day: Date.new(2026, 5, 15),
+      view: "week"
+    )
+
+    assert calendar.week_view?
+    assert_equal 2, calendar.list_groups.sum { |group| group[:memos].size }
+    assert_includes calendar.list_groups.flat_map { |g| g[:memos] }, @memo
+    assert_includes calendar.list_groups.flat_map { |g| g[:memos] }, other
+  end
+
+  test "month view groups all scheduled memos in month" do
+    @memo.update!(scheduled_on: Date.new(2026, 5, 15))
+
+    calendar = BoardScheduleCalendar.new(
+      board: @board,
+      memos_scope: Memo.where(account_id: @account.id),
+      month: Date.new(2026, 5, 1),
+      selected_day: Date.new(2026, 5, 1),
+      view: "month"
+    )
+
+    assert calendar.month_view?
+    assert_equal 1, calendar.list_groups.size
+    assert_equal [@memo], calendar.list_groups.first[:memos]
+  end
+
+  test "invalid view falls back to day" do
+    calendar = BoardScheduleCalendar.new(
+      board: @board,
+      memos_scope: Memo.where(account_id: @account.id),
+      month: Date.new(2026, 5, 1),
+      selected_day: Date.new(2026, 5, 15),
+      view: "year"
+    )
+
+    assert calendar.day_view?
+  end
 end

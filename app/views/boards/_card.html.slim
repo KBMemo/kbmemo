@@ -15,6 +15,10 @@ article.rounded-md.border.kb-border.p-3.shadow-sm.hover:opacity-95[id=card_dom_i
           - if memo.tags.size > 3
             span class="text-[10px] kb-text-subtle" = "+#{memo.tags.size - 3}"
       = form_with url: schedule_board_board_card_path(board, memo), method: :patch, class: "mt-2 flex items-center gap-1", data: { turbo_frame: "board_schedule_panel" } do
+        - if defined?(@schedule_calendar) && @schedule_calendar
+          = hidden_field_tag :schedule_month, @schedule_calendar.month.strftime("%Y-%m")
+          = hidden_field_tag :schedule_day, @schedule_calendar.selected_day.strftime("%Y-%m-%d")
+          = hidden_field_tag :schedule_view, @schedule_calendar.view
         label.sr-only for="scheduled_on_#{memo.id}" 予定日
         = date_field_tag :scheduled_on, memo.scheduled_on, id: "scheduled_on_#{memo.id}", class: "kb-input max-w-[9rem] rounded px-1.5 py-0.5 text-[10px]", title: "予定日"
         = submit_tag "保存", class: "text-[10px] kb-text-secondary underline decoration-[var(--kb-border-strong)] hover:text-[var(--kb-text-primary)]"

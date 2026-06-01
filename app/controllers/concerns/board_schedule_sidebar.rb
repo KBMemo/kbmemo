@@ -12,7 +12,8 @@ module BoardScheduleSidebar
       board: board,
       memos_scope: policy_scope(Memo),
       month: month,
-      selected_day: selected_day
+      selected_day: selected_day,
+      view: parse_schedule_view(params[:schedule_view])
     )
   end
 
@@ -30,5 +31,10 @@ module BoardScheduleSidebar
     Date.strptime(raw.to_s, "%Y-%m-%d")
   rescue ArgumentError
     nil
+  end
+
+  def parse_schedule_view(raw)
+    view = raw.to_s.presence || "day"
+    BoardScheduleCalendar::VIEWS.include?(view) ? view : "day"
   end
 end
