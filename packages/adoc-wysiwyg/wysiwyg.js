@@ -665,34 +665,37 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
 
   async function renderFromSourceInternal(source) {
     isRendering = true
-    activeSourceUnit = null
-    wikiLabelCache.clear()
-    const memoId = getMemoId?.()
-    const normalizedSource = memoId
-      ? normalizeMemoImagePathsInSource(source, memoId)
-      : source
-    editorEl.replaceChildren()
+    try {
+      activeSourceUnit = null
+      wikiLabelCache.clear()
+      const memoId = getMemoId?.()
+      const normalizedSource = memoId
+        ? normalizeMemoImagePathsInSource(source, memoId)
+        : source
+      editorEl.replaceChildren()
 
-    await ensureDocumentWikiLabels(normalizedSource)
+      await ensureDocumentWikiLabels(normalizedSource)
 
-    for (const parsed of parseEditUnitsFromSource(normalizedSource)) {
-      const wrapper = document.createElement('div')
-      wrapper.className = 'wysiwyg-unit'
-      wrapper.contentEditable = 'false'
-      setUnitAdocSource(wrapper, parsed.adoc)
+      for (const parsed of parseEditUnitsFromSource(normalizedSource)) {
+        const wrapper = document.createElement('div')
+        wrapper.className = 'wysiwyg-unit'
+        wrapper.contentEditable = 'false'
+        setUnitAdocSource(wrapper, parsed.adoc)
 
-      if (!parsed.adoc.trim()) {
-        wrapper.classList.add('wysiwyg-unit--placeholder')
-        appendEmptyParagraphPreview(wrapper)
-      } else {
-        renderUnitPreview(wrapper, parsed.adoc)
+        if (!parsed.adoc.trim()) {
+          wrapper.classList.add('wysiwyg-unit--placeholder')
+          appendEmptyParagraphPreview(wrapper)
+        } else {
+          renderUnitPreview(wrapper, parsed.adoc)
+        }
+
+        editorEl.append(wrapper)
       }
 
-      editorEl.append(wrapper)
+      void refreshWikiLabelPreviews(normalizedSource)
+    } finally {
+      isRendering = false
     }
-
-    isRendering = false
-    void refreshWikiLabelPreviews(normalizedSource)
   }
 
   function renderFromSource(source) {

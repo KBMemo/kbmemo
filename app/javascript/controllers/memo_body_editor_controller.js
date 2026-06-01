@@ -370,8 +370,19 @@ export default class extends Controller {
     const preferredMode = readEditModePreference()
     if (preferredMode === "wysiwyg" && this.hasWysiwygPaneTarget) {
       await this.switchEditMode("wysiwyg")
+      if (isNewMemo) {
+        // memo-draft の reset（rAF）より後に空本文ユニットを編集可能にする
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            void this._wysiwygEditor?.focus({ activate: true })
+          })
+        })
+      }
     } else {
       this.syncEditModeUi()
+      if (isNewMemo && this.view) {
+        this.view.focus()
+      }
     }
   }
 
@@ -886,13 +897,19 @@ export default class extends Controller {
 
   applyExternalBody(body) {
     if (this.fieldTarget) this.fieldTarget.value = body
+    if (this._editMode === "wysiwyg" && this._wysiwygEditor) {
+      const cur = this.view?.state.doc.toString() ?? ""
+      const wysiwygMissingUnits =
+        this.hasWysiwygHostTarget &&
+        !this.wysiwygHostTarget.querySelector(".wysiwyg-unit")
+      if (body !== cur || wysiwygMissingUnits) {
+        void this._wysiwygEditor.renderFromSource(body)
+      }
+      return
+    }
     if (!this.view) return
     const cur = this.view.state.doc.toString()
     if (body === cur) return
-    if (this._editMode === "wysiwyg" && this._wysiwygEditor) {
-      void this._wysiwygEditor.renderFromSource(body)
-      return
-    }
     this.view.dispatch({
       changes: { from: 0, to: cur.length, insert: body }
     })

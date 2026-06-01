@@ -114,9 +114,9 @@ ruby:
         div.memo-body-editor__header.mb-1.border-b.kb-border.pb-2 data-controller=(memo.image_assets_uploadable? ? "memo-attachments" : nil) data-memo-attachments-expanded-value=(memo.image_assets_uploadable? ? "false" : nil)
           div.memo-body-editor__header-row
             nav.memo-body-editor__mode-tabs role="tablist" aria-label="編集モード"
-              button.memo-body-editor__mode-tab.is-active type="button" role="tab" data-edit-mode="wysiwyg" data-memo-body-editor-target="editModeTab" data-action="memo-body-editor#setEditMode" aria-pressed="true"
+              button.memo-body-editor__mode-tab type="button" role="tab" data-edit-mode="wysiwyg" data-memo-body-editor-target="editModeTab" data-action="memo-body-editor#setEditMode" aria-pressed="false"
                 | WYSIWYG
-              button.memo-body-editor__mode-tab type="button" role="tab" data-edit-mode="source" data-memo-body-editor-target="editModeTab" data-action="memo-body-editor#setEditMode" aria-pressed="false"
+              button.memo-body-editor__mode-tab.is-active type="button" role="tab" data-edit-mode="source" data-memo-body-editor-target="editModeTab" data-action="memo-body-editor#setEditMode" aria-pressed="true"
                 | ソース
             div.memo-body-editor__asset-toolbar
               label.memo-body-editor__preview-toggle.memo-body-editor__source-only.inline-flex.cursor-pointer.items-center.gap-1.5 class=kb_toolbar_btn title="Asciidoctor.js によるライブプレビューを表示"
