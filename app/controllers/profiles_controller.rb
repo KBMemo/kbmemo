@@ -8,6 +8,7 @@ class ProfilesController < ApplicationController
       port: google_calendar_callback_port,
       protocol: google_calendar_callback_protocol
     )
+    @google_calendar_synced_memos_count = google_calendar_synced_memos_count(@account)
   end
 
   def update
@@ -52,5 +53,9 @@ class ProfilesController < ApplicationController
 
   def google_calendar_callback_protocol
     request.ssl? ? "https" : "http"
+  end
+
+  def google_calendar_synced_memos_count(account)
+    GoogleCalendar::Clear.new(account: account).synced_memos.count
   end
 end

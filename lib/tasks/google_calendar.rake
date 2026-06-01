@@ -22,5 +22,28 @@ namespace :kbmemo do
         result.summary_lines.each { |line| puts line }
       end
     end
+
+    desc <<~DESC.squish
+      Delete Google Calendar synced memos and reset sync_token.
+      Env: ACCOUNT_ID (optional; default: connected accounts)
+    DESC
+    task clear: :environment do
+      accounts = if (id = ENV["ACCOUNT_ID"].presence)
+        Account.where(id: id)
+      else
+        Account.where.not(google_calendar_refresh_token: nil)
+      end
+
+      abort "no accounts matched" if accounts.none?
+
+      accounts.find_each do |account|
+        result = GoogleCalendar::Clear.call(account: account)
+        if result.success?
+          puts "account=#{account.id} deleted=#{result.deleted_count}"
+        else
+          puts "account=#{account.id} ERROR #{result.errors.join(', ')}"
+        end
+      end
+    end
   end
 end

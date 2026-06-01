@@ -4,6 +4,7 @@
 class BoardScheduleCalendar
   WEEKDAY_LABELS = %w[月 火 水 木 金 土 日].freeze
   VIEWS = %w[day week month].freeze
+  Occurrence = Data.define(:memo, :date)
 
   attr_reader :board, :month, :selected_day, :weeks, :dates_with_items, :list_items, :view, :list_groups
 
@@ -12,14 +13,12 @@ class BoardScheduleCalendar
     @view = normalize_view(view)
     @month = month.to_date.beginning_of_month
     @selected_day = normalize_selected_day(selected_day)
-    scheduled = load_scheduled_memos(memos_scope)
+    @scheduled_memos = load_scheduled_memos(memos_scope)
     month_range = @month..@month.end_of_month
-    @month_memos = scheduled
-      .select { |memo| month_range.cover?(memo.scheduled_on) }
-      .sort_by { |memo| schedule_sort_key(memo) }
-    @dates_with_items = @month_memos.map(&:scheduled_on).to_set
-    @list_items = items_for_day(scheduled, @selected_day)
-    @list_groups = build_list_groups(scheduled)
+    @month_occurrences = occurrences_in_range(@scheduled_memos, month_range)
+    @dates_with_items = @month_occurrences.map(&:date).to_set
+    @list_items = items_for_day(@selected_day)
+    @list_groups = build_list_groups
     @weeks = build_weeks
   end
 
@@ -86,55 +85,72 @@ class BoardScheduleCalendar
     VIEWS.include?(view) ? view : "day"
   end
 
-  def items_for_day(scheduled, day)
-    scheduled
-      .select { |memo| memo.scheduled_on == day }
-      .sort_by { |memo| schedule_sort_key(memo) }
+  def items_for_day(day)
+    occurrences_in_range(@scheduled_memos, day..day)
+      .sort_by { |occurrence| schedule_sort_key(occurrence) }
+      .map(&:memo)
   end
 
-  def build_list_groups(scheduled)
-    memos =
+  def build_list_groups
+    range =
       case view
       when "week"
-        range = week_start..week_end
-        scheduled.select { |memo| range.cover?(memo.scheduled_on) }
+        week_start..week_end
       when "month"
-        @month_memos
+        @month..@month.end_of_month
       else
-        []
+        return []
       end
 
-    memos
-      .group_by(&:scheduled_on)
+    occurrences_in_range(@scheduled_memos, range)
+      .group_by(&:date)
       .sort_by { |date, _| date }
-      .map { |date, items| { date: date, memos: items.sort_by { |memo| schedule_sort_key(memo) } } }
+      .map do |date, occurrences|
+        {
+          date: date,
+          memos: occurrences.sort_by { |occurrence| schedule_sort_key(occurrence) }.map(&:memo)
+        }
+      end
+  end
+
+  def occurrences_in_range(memos, range)
+    memos.flat_map { |memo| occurrences_for_memo(memo, range) }
+  end
+
+  def occurrences_for_memo(memo, range)
+    GoogleCalendar::Occurrences.dates_in_range(memo, range).map do |date|
+      Occurrence.new(memo: memo, date: date)
+    end
   end
 
   # ボード上カード（scheduled_on あり）と Google Calendar 同期メモ（board 外）を含める。
   def load_scheduled_memos(memos_scope)
     scheduled_on_sql = MemoPropertiesSql.json_text_at("scheduled_on")
     gcal_event_sql = MemoPropertiesSql.json_text_at("google_calendar", "event_id")
-    memos_scope
+    board_memos = memos_scope
       .where("#{scheduled_on_sql} IS NOT NULL AND #{scheduled_on_sql} != ''")
-      .where(
-        "memos.board_id = ? OR (#{gcal_event_sql} IS NOT NULL AND #{gcal_event_sql} != '')",
-        board.id
-      )
+      .where(board_id: board.id)
       .includes(:kanban_column)
       .to_a
+    gcal_memos = memos_scope
+      .where("#{gcal_event_sql} IS NOT NULL AND #{gcal_event_sql} != ''")
+      .includes(:kanban_column)
+      .to_a
+    (board_memos + gcal_memos).uniq
   end
 
-  def schedule_sort_key(memo)
+  def schedule_sort_key(occurrence)
+    memo = occurrence.memo
     starts_at = memo.properties.dig("google_calendar", "starts_at")
     sort_time =
       if starts_at.present?
         Time.zone.parse(starts_at.to_s)
       else
-        memo.scheduled_on
+        occurrence.date
       end
-    [ memo.scheduled_on, sort_time, memo.title.to_s ]
+    [ occurrence.date, sort_time, memo.title.to_s ]
   rescue ArgumentError, TypeError
-    [ memo.scheduled_on, memo.scheduled_on, memo.title.to_s ]
+    [ occurrence.date, occurrence.date, memo.title.to_s ]
   end
 
   def normalize_selected_day(day)

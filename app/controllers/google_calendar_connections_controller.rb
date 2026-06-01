@@ -63,6 +63,18 @@ class GoogleCalendarConnectionsController < ApplicationController
     redirect_to edit_profile_path, notice: "Google Calendar 連携を解除しました。"
   end
 
+  def clear_data
+    account = rodauth.rails_account
+    result = GoogleCalendar::Clear.call(account: account)
+
+    if result.success?
+      redirect_to edit_profile_path,
+        notice: "Google Calendar から取り込んだメモ #{result.deleted_count} 件を削除しました。次回同期で再取り込みできます。"
+    else
+      redirect_to edit_profile_path, alert: "Google Calendar データの削除に失敗しました: #{result.errors.join(', ')}"
+    end
+  end
+
   private
 
   def callback_uri

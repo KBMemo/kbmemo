@@ -44,4 +44,24 @@ class GoogleCalendar::EventMapperTest < ActiveSupport::TestCase
     assert_equal Date.new(2026, 6, 2), memo.scheduled_on
     assert_equal true, memo.properties.dig("google_calendar", "all_day")
   end
+
+  test "maps recurring event recurrence lines" do
+    event = Google::Apis::CalendarV3::Event.new(
+      id: "weekly",
+      summary: "Weekly sync",
+      recurrence: [ "RRULE:FREQ=WEEKLY;BYDAY=WE" ],
+      start: Google::Apis::CalendarV3::EventDateTime.new(
+        date_time: Time.zone.parse("2026-06-03 10:00:00")
+      ),
+      end: Google::Apis::CalendarV3::EventDateTime.new(
+        date_time: Time.zone.parse("2026-06-03 11:00:00")
+      )
+    )
+
+    memo = Memo.new(properties: {})
+    GoogleCalendar::EventMapper.apply!(memo: memo, event: event, calendar_id: "primary")
+
+    assert_equal [ "RRULE:FREQ=WEEKLY;BYDAY=WE" ], memo.properties.dig("google_calendar", "recurrence")
+    assert_equal true, memo.properties.dig("google_calendar", "recurring")
+  end
 end

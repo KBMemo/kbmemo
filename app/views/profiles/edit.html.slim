@@ -55,9 +55,18 @@ section.mt-10
         p.mt-1.text-xs.kb-text-muted
           | 最終同期:
           = @account.google_calendar_meta["last_synced_at"]
+      - if @google_calendar_synced_memos_count.positive?
+        p.mt-1.text-xs.kb-text-muted
+          | 取り込み済みメモ:
+          = @google_calendar_synced_memos_count
+          | 件
       .mt-4.flex.flex-wrap.gap-3
         = button_to "今すぐ同期", google_calendar_sync_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }
+        = button_to "取り込みデータをクリア", google_calendar_clear_data_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "Google Calendar から取り込んだメモをすべて削除します。連携は維持され、次回同期で再取り込みできます。続行しますか？" } }
         = button_to "連携を解除", google_calendar_disconnect_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "Google Calendar 連携を解除しますか？" } }
+      p.mt-3.text-xs.kb-text-muted
+        | CLI:
+        code.kb-code-inline bin/rails kbmemo:google_calendar:clear ACCOUNT_ID=#{@account.id}
     - else
       p.mt-2.text-xs.text-amber-700 未連携
       .mt-4

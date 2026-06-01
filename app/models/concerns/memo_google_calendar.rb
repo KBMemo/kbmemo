@@ -17,6 +17,13 @@ module MemoGoogleCalendar
     properties.dig(GOOGLE_CALENDAR_KEY, "html_link")
   end
 
+  def google_calendar_recurring?
+    google_calendar_synced? && (
+      properties.dig(GOOGLE_CALENDAR_KEY, "recurring") == true ||
+      Array(properties.dig(GOOGLE_CALENDAR_KEY, "recurrence")).grep(/\ARRRULE:/).any?
+    )
+  end
+
   def sync_read_only?
     docs_sync_read_only? || google_calendar_read_only?
   end

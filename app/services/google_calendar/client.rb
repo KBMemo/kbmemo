@@ -20,7 +20,7 @@ module GoogleCalendar
         sync_token: sync_token,
         time_min: time_min&.utc&.iso8601,
         time_max: time_max&.utc&.iso8601,
-        single_events: true,
+        single_events: false,
         show_deleted: true,
         max_results: 250,
         page_token: page_token

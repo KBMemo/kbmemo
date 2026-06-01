@@ -11,9 +11,10 @@ module GoogleCalendar
         memo.title_manual = true
         memo.body = build_body(event)
         memo.scheduled_on = parse_scheduled_on(event)
-        memo.properties = memo.properties.merge(
-          PROPERTIES_KEY => properties_payload(event, calendar_id)
-        )
+        existing = memo.properties.dig(PROPERTIES_KEY) || {}
+        payload = properties_payload(event, calendar_id)
+        payload["cancelled_occurrences"] = existing["cancelled_occurrences"] if existing["cancelled_occurrences"].present?
+        memo.properties = memo.properties.merge(PROPERTIES_KEY => payload)
         memo
       end
 
@@ -27,9 +28,22 @@ module GoogleCalendar
           "ends_at" => iso_timestamp(event.end),
           "all_day" => all_day?(event),
           "location" => event.location.presence,
+          "recurrence" => recurrence_lines(event),
+          "recurring" => recurrence_lines(event).present?,
           "synced_at" => Time.current.iso8601,
           "read_only" => true
         }.compact
+      end
+
+      def occurrence_date(event)
+        point = event.original_start_time || event.start
+        return nil unless point
+
+        if point.date
+          coerce_date(point.date)
+        elsif point.date_time
+          point.date_time.in_time_zone.to_date
+        end
       end
 
       def build_body(event)
@@ -74,6 +88,10 @@ module GoogleCalendar
         elsif point.date_time
           point.date_time.in_time_zone.iso8601
         end
+      end
+
+      def recurrence_lines(event)
+        Array(event.recurrence).map(&:to_s).reject(&:blank?)
       end
     end
   end

@@ -87,13 +87,13 @@ module BoardsHelper
       gcal = memo.properties.fetch("google_calendar", {})
       label = "Google Calendar"
       if gcal["all_day"]
-        "#{label} · 終日"
+        label = "#{label} · 終日"
       elsif gcal["starts_at"].present?
         time = Time.zone.parse(gcal["starts_at"].to_s)
-        "#{label} · #{time.strftime('%H:%M')}"
-      else
-        label
+        label = "#{label} · #{time.strftime('%H:%M')}"
       end
+      label = "#{label} · 繰り返し" if memo.google_calendar_recurring?
+      label
     elsif memo.kanban_column
       memo.kanban_column.name
     end

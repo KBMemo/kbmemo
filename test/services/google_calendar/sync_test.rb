@@ -58,17 +58,67 @@ class GoogleCalendar::SyncTest < ActiveSupport::TestCase
     assert_nil find_memo("evt-del")
   end
 
+  test "creates one memo for recurring master event" do
+    event = build_event(
+      id: "evt-weekly",
+      summary: "Weekly",
+      etag: "e1",
+      start: Google::Apis::CalendarV3::EventDateTime.new(date_time: Time.zone.parse("2026-06-03 10:00:00")),
+      ends: Google::Apis::CalendarV3::EventDateTime.new(date_time: Time.zone.parse("2026-06-03 11:00:00")),
+      recurrence: [ "RRULE:FREQ=WEEKLY;BYDAY=WE" ]
+    )
+    client = fake_client([event])
+
+    with_credentials do
+      result = GoogleCalendar::Sync.call(account: @account, client: client)
+      assert_equal 1, result.created
+    end
+
+    memo = find_memo("evt-weekly")
+    assert memo.google_calendar_recurring?
+    assert_equal [ "RRULE:FREQ=WEEKLY;BYDAY=WE" ], memo.properties.dig("google_calendar", "recurrence")
+  end
+
+  test "records cancelled recurring occurrence on master memo" do
+    master = build_event(
+      id: "evt-weekly",
+      summary: "Weekly",
+      etag: "e1",
+      start: Google::Apis::CalendarV3::EventDateTime.new(date_time: Time.zone.parse("2026-06-03 10:00:00")),
+      ends: Google::Apis::CalendarV3::EventDateTime.new(date_time: Time.zone.parse("2026-06-03 11:00:00")),
+      recurrence: [ "RRULE:FREQ=WEEKLY;BYDAY=WE" ]
+    )
+    with_credentials { GoogleCalendar::Sync.call(account: @account, client: fake_client([master])) }
+
+    cancelled = Google::Apis::CalendarV3::Event.new(
+      id: "evt-weekly_20260610",
+      recurring_event_id: "evt-weekly",
+      status: "cancelled",
+      etag: "e2",
+      original_start_time: Google::Apis::CalendarV3::EventDateTime.new(date_time: Time.zone.parse("2026-06-10 10:00:00"))
+    )
+
+    with_credentials do
+      result = GoogleCalendar::Sync.call(account: @account, client: fake_client([cancelled]))
+      assert_equal 1, result.updated
+    end
+
+    memo = find_memo("evt-weekly")
+    assert_includes memo.properties.dig("google_calendar", "cancelled_occurrences"), "2026-06-10"
+  end
+
   private
 
-  def build_event(id:, summary: "Event", etag: "etag", status: "confirmed")
+  def build_event(id:, summary: "Event", etag: "etag", status: "confirmed", start: nil, ends: nil, recurrence: nil)
     Google::Apis::CalendarV3::Event.new(
       id: id,
       summary: summary,
       status: status,
       etag: etag,
       html_link: "https://calendar.google.com/event?eid=#{id}",
-      start: Google::Apis::CalendarV3::EventDateTime.new(date: "2026-06-01"),
-      end: Google::Apis::CalendarV3::EventDateTime.new(date: "2026-06-02")
+      start: start || Google::Apis::CalendarV3::EventDateTime.new(date: "2026-06-01"),
+      end: ends || Google::Apis::CalendarV3::EventDateTime.new(date: "2026-06-02"),
+      recurrence: recurrence
     )
   end
 

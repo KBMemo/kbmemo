@@ -95,6 +95,10 @@ module GoogleCalendar
     end
 
     def sync_event(event, calendar_id:)
+      if event.recurring_event_id.present?
+        return sync_recurring_exception(event, calendar_id: calendar_id)
+      end
+
       memo = find_memo(calendar_id: calendar_id, event_id: event.id)
 
       if event.status == "cancelled"
@@ -127,6 +131,23 @@ module GoogleCalendar
       Memo.where(account_id: @account.id)
         .where("#{path_event} = ? AND #{path_calendar} = ?", event_id, calendar_id)
         .first
+    end
+
+    def sync_recurring_exception(event, calendar_id:)
+      memo = find_memo(calendar_id: calendar_id, event_id: event.recurring_event_id)
+      return outcome_line(event.id, "skipped exception (no master)", counters: { skipped: 1 }) unless memo
+
+      if RecurringExceptions.exception_unchanged?(memo, event)
+        return outcome_line(event.id, "skipped unchanged exception memo##{memo.id}", counters: { skipped: 1 })
+      end
+
+      if @dry_run
+        return outcome_line(event.id, "would update exception on memo##{memo.id}", counters: { skipped: 1 })
+      end
+
+      RecurringExceptions.apply!(memo: memo, event: event)
+      memo.save!
+      outcome_line(event.id, "updated exception memo##{memo.id}", counters: { updated: 1 })
     end
 
     def memo_unchanged?(memo, event, calendar_id)

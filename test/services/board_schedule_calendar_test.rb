@@ -131,4 +131,37 @@ class BoardScheduleCalendarTest < ActiveSupport::TestCase
 
     assert calendar.day_view?
   end
+
+  test "recurring google calendar memo appears on each occurrence in week view" do
+    gcal_memo = Memo.create!(
+      account: @account,
+      memo_directory: memo_directories(:work),
+      title: "Weekly standup",
+      body: "",
+      properties: {
+        "scheduled_on" => "2026-05-06",
+        "google_calendar" => {
+          "event_id" => "evt-weekly",
+          "calendar_id" => "primary",
+          "starts_at" => "2026-05-07T10:00:00+09:00",
+          "recurrence" => [ "RRULE:FREQ=WEEKLY;BYDAY=WE" ],
+          "recurring" => true,
+          "all_day" => false,
+          "read_only" => true
+        }
+      }
+    )
+
+    calendar = BoardScheduleCalendar.new(
+      board: @board,
+      memos_scope: Memo.where(account_id: @account.id),
+      month: Date.new(2026, 5, 1),
+      selected_day: Date.new(2026, 5, 7),
+      view: "week"
+    )
+
+    wednesdays = calendar.list_groups.select { |group| group[:date].wednesday? }.flat_map { |group| group[:memos] }
+    assert wednesdays.count >= 2
+    assert wednesdays.all? { |memo| memo == gcal_memo }
+  end
 end
