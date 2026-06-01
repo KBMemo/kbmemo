@@ -51,5 +51,8 @@
     "lucide": "^1.14.0",
     "stimulus-use": "^0.52.3",
     "svgedit": "^7.4.1"
+  },
+  "overrides": {
+    "jspdf": "4.2.1"
   }
 }
