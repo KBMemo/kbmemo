@@ -2,15 +2,7 @@
 
 class ProfilesController < ApplicationController
   def edit
-    @account = rodauth.rails_account
-    @revealed_clip_api_token = session.delete(:revealed_clip_api_token)
-    @revealed_tsuzura_api_token = session.delete(:revealed_tsuzura_api_token)
-    @google_calendar_callback_url = google_calendar_callback_url(
-      host: request.host,
-      port: google_calendar_callback_port,
-      protocol: google_calendar_callback_protocol
-    )
-    @google_calendar_synced_memos_count = google_calendar_synced_memos_count(@account)
+    prepare_profile_edit
   end
 
   def update
@@ -24,10 +16,10 @@ class ProfilesController < ApplicationController
 
   def create_clip_api_token
     @account = rodauth.rails_account
-    token = @account.generate_clip_api_token!
-    session[:revealed_clip_api_token] = token
-    redirect_to edit_profile_path(anchor: "clip-api-token"),
-      notice: "クリップ API トークンを発行しました。下の枠内に表示されます（再表示できません）。"
+    @revealed_clip_api_token = @account.generate_clip_api_token!
+    prepare_profile_edit
+    flash.now[:notice] = "クリップ API トークンを発行しました。下の枠内に表示されます（再表示できません）。"
+    render :edit
   end
 
   def destroy_clip_api_token
@@ -38,10 +30,10 @@ class ProfilesController < ApplicationController
 
   def create_tsuzura_api_token
     @account = rodauth.rails_account
-    token = @account.generate_tsuzura_api_token!
-    session[:revealed_tsuzura_api_token] = token
-    redirect_to edit_profile_path(anchor: "tsuzura-cli-token"),
-      notice: "Tsuzura CLI トークンを発行しました。下の枠内に表示されます（再表示できません）。"
+    @revealed_tsuzura_api_token = @account.generate_tsuzura_api_token!
+    prepare_profile_edit
+    flash.now[:notice] = "Tsuzura CLI トークンを発行しました。下の枠内に表示されます（再表示できません）。"
+    render :edit
   end
 
   def destroy_tsuzura_api_token
@@ -51,6 +43,16 @@ class ProfilesController < ApplicationController
   end
 
   private
+
+  def prepare_profile_edit
+    @account ||= rodauth.rails_account
+    @google_calendar_callback_url = google_calendar_callback_url(
+      host: request.host,
+      port: google_calendar_callback_port,
+      protocol: google_calendar_callback_protocol
+    )
+    @google_calendar_synced_memos_count = google_calendar_synced_memos_count(@account)
+  end
 
   def profile_params
     permitted = params.require(:account).permit(:nickname, :openai_api_key, :clear_openai_api_key)

@@ -119,6 +119,8 @@ section.mt-10#clip-api-token
     .mt-4.rounded-md.border.border-amber-300.bg-amber-50.p-4 role="status"
       p.text-sm.font-medium.text-amber-900 発行したトークン（再表示できません）
       code.mt-2.block.overflow-x-auto.rounded.kb-chrome-panel.px-3.py-2.text-xs.kb-text-primary = @revealed_clip_api_token
+    script
+      | document.getElementById("clip-api-token")?.scrollIntoView({ block: "start" });
 
   .mt-4.flex.flex-wrap.gap-3
     = button_to "トークンを発行", clip_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
@@ -151,6 +153,8 @@ section.mt-10#tsuzura-cli-token
     .mt-4.rounded-md.border.border-amber-300.bg-amber-50.p-4 role="status"
       p.text-sm.font-medium.text-amber-900 発行したトークン（再表示できません）
       code.mt-2.block.overflow-x-auto.rounded.kb-chrome-panel.px-3.py-2.text-xs.kb-text-primary = @revealed_tsuzura_api_token
+    script
+      | document.getElementById("tsuzura-cli-token")?.scrollIntoView({ block: "start" });
 
   .mt-4.flex.flex-wrap.gap-3
     = button_to "トークンを発行", tsuzura_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
