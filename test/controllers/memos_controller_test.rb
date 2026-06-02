@@ -903,6 +903,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     json = JSON.parse(response.body)
     assert json["edit_path"].present?
     assert json["draft_url"].present?
+    assert json["update_url"].present?
+    assert json["form_dom_id"].present?
     m = Memo.order(:id).last
     assert_equal memo_global_slug("from-json", m), json["slug"]
     assert_equal "From Json", m.title

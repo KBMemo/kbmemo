@@ -22,6 +22,7 @@ export default class extends Controller {
     "directory",
     "discardDraftButton",
     "showMemoLink",
+    "formActionsChrome",
     "remoteNotice",
     "remoteNoticeText"
   ]
@@ -39,6 +40,7 @@ export default class extends Controller {
   connect() {
     useDebounce(this, { wait: this.debounceValue })
     this._creating = false
+    this._formInteracted = false
     this._persistChain = Promise.resolve()
     this._slugTouched = false
     this._tabId = crypto.randomUUID()
@@ -48,11 +50,13 @@ export default class extends Controller {
     this._lastSavedSnapshot = JSON.stringify(this.buildMemoSnapshotOverrides())
     this._setupRemoteDraftChannel()
     this._onTurboRender = () => {
-      if (this.isNewMemoForm()) this.scheduleNewMemoFormReset()
+      if (this.isNewMemoForm() && !this._formInteracted) {
+        this.scheduleNewMemoFormReset()
+      }
     }
     document.addEventListener("turbo:render", this._onTurboRender)
     if (this.isNewMemoForm()) {
-      this.scheduleNewMemoFormReset()
+      this.resetNewMemoFormFields()
     }
     queueMicrotask(() => {
       if (this.isNewMemoForm()) return
@@ -70,8 +74,26 @@ export default class extends Controller {
   }
 
   preventSubmit(event) {
-    if (event.submitter?.dataset?.memoCommit === "true") return
+    if (event.submitter?.dataset?.memoCommit === "true") {
+      this.flushBodyEditor()
+      return
+    }
     event.preventDefault()
+  }
+
+  prepareShowNavigation(event) {
+    if (event.button !== 0) return
+    this.flushBodyEditor()
+  }
+
+  flushBodyEditor() {
+    this.element.dispatchEvent(
+      new CustomEvent("kbmemo:flush-body-editor", { bubbles: true })
+    )
+  }
+
+  markFormInteracted() {
+    this._formInteracted = true
   }
 
   suppressEnterSubmit(event) {
@@ -102,6 +124,7 @@ export default class extends Controller {
   }
 
   titleInput(event) {
+    this.markFormInteracted()
     if (ifComposing(event)) return
     const trimmed = this.titleTarget.value.trim()
     if (trimmed === "" || trimmed === TITLE_PLACEHOLDER) {
@@ -138,6 +161,7 @@ export default class extends Controller {
   }
 
   bodyInput(event) {
+    this.markFormInteracted()
     if (ifComposing(event)) return
     if (this.hasBodyTarget && this.hasTitleTarget) {
       const manual =
@@ -415,7 +439,7 @@ export default class extends Controller {
   }
 
   resetNewMemoFormFields() {
-    if (!this.isNewMemoForm()) return
+    if (!this.isNewMemoForm() || this._formInteracted) return
 
     const initial = this.initialFormSnapshot()
 
@@ -706,8 +730,7 @@ export default class extends Controller {
       if (res.status === 201) {
         const data = await res.json()
         created = true
-        const navigate = window.Turbo?.visit ?? ((url) => window.location.assign(url))
-        navigate(data.edit_path)
+        this.promoteCreatedMemo(data)
         return true
       }
       if (res.status === 422) {
@@ -720,6 +743,60 @@ export default class extends Controller {
       if (!created) this._creating = false
     }
     return false
+  }
+
+  promoteCreatedMemo(data) {
+    if (!data?.id) return
+
+    this.createUrlValue = ""
+    if (data.draft_url) this.draftUrlValue = data.draft_url
+    this.memoIdValue = data.id
+    this._creating = false
+    this._formInteracted = true
+
+    const form = this.element
+    if (data.update_url) {
+      form.action = data.update_url
+      let methodInput = form.querySelector('input[name="_method"]')
+      if (!methodInput) {
+        methodInput = document.createElement("input")
+        methodInput.type = "hidden"
+        methodInput.name = "_method"
+        form.append(methodInput)
+      }
+      methodInput.value = "patch"
+    }
+    if (data.form_dom_id) {
+      form.id = data.form_dom_id
+      const commit = document.querySelector('[data-memo-commit="true"]')
+      if (commit instanceof HTMLElement) {
+        commit.setAttribute("form", data.form_dom_id)
+      }
+    }
+
+    if (this.hasFormActionsChromeTarget) {
+      this.formActionsChromeTarget.classList.remove("hidden")
+      for (const el of this.formActionsChromeTarget.querySelectorAll("[data-promote-hidden]")) {
+        el.classList.remove("hidden")
+      }
+      this.formActionsChromeTarget
+        .querySelector('[data-memo-commit="true"]')
+        ?.classList.remove("hidden")
+    }
+    if (this.hasShowMemoLinkTarget && data.show_path) {
+      this.showMemoLinkTarget.href = data.show_path
+    }
+
+    if (data.edit_path) {
+      const editUrl = new URL(data.edit_path, window.location.origin)
+      editUrl.search = window.location.search
+      window.history.replaceState(window.history.state, "", editUrl.toString())
+    }
+
+    this._lastSavedSnapshot = JSON.stringify(this.buildMemoSnapshotOverrides())
+    this.element.dispatchEvent(
+      new CustomEvent("kbmemo:memo-promoted", { bubbles: true, detail: data })
+    )
   }
 
   applyDraftServerPayload(data) {

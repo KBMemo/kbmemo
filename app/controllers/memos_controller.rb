@@ -191,10 +191,16 @@ class MemosController < ApplicationController
           render json: {
             id: @memo.id,
             uid: @memo.uid,
-            draft_url: draft_memo_url(@memo),
+            draft_url: draft_memo_url(@memo, memo_sidebar_nav_query),
             edit_path: edit_memo_path(@memo),
+            update_url: memo_path(@memo),
+            show_path: memo_path(@memo),
+            form_dom_id: dom_id(@memo, :edit_form),
             title_unfilled: @memo.title_unfilled?,
-            slug: @memo.slug
+            slug: @memo.slug,
+            tsuzura_authorize_url: internal_tsuzura_sign_urls_path,
+            tsuzura_albums_url: internal_tsuzura_albums_path,
+            tsuzura_album_url_template: internal_tsuzura_album_path("__ID__")
           }, status: :created
         end
       end

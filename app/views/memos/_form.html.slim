@@ -110,8 +110,7 @@ ruby:
       code.kb-text-secondary
         | [[home/u-1/work/slug-123]]
       | も解決できる場合があります）
-    - tsuzura_picker_enabled = memo.persisted?
-    div class="memo-body-editor block w-full border-0 rounded-none bg-transparent border-b kb-border min-h-[18rem]" data-theme-slot="memo-editor" data-controller=(tsuzura_picker_enabled ? "memo-body-editor tsuzura-picker" : "memo-body-editor") data-memo-body-editor-label-id-value="memo-body-label" data-memo-body-editor-wiki-completions-url-value=wiki_completions_memos_path(format: :json) data-memo-body-editor-wiki-link-labels-url-value=wiki_link_labels_memos_path(format: :json) data-memo-body-editor-tsuzura-authorize-url-value=(memo.persisted? ? internal_tsuzura_sign_urls_path : "") data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "") data-memo-body-editor-upload-url-value=(memo.image_assets_uploadable? ? assets_memo_path(memo) : "") data-tsuzura-picker-albums-url-value=(tsuzura_picker_enabled ? internal_tsuzura_albums_path : "") data-tsuzura-picker-album-url-template-value=(tsuzura_picker_enabled ? internal_tsuzura_album_path("__ID__") : "") data-tsuzura-picker-editor-selector-value=".memo-body-editor"
+    div class="memo-body-editor block w-full border-0 rounded-none bg-transparent border-b kb-border min-h-[18rem]" data-theme-slot="memo-editor" data-controller="memo-body-editor tsuzura-picker" data-memo-body-editor-label-id-value="memo-body-label" data-memo-body-editor-wiki-completions-url-value=wiki_completions_memos_path(format: :json) data-memo-body-editor-wiki-link-labels-url-value=wiki_link_labels_memos_path(format: :json) data-memo-body-editor-tsuzura-authorize-url-value=(memo.persisted? ? internal_tsuzura_sign_urls_path : "") data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "") data-memo-body-editor-upload-url-value=(memo.image_assets_uploadable? ? assets_memo_path(memo) : "") data-tsuzura-picker-albums-url-value=internal_tsuzura_albums_path data-tsuzura-picker-album-url-template-value=internal_tsuzura_album_path("__ID__") data-tsuzura-picker-editor-selector-value=".memo-body-editor"
         div.memo-body-editor__header.mb-1.border-b.kb-border.pb-2 data-controller=(memo.image_assets_uploadable? ? "memo-attachments" : nil) data-memo-attachments-expanded-value=(memo.image_assets_uploadable? ? "false" : nil)
           div.memo-body-editor__header-row
             nav.memo-body-editor__mode-tabs role="tablist" aria-label="編集モード"
@@ -123,9 +122,8 @@ ruby:
               label.memo-body-editor__preview-toggle.memo-body-editor__source-only.inline-flex.cursor-pointer.items-center.gap-1.5 class=kb_toolbar_btn title="Asciidoctor.js によるライブプレビューを表示"
                 input type="checkbox" data-memo-body-editor-target="previewToggle" data-action="change->memo-body-editor#toggleLivePreview"
                 span ライブプレビュー
-              - if tsuzura_picker_enabled
-                button.inline-flex.items-center class=kb_toolbar_btn type="button" data-action="tsuzura-picker#open" title="Tsuzura アルバム・写真を本文に挿入"
-                  | Tsuzura
+              button.inline-flex.items-center class=kb_toolbar_btn type="button" data-action="tsuzura-picker#open" title="Tsuzura アルバム・写真を本文に挿入"
+                | Tsuzura
               - if memo.image_assets_uploadable?
                 = link_to "ダイアグラムを作成", new_memo_diagram_path(memo), class: kb_toolbar_btn, target: "_blank", rel: "noopener"
                 label.cursor-pointer class=kb_toolbar_btn
@@ -160,12 +158,12 @@ ruby:
           tabindex: -1,
           autocomplete: "off",
           data: { memo_draft_target: "body", memo_body_editor_target: "field", action: "input->memo-draft#bodyInput compositionend->memo-draft#bodyInput blur->memo-draft#bodyInput" }
-        - if tsuzura_picker_enabled
-          = render "memos/tsuzura_picker"
+        = render "memos/tsuzura_picker"
 
   - if memo.persisted?
     = render "memos/show_backlinks", memo: memo
 
-- if memo.persisted?
+- form_actions_hidden = !memo.persisted?
+div data-memo-draft-target="formActionsChrome" class=("hidden" if form_actions_hidden)
   = render "memos/form_actions", memo: memo, memo_edit_form_id: memo_edit_form_id
 

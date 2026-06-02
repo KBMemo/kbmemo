@@ -214,6 +214,10 @@ export default class extends Controller {
       this.applyExternalBody(body)
     }
     this.element.addEventListener("kbmemo:reset-body-editor", this._onResetBody)
+    this._onFlushBody = () => this.flushBodyToField()
+    this._onMemoPromoted = (event) => this.applyMemoPromoted(event.detail)
+    this.element.addEventListener("kbmemo:flush-body-editor", this._onFlushBody)
+    this.element.addEventListener("kbmemo:memo-promoted", this._onMemoPromoted)
 
     const getWikiConfig = () => ({
       url: this.wikiCompletionsUrlValue,
@@ -371,19 +375,35 @@ export default class extends Controller {
     const preferredMode = readEditModePreference()
     if (preferredMode === "wysiwyg" && this.hasWysiwygPaneTarget) {
       await this.switchEditMode("wysiwyg")
-      if (isNewMemo) {
-        // memo-draft の reset（rAF）より後に空本文ユニットを編集可能にする
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            void this._wysiwygEditor?.focus({ activate: true })
-          })
-        })
-      }
     } else {
       this.syncEditModeUi()
-      if (isNewMemo && this.view) {
-        this.view.focus()
-      }
+    }
+    if (isNewMemo) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => this.focusBodyForEditing())
+      })
+    }
+  }
+
+  focusBodyForEditing() {
+    if (this._editMode === "wysiwyg" && this._wysiwygEditor) {
+      this._wysiwygEditor.focus({ activate: true })
+      return
+    }
+    this.view?.focus()
+  }
+
+  flushBodyToField() {
+    if (this._editMode !== "wysiwyg" || !this._wysiwygEditor) return
+    const source = this._wysiwygEditor.flush()
+    this.syncSourceFromWysiwyg(source)
+  }
+
+  applyMemoPromoted(detail) {
+    if (!detail) return
+    if (detail.id != null) this.memoIdValue = String(detail.id)
+    if (detail.tsuzura_authorize_url) {
+      this.tsuzuraAuthorizeUrlValue = detail.tsuzura_authorize_url
     }
   }
 
@@ -555,6 +575,12 @@ export default class extends Controller {
   disconnect() {
     if (this._onResetBody) {
       this.element.removeEventListener("kbmemo:reset-body-editor", this._onResetBody)
+    }
+    if (this._onFlushBody) {
+      this.element.removeEventListener("kbmemo:flush-body-editor", this._onFlushBody)
+    }
+    if (this._onMemoPromoted) {
+      this.element.removeEventListener("kbmemo:memo-promoted", this._onMemoPromoted)
     }
     this._unbindInsertEvent()
     this._unbindDragDrop()

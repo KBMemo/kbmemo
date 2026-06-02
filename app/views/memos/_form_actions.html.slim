@@ -5,6 +5,7 @@ ruby:
   show_link_class += " hidden" unless memo.file_committed_at.present? && !memo.display_as_draft?
   delete_btn_class = "rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
   commit_btn_class = "kb-chrome-btn-primary px-4 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kb-border-strong)] focus-visible:ring-offset-2"
+  commit_btn_class += " hidden" unless memo.persisted?
   uncommitted = memo.file_committed_at.blank?
   memo_edit_form_id = local_assigns.fetch(:memo_edit_form_id) { dom_id(memo, :edit_form) }
 
@@ -18,7 +19,7 @@ ruby:
   - if memo.file_committed_at.present?
     button type="button" class=discard_btn_class data-memo-draft-target="discardDraftButton" data-action="memo-draft#discardDraft" title="ドラフトの変更を破棄し、最後に Git へコミットした内容を読み込みます"
       | ドラフトを破棄
-  - if memo.persisted?
-    = link_to "表示", memo_path(memo), class: show_link_class, data: { memo_draft_target: "showMemoLink" }
-    button type="submit" form=memo_edit_form_id title="ファイルへ保存して、Gitに記録" data-memo-commit="true" class=commit_btn_class data-theme-slot="btn-primary"
-      | コミット
+  - show_href = memo.persisted? ? memo_path(memo) : "#"
+  = link_to "表示", show_href, class: show_link_class, data: { memo_draft_target: "showMemoLink", action: "mousedown->memo-draft#prepareShowNavigation" }
+  button type="submit" form=memo_edit_form_id title="ファイルへ保存して、Gitに記録" data-memo-commit="true" class=commit_btn_class data-theme-slot="btn-primary" data-promote-hidden=("" unless memo.persisted?)
+    | コミット

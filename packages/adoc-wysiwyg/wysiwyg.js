@@ -79,6 +79,13 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     return paneEl ?? editorEl.closest('.memo-body-editor__wysiwyg-pane')
   }
 
+  /** @param {Element} element */
+  function isMemoFormChromeElement(element) {
+    if (element.closest('#memo_form_actions')) return true
+    if (element.closest('[data-memo-commit="true"]')) return true
+    return false
+  }
+
   /** @param {Node | null | undefined} node */
   function editorRegionContains(node) {
     if (!(node instanceof Node)) return false
@@ -88,6 +95,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     if (node instanceof Element && node.closest('.search-replace-dialog, .editor-context-menu, .web-paste-dialog, .image-paste-dialog')) {
       return true
     }
+    if (node instanceof Element && isMemoFormChromeElement(node)) return true
     return false
   }
 
@@ -644,10 +652,14 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
 
   const focusRegion =
     getEditorPane() instanceof HTMLElement ? /** @type {HTMLElement} */ (getEditorPane()) : editorEl
-  focusRegion.addEventListener('focusout', () => {
+  focusRegion.addEventListener('focusout', (event) => {
     if (isRendering || isSwitchingUnit) return
+    const related = event.relatedTarget
+    if (related instanceof Element && isMemoFormChromeElement(related)) return
     requestAnimationFrame(() => {
       if (editorRegionHasFocus()) return
+      const active = document.activeElement
+      if (active instanceof Element && isMemoFormChromeElement(active)) return
       deactivateActiveSourceUnitIfNeeded()
     })
   })
@@ -733,9 +745,71 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
       }
 
       void refreshWikiLabelPreviews(normalizedSource)
+      ensureAppendParagraphControl()
     } finally {
       isRendering = false
     }
+  }
+
+  function ensureAppendParagraphControl() {
+    let row = editorEl.querySelector(':scope > .wysiwyg-append-control')
+    if (!row) {
+      row = document.createElement('div')
+      row.className = 'wysiwyg-append-control'
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'wysiwyg-append-btn'
+      btn.textContent = '+'
+      btn.title = '段落を追加'
+      btn.setAttribute('aria-label', '段落を追加')
+      btn.addEventListener('mousedown', (e) => e.preventDefault())
+      btn.addEventListener('click', (e) => {
+        e.preventDefault()
+        appendParagraphAtEnd()
+      })
+      row.append(btn)
+    }
+    if (row.parentElement !== editorEl) {
+      editorEl.append(row)
+    }
+  }
+
+  function appendParagraphAtEnd() {
+    flushSyncNow()
+    if (activeSourceUnit) {
+      deactivateSourceUnit(activeSourceUnit)
+    }
+
+    const units = [...editorEl.querySelectorAll(':scope > .wysiwyg-unit')]
+    const lastUnit = units.at(-1)
+    const onlyEmptyPlaceholder =
+      units.length === 1 &&
+      lastUnit instanceof HTMLElement &&
+      lastUnit.classList.contains('wysiwyg-unit--placeholder') &&
+      !getUnitText(lastUnit).trim()
+
+    if (onlyEmptyPlaceholder) {
+      activateSourceUnit(lastUnit, { caret: 'start' })
+      return
+    }
+
+    const appendControl = editorEl.querySelector(':scope > .wysiwyg-append-control')
+    const newUnit = buildUnitElement('', true)
+    if (appendControl) {
+      editorEl.insertBefore(newUnit, appendControl)
+    } else {
+      editorEl.append(newUnit)
+      ensureAppendParagraphControl()
+    }
+
+    activeSourceUnit = newUnit
+    const host = newUnit.querySelector(':scope > .wysiwyg-source-editor')
+    if (host instanceof HTMLElement) {
+      focusWysiwygSourceEditor(host)
+      setWysiwygSourceSelection(host, 0)
+      scheduleScrollUnitIntoView(newUnit, host)
+    }
+    scheduleSync()
   }
 
   function renderFromSource(source) {
