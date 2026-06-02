@@ -44,12 +44,28 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_not account.clip_api_token_configured?
 
     post clip_api_token_profile_url
-    assert_redirected_to edit_profile_path
+    assert_redirected_to "#{edit_profile_path}#clip-api-token"
     assert account.reload.clip_api_token_configured?
-    assert flash[:clip_api_token].start_with?("kbmemo_")
+
+    follow_redirect!
+    assert_response :success
+    assert_match(/kbmemo_/, response.body)
 
     delete clip_api_token_profile_url
     assert_redirected_to edit_profile_path
     assert_not account.reload.clip_api_token_configured?
+  end
+
+  test "signed-in user can generate and reveal tsuzura api token" do
+    account = accounts(:one)
+    assert_not account.tsuzura_api_token_configured?
+
+    post tsuzura_api_token_profile_url
+    assert_redirected_to "#{edit_profile_path}#tsuzura-cli-token"
+    assert account.reload.tsuzura_api_token_configured?
+
+    follow_redirect!
+    assert_response :success
+    assert_match(/tsuzura_/, response.body)
   end
 end

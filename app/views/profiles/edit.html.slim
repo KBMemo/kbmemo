@@ -97,7 +97,7 @@ section.mt-10
       code.kb-code-inline config/credentials/google_calendar.example.yml
       |  参照）。設定後はアプリを再起動。
 
-section.mt-10
+section.mt-10#clip-api-token
   h2 class=kb_section_title クリップ API トークン
   p.mt-1.text-sm.kb-text-secondary
     | Chrome 拡張やブックマークレットからメモを保存する際に使います。Bearer トークンとして
@@ -115,17 +115,17 @@ section.mt-10
   - else
     p.mt-2.text-xs.text-amber-700 未設定 — API からのクリップは利用できません
 
-  - if flash[:clip_api_token]
-    .mt-4.rounded-md.border.border-amber-300.bg-amber-50.p-4
+  - if @revealed_clip_api_token.present?
+    .mt-4.rounded-md.border.border-amber-300.bg-amber-50.p-4 role="status"
       p.text-sm.font-medium.text-amber-900 発行したトークン（再表示できません）
-      code.mt-2.block.overflow-x-auto.rounded.kb-chrome-panel.px-3.py-2.text-xs.kb-text-primary = flash[:clip_api_token]
+      code.mt-2.block.overflow-x-auto.rounded.kb-chrome-panel.px-3.py-2.text-xs.kb-text-primary = @revealed_clip_api_token
 
   .mt-4.flex.flex-wrap.gap-3
-    = button_to "トークンを発行", clip_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }, form: { data: { turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
+    = button_to "トークンを発行", clip_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
     - if @account.clip_api_token_configured?
       = button_to "トークンを無効化", clip_api_token_profile_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "API からのクリップができなくなります。続行しますか？" } }
 
-section.mt-10
+section.mt-10#tsuzura-cli-token
   h2 class=kb_section_title Tsuzura CLI トークン
   p.mt-1.text-sm.kb-text-secondary
     | Tsuzura（
@@ -147,12 +147,12 @@ section.mt-10
   - else
     p.mt-2.text-xs.text-amber-700 未設定 — CLI からの登録は利用できません
 
-  - if flash[:tsuzura_api_token]
-    .mt-4.rounded-md.border.border-amber-300.bg-amber-50.p-4
+  - if @revealed_tsuzura_api_token.present?
+    .mt-4.rounded-md.border.border-amber-300.bg-amber-50.p-4 role="status"
       p.text-sm.font-medium.text-amber-900 発行したトークン（再表示できません）
-      code.mt-2.block.overflow-x-auto.rounded.kb-chrome-panel.px-3.py-2.text-xs.kb-text-primary = flash[:tsuzura_api_token]
+      code.mt-2.block.overflow-x-auto.rounded.kb-chrome-panel.px-3.py-2.text-xs.kb-text-primary = @revealed_tsuzura_api_token
 
   .mt-4.flex.flex-wrap.gap-3
-    = button_to "トークンを発行", tsuzura_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }, form: { data: { turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
+    = button_to "トークンを発行", tsuzura_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
     - if @account.tsuzura_api_token_configured?
       = button_to "トークンを無効化", tsuzura_api_token_profile_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "CLI からの登録ができなくなります。続行しますか？" } }

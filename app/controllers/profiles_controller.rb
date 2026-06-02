@@ -3,6 +3,8 @@
 class ProfilesController < ApplicationController
   def edit
     @account = rodauth.rails_account
+    @revealed_clip_api_token = session.delete(:revealed_clip_api_token)
+    @revealed_tsuzura_api_token = session.delete(:revealed_tsuzura_api_token)
     @google_calendar_callback_url = google_calendar_callback_url(
       host: request.host,
       port: google_calendar_callback_port,
@@ -23,8 +25,9 @@ class ProfilesController < ApplicationController
   def create_clip_api_token
     @account = rodauth.rails_account
     token = @account.generate_clip_api_token!
-    flash[:clip_api_token] = token
-    redirect_to edit_profile_path, notice: "クリップ API トークンを発行しました。再表示できないので控えてください。"
+    session[:revealed_clip_api_token] = token
+    redirect_to edit_profile_path(anchor: "clip-api-token"),
+      notice: "クリップ API トークンを発行しました。下の枠内に表示されます（再表示できません）。"
   end
 
   def destroy_clip_api_token
@@ -36,8 +39,9 @@ class ProfilesController < ApplicationController
   def create_tsuzura_api_token
     @account = rodauth.rails_account
     token = @account.generate_tsuzura_api_token!
-    flash[:tsuzura_api_token] = token
-    redirect_to edit_profile_path, notice: "Tsuzura CLI トークンを発行しました。再表示できないので控えてください。"
+    session[:revealed_tsuzura_api_token] = token
+    redirect_to edit_profile_path(anchor: "tsuzura-cli-token"),
+      notice: "Tsuzura CLI トークンを発行しました。下の枠内に表示されます（再表示できません）。"
   end
 
   def destroy_tsuzura_api_token
