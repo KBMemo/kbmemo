@@ -580,6 +580,20 @@ sudo systemctl enable --now tsuzura
 curl -fsS http://127.0.0.1:3008/up
 ----
 
+==== Tsuzura の更新デプロイ
+
+`kbmemo-media` 同梱の `bin/deploy` で pull・依存関係・**primary DB のマイグレーション**（`tsuzura_albums` 等）・再起動を実行します。KBMemo（site）の `db:migrate` だけでは Tsuzura 用テーブルは作られません。
+
+[source,bash]
+----
+cd /home/kensei/sites/kbmemo-media
+bin/deploy
+----
+
+* ヘルスチェック既定: `https://media.kbmemo.net/up`
+* 環境変数: `TSUZURA_SYSTEMD_UNIT`（既定 `tsuzura`）、`TSUZURA_HEALTH_URL`、`TSUZURA_GIT_REMOTE`
+* sudoers 例（任意）: `kensei ALL=(root) NOPASSWD: /bin/systemctl restart tsuzura, /bin/systemctl status tsuzura`
+
 === `/cable` の確認
 
 [source,bash]
