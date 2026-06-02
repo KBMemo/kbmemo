@@ -27,8 +27,9 @@
 
 ## Tsuzura（写真・media.kbmemo.net）
 
-- Phase 1 完了（CLI + `album::` / `image::media:` 表示）。**Phase 2 準備:** `docs/architecture/tsuzura-phase2.adoc`
+- **Phase 1・2 完了**（CLI + マクロ表示 + media Web UI + メモ編集ピッカー）。詳細: `docs/architecture/tsuzura-phase2.adoc`
 - 全体設計: `docs/architecture/media-platform.adoc`。実装リポジトリ: `kbmemo-media`（別 clone）
+- ピッカー: `tsuzura-picker` / `POST /internal/tsuzura/sign_urls`（JSON + CSRF）。本文は `album::` / `image::media:` のみ保存
 
 ## Stack (short)
 

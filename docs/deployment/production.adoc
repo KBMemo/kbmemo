@@ -475,7 +475,7 @@ curl -fsS https://kbmemo.net/up
 
 === Tsuzura（media.kbmemo.net）
 
-link:../architecture/media-platform.adoc[media-platform.adoc] **Phase 1 完了**。写真 API（`kbmemo-media`）を **https://media.kbmemo.net** で公開する。**Phase 2**（Web UI・メモピッカー）: link:../architecture/tsuzura-phase2.adoc[tsuzura-phase2.adoc]。
+link:../architecture/media-platform.adoc[media-platform.adoc] **Phase 1・2 完了**。写真 API + 最小 Web UI（`kbmemo-media`）を **https://media.kbmemo.net** で公開。ピッカー・運用: link:../architecture/tsuzura-phase2.adoc[tsuzura-phase2.adoc]。
 
 * **upstream 例:** `localhost:3008`（Thruster + Puma、`PORT=3008`）
 * **TLS:** `certbot --nginx -d media.kbmemo.net`
@@ -551,6 +551,19 @@ KBMEMO_TSUZURA_INTERNAL_SECRET=…  # credentials tsuzura.internal_secret と同
 ----
 
 * **Mixed Content:** KBMemo ページは `TSUZURA_PUBLIC_URL=https://media.kbmemo.net` 必須（`http://localhost:3008` の署名 URL を本文に保存しない）。変更後は `sudo systemctl restart kbmemo`。
+* **メモ編集ピッカー:** ログイン済みで `POST /internal/tsuzura/sign_urls` が **200** であること（422 の多くは CSRF — ページ再読込で meta 同期）。
+
+kbmemo-media 側（`.env.production` 例）:
+
+[source,bash]
+----
+KBMEMO_TSUZURA_INTERNAL_SECRET=…  # KBMemo と同一
+KBMEMO_LOGIN_URL=https://kbmemo.net/login
+KBMEMO_HOME_URL=https://kbmemo.net
+TSUZURA_CORS_ORIGINS=https://kbmemo.net,https://www.kbmemo.net
+----
+
+未ログインで `media.kbmemo.net` を開くと `KBMEMO_LOGIN_URL` へリダイレクト。変更後は `sudo systemctl restart tsuzura`。
 
 === Tsuzura systemd
 
