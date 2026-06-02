@@ -25,6 +25,11 @@
 
 - Slim のドット記法（`tag.foo.bar`）は **`[` を含むクラス名をパースできない**（任意値 `text-[10px]` など）。角括弧付きユーティリティは **`class="クラス名 ..."`** で指定すること。
 
+## Tsuzura（写真・media.kbmemo.net）
+
+- Phase 1 完了（CLI + `album::` / `image::media:` 表示）。**Phase 2 準備:** `docs/architecture/tsuzura-phase2.adoc`
+- 全体設計: `docs/architecture/media-platform.adoc`。実装リポジトリ: `kbmemo-media`（別 clone）
+
 ## Stack (short)
 
 - Rails 8, Rodauth, Pundit, Turbo, Stimulus, Vite

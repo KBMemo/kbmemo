@@ -1,0 +1,153 @@
+= Tsuzura Phase 2 — Web UI とメモ編集ピッカー（準備）
+
+link:media-platform.adoc[media-platform.adoc] の **Phase 2** 実装用チェックリスト。Phase 1（CLI + KBMemo 表示連携）は **2026-06 完了**。
+
+== 前提（Phase 1 完了確認）
+
+本番・開発で次が動いていること。
+
+* `kbmemo-media`: `tsuzura_*` テーブル・Active Storage・`POST /v1/media/batch`・`bin/tsuzura import`
+* `kbmemo_site`: `album::` / `image::media:` 表示（show + 編集プレビュー）、`POST /internal/tsuzura/sign_urls`
+* 環境変数（KBMemo `.env.production`）: `TSUZURA_PUBLIC_URL` / `TSUZURA_BASE_URL` = `https://media.kbmemo.net`（未設定時は本番既定 URL を使用）
+* nginx `media.kbmemo.net`: `client_max_body_size` は一括 import 向けに **512M 以上** 推奨（link:../deployment/production.adoc#tsuzura-nginx[production.adoc — Tsuzura nginx]）
+* デプロイ: `kbmemo_site` → `bin/deploy`、`kbmemo-media` → `bin/deploy`（**site の `db:migrate` だけでは Tsuzura テーブルは作られない**）
+
+== Phase 2 ゴール（ユーザー価値）
+
+[cols="2,3"]
+|===
+|できること |概要
+
+|ブラウザから写真を上げる
+|ログイン済み（Rodauth 共有 Cookie）で Tsuzura に単体／複数 upload
+
+|アルバムを見る
+|`media.kbmemo.net` 上の最小 Web UI（一覧・アルバム詳細・サムネ）
+
+|メモ編集で挿入
+|KBMemo 本文エディタからアルバム／画像を選び `album::` / `image::media:` を挿入（DB 本文は ULID マクロのまま）
+
+|===
+
+== スコープ（Phase 2 に含める）
+
+=== kbmemo-media
+
+* HTML UI（API-only のまま、別 `app/views` または軽量 SPA）
+** アルバム一覧・作成
+** アルバム詳細（`tsuzura_album_items` 順）
+** ファイル選択 upload（`POST /v1/media/batch` 再利用）
+* CORS — `Origin: https://kbmemo.net`（と `www`）からの `fetch` / form を許可
+* Cookie 認証 — 既存 `_kbmemo_session`（`domain: .kbmemo.net`）で API を叩けること
+* Rodauth の login リダイレクト — 未ログイン時は `https://kbmemo.net/login` へ（または共有ログイン URL）
+
+=== kbmemo_site
+
+* メモ編集 UI（`memo-body-editor`）に「Tsuzura から挿入」フロー
+** 既存 `POST /internal/tsuzura/sign_urls` でプレビュー（変更不要ならそのまま）
+** 挿入は `album::ULID[]` / `image::media:ULID[]` のみ（署名 URL を本文に保存しない）
+* （任意）`memos.properties` の `media_album_id` — link:memo-properties.adoc[memo-properties.adoc] にキー登録してから
+
+== 非ゴール（Phase 2 ではやらない）
+
+* crop / rotate、EditStack（Phase 3）
+* 顔検出・ぼかし（Phase 4）
+* ffmpeg スライドショー（Phase 5）
+* Active Storage → S3 / RustFS 移行（Phase 6）
+* Google フォト import（Phase 6 または別 Epic）
+* CLI の自動メモ PATCH、サービス間 JWT
+* Git `MemoAssets` からの一括移行
+* 公開 CDN・動画ストリーミング
+
+== 完了条件（受け入れ）
+
+. ブラウザで `https://kbmemo.net` にログイン後、`https://media.kbmemo.net` でアルバム作成と画像 upload ができる
+. upload した ULID を含む `album::` / `image::media:` をメモに挿入し、show / 編集プレビューで **HTTPS の `media.kbmemo.net` 画像** が表示される
+. 未共有メモでは他ユーザーの `MemoPolicy` に従い署名 URL が発行されない（既存 Phase 1 挙動の維持）
+. CORS・Cookie・nginx body size で **413 / Mixed Content が再発しない** 設定が production.adoc に記載されている
+
+== 技術メモ（実装時）
+
+=== 認証
+
+* Phase 1 と同型: **Rodauth 共有** + `tsuzura_api_token`（CLI 用）。Phase 2 のブラウザ UI は **Cookie 優先**
+* KBMemo 内部 API: `X-Kbmemo-Internal-Secret` + ログインユーザー、または `POST /internal/tsuzura/sign_urls`（現行）
+
+=== 本文マクロ（再掲）
+
+[source,asciidoc]
+----
+album::01JHABCD1234567890ABCDEF[]
+image::media:01JHBCDF1234567890ABCDEF[width=720]
+----
+
+* 表示時: `MemoTsuzuraMacro` / `packages/adoc-kbmemo` の `substituteTsuzuraForPreview` が署名 URL へ展開
+* **保存禁止:** `image::http://localhost:3008/...` や `image::https://media.../web?sig=...` を本文に書かない（レガシー行は表示時に再署名）
+
+=== 参照コード（Phase 1 実装）
+
+**kbmemo_site**
+
+* `app/services/memo_tsuzura_macro.rb`
+* `app/services/tsuzura/media_url_signer.rb` — `TSUZURA_PUBLIC_URL`、本番既定 `https://media.kbmemo.net`
+* `app/controllers/internal/tsuzura_controller.rb` — `sign_urls`
+* `app/javascript/controllers/memo_body_editor_controller.js`
+* `packages/adoc-kbmemo/src/tsuzura_substitute.js`
+
+**kbmemo-media**
+
+* `app/controllers/api/v1/media_controller.rb` — `batch`
+* `script/tsuzura_cli.rb` / `bin/tsuzura`
+* `bin/deploy`
+
+== タスク分解（Agent 向け）
+
+[cols="1,2,3"]
+|===
+|# |リポジトリ |内容
+
+|2a
+|`kbmemo-media`
+|CORS initializer、セッション Cookie で動く upload フォーム（batch 再利用）
+
+|2b
+|`kbmemo-media`
+|アルバム一覧・詳細の最小 ERB（または Hotwire）
+
+|2c
+|`kbmemo_site`
+|メモ編集: Tsuzura ピッカー（モーダル / 新規 Stimulus）→ マクロ挿入
+
+|2d
+|docs
+|production.adoc の nginx・env 確認、本 doc の完了条件にチェック
+
+|===
+
+== 未決（Phase 2 着手前に決める）
+
+. UI の置き場: **media サブドメインのみ** vs **kbmemo.net 内 iframe / モーダル**（CORS・UX）
+. ピッカー: アルバム単位挿入のみ vs 個別画像複数選択
+. upload 上限: 1 リクエストあたりの枚数・サイズ（nginx / Rack / タイムアウト）
+. `properties.media_album_id` を Phase 2 で入れるか Phase 2b に回すか
+
+== Cursor Agent プロンプト例
+
+[source,text]
+----
+docs/architecture/tsuzura-phase2.adoc に従い Phase 2 を実装する。
+
+kbmemo-media: CORS、ログイン済みブラウザから POST /v1/media/batch、
+  アルバム一覧・詳細の最小 UI。
+
+kbmemo_site: memo-body-editor から album:: / image::media: を挿入。
+  本文に署名 URL を保存しない。既存 sign_urls プレビューを再利用。
+
+Phase 3 以降（編集・顔・動画・S3）は触らない。
+----
+
+== 関連
+
+* link:media-platform.adoc[media-platform.adoc] — 全体フェーズ・Phase 1 実装一覧
+* link:../deployment/production.adoc[production.adoc]
+* link:google-photos-integration.adoc[google-photos-integration.adoc] — 将来の入力源

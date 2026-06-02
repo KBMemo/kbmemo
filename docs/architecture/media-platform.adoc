@@ -1,7 +1,7 @@
 = Tsuzura（葛籠）— メディアプラットフォーム設計方針
 
 KBMemo で写真・画像を **大規模に扱い・編集し・共有する** ための全体設計。
-**製品名 Tsuzura**（葛籠・つづら）。Phase 0 方針 + **Phase 1 確定事項**（2026-05）。実装は別リポジトリ（`kbmemo-media`）＋ KBMemo 連携。
+**製品名 Tsuzura**（葛籠・つづら）。Phase 0 方針 + **Phase 1 完了**（2026-06）+ **Phase 2 準備**（link:tsuzura-phase2.adoc[tsuzura-phase2.adoc]）。実装は別リポジトリ（`kbmemo-media`）＋ KBMemo 連携。
 
 前提: `AGENTS.md`（メモ本文の正は DB の AsciiDoc）、link:memo-body-editor-roadmap.adoc[memo-body-editor-roadmap.adoc]（Phase 5f 現行 Git アセット）、link:google-calendar-sync.adoc[google-calendar-sync.adoc]（外部サービス連携の先例）、link:google-photos-integration.adoc[google-photos-integration.adoc]（Google フォト取り込みは Tsuzura の入力源の一つ）。
 
@@ -17,8 +17,8 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 |キャッチ（案）
 |KBMemo の写真籠 — 集めた写真をメモと一緒に
 
-|公開 URL（Phase 1 目標）
-|`https://media.kbmemo.net`
+|公開 URL
+|`https://media.kbmemo.net`（Phase 1 本番稼働）
 
 |開発名・リポジトリ
 |`kbmemo-media`（`kbmemo_site` と対）
@@ -89,12 +89,24 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 |Phase 1 では動画なし。「<<video-delivery,動画配信と CDN>>」— **別 CDN は使わず低帯域** から開始
 |===
 
-=== Phase 1 完了条件（案）
+=== Phase 1 実装状況（完了・2026-06）
 
-* `kbmemo-media`: Album / MediaItem API、Active Storage local、Rodauth セッション認証
-* CLI: `tsuzura import --album TITLE ./photos/` → ULID 一覧 + AsciiDoc 断片 stdout
-* `kbmemo_site`: `album::` / `image::media:` の **表示**（`MemoPolicy#show?` + Tsuzura signed URL）、CLI 用ドキュメント
-* nginx: `media.kbmemo.net` プロキシ、`/up` ヘルス
+[cols="1,3"]
+|===
+|領域 |内容
+
+|`kbmemo-media`
+|Rails 8 API-only。`tsuzura_albums` / `tsuzura_media_items` / Active Storage。`POST /v1/media/batch`、`GET /v1/albums`、`GET /internal/albums/:id`。`bin/tsuzura`、`bin/deploy`
+
+|`kbmemo_site`
+|`album::` / `image::media:` — show（`MemoTsuzuraMacro`）、編集プレビュー（`substituteTsuzuraForPreview` + `POST /internal/tsuzura/sign_urls`）。`account.tsuzura_api_token_*`、プロフィールで CLI トークン発行
+
+|運用
+|nginx `media.kbmemo.net` → `:3008`。`.env.production` に `TSUZURA_*`。署名 URL 本番既定 `https://media.kbmemo.net`、レガシー `localhost` マクロの再署名
+
+|===
+
+**次:** link:tsuzura-phase2.adoc[Phase 2 — Web UI とメモ編集ピッカー]
 
 === CLI（Phase 1）
 
@@ -205,7 +217,7 @@ https://media.kbmemo.net
 
 * **Cookie:** Rodauth 共有時は `domain: .kbmemo.net` を両アプリで揃える
 * **CORS:** Phase 1 は CLI とサーバー間のみ。ブラウザから media API を直接叩く UI は Phase 2 以降
-* **ヘルス:** `bin/deploy` 相当を Tsuzura 用に用意（`KBMEMO_HEALTH_URL` パターン流用）
+* **デプロイ:** `kbmemo-media/bin/deploy`（`db:migrate` 必須）。nginx 一括 import 向け `client_max_body_size` **512M 以上** 推奨 — link:../deployment/production.adoc#tsuzura-nginx[production.adoc]
 
 == 認証（Rodauth 共有） [[rodauth-shared]]
 
@@ -647,42 +659,61 @@ memo.body（AsciiDoc）
 * CLI 出力の AsciiDoc をメモに **手動貼付**（Phase 1）
 * Phase 2 以降: メモ編集 UI「Tsuzura から選ぶ」、Tsuzura Web アルバム UI
 
-== API 概要（たたき・未確定）
+== API 概要
 
 Tsuzura サービス（`media.kbmemo.net/v1`）:
 
-[cols="1,3"]
+[cols="1,2,2"]
 |===
-|Method / Path |用途
-
-|`POST /v1/media`
-|単体アップロード
+|Method / Path |Phase |用途
 
 |`POST /v1/media/batch`
-|一括アップロード
+|1 ✓
+|一括アップロード（CLI・将来ブラウザ）
 
 |`GET /v1/media/:id`
-|メタ + rendition URLs
+|1 ✓
+|メタデータ
+
+|`GET /v1/media/:id/web`
+|1 ✓
+|署名付き画像配信（`memo_id` / `exp` / `sig`）
+
+|`GET /v1/albums`
+|1 ✓
+|アルバム一覧
+
+|`POST /v1/media`
+|2+
+|単体アップロード（UI 都合で追加可）
 
 |`POST /v1/albums`
-|アルバム作成
-
-|`GET /v1/albums/:id`
-|アルバム + items
+|2+
+|アルバム作成 API（Web UI）
 
 |`PATCH /v1/media/:id/edits`
-|EditStack 更新 → Rendition 再生成 Job
+|3+
+|EditStack
 
 |`POST /v1/video_exports`
-|スライドショー生成 Job
-
-|`GET /v1/video_exports/:id`
-|Job 状態・出力 media_id
+|5+
+|スライドショー Job
 |===
 
-KBMemo 内部（サーバー間）:
+KBMemo 内部:
 
-* `POST /internal/tsuzura/authorize` — memo_id + media_ids → 短期 signed URL バッチ（要認証）
+[cols="1,2,2"]
+|===
+|Path |Phase |用途
+
+|`POST /internal/tsuzura/sign_urls`
+|1 ✓
+|`memo_id` + `media_ids[]` / `album_ids[]` → 短期 signed URL（ログイン or internal secret）
+
+|`GET /internal/albums/:id`（Tsuzura 側）
+|1 ✓
+|KBMemo サーバーがアルバム中身を参照（`X-Kbmemo-Internal-Secret`）
+|===
 
 == フェーズ計画
 
@@ -693,11 +724,11 @@ KBMemo 内部（サーバー間）:
 |**0**
 |本 doc。Tsuzura 名称・境界
 
-|**1（着手）**
-|**CLI バッチ登録** + **KBMemo 連携**（`album::` / `image::media:` ULID 表示）。Rails 8 API-only、Active Storage local、Rodauth 共有、`media.kbmemo.net` nginx
+|**1（完了）**
+|**CLI バッチ登録** + **KBMemo 連携**（`album::` / `image::media:` 表示・編集プレビュー、CLI トークン、signed URL）。詳細は上記「Phase 1 実装状況」
 
-|**2**
-|Tsuzura Web UI（一覧・単体 upload）、メモ編集ピッカー
+|**2（次）**
+|Web UI（一覧・upload）+ メモ編集ピッカー — link:tsuzura-phase2.adoc[tsuzura-phase2.adoc]
 
 |**3**
 |crop/rotate、EditStack
@@ -722,24 +753,19 @@ KBMemo 内部（サーバー間）:
 
 === リポジトリ
 
-* **Phase 1 実装:** 新リポジトリ `kbmemo-media` + **`kbmemo_site` 連携 PR**（同一 Phase）
-* 本番 **`https://media.kbmemo.net`**（nginx upstream 例: `3008`）
+* **`kbmemo-media`** — Tsuzura API・CLI・`bin/deploy`
+* **`kbmemo_site`** — マクロ表示・`sign_urls`・プロフィール CLI トークン
+* 本番 **`https://media.kbmemo.net`**（nginx upstream `:3008`）
 
 === 1 Phase = 1 Agent セッション（目安）
 
+**Phase 2（次）** — link:tsuzura-phase2.adoc[tsuzura-phase2.adoc] のプロンプト例を使う。
+
 [source,text]
 ----
-Phase 1 プロンプト例:
+Phase 1 は完了。回帰・運用のみ:
 
-  docs/architecture/media-platform.adoc Phase 1 に従う。
-
-  kbmemo-media: Rails 8 API-only、Active Storage local、Rodauth 共有、
-    Album/MediaItem（ULID）、POST /v1/media/batch、CLI tsuzura import。
-
-  kbmemo_site: album:: / image::media: マクロ（ULID）、MemoPolicy 連動表示、
-    POST /internal/tsuzura/authorize。
-
-  nginx media.kbmemo.net の server ブロック例を production  doc へ追記。
+  bin/tsuzura import、sign_urls、TSUZURA_PUBLIC_URL、kbmemo-media db:migrate。
 ----
 
 **各セッションに含めるもの:**
@@ -756,15 +782,31 @@ Phase 1 プロンプト例:
 * `app/services/clip_asciidoc_processor.rb` — 外部 → メモ取り込み
 * link:google-calendar-sync.adoc[google-calendar-sync.adoc] — OAuth・別サービス sync の構成
 
-== 未決事項（Phase 1 実装時）
+== 未決事項
 
-. Tsuzura の **PORT**（例: 3008）と systemd ユニット名
-. CLI 認証: **Cookie ファイル** vs **tsuzura_api_token** のどちらを先に実装するか
-. KBMemo と Tsuzura の **DB 同一インスタンス** vs 別 DB + accounts 同期（Rodauth 共有の簡素化）
+=== Phase 2（着手前）
+
+link:tsuzura-phase2.adoc[tsuzura-phase2.adoc] を参照。
+
+. UI の置き場（`media.kbmemo.net` 単体 vs kbmemo 内モーダル）
+. ピッカー UX（アルバム一括 vs 個別画像）
+. upload 上限（枚数・サイズ・タイムアウト）
+
+=== Phase 6 以降
+
 . Active Storage local の **本番パス** とディスククォータ
 . RustFS 移行時期の判断基準（容量 % / ベータ終了公告）
 
-== 確定済み（2026-05）
+== 確定済み
+
+=== Phase 1（2026-05 設計 → 2026-06 実装）
+
+* PORT **3008**、systemd ユニット **`tsuzura`**
+* CLI 認証: **`TSUZURA_API_TOKEN`**（KBMemo プロフィール発行）。Cookie 共有はブラウザ向け
+* KBMemo と Tsuzura は **同一 PostgreSQL primary**（`accounts` 共有）
+* 内部 API パス: **`POST /internal/tsuzura/sign_urls`**（`authorize` ではない）
+
+=== 全体（2026-05）
 
 * Rails 8 API-only、Phase 1 = CLI + KBMemo 連携
 * Active Storage local → 将来 S3 互換（RustFS）
@@ -775,16 +817,23 @@ Phase 1 プロンプト例:
 
 == 関連ドキュメント
 
+* link:tsuzura-phase2.adoc[tsuzura-phase2.adoc] — **Phase 2 準備**（次着手）
+* link:../deployment/production.adoc[production.adoc] — kbmemo + Tsuzura デプロイ
 * link:google-photos-integration.adoc[google-photos-integration.adoc] — Google フォト取り込み（Tsuzura 入力）
 * link:memo-body-editor-roadmap.adoc[memo-body-editor-roadmap.adoc] — 現行 Git 画像（Phase 5f）
 * link:memo-properties.adoc[memo-properties.adoc] — `media_album_id` 等の properties 方針
 * link:google-calendar-sync.adoc[google-calendar-sync.adoc] — 外部サービス連携先例
 * link:memo-directory-layout.adoc[memo-directory-layout.adoc] — メモ配置・共有ディレクトリ
 
-== 関連コード（KBMemo・現状）
+== 関連コード（KBMemo・Tsuzura 連携）
 
-* `app/services/memo_assets.rb`
-* `app/services/memo_attachments.rb`
+* `app/services/memo_tsuzura_macro.rb`
+* `app/services/tsuzura/media_url_signer.rb`
+* `app/services/tsuzura/authorizer.rb`
+* `app/services/tsuzura/client.rb`
+* `app/controllers/internal/tsuzura_controller.rb`
+* `packages/adoc-kbmemo/src/tsuzura_substitute.js`
+* `app/javascript/controllers/memo_body_editor_controller.js`
+* `app/models/account.rb` — `tsuzura_api_token_*`
+* `app/services/memo_assets.rb` — 小物 Git アセット（併用）
 * `app/policies/memo_policy.rb`
-* `app/controllers/memo_assets_controller.rb`
-* `config/routes.rb` — `namespace :api`（Clip）
