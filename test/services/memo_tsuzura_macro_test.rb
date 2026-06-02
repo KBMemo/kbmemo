@@ -36,4 +36,14 @@ class MemoTsuzuraMacroTest < ActiveSupport::TestCase
       end
     end
   end
+
+  test "re-signs legacy localhost tsuzura image urls" do
+    legacy = "image::http://localhost:3008/v1/media/#{@ulid}/web?memo_id=#{@memo.id}&exp=1&sig=deadbeef[]\n"
+    fresh = "https://media.kbmemo.net/v1/media/#{@ulid}/web?memo_id=#{@memo.id}&exp=999&sig=fresh"
+    Tsuzura::MediaUrlSigner.stub(:sign, ->(**) { fresh }) do
+      out = MemoTsuzuraMacro.new(memo: @memo, viewer: @account).substitute(legacy)
+      assert_includes out, fresh
+      refute_includes out, "localhost:3008"
+    end
+  end
 end

@@ -4,6 +4,10 @@ const FENCE_LINE = /^```/
 const ULID = '[0-9A-HJKMNP-TV-Z]{26}'
 const ALBUM_LINE = new RegExp(`^album::(${ULID})(\\[[^\\]]*\\])?\\s*$`, 'i')
 const MEDIA_IMAGE = new RegExp(`image::media:(${ULID})(\\[[^\\]]*\\])?`, 'gi')
+const LEGACY_SIGNED_IMAGE = new RegExp(
+  `image::https?://[^\\s\\[]+/v1/media/(${ULID})/web\\?[^\\s\\[]*(\\[[^\\]]*\\])?`,
+  'gi',
+)
 
 /**
  * @param {string} text
@@ -29,6 +33,9 @@ export function extractTsuzuraMediaIds(source) {
     if (inFenced) continue
 
     for (const match of line.matchAll(MEDIA_IMAGE)) {
+      ids.add(match[1].toUpperCase())
+    }
+    for (const match of line.matchAll(LEGACY_SIGNED_IMAGE)) {
       ids.add(match[1].toUpperCase())
     }
   }
@@ -110,9 +117,13 @@ export function substituteTsuzuraForPreview(source, cache = {}) {
         return replaceAlbumLine(albumMatch[1], tsuzuraCache)
       }
 
-      return line.replace(MEDIA_IMAGE, (_, ulid, attrs) =>
-        replaceMediaMacro(ulid, attrs ?? '[]', urls),
-      )
+      return line
+        .replace(LEGACY_SIGNED_IMAGE, (_, ulid, attrs) =>
+          replaceMediaMacro(ulid, attrs ?? '[]', urls),
+        )
+        .replace(MEDIA_IMAGE, (_, ulid, attrs) =>
+          replaceMediaMacro(ulid, attrs ?? '[]', urls),
+        )
     })
     .join('\n')
 }

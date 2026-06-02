@@ -4,6 +4,7 @@
 class MemoTsuzuraMacro
   ALBUM_LINE = /\Aalbum::([0-9A-HJKMNP-TV-Z]{26})(\[[^\]]*\])?\s*\z/i
   MEDIA_IMAGE = /image::media:([0-9A-HJKMNP-TV-Z]{26})(\[[^\]]*\])?/
+  LEGACY_SIGNED_IMAGE = Tsuzura::MediaUrlSigner::LEGACY_SIGNED_IMAGE
 
   def initialize(memo:, viewer: nil)
     @memo = memo
@@ -38,6 +39,9 @@ class MemoTsuzuraMacro
       return "#{replace_album(m[1])}#{nl}"
     end
 
+    body = body.gsub(LEGACY_SIGNED_IMAGE) do
+      replace_media(Regexp.last_match(1), Regexp.last_match(2).to_s)
+    end
     body.gsub(MEDIA_IMAGE) do
       replace_media(Regexp.last_match(1), Regexp.last_match(2).to_s)
     end + nl

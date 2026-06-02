@@ -216,6 +216,10 @@ SOLID_QUEUE_IN_PUMA=true
 
 KROKI_URL=http://127.0.0.1:8001
 
+TSUZURA_BASE_URL=https://media.kbmemo.net
+TSUZURA_PUBLIC_URL=https://media.kbmemo.net
+KBMEMO_TSUZURA_INTERNAL_SECRET=
+
 # DB 接続は credentials（db.production）。ここには RAILS_MASTER_KEY のみでよい。
 
 # BYOK 利用時

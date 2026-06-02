@@ -2,6 +2,15 @@
 
 module Tsuzura
   class MediaUrlSigner
+    PRODUCTION_DEFAULT_PUBLIC_URL = "https://media.kbmemo.net"
+    # 開発時に localhost へ署名した image:: を本番 URL へ差し替える（DB 本文は変更しない）。
+    LEGACY_SIGNED_IMAGE = %r{
+      image::https?://[^/\s\[]+
+      /v1/media/([0-9A-HJKMNP-TV-Z]{26})/web\?
+      [^\s\[]*
+      (\[[^\]]*\])?
+    }ix
+
     class << self
       def secret
         ENV["TSUZURA_URL_SIGNING_SECRET"].presence ||
@@ -10,7 +19,13 @@ module Tsuzura
       end
 
       def base_url
-        ENV.fetch("TSUZURA_PUBLIC_URL", "http://localhost:3008")
+        explicit = ENV["TSUZURA_PUBLIC_URL"].presence ||
+          Rails.application.credentials.dig(:tsuzura, :public_url).presence
+        return explicit.to_s.strip.chomp("/") if explicit.present?
+
+        return PRODUCTION_DEFAULT_PUBLIC_URL if Rails.env.production?
+
+        "http://localhost:3008"
       end
 
       def sign(media_id:, memo_id:, exp: 1.hour.from_now)
