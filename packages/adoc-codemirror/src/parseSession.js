@@ -4,7 +4,9 @@ import {
   normalizeMemoImagePathsInSource,
   restrictPassthroughInSource,
   substituteDiagramsForPreview,
+  substituteTsuzuraForPreview,
   substituteWikiLinksForPreview,
+  tsuzuraCacheKey,
 } from '@kbmemo/adoc-kbmemo'
 
 /** @typedef {{ from: number, to: number, className: string }} HighlightSpan */
@@ -34,6 +36,7 @@ export function refreshHighlights(source) {
   cache = { source, doc, highlights, html: null }
   cachePreviewMemoId = undefined
   cachePreviewWikiLabelsKey = undefined
+  cachePreviewTsuzuraKey = undefined
   return highlights
 }
 
@@ -68,15 +71,19 @@ function wikiLabelsCacheKey(wikiLabels) {
     .join('\n')
 }
 
+/** @type {string | undefined} */
+let cachePreviewTsuzuraKey
+
 /**
- * @param {string} source
- * @param {string | null | undefined} memoId
- * @param {Map<string, object> | undefined} wikiLabels
+ * @param {{ urls?: Map<string, string>, albums?: Map<string, string[]> } | undefined} tsuzuraCache
  */
-function previewSourceForConvert(source, memoId, wikiLabels) {
+function previewSourceForConvert(source, memoId, wikiLabels, tsuzuraCache) {
   let processed = substituteDiagramsForPreview(source)
   if (wikiLabels !== undefined) {
     processed = substituteWikiLinksForPreview(processed, wikiLabels)
+  }
+  if (tsuzuraCache !== undefined) {
+    processed = substituteTsuzuraForPreview(processed, tsuzuraCache)
   }
   if (memoId != null && memoId !== '') {
     processed = normalizeMemoImagePathsInSource(processed, memoId)
@@ -89,17 +96,19 @@ function previewSourceForConvert(source, memoId, wikiLabels) {
  * Reuses doc/highlights from {@link refreshHighlights} when possible.
  *
  * @param {string} source
- * @param {{ memoId?: string | null, wikiLabels?: Map<string, object> }} [options]
+ * @param {{ memoId?: string | null, wikiLabels?: Map<string, object>, tsuzuraCache?: { urls: Map<string, string>, albums: Map<string, string[]> } }} [options]
  */
-export function refreshPreview(source, { memoId, wikiLabels } = {}) {
+export function refreshPreview(source, { memoId, wikiLabels, tsuzuraCache } = {}) {
   const labelsKey = wikiLabels !== undefined ? wikiLabelsCacheKey(wikiLabels) : undefined
-  const previewSource = previewSourceForConvert(source, memoId, wikiLabels)
+  const tsuzuraKey = tsuzuraCache !== undefined ? tsuzuraCacheKey(tsuzuraCache) : undefined
+  const previewSource = previewSourceForConvert(source, memoId, wikiLabels, tsuzuraCache)
 
   if (
     cache.source === source &&
     cache.html &&
     cachePreviewMemoId === memoId &&
-    cachePreviewWikiLabelsKey === labelsKey
+    cachePreviewWikiLabelsKey === labelsKey &&
+    cachePreviewTsuzuraKey === tsuzuraKey
   ) {
     return { html: cache.html, highlights: cache.highlights }
   }
@@ -110,6 +119,7 @@ export function refreshPreview(source, { memoId, wikiLabels } = {}) {
     cache = { source, doc, highlights, html: null }
     cachePreviewMemoId = undefined
     cachePreviewWikiLabelsKey = undefined
+    cachePreviewTsuzuraKey = undefined
   }
 
   const previewDoc =
@@ -117,6 +127,7 @@ export function refreshPreview(source, { memoId, wikiLabels } = {}) {
   cache.html = previewDoc.convert(previewConvertOptions(memoId))
   cachePreviewMemoId = memoId
   cachePreviewWikiLabelsKey = labelsKey
+  cachePreviewTsuzuraKey = tsuzuraKey
   return { html: cache.html, highlights: cache.highlights }
 }
 
@@ -124,4 +135,5 @@ export function clearParseCache() {
   cache = { source: '', doc: null, html: null, highlights: [] }
   cachePreviewMemoId = undefined
   cachePreviewWikiLabelsKey = undefined
+  cachePreviewTsuzuraKey = undefined
 }

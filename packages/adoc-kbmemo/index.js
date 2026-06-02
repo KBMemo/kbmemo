@@ -34,6 +34,15 @@ export {
 export { substituteDiagramsForPreview } from './src/diagram_substitute.js'
 
 export {
+  ensureTsuzuraUrlsInCache,
+  extractTsuzuraAlbumIds,
+  extractTsuzuraMediaIds,
+  fetchTsuzuraPreviewCache,
+  substituteTsuzuraForPreview,
+  tsuzuraCacheKey,
+} from './src/tsuzura_substitute.js'
+
+export {
   ensureWikiLinkLabelsInCache,
   extractWikiLinkTargets,
   fetchWikiLinkLabelsMap,

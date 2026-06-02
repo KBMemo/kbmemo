@@ -16,8 +16,10 @@ import {
   getScrollRoot,
   normalizeMemoImagePathsInSource,
   substituteDiagramsForPreview,
+  ensureTsuzuraUrlsInCache,
   ensureWikiLinkLabelsInCache,
   extractWikiLinkTargets,
+  substituteTsuzuraForPreview,
   substituteWikiLinksForPreview,
   literalParagraphContinuationExtension,
 } from '@kbmemo/adoc-kbmemo'
@@ -116,6 +118,8 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
   })
   /** @type {Map<string, object>} */
   const wikiLabelCache = new Map()
+  /** @type {{ urls: Map<string, string>, albums: Map<string, string[]> }} */
+  const tsuzuraCache = { urls: new Map(), albums: new Map() }
   let wikiLabelRefreshSeq = 0
   const webPasteHandler = createWebPasteHandler({
     insertText(text, view) {
@@ -136,6 +140,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
   function previewHtmlForAdoc(adoc) {
     let processed = substituteDiagramsForPreview(adoc)
     processed = substituteWikiLinksForPreview(processed, wikiLabelCache)
+    processed = substituteTsuzuraForPreview(processed, tsuzuraCache)
     return asciidocBlockToHtml(processed, getMemoId?.())
   }
 
@@ -176,14 +181,13 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
 
   async function refreshWikiLabelPreviews(source) {
     const config = getWikiConfig?.()
-    if (!config?.labelsUrl) return
-
-    await ensureWikiLinkLabelsInCache(
-      wikiLabelCache,
-      config.labelsUrl,
-      config.memoId ?? null,
-      source,
-    )
+    if (config?.labelsUrl) {
+      await ensureDocumentWikiLabels(source)
+    }
+    if (config?.tsuzuraAuthorizeUrl) {
+      await ensureDocumentTsuzuraUrls(source)
+    }
+    if (!config?.labelsUrl && !config?.tsuzuraAuthorizeUrl) return
 
     const seq = ++wikiLabelRefreshSeq
     for (const unit of editorEl.querySelectorAll(':scope > .wysiwyg-unit')) {
@@ -206,6 +210,19 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
       wikiLabelCache,
       config.labelsUrl,
       config.memoId ?? null,
+      source,
+    )
+  }
+
+  async function ensureDocumentTsuzuraUrls(source) {
+    const config = getWikiConfig?.()
+    const memoId = config?.memoId ?? getMemoId?.() ?? null
+    if (!config?.tsuzuraAuthorizeUrl || !memoId) return
+
+    await ensureTsuzuraUrlsInCache(
+      tsuzuraCache,
+      config.tsuzuraAuthorizeUrl,
+      memoId,
       source,
     )
   }
@@ -675,6 +692,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
       editorEl.replaceChildren()
 
       await ensureDocumentWikiLabels(normalizedSource)
+    await ensureDocumentTsuzuraUrls(normalizedSource)
 
       for (const parsed of parseEditUnitsFromSource(normalizedSource)) {
         const wrapper = document.createElement('div')

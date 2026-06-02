@@ -131,6 +131,6 @@ Rails.application.routes.draw do
   end
 
   namespace :internal do
-    post "tsuzura/authorize", to: "tsuzura#authorize"
+    post "tsuzura/sign_urls", to: "tsuzura#sign_urls"
   end
 end

@@ -1,5 +1,5 @@
 import { refreshPreview } from '@kbmemo/adoc-codemirror'
-import { ensureWikiLinkLabelsInCache } from '@kbmemo/adoc-kbmemo'
+import { ensureTsuzuraUrlsInCache, ensureWikiLinkLabelsInCache } from '@kbmemo/adoc-kbmemo'
 import { renderPreviewHtml } from './preview.js'
 
 const PREVIEW_DEBOUNCE_MS = 300
@@ -10,7 +10,7 @@ const PREVIEW_DEBOUNCE_MS = 300
  * @param {HTMLSelectElement | null} [options.skinSelectEl]
  * @param {() => string | null | undefined} options.getMemoId
  * @param {() => string} options.getSource
- * @param {() => { labelsUrl?: string, memoId?: string | null }} [options.getWikiConfig]
+ * @param {() => { labelsUrl?: string, memoId?: string | null, tsuzuraAuthorizeUrl?: string | null }} [options.getWikiConfig]
  * @param {(selectEl: HTMLSelectElement, previewEl: HTMLElement) => void} [options.initPreviewSkinSelect]
  */
 export function createLivePreview({
@@ -29,6 +29,8 @@ export function createLivePreview({
   let renderSeq = 0
   /** @type {Map<string, object>} */
   const wikiLabelCache = new Map()
+  /** @type {{ urls: Map<string, string>, albums: Map<string, string[]> }} */
+  const tsuzuraCache = { urls: new Map(), albums: new Map() }
 
   async function renderPreview() {
     const source = getSource()
@@ -37,13 +39,23 @@ export function createLivePreview({
     const wikiConfig = getWikiConfig?.()
     const labelsUrl = wikiConfig?.labelsUrl
     const wikiMemoId = wikiConfig?.memoId ?? memoId ?? null
+    const tsuzuraAuthorizeUrl = wikiConfig?.tsuzuraAuthorizeUrl
 
     if (labelsUrl) {
       await ensureWikiLinkLabelsInCache(wikiLabelCache, labelsUrl, wikiMemoId, source)
       if (seq !== renderSeq) return
     }
 
-    const { html } = refreshPreview(source, { memoId, wikiLabels: wikiLabelCache })
+    if (tsuzuraAuthorizeUrl && memoId) {
+      await ensureTsuzuraUrlsInCache(tsuzuraCache, tsuzuraAuthorizeUrl, memoId, source)
+      if (seq !== renderSeq) return
+    }
+
+    const { html } = refreshPreview(source, {
+      memoId,
+      wikiLabels: wikiLabelCache,
+      tsuzuraCache,
+    })
     renderPreviewHtml(html, previewEl, memoId)
   }
 

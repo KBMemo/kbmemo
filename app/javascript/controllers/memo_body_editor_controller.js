@@ -190,6 +190,7 @@ export default class extends Controller {
     labelId: String,
     wikiCompletionsUrl: String,
     wikiLinkLabelsUrl: String,
+    tsuzuraAuthorizeUrl: String,
     memoId: String,
     uploadUrl: String
   }
@@ -404,6 +405,7 @@ export default class extends Controller {
       getWikiConfig: () => ({
         labelsUrl: this.wikiLinkLabelsUrlValue,
         memoId: this.memoIdValue || null,
+        tsuzuraAuthorizeUrl: this.hasTsuzuraAuthorizeUrlValue ? this.tsuzuraAuthorizeUrlValue : null,
       }),
     })
   }
@@ -478,6 +480,7 @@ export default class extends Controller {
         completionsUrl: this.wikiCompletionsUrlValue,
         labelsUrl: this.wikiLinkLabelsUrlValue,
         memoId: this.memoIdValue || null,
+        tsuzuraAuthorizeUrl: this.hasTsuzuraAuthorizeUrlValue ? this.tsuzuraAuthorizeUrlValue : null,
       }),
       onSourceChange: (source) => this.syncSourceFromWysiwyg(source),
       onImagePaste: (event) => this.handleImagePaste(event),

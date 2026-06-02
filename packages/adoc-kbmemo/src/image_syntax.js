@@ -55,15 +55,22 @@ export function memoAssetRelativePath(memoId, src) {
   if (appImage) return src.trim()
 
   const original = src.trim()
-  let path = stripPseudoImageUriScheme(original)
-  if (path.includes("://")) {
+
+  if (KNOWN_URI_SCHEME_RE.test(original)) {
     try {
-      path = new URL(path).pathname
+      const { pathname } = new URL(original)
+      const memoAsset = pathname.match(/^\/memos\/(\d+)\/assets\/(.+)$/i)
+      if (memoAsset) {
+        if (memoId != null && String(memoAsset[1]) !== String(memoId)) return original
+        return decodePathSegments(memoAsset[2])
+      }
     } catch {
       return original
     }
+    return original
   }
 
+  let path = stripPseudoImageUriScheme(original)
   path = path.replace(/\\/g, "/").replace(/^\/+/, (m) => (m ? "/" : ""))
 
   let changed = true

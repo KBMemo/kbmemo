@@ -66,4 +66,11 @@ describe('normalizeMemoImagePathsInSource', () => {
     const source = 'image::/images/octocat.jpg[GitHub mascot]'
     expect(normalizeMemoImagePathsInSource(source, 14)).toBe(source)
   })
+
+  it('leaves Tsuzura signed URLs unchanged', () => {
+    const url =
+      'http://localhost:3008/v1/media/01KT2V6A22B7XC915A3B3V1ADF/web?memo_id=14&exp=999&sig=abc'
+    const source = `image::${url}[photo]`
+    expect(normalizeMemoImagePathsInSource(source, 14)).toBe(source)
+  })
 })
