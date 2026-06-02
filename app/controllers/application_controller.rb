@@ -7,6 +7,7 @@ class ApplicationController < ActionController::Base
   before_action :require_authentication
   before_action :set_nav_boards
   before_action :set_nav_notebooks
+  after_action :set_csrf_token_header
 
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
@@ -32,6 +33,10 @@ class ApplicationController < ActionController::Base
 
   def json_request?
     request.format.json? || request.headers["Accept"].to_s.include?("application/json")
+  end
+
+  def set_csrf_token_header
+    response.set_header("X-CSRF-Token", form_authenticity_token)
   end
 
   def set_nav_boards

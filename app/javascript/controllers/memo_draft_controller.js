@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { useDebounce } from "stimulus-use"
+import { csrfFetchHeaders, getCsrfToken } from "@kbmemo/adoc-kbmemo"
 
 const TITLE_PLACEHOLDER = " - 未入力 - "
 
@@ -540,12 +541,12 @@ export default class extends Controller {
       return
     }
 
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content")
+    const token = getCsrfToken()
     try {
       const res = await fetch(this.discardDraftUrlValue, {
         method: "PATCH",
         headers: {
-          "X-CSRF-Token": token,
+          ...csrfFetchHeaders(),
           Accept: "application/json"
         }
       })
@@ -632,7 +633,7 @@ export default class extends Controller {
     }
 
     const wrapped = this.memoPayload(snapshot)
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content")
+    const token = getCsrfToken()
     // 入力由来の自動保存は JSON で受け、本文タイピング中に title/slug/sidebar を
     // DOM ごと差し替える「ページ更新」を起こさない。turbo_stream はディレクトリ変更等の
     // 明示操作（stream: true）のときだけ使う。
@@ -647,11 +648,13 @@ export default class extends Controller {
         const res = await fetch(this.draftUrlValue, {
           method: "PATCH",
           headers: {
-            "X-CSRF-Token": token,
+            ...csrfFetchHeaders(),
             "Content-Type": "application/json",
             Accept: accept
           },
-          body: JSON.stringify(wrapped)
+          body: JSON.stringify(
+            token ? { ...wrapped, authenticity_token: token } : wrapped
+          )
         })
         if (!res.ok) return false
         const ct = (res.headers.get("Content-Type") || "").toLowerCase()
@@ -692,11 +695,13 @@ export default class extends Controller {
       const res = await fetch(this.createUrlValue, {
         method: "POST",
         headers: {
-          "X-CSRF-Token": token,
+          ...csrfFetchHeaders(),
           "Content-Type": "application/json",
           Accept: "application/json"
         },
-        body: JSON.stringify(wrapped)
+        body: JSON.stringify(
+          token ? { ...wrapped, authenticity_token: token } : wrapped
+        )
       })
       if (res.status === 201) {
         const data = await res.json()

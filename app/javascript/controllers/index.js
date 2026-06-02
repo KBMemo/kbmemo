@@ -22,6 +22,9 @@ application.register("memo-attachments", MemoAttachmentsController)
 import MemoBodyEditorController from "./memo_body_editor_controller"
 application.register("memo-body-editor", MemoBodyEditorController)
 
+import TsuzuraPickerController from "./tsuzura_picker_controller"
+application.register("tsuzura-picker", TsuzuraPickerController)
+
 import MemoChecklistController from "./memo_checklist_controller"
 application.register("memo-checklist", MemoChecklistController)
 

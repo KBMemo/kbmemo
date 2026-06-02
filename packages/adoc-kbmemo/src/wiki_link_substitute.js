@@ -1,4 +1,4 @@
-import { getCsrfToken, wikiMemoLinkPath } from '../hostConfig.js'
+import { csrfFetchHeaders, wikiMemoLinkPath } from '../hostConfig.js'
 
 /** MemoWikiLinks と同じ [[target]] / [[target|label]] パターン */
 export const WIKI_LINK_PATTERN = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g
@@ -120,12 +120,11 @@ export async function fetchWikiLinkLabelsMap(url, memoId, targets) {
     endpoint.searchParams.append('targets[]', target)
   }
 
-  const token = getCsrfToken()
   const seq = ++fetchSeq
   const res = await fetch(endpoint.toString(), {
     headers: {
       Accept: 'application/json',
-      ...(token ? { 'X-CSRF-Token': token } : {}),
+      ...csrfFetchHeaders(),
     },
     credentials: 'same-origin',
   })

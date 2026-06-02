@@ -727,7 +727,7 @@ KBMemo 内部:
 |**1（完了）**
 |**CLI バッチ登録** + **KBMemo 連携**（`album::` / `image::media:` 表示・編集プレビュー、CLI トークン、signed URL）。詳細は上記「Phase 1 実装状況」
 
-|**2（次）**
+|**2（実装中）**
 |Web UI（一覧・upload）+ メモ編集ピッカー — link:tsuzura-phase2.adoc[tsuzura-phase2.adoc]
 
 |**3**

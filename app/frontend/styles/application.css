@@ -51,6 +51,18 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   background: rgb(0 0 0 / 0.4);
 }
 
+.tsuzura-picker-dialog {
+  max-width: 42rem;
+  width: calc(100% - 2rem);
+  margin: auto;
+  padding: 0;
+  border: 0;
+}
+
+.tsuzura-picker-dialog::backdrop {
+  background: rgb(0 0 0 / 0.55);
+}
+
 /* MemoWikiLinks が Asciidoctor 経由で出力（views に文字列が無いため @apply で明示定義） */
 .memo-body .memo-wiki-broken {
   @apply text-red-600 underline decoration-dotted;

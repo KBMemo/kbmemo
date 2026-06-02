@@ -2,6 +2,7 @@ export {
   configureHost,
   resetHostConfig,
   getCsrfToken,
+  csrfFetchHeaders,
   getScrollRoot,
   wikiMemoLinkPath,
 } from './hostConfig.js'

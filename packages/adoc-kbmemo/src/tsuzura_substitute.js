@@ -1,4 +1,4 @@
-import { getCsrfToken } from '../hostConfig.js'
+import { csrfFetchHeaders, getCsrfToken } from '../hostConfig.js'
 
 const FENCE_LINE = /^```/
 const ULID = '[0-9A-HJKMNP-TV-Z]{26}'
@@ -149,18 +149,21 @@ export async function fetchTsuzuraPreviewCache(authorizeUrl, memoId, mediaIds, a
 
   const endpoint = new URL(authorizeUrl, window.location.origin)
   const token = getCsrfToken()
-  const body = new FormData()
-  body.set('memo_id', String(memoId))
-  for (const id of mediaIds) body.append('media_ids[]', id)
-  for (const id of albumIds) body.append('album_ids[]', id)
+  const payload = {
+    memo_id: String(memoId),
+    media_ids: mediaIds,
+    album_ids: albumIds,
+  }
+  if (token) payload.authenticity_token = token
 
   const seq = ++fetchSeq
   const res = await fetch(endpoint.toString(), {
     method: 'POST',
-    body,
+    body: JSON.stringify(payload),
     headers: {
       Accept: 'application/json',
-      ...(token ? { 'X-CSRF-Token': token } : {}),
+      'Content-Type': 'application/json',
+      ...csrfFetchHeaders(),
     },
     credentials: 'same-origin',
   })

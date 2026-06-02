@@ -30,6 +30,25 @@ const renderLucideIcons = () => {
   })
 }
 
+function refreshCsrfMetaFromResponse(response) {
+  const token = response.headers.get("X-CSRF-Token")
+  if (!token) return
+  const meta = document.querySelector('meta[name="csrf-token"]')
+  if (meta) meta.setAttribute("content", token)
+}
+
+document.addEventListener("turbo:before-fetch-response", (event) => {
+  const response = event.detail?.fetchResponse?.response
+  if (response) refreshCsrfMetaFromResponse(response)
+})
+
+const nativeFetch = window.fetch.bind(window)
+window.fetch = async (...args) => {
+  const response = await nativeFetch(...args)
+  refreshCsrfMetaFromResponse(response)
+  return response
+}
+
 document.addEventListener("turbo:load", renderLucideIcons)
 document.addEventListener("turbo:render", renderLucideIcons)
 document.addEventListener("turbo:load", () => highlightMemoBodies())

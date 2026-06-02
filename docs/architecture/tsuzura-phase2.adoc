@@ -2,6 +2,8 @@
 
 link:media-platform.adoc[media-platform.adoc] の **Phase 2** 実装用チェックリスト。Phase 1（CLI + KBMemo 表示連携）は **2026-06 完了**。
 
+**実装状況（進行中）:** `kbmemo-media` Web UI + CORS、`kbmemo_site` ピッカー + `GET /internal/tsuzura/albums`。
+
 == 前提（Phase 1 完了確認）
 
 本番・開発で次が動いていること。
@@ -124,12 +126,16 @@ image::media:01JHBCDF1234567890ABCDEF[width=720]
 
 |===
 
-== 未決（Phase 2 着手前に決める）
+== 未決（Phase 2 残）
 
-. UI の置き場: **media サブドメインのみ** vs **kbmemo.net 内 iframe / モーダル**（CORS・UX）
-. ピッカー: アルバム単位挿入のみ vs 個別画像複数選択
-. upload 上限: 1 リクエストあたりの枚数・サイズ（nginx / Rack / タイムアウト）
-. `properties.media_album_id` を Phase 2 で入れるか Phase 2b に回すか
+. upload 上限: 1 リクエストあたりの枚数・サイズ（nginx / Rack / タイムアウト）— production.adoc 参照
+. `properties.media_album_id` — Phase 2b に回す
+. ピッカーでのサムネ表示（署名 URL プレビュー）— 任意
+
+== 決定（Phase 2 実装）
+
+. **UI:** `media.kbmemo.net` Web + **kbmemo メモ編集ピッカー**（同一オリジン API、CORS は media 直叩き用に用意）
+. **ピッカー:** アルバム一括挿入 + 画像複数選択挿入
 
 == Cursor Agent プロンプト例
 

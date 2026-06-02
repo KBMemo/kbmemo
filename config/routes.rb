@@ -131,6 +131,8 @@ Rails.application.routes.draw do
   end
 
   namespace :internal do
-    post "tsuzura/sign_urls", to: "tsuzura#sign_urls"
+    get "tsuzura/albums", to: "tsuzura#albums", as: :tsuzura_albums
+    get "tsuzura/albums/:id", to: "tsuzura#album", as: :tsuzura_album
+    post "tsuzura/sign_urls", to: "tsuzura#sign_urls", as: :tsuzura_sign_urls
   end
 end

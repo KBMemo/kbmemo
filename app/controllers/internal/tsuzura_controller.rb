@@ -8,6 +8,30 @@ module Internal
 
     before_action :authenticate_internal_or_user!
 
+    def albums
+      return head :unauthorized unless rodauth.rails_account
+
+      body = Tsuzura::Client.list_albums(owner_account_id: rodauth.rails_account.id)
+      if body.nil?
+        return render json: {
+          albums: [],
+          error: "Tsuzura API に接続できません。kbmemo-media が起動しているか TSUZURA_BASE_URL / KBMEMO_TSUZURA_INTERNAL_SECRET を確認してください。"
+        }, status: :service_unavailable
+      end
+
+      render json: body
+    end
+
+    def album
+      return head :unauthorized unless rodauth.rails_account
+
+      data = Tsuzura::Client.fetch_album(params[:id])
+      return head :not_found unless data
+      return head :forbidden unless data["owner_account_id"] == rodauth.rails_account.id
+
+      render json: data
+    end
+
     def sign_urls
       memo = Memo.find(params.require(:memo_id))
       authorize memo, :show?

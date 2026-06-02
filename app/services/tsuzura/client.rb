@@ -6,6 +6,20 @@ require "json"
 module Tsuzura
   class Client
     class << self
+      def list_albums(owner_account_id:)
+        uri = URI.join(api_base_url, "internal/albums")
+        uri.query = URI.encode_www_form(owner_account_id: owner_account_id)
+        request = Net::HTTP::Get.new(uri)
+        request["X-Kbmemo-Internal-Secret"] = internal_secret.to_s
+        response = http(uri).request(request)
+        return nil unless response.is_a?(Net::HTTPSuccess)
+
+        JSON.parse(response.body)
+      rescue StandardError => e
+        Rails.logger.warn("Tsuzura album list failed for account #{owner_account_id}: #{e.message}")
+        nil
+      end
+
       def fetch_album(ulid)
         normalized = ulid.to_s.strip.upcase
         return nil if normalized.blank?

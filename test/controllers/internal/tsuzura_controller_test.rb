@@ -33,6 +33,46 @@ class Internal::TsuzuraControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "albums returns list for logged in user" do
+    Tsuzura::Client.stub(:list_albums, { "albums" => [ { "id" => ULID.generate.to_s, "title" => "A" } ] }) do
+      get internal_tsuzura_albums_path, as: :json
+      assert_response :success
+      assert_equal 1, response.parsed_body["albums"].size
+    end
+  end
+
+  test "albums returns service unavailable when Tsuzura is unreachable" do
+    Tsuzura::Client.stub(:list_albums, nil) do
+      get internal_tsuzura_albums_path, as: :json
+      assert_response :service_unavailable
+      assert_equal [], response.parsed_body["albums"]
+      assert response.parsed_body["error"].present?
+    end
+  end
+
+  test "album returns album payload for owner" do
+    album_id = ULID.generate.to_s
+    Tsuzura::Client.stub(
+      :fetch_album,
+      { "id" => album_id, "title" => "Trip", "owner_account_id" => accounts(:one).id, "media_item_ids" => [] }
+    ) do
+      get internal_tsuzura_album_path(album_id), as: :json
+      assert_response :success
+      assert_equal album_id, response.parsed_body["id"]
+    end
+  end
+
+  test "album rejects other owner" do
+    album_id = ULID.generate.to_s
+    Tsuzura::Client.stub(
+      :fetch_album,
+      { "id" => album_id, "owner_account_id" => accounts(:two).id, "media_item_ids" => [] }
+    ) do
+      get internal_tsuzura_album_path(album_id), as: :json
+      assert_response :forbidden
+    end
+  end
+
   test "authorize rejects private memo for other user" do
     memo = memos(:two)
     post internal_tsuzura_sign_urls_path,

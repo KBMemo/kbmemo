@@ -18,6 +18,8 @@ import {
   substituteDiagramsForPreview,
   ensureTsuzuraUrlsInCache,
   ensureWikiLinkLabelsInCache,
+  extractTsuzuraAlbumIds,
+  extractTsuzuraMediaIds,
   extractWikiLinkTargets,
   substituteTsuzuraForPreview,
   substituteWikiLinksForPreview,
@@ -179,6 +181,22 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     }
   }
 
+  function unitNeedsDeferredPreviewRefresh(adoc, config) {
+    if (config?.labelsUrl) {
+      const wikiTargets = extractWikiLinkTargets(adoc)
+      if (wikiTargets.some((target) => wikiLabelCache.has(target))) return true
+    }
+
+    if (config?.tsuzuraAuthorizeUrl) {
+      const mediaIds = extractTsuzuraMediaIds(adoc)
+      if (mediaIds.some((id) => tsuzuraCache.urls.has(id))) return true
+      const albumIds = extractTsuzuraAlbumIds(adoc)
+      if (albumIds.some((id) => tsuzuraCache.albums.has(id))) return true
+    }
+
+    return false
+  }
+
   async function refreshWikiLabelPreviews(source) {
     const config = getWikiConfig?.()
     if (config?.labelsUrl) {
@@ -196,7 +214,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
 
       const adoc = getUnitAdocSource(unit)
       if (adoc === undefined) continue
-      if (!extractWikiLinkTargets(adoc).some((target) => wikiLabelCache.has(target))) continue
+      if (!unitNeedsDeferredPreviewRefresh(adoc, config)) continue
 
       renderUnitPreview(/** @type {HTMLElement} */ (unit), adoc)
     }
@@ -685,14 +703,18 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     try {
       activeSourceUnit = null
       wikiLabelCache.clear()
+      tsuzuraCache.urls.clear()
+      tsuzuraCache.albums.clear()
       const memoId = getMemoId?.()
       const normalizedSource = memoId
         ? normalizeMemoImagePathsInSource(source, memoId)
         : source
       editorEl.replaceChildren()
 
-      await ensureDocumentWikiLabels(normalizedSource)
-    await ensureDocumentTsuzuraUrls(normalizedSource)
+      await Promise.all([
+        ensureDocumentWikiLabels(normalizedSource),
+        ensureDocumentTsuzuraUrls(normalizedSource),
+      ])
 
       for (const parsed of parseEditUnitsFromSource(normalizedSource)) {
         const wrapper = document.createElement('div')
@@ -901,7 +923,10 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     }
 
     renderUnitPreview(unit, adoc)
-    void ensureDocumentWikiLabels(adoc).then(() => {
+    void Promise.all([
+      ensureDocumentWikiLabels(adoc),
+      ensureDocumentTsuzuraUrls(getDocumentSource()),
+    ]).then(() => {
       if (!unit.isConnected || unit.classList.contains('is-source')) return
       renderUnitPreview(unit, adoc)
     })

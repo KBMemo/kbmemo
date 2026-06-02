@@ -25,8 +25,26 @@ export function resetHostConfig() {
 }
 
 export function getCsrfToken() {
-  if (overrides.getCsrfToken) return overrides.getCsrfToken() ?? null
-  return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? null
+  if (overrides.getCsrfToken) {
+    const token = overrides.getCsrfToken()
+    if (token) return token
+  }
+
+  const meta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+  if (meta) return meta
+
+  const formToken = document.querySelector('input[name="authenticity_token"]')?.value
+  return formToken || null
+}
+
+/**
+ * fetch 用 CSRF ヘッダー（meta が空でも form の authenticity_token を使う）。
+ * @returns {Record<string, string>}
+ */
+export function csrfFetchHeaders() {
+  const token = getCsrfToken()
+  if (!token) return {}
+  return { 'X-CSRF-Token': token }
 }
 
 /**
