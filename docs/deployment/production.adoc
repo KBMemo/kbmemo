@@ -538,6 +538,48 @@ TSUZURA_PUBLIC_URL=https://media.kbmemo.net
 KBMEMO_TSUZURA_INTERNAL_SECRET=…  # credentials tsuzura.internal_secret と同一
 ----
 
+=== Tsuzura systemd
+
+配置例: `/home/kensei/sites/kbmemo-media`。`start.sh` が rbenv と `.env.production` を読み込み、`PORT=3008` で Puma を起動します。
+
+[source,bash]
+----
+cd /home/kensei/sites/kbmemo-media
+cp .env.example .env.production   # RAILS_MASTER_KEY（kbmemo と共有可）等
+chmod 750 start.sh
+----
+
+`/etc/systemd/system/tsuzura.service`:
+
+[source,ini]
+----
+[Unit]
+Description=Tsuzura (media.kbmemo.net)
+After=network.target
+
+[Service]
+Type=simple
+User=kensei
+Group=kensei
+WorkingDirectory=/home/kensei/sites/kbmemo-media
+
+ExecStart=/home/kensei/sites/kbmemo-media/start.sh
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+----
+
+[source,bash]
+----
+sudo systemctl daemon-reload
+sudo systemctl enable --now tsuzura
+curl -fsS http://127.0.0.1:3008/up
+----
+
 === `/cable` の確認
 
 [source,bash]
