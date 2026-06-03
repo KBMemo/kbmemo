@@ -1,0 +1,174 @@
+= Tsuzura Phase 3 — 画像編集（crop / rotate・EditStack）
+
+link:media-platform.adoc[media-platform.adoc] の **Phase 3**。**2026-06 着手**。
+
+== ゴール
+
+* **非破壊編集:** 原本 blob（`file`）は保持。表示用 `web` を EditStack から再生成する。
+* **回転・トリミング** を Tsuzura Web UI と API で行える。
+* **手動ぼかし矩形**（`blur_regions[]`）を Stack に保存し、派生 `web` に焼き込む。
+* KBMemo 本文の `image::media:ULID[]` は **変更不要**（署名 URL は従来どおり `/v1/media/:id/web`）。
+
+**非ゴール（Phase 3）:** 顔検出（Phase 4）、ffmpeg（Phase 5）、S3 移行（Phase 6）、KBMemo 側の編集 UI（media.kbmemo.net で編集）。
+
+== データモデル
+
+=== `tsuzura_media_items.edit_stack`（jsonb）
+
+1 メディア 1 スタック。空 `{}` は「未編集（回転 0・全面 crop）」と同義。
+
+[source,json]
+----
+{
+  "rotate": 90,
+  "crop": { "x": 0.05, "y": 0.1, "w": 0.9, "h": 0.8 },
+  "blur_regions": [
+    { "x": 0.2, "y": 0.3, "w": 0.15, "h": 0.2, "strength": 12 }
+  ]
+}
+----
+
+[cols="1,3"]
+|===
+|キー |意味
+
+|`rotate`
+|0 / 90 / 180 / 270（時計回り）
+
+|`crop`
+|正規化矩形（0..1）。省略時は全面
+
+|`blur_regions[]`
+|正規化矩形 + `strength`（ぼかし半径目安、px）
+
+|===
+
+* **派生画像:** Active Storage `web`（JPEG、長辺上限 2048px）。`file` は不変。
+* **将来:** 別テーブル `tsuzura_media_renditions` へ分割可。Phase 3 は `web` のみ。
+
+== API（kbmemo-media）
+
+[cols="1,2,2"]
+|===
+|Method |Path |用途
+
+|PATCH
+|`/v1/media/:id/edits`
+|EditStack 更新 → `ApplyEditStackJob` で `web` 再生成
+
+|GET
+|`/v1/media/:id`
+|レスポンスに `edit_stack` を含める（Phase 3）
+
+|===
+
+**認証:** Bearer `tsuzura_api_token` または Rodauth セッション（Web フォームは Cookie）。
+
+**リクエスト例:**
+
+[source,json]
+----
+PATCH /v1/media/01JH…/edits
+{
+  "edit_stack": {
+    "rotate": 90,
+    "crop": { "x": 0, "y": 0, "w": 1, "h": 1 },
+    "blur_regions": []
+  }
+}
+----
+
+== Web UI（kbmemo-media）
+
+[cols="1,3"]
+|===
+|画面 |内容
+
+|`GET /media/:id/edit`
+|プレビュー + 回転（90° 刻み）+ crop（% 入力）+ ぼかし矩形（座標・強度）
+
+|`PATCH /media/:id/edits`
+|同上 Stack を保存（HTML フォーム or fetch）
+
+|アルバム詳細
+|サムネ一覧から「編集」リンク
+
+|===
+
+== 処理パイプライン
+
+[source,text]
+----
+file（原本）
+  → Tsuzura::EditStack.normalize
+  → Tsuzura::EditStackRenderer（image_processing: rotate → crop → blur_regions）
+  → web（JPEG）
+  → GET /v1/media/:id/web（署名付き・KBMemo 既存）
+----
+
+* アップロード直後: `GenerateWebVariantJob` が空 Stack 相当で `web` を生成。
+* 編集保存後: `ApplyEditStackJob` が同 Renderer を呼ぶ。
+
+== KBMemo 連携
+
+* **変更不要** が原則: `MemoTsuzuraMacro` / `sign_urls` / `substituteTsuzuraForPreview` は ULID のみ。
+* 編集後は `web` blob が差し替わるため、**署名 URL の TTL 内** でプレビューが新画像になる（キャッシュはブラウザ依存）。
+* 任意（Phase 3 後半）: ピッカー内サムネ（Phase 2 残）— link:media-platform.adoc[未決事項]
+
+== 受け入れ条件
+
+. オーナーが media.kbmemo.net で写真を 90° 回転・crop 保存できる
+. `PATCH /v1/media/:id/edits` がトークン認証で動き、再生成後の `web` が KBMemo メモ show で反映される
+. 他アカウントの `edits` は 403
+. `edit_stack` が不正（crop 範囲外等）のとき 422
+. 原本 `file` の blob id が編集前後で不変
+
+== タスク分割
+
+[cols="1,2,3"]
+|===
+|# |リポジトリ |内容
+
+|3a
+|`kbmemo-media`
+|migration `edit_stack`、Renderer、Jobs、API PATCH
+
+|3b
+|`kbmemo-media`
+|Web `media#edit`、アルバム詳細リンク、スタイル
+
+|3c
+|docs
+|media-platform.adoc 更新、本 doc、production メモ（任意）
+
+|3d
+|任意
+|ピッカー内サムネ、`properties.media_album_id`
+
+|===
+
+== 参照コード
+
+**kbmemo-media（Phase 3）**
+
+* `app/services/tsuzura/edit_stack.rb`
+* `app/services/tsuzura/edit_stack_renderer.rb`
+* `app/jobs/apply_edit_stack_job.rb`
+* `app/controllers/api/v1/media_controller.rb#update_edits`
+* `app/controllers/web/media_controller.rb`
+
+**KBMemo（参照のみ）**
+
+* `app/services/memo_tsuzura_macro.rb`
+* `app/services/tsuzura/media_url_signer.rb`
+
+== 本番依存
+
+* **libvips** 推奨（`image_processing` の第一選択）。または ImageMagick（JPEG/PNG delegate 必須）。
+* ジョブ: `ApplyEditStackJob` / `GenerateWebVariantJob` は Solid Queue で実行。
+
+== 関連
+
+* link:media-platform.adoc[media-platform.adoc]
+* link:tsuzura-phase2.adoc[tsuzura-phase2.adoc] — Phase 2 完了
+* link:../deployment/production.adoc[production.adoc]

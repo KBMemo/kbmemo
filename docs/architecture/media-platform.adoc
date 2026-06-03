@@ -1,7 +1,7 @@
 = Tsuzura（葛籠）— メディアプラットフォーム設計方針
 
 KBMemo で写真・画像を **大規模に扱い・編集し・共有する** ための全体設計。
-**製品名 Tsuzura**（葛籠・つづら）。Phase 0 方針 + **Phase 1・2 完了**（2026-06）。実装は別リポジトリ（`kbmemo-media`）＋ KBMemo 連携。Phase 2 詳細: link:tsuzura-phase2.adoc[tsuzura-phase2.adoc]。
+**製品名 Tsuzura**（葛籠・つづら）。Phase 0 方針 + **Phase 1・2 完了**（2026-06）。**Phase 3 着手**（crop/rotate・EditStack）。実装は別リポジトリ（`kbmemo-media`）＋ KBMemo 連携。Phase 2: link:tsuzura-phase2.adoc[tsuzura-phase2.adoc]、Phase 3: link:tsuzura-phase3.adoc[tsuzura-phase3.adoc]。
 
 前提: `AGENTS.md`（メモ本文の正は DB の AsciiDoc）、link:memo-body-editor-roadmap.adoc[memo-body-editor-roadmap.adoc]（Phase 5f 現行 Git アセット）、link:google-calendar-sync.adoc[google-calendar-sync.adoc]（外部サービス連携の先例）、link:google-photos-integration.adoc[google-photos-integration.adoc]（Google フォト取り込みは Tsuzura の入力源の一つ）。
 
@@ -120,7 +120,7 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 
 |===
 
-**次:** Phase 3（crop/rotate・EditStack）— 本 doc フェーズ表
+**次:** Phase 3（crop/rotate・EditStack）— link:tsuzura-phase3.adoc[tsuzura-phase3.adoc]（着手）
 
 === CLI（Phase 1）
 
@@ -756,8 +756,8 @@ KBMemo 内部:
 |**2（完了）**
 |Web UI（一覧・upload）+ メモ編集ピッカー — link:tsuzura-phase2.adoc[tsuzura-phase2.adoc]
 
-|**3**
-|crop/rotate、EditStack
+|**3（着手）**
+|crop/rotate、EditStack — link:tsuzura-phase3.adoc[tsuzura-phase3.adoc]
 
 |**4**
 |サーバー顔検出 + ぼかし（<<face-privacy>>）
@@ -793,7 +793,7 @@ bin/tsuzura import、メモ編集ピッカー、media.kbmemo.net Web UI、
 sign_urls（JSON+CSRF）、TSUZURA_PUBLIC_URL、kbmemo-media bin/deploy。
 ----
 
-**Phase 3（次）** — crop/rotate・EditStack（本 doc フェーズ表）。
+**Phase 3（着手）** — crop/rotate・EditStack — link:tsuzura-phase3.adoc[tsuzura-phase3.adoc]。
 
 **各セッションに含めるもの:**
 
@@ -842,6 +842,7 @@ sign_urls（JSON+CSRF）、TSUZURA_PUBLIC_URL、kbmemo-media bin/deploy。
 == 関連ドキュメント
 
 * link:tsuzura-phase2.adoc[tsuzura-phase2.adoc] — **Phase 2 完了**（Web UI・ピッカー）
+* link:tsuzura-phase3.adoc[tsuzura-phase3.adoc] — **Phase 3 着手**（EditStack・編集 UI）
 * link:../deployment/production.adoc[production.adoc] — kbmemo + Tsuzura デプロイ
 * link:google-photos-integration.adoc[google-photos-integration.adoc] — Google フォト取り込み（Tsuzura 入力）
 * link:memo-body-editor-roadmap.adoc[memo-body-editor-roadmap.adoc] — 現行 Git 画像（Phase 5f）
