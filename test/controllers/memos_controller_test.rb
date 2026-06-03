@@ -468,7 +468,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "memo-draft#preventSubmit"
     assert_includes response.body, "memo-draft#suppressEnterSubmit"
     assert_includes response.body, "memo_slug_field"
-    assert_match(/data-memo-draft-tag-catalog-value=.*Ideas/, response.body)
+    assert_match(/data-memo[-_]draft[-_]tag[-_]catalog[-_]value=.*Ideas/, response.body)
     assert_select '[data-controller*="memo-body-editor"]'
     assert_select "[data-memo-body-editor-wiki-completions-url-value]"
     assert_select "[data-memo-body-editor-upload-url-value=?]", assets_memo_path(memos(:one))
@@ -823,7 +823,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "button[disabled][title*='コミット']", text: "画像を挿入"
     assert_select "input[data-memo-body-editor-target='imageInput']", count: 0
     assert_select "#memo_form_actions button", text: "削除", count: 0
-    assert_select "#memo_form_actions button[data-memo-commit='true']", count: 0
+    assert_select "#memo_form_actions button[data-memo-commit='true'].hidden", count: 1
+    assert_select ".memo-draft-shell [data-memo-draft-target='formActionsChrome'].hidden"
   end
 
   test "new memo form renders empty title and disables turbo cache" do
@@ -837,9 +838,13 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='memo[visibility]'] option[selected][value='owner_read_write']"
     assert_select "select[name='memo[memo_group_id]'] option[value='']", text: "（なし）"
     assert_select "select[name='memo[memo_group_id]'] option[selected][value]:not([value=''])", count: 0
-    assert_includes response.body, 'data-turbo-cache="false"'
-    assert_includes response.body, "data-memo-draft-create-url-value"
-    assert_includes response.body, "data-memo-draft-initial-form-value"
+    assert_match(/data-turbo[-_]cache="false"/, response.body)
+    assert_includes response.body, 'data-memo-draft-create-url-value'
+    assert_includes response.body, 'data-memo-draft-initial-form-value'
+    assert_not_includes response.body, "data-memo_draft_create_url_value"
+    assert_select ".memo-draft-shell[data-controller~='memo-draft']"
+    assert_select ".memo-draft-shell [data-memo-draft-target='formActionsChrome']"
+    assert_select "form#new_memo_form [data-memo-draft-target='formActionsChrome']", count: 0
   end
 
   test "edit uncommitted memo shows delete and commit actions" do
@@ -850,6 +855,51 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "#memo_form_actions button", text: "削除"
     assert_select "#memo_form_actions button[data-memo-commit='true']", text: "コミット"
     assert_select "#memo_form_actions button", text: "ドラフトを破棄", count: 0
+  end
+
+  test "edit uncommitted delete is nested form outside edit form for turbo" do
+    memo = memos(:one)
+    memo.update_column(:file_committed_at, nil)
+    form_id = dom_id(memo, :edit_form)
+    get edit_memo_url(memo)
+    assert_response :success
+    assert_select "form##{form_id}" do
+      assert_select "button", text: "削除", count: 0
+    end
+    assert_select "#memo_form_actions form[method='post'][action^='#{memo_path(memo)}']" do
+      assert_select "input[name='_method'][value='delete']"
+      assert_select "button", text: "削除"
+    end
+  end
+
+  test "destroy uncommitted memo via turbo stream removes sidebar row and clears editor" do
+    memo = memos(:one)
+    memo.update_column(:file_committed_at, nil)
+    work = memo_directories(:work)
+    memo.update!(memo_directory: work)
+    tag = tags(:one)
+    memo.tags = [tag]
+
+    assert_difference("Memo.count", -1) do
+      delete memo_path(memo, sidebar_view: "tag", tag_id: tag.id),
+        headers: { Accept: "text/vnd.turbo-stream.html" }
+    end
+    assert_response :success
+    assert_includes @response.body, %(turbo-stream action="remove" target="sidebar_row_memo_#{memo.id}")
+    assert_includes @response.body, %(turbo-stream action="replace" target="memos_list_panel")
+    assert_includes @response.body, %(turbo-stream action="replace" target="memos_editor_scroll")
+    assert_select "#sidebar_row_memo_#{memo.id}", count: 0
+  end
+
+  test "destroy memo redirects with sidebar nav query" do
+    memo = memos(:one)
+    work = memo_directories(:work)
+    memo.update!(memo_directory: work)
+
+    assert_difference("Memo.count", -1) do
+      delete memo_path(memo, memo_directory_id: work.id)
+    end
+    assert_redirected_to memos_path(memo_directory_id: work.id)
   end
 
   test "edit disables image insert when memo not committed to git" do

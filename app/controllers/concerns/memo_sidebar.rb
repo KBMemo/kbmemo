@@ -10,6 +10,24 @@ module MemoSidebar
     before_action :load_sidebar_memos_list
   end
 
+  # ディレクトリ / タグ切り替え後も一覧・編集の文脈を保つクエリ（ハッシュ）
+  def memo_sidebar_nav_query
+    h = {}
+    if @sidebar_view == "search"
+      h[:sidebar_view] = "search"
+      h[:q] = @memo_search_query if @memo_search_query.present?
+    elsif @sidebar_view == "tag"
+      h[:sidebar_view] = "tag"
+      tid = (@current_tag&.id || params[:tag_id]).presence
+      h[:tag_id] = tid if tid
+    elsif @sidebar_view == "history"
+      h[:sidebar_view] = "history"
+    elsif @current_memo_directory && !@current_memo_directory.root?
+      h[:memo_directory_id] = @current_memo_directory.id
+    end
+    h
+  end
+
   private
 
   def memo_show_or_edit_action?

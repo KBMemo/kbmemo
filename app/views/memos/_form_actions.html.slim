@@ -15,7 +15,7 @@ ruby:
       i class="h-3.5 w-3.5" aria-hidden="true" data-lucide="arrow-left"
       span = "#{memo.notebook.title} に戻る"
   - if uncommitted && memo.persisted?
-    = button_to "削除", memo_path(memo, memo_sidebar_nav_query), method: :delete, form: { data: { turbo: false, turbo_confirm: "このメモを削除しますか？" } }, class: delete_btn_class
+    = button_to "削除", memo_path(memo, memo_sidebar_nav_query), method: :delete, form: { data: { turbo_confirm: "このメモを削除しますか？" } }, class: delete_btn_class
   - if memo.file_committed_at.present?
     button type="button" class=discard_btn_class data-memo-draft-target="discardDraftButton" data-action="memo-draft#discardDraft" title="ドラフトの変更を破棄し、最後に Git へコミットした内容を読み込みます"
       | ドラフトを破棄

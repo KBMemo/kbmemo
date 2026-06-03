@@ -30,22 +30,26 @@ const renderLucideIcons = () => {
   })
 }
 
-function refreshCsrfMetaFromResponse(response) {
+function refreshCsrfFromResponse(response) {
   const token = response.headers.get("X-CSRF-Token")
   if (!token) return
   const meta = document.querySelector('meta[name="csrf-token"]')
   if (meta) meta.setAttribute("content", token)
+  // fetch 自動保存のあと form submit（コミット等）が古い hidden token を送らないよう同期する
+  document.querySelectorAll('input[name="authenticity_token"]').forEach((input) => {
+    input.value = token
+  })
 }
 
 document.addEventListener("turbo:before-fetch-response", (event) => {
   const response = event.detail?.fetchResponse?.response
-  if (response) refreshCsrfMetaFromResponse(response)
+  if (response) refreshCsrfFromResponse(response)
 })
 
 const nativeFetch = window.fetch.bind(window)
 window.fetch = async (...args) => {
   const response = await nativeFetch(...args)
-  refreshCsrfMetaFromResponse(response)
+  refreshCsrfFromResponse(response)
   return response
 }
 

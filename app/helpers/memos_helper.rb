@@ -60,22 +60,8 @@ module MemosHelper
     end
   end
 
-  # ディレクトリ / タグ切り替え後も一覧・編集の文脈を保つクエリ（ハッシュ）
   def memo_sidebar_nav_query
-    h = {}
-    if defined?(@sidebar_view) && @sidebar_view == "search"
-      h[:sidebar_view] = "search"
-      h[:q] = @memo_search_query if defined?(@memo_search_query) && @memo_search_query.present?
-    elsif defined?(@sidebar_view) && @sidebar_view == "tag"
-      h[:sidebar_view] = "tag"
-      tid = (@current_tag&.id || params[:tag_id]).presence
-      h[:tag_id] = tid if tid
-    elsif defined?(@sidebar_view) && @sidebar_view == "history"
-      h[:sidebar_view] = "history"
-    elsif defined?(@current_memo_directory) && @current_memo_directory && !@current_memo_directory.root?
-      h[:memo_directory_id] = @current_memo_directory.id
-    end
-    h
+    controller.memo_sidebar_nav_query
   end
 
   # show / edit 中はメモを開いたままサイドバー文脈だけ切り替える

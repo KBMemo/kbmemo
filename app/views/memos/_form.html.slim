@@ -30,140 +30,141 @@ ruby:
     }.to_json
   end
 
-= form_with model: memo, class: "space-y-3", html: { id: memo_edit_form_id }, data: form_data do |f|
-  = hidden_field_tag "memo[title_manual]", memo.title_manual ? "1" : "0", data: { memo_draft_target: "titleManualFlag" }
-  - if memo.errors.any?
-    .rounded-md.border.border-red-200.bg-red-50.px-4.py-3.text-sm.text-red-900
-      p.font-medium 保存できませんでした。
-      ul.mt-2.list-inside.list-disc.space-y-1
-        - memo.errors.full_messages.each do |message|
-          li = message
-
-  - if memo.persisted?
-    .hidden.rounded-md.border.border-amber-200.bg-amber-50.px-3.py-2.text-sm.text-amber-950 role="status" data-memo-draft-target="remoteNotice"
-      span data-memo-draft-target="remoteNoticeText"
-        | 別のタブでこのメモが保存されました。
-      button.ml-2.rounded.border.border-amber-300.bg-white.px-2.py-0.5.text-xs.font-medium.hover:bg-amber-100 type="button" data-action="memo-draft#applyRemoteDraft"
-        | 最新の本文を読み込む
-
-  - if memo.persisted? && memo.account
-    .mb-3.flex.items-center.gap-2.border-b.kb-border.pb-3
-      = gravatar_image_tag(memo.account, size: 28, extra_class: "shrink-0")
-      div.min-w-0
-        p.text-xs.kb-text-muted 作成者
-        p.truncate.text-sm.font-medium.kb-text-primary = memo.account.display_name
-
-  div
-    = render "title_field", memo: memo
-
-  div
-    = render "slug_field", memo: memo
-
-  - if memo.persisted?
+= tag.div class: "memo-draft-shell", data: form_data do
+  = form_with model: memo, class: "space-y-3", html: { id: memo_edit_form_id, data: { turbo: "false" } } do |f|
+    = hidden_field_tag "memo[title_manual]", memo.title_manual ? "1" : "0", data: { memo_draft_target: "titleManualFlag" }
+    - if memo.errors.any?
+      .rounded-md.border.border-red-200.bg-red-50.px-4.py-3.text-sm.text-red-900
+        p.font-medium 保存できませんでした。
+        ul.mt-2.list-inside.list-disc.space-y-1
+          - memo.errors.full_messages.each do |message|
+            li = message
+  
+    - if memo.persisted?
+      .hidden.rounded-md.border.border-amber-200.bg-amber-50.px-3.py-2.text-sm.text-amber-950 role="status" data-memo-draft-target="remoteNotice"
+        span data-memo-draft-target="remoteNoticeText"
+          | 別のタブでこのメモが保存されました。
+        button.ml-2.rounded.border.border-amber-300.bg-white.px-2.py-0.5.text-xs.font-medium.hover:bg-amber-100 type="button" data-action="memo-draft#applyRemoteDraft"
+          | 最新の本文を読み込む
+  
+    - if memo.persisted? && memo.account
+      .mb-3.flex.items-center.gap-2.border-b.kb-border.pb-3
+        = gravatar_image_tag(memo.account, size: 28, extra_class: "shrink-0")
+        div.min-w-0
+          p.text-xs.kb-text-muted 作成者
+          p.truncate.text-sm.font-medium.kb-text-primary = memo.account.display_name
+  
     div
-      = render "directory_field", memo: memo
-  - else
+      = render "title_field", memo: memo
+  
     div
-      - selected_dir = memo.memo_directory&.root? ? nil : memo.memo_directory
-      = render "shared/directory_tree_picker",
-        label_text: "ディレクトリ",
-        form_builder: f,
-        field_method: :memo_directory_id,
-        selected_directory: selected_dir,
-        directory_options: memo_directories_for_select,
-        placeholder_text: "保存先フォルダを選んでください",
-        hidden_field_data: { memo_draft_target: "directory", action: "change->memo-draft#directoryChange" }
+      = render "slug_field", memo: memo
+  
+    - if memo.persisted?
+      div
+        = render "directory_field", memo: memo
+    - else
+      div
+        - selected_dir = memo.memo_directory&.root? ? nil : memo.memo_directory
+        = render "shared/directory_tree_picker",
+          label_text: "ディレクトリ",
+          form_builder: f,
+          field_method: :memo_directory_id,
+          selected_directory: selected_dir,
+          directory_options: memo_directories_for_select,
+          placeholder_text: "保存先フォルダを選んでください",
+          hidden_field_data: { memo_draft_target: "directory", action: "change->memo-draft#directoryChange" }
+  
+    div
+      = render "visibility_field", memo: memo, f: f
+  
+    .flex.items-start.gap-3
+      = label_tag "memo_properties_yaml", "プロパティ", class: "pt-1 text-sm font-medium kb-text-primary whitespace-nowrap"
+      .min-w-0.flex-1
+        = text_area_tag "memo[properties_yaml]", memo_properties_yaml_value(memo), rows: 4, placeholder: "priority: 1\nlabels:\n  - ideas", class: memo_form_underline_properties_textarea(memo), data: { memo_draft_target: "propertiesYaml", action: "input->memo-draft#propertiesInput compositionend->memo-draft#propertiesInput" }
+        - if memo.errors[:properties_yaml].any?
+          p.mt-1.text-sm.text-red-700 = memo.errors[:properties_yaml].first
+  
+    = render "tag_field", memo: memo
+  
+    div data-controller="expandable-hint" data-expandable-hint-expanded-value="false" data-expandable-hint-expand-label-value="Wiki リンクの説明を表示" data-expandable-hint-collapse-label-value="Wiki リンクの説明を閉じる"
+      .mb-1.flex.w-full.items-center.gap-1
+        = f.label :body, "本文（AsciiDoc）", id: "memo-body-label", class: "mb-0 block shrink-0 text-sm font-medium kb-text-primary"
+        button.ml-auto.inline-flex.h-6.w-6.shrink-0.items-center.justify-center.rounded.kb-toolbar-btn type="button" data-action="expandable-hint#toggle" aria-expanded="false" aria-controls="memo-wiki-link-hint" title="Wiki リンクの説明を表示"
+          span.leading-none data-expandable-hint-target="toggleIcon" aria-hidden="true"
+            | ▼
+      p#memo-wiki-link-hint.hidden.mb-1.text-xs.kb-text-muted data-expandable-hint-target="panel"
+        | メモへの Wiki リンク:
+        code.kb-text-secondary
+          | [[相手メモのタイトル]]
+        | 、
+        code.kb-text-secondary
+          | [[タイトル|表示名]]
+        | 、
+        code.kb-text-secondary
+          | [[slug-123]]
+        | （スラッグはメモ ID 付きで全体一意。ディレクトリを移してもリンクは有効。
+        | 旧形式の
+        code.kb-text-secondary
+          | [[slug]]
+        | や
+        code.kb-text-secondary
+          | [[home/u-1/work/slug-123]]
+        | も解決できる場合があります）
+      div class="memo-body-editor block w-full border-0 rounded-none bg-transparent border-b kb-border min-h-[18rem]" data-theme-slot="memo-editor" data-controller="memo-body-editor tsuzura-picker" data-memo-body-editor-label-id-value="memo-body-label" data-memo-body-editor-wiki-completions-url-value=wiki_completions_memos_path(format: :json) data-memo-body-editor-wiki-link-labels-url-value=wiki_link_labels_memos_path(format: :json) data-memo-body-editor-tsuzura-authorize-url-value=(memo.persisted? ? internal_tsuzura_sign_urls_path : "") data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "") data-memo-body-editor-upload-url-value=(memo.image_assets_uploadable? ? assets_memo_path(memo) : "") data-tsuzura-picker-albums-url-value=internal_tsuzura_albums_path data-tsuzura-picker-album-url-template-value=internal_tsuzura_album_path("__ID__") data-tsuzura-picker-editor-selector-value=".memo-body-editor"
+          div.memo-body-editor__header.mb-1.border-b.kb-border.pb-2 data-controller=(memo.image_assets_uploadable? ? "memo-attachments" : nil) data-memo-attachments-expanded-value=(memo.image_assets_uploadable? ? "false" : nil)
+            div.memo-body-editor__header-row
+              nav.memo-body-editor__mode-tabs role="tablist" aria-label="編集モード"
+                button.memo-body-editor__mode-tab type="button" role="tab" data-edit-mode="wysiwyg" data-memo-body-editor-target="editModeTab" data-action="memo-body-editor#setEditMode" aria-pressed="false"
+                  | WYSIWYG
+                button.memo-body-editor__mode-tab.is-active type="button" role="tab" data-edit-mode="source" data-memo-body-editor-target="editModeTab" data-action="memo-body-editor#setEditMode" aria-pressed="true"
+                  | ソース
+              div.memo-body-editor__asset-toolbar
+                label.memo-body-editor__preview-toggle.memo-body-editor__source-only.inline-flex.cursor-pointer.items-center.gap-1.5 class=kb_toolbar_btn title="Asciidoctor.js によるライブプレビューを表示"
+                  input type="checkbox" data-memo-body-editor-target="previewToggle" data-action="change->memo-body-editor#toggleLivePreview"
+                  span ライブプレビュー
+                button.inline-flex.items-center class=kb_toolbar_btn type="button" data-action="tsuzura-picker#open" title="Tsuzura アルバム・写真を本文に挿入"
+                  | Tsuzura
+                - if memo.image_assets_uploadable?
+                  = link_to "ダイアグラムを作成", new_memo_diagram_path(memo), class: kb_toolbar_btn, target: "_blank", rel: "noopener"
+                  label.cursor-pointer class=kb_toolbar_btn
+                    | 画像を挿入
+                    input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple=true data-memo-body-editor-target="imageInput" data-action="change->memo-body-editor#uploadImage"
+                  button.inline-flex.items-center class=kb_toolbar_btn type="button" data-action="memo-attachments#toggle" aria-expanded="false" aria-controls="memo-attachment-panel" title="添付ファイル一覧を開く"
+                    | 添付ファイル
+                    span.ml-0.5.leading-none data-memo-attachments-target="toggleIcon" aria-hidden="true"
+                      | ▼
+                - else
+                  button.memo-body-editor__source-only.kb-toolbar-btn.is-disabled type="button" disabled=true title="メモを Git にコミットしてから画像を挿入できます"
+                    | 画像を挿入
+                span.hidden.text-xs.text-red-600 data-memo-body-editor-target="uploadError"
+            - if memo.image_assets_uploadable?
+              = render "memos/attachment_panel", memo: memo, body: memo.body
+          div.memo-body-editor__source-pane data-memo-body-editor-target="sourcePane"
+            div.memo-body-editor__workspace
+              div.memo-body-editor__source
+                div.memo-body-editor__host.relative[data-memo-body-editor-target="host" style="min-height: inherit"]
+              div.memo-body-editor__preview aria-hidden="true"
+                div.memo-body-editor__preview-toolbar
+                  span.memo-body-editor__preview-label Preview
+                  label.memo-body-editor__preview-skin
+                    span テーマ
+                    select.kb-input.text-xs.rounded.px-1.py-0.5 aria-label="Preview theme" data-theme-select="true" data-memo-body-editor-target="previewSkinSelect"
+                div.memo-body-editor__preview-content.memo-body.asciidoctor data-theme-slot="memo-body" data-memo-body-editor-target="previewHost"
+          div.memo-body-editor__wysiwyg-pane data-memo-body-editor-target="wysiwygPane" hidden=true aria-hidden="true"
+            div.memo-body-editor__wysiwyg-content.memo-body.asciidoctor contenteditable="false" spellcheck="false" data-theme-slot="memo-body" data-memo-body-editor-target="wysiwygHost"
+          = f.text_area :body,
+            rows: 1,
+            class: "sr-only",
+            tabindex: -1,
+            autocomplete: "off",
+            data: { memo_draft_target: "body", memo_body_editor_target: "field", action: "input->memo-draft#bodyInput compositionend->memo-draft#bodyInput blur->memo-draft#bodyInput" }
+          = render "memos/tsuzura_picker"
 
-  div
-    = render "visibility_field", memo: memo, f: f
+    - if memo.persisted?
+      = render "memos/show_backlinks", memo: memo
 
-  .flex.items-start.gap-3
-    = label_tag "memo_properties_yaml", "プロパティ", class: "pt-1 text-sm font-medium kb-text-primary whitespace-nowrap"
-    .min-w-0.flex-1
-      = text_area_tag "memo[properties_yaml]", memo_properties_yaml_value(memo), rows: 4, placeholder: "priority: 1\nlabels:\n  - ideas", class: memo_form_underline_properties_textarea(memo), data: { memo_draft_target: "propertiesYaml", action: "input->memo-draft#propertiesInput compositionend->memo-draft#propertiesInput" }
-      - if memo.errors[:properties_yaml].any?
-        p.mt-1.text-sm.text-red-700 = memo.errors[:properties_yaml].first
-
-  = render "tag_field", memo: memo
-
-  div data-controller="expandable-hint" data-expandable-hint-expanded-value="false" data-expandable-hint-expand-label-value="Wiki リンクの説明を表示" data-expandable-hint-collapse-label-value="Wiki リンクの説明を閉じる"
-    .mb-1.flex.w-full.items-center.gap-1
-      = f.label :body, "本文（AsciiDoc）", id: "memo-body-label", class: "mb-0 block shrink-0 text-sm font-medium kb-text-primary"
-      button.ml-auto.inline-flex.h-6.w-6.shrink-0.items-center.justify-center.rounded.kb-toolbar-btn type="button" data-action="expandable-hint#toggle" aria-expanded="false" aria-controls="memo-wiki-link-hint" title="Wiki リンクの説明を表示"
-        span.leading-none data-expandable-hint-target="toggleIcon" aria-hidden="true"
-          | ▼
-    p#memo-wiki-link-hint.hidden.mb-1.text-xs.kb-text-muted data-expandable-hint-target="panel"
-      | メモへの Wiki リンク:
-      code.kb-text-secondary
-        | [[相手メモのタイトル]]
-      | 、
-      code.kb-text-secondary
-        | [[タイトル|表示名]]
-      | 、
-      code.kb-text-secondary
-        | [[slug-123]]
-      | （スラッグはメモ ID 付きで全体一意。ディレクトリを移してもリンクは有効。
-      | 旧形式の
-      code.kb-text-secondary
-        | [[slug]]
-      | や
-      code.kb-text-secondary
-        | [[home/u-1/work/slug-123]]
-      | も解決できる場合があります）
-    div class="memo-body-editor block w-full border-0 rounded-none bg-transparent border-b kb-border min-h-[18rem]" data-theme-slot="memo-editor" data-controller="memo-body-editor tsuzura-picker" data-memo-body-editor-label-id-value="memo-body-label" data-memo-body-editor-wiki-completions-url-value=wiki_completions_memos_path(format: :json) data-memo-body-editor-wiki-link-labels-url-value=wiki_link_labels_memos_path(format: :json) data-memo-body-editor-tsuzura-authorize-url-value=(memo.persisted? ? internal_tsuzura_sign_urls_path : "") data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "") data-memo-body-editor-upload-url-value=(memo.image_assets_uploadable? ? assets_memo_path(memo) : "") data-tsuzura-picker-albums-url-value=internal_tsuzura_albums_path data-tsuzura-picker-album-url-template-value=internal_tsuzura_album_path("__ID__") data-tsuzura-picker-editor-selector-value=".memo-body-editor"
-        div.memo-body-editor__header.mb-1.border-b.kb-border.pb-2 data-controller=(memo.image_assets_uploadable? ? "memo-attachments" : nil) data-memo-attachments-expanded-value=(memo.image_assets_uploadable? ? "false" : nil)
-          div.memo-body-editor__header-row
-            nav.memo-body-editor__mode-tabs role="tablist" aria-label="編集モード"
-              button.memo-body-editor__mode-tab type="button" role="tab" data-edit-mode="wysiwyg" data-memo-body-editor-target="editModeTab" data-action="memo-body-editor#setEditMode" aria-pressed="false"
-                | WYSIWYG
-              button.memo-body-editor__mode-tab.is-active type="button" role="tab" data-edit-mode="source" data-memo-body-editor-target="editModeTab" data-action="memo-body-editor#setEditMode" aria-pressed="true"
-                | ソース
-            div.memo-body-editor__asset-toolbar
-              label.memo-body-editor__preview-toggle.memo-body-editor__source-only.inline-flex.cursor-pointer.items-center.gap-1.5 class=kb_toolbar_btn title="Asciidoctor.js によるライブプレビューを表示"
-                input type="checkbox" data-memo-body-editor-target="previewToggle" data-action="change->memo-body-editor#toggleLivePreview"
-                span ライブプレビュー
-              button.inline-flex.items-center class=kb_toolbar_btn type="button" data-action="tsuzura-picker#open" title="Tsuzura アルバム・写真を本文に挿入"
-                | Tsuzura
-              - if memo.image_assets_uploadable?
-                = link_to "ダイアグラムを作成", new_memo_diagram_path(memo), class: kb_toolbar_btn, target: "_blank", rel: "noopener"
-                label.cursor-pointer class=kb_toolbar_btn
-                  | 画像を挿入
-                  input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple=true data-memo-body-editor-target="imageInput" data-action="change->memo-body-editor#uploadImage"
-                button.inline-flex.items-center class=kb_toolbar_btn type="button" data-action="memo-attachments#toggle" aria-expanded="false" aria-controls="memo-attachment-panel" title="添付ファイル一覧を開く"
-                  | 添付ファイル
-                  span.ml-0.5.leading-none data-memo-attachments-target="toggleIcon" aria-hidden="true"
-                    | ▼
-              - else
-                button.memo-body-editor__source-only.kb-toolbar-btn.is-disabled type="button" disabled=true title="メモを Git にコミットしてから画像を挿入できます"
-                  | 画像を挿入
-              span.hidden.text-xs.text-red-600 data-memo-body-editor-target="uploadError"
-          - if memo.image_assets_uploadable?
-            = render "memos/attachment_panel", memo: memo, body: memo.body
-        div.memo-body-editor__source-pane data-memo-body-editor-target="sourcePane"
-          div.memo-body-editor__workspace
-            div.memo-body-editor__source
-              div.memo-body-editor__host.relative[data-memo-body-editor-target="host" style="min-height: inherit"]
-            div.memo-body-editor__preview aria-hidden="true"
-              div.memo-body-editor__preview-toolbar
-                span.memo-body-editor__preview-label Preview
-                label.memo-body-editor__preview-skin
-                  span テーマ
-                  select.kb-input.text-xs.rounded.px-1.py-0.5 aria-label="Preview theme" data-theme-select="true" data-memo-body-editor-target="previewSkinSelect"
-              div.memo-body-editor__preview-content.memo-body.asciidoctor data-theme-slot="memo-body" data-memo-body-editor-target="previewHost"
-        div.memo-body-editor__wysiwyg-pane data-memo-body-editor-target="wysiwygPane" hidden=true aria-hidden="true"
-          div.memo-body-editor__wysiwyg-content.memo-body.asciidoctor contenteditable="false" spellcheck="false" data-theme-slot="memo-body" data-memo-body-editor-target="wysiwygHost"
-        = f.text_area :body,
-          rows: 1,
-          class: "sr-only",
-          tabindex: -1,
-          autocomplete: "off",
-          data: { memo_draft_target: "body", memo_body_editor_target: "field", action: "input->memo-draft#bodyInput compositionend->memo-draft#bodyInput blur->memo-draft#bodyInput" }
-        = render "memos/tsuzura_picker"
-
-  - if memo.persisted?
-    = render "memos/show_backlinks", memo: memo
-
-- form_actions_hidden = !memo.persisted?
-div data-memo-draft-target="formActionsChrome" class=("hidden" if form_actions_hidden)
-  = render "memos/form_actions", memo: memo, memo_edit_form_id: memo_edit_form_id
+  - form_actions_hidden = !memo.persisted?
+  div data-memo-draft-target="formActionsChrome" class=("hidden" if form_actions_hidden)
+    = render "memos/form_actions", memo: memo, memo_edit_form_id: memo_edit_form_id
 

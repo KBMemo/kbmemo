@@ -74,6 +74,10 @@ export default class extends Controller {
   }
 
   preventSubmit(event) {
+    const form = this.memoFormElement()
+    // button_to 削除など、シェル内の別 form の submit は対象外（バブリングで届く）
+    if (!form || event.target !== form) return
+
     if (event.submitter?.dataset?.memoCommit === "true") {
       this.flushBodyEditor()
       return
@@ -406,8 +410,14 @@ export default class extends Controller {
     return stripped || TITLE_PLACEHOLDER
   }
 
+  shouldUseCreateEndpoint() {
+    if (this.hasMemoIdValue && this.memoIdValue) return false
+    if (this.hasDraftUrlValue && this.draftUrlValue) return false
+    return Boolean(this.hasCreateUrlValue && this.createUrlValue)
+  }
+
   isNewMemoForm() {
-    return this.hasCreateUrlValue && this.createUrlValue && !(this.hasDraftUrlValue && this.draftUrlValue)
+    return this.shouldUseCreateEndpoint()
   }
 
   initialFormSnapshot() {
@@ -637,10 +647,11 @@ export default class extends Controller {
   }
 
   async performDraftAutosaveFetch(overrides = {}, { stream = false } = {}) {
+    this.flushBodyEditor()
     if (this._creating) return false
     const canPersist =
       (this.hasDraftUrlValue && this.draftUrlValue) ||
-      (this.hasCreateUrlValue && this.createUrlValue)
+      this.shouldUseCreateEndpoint()
     if (!canPersist) return false
 
     const snapshot = this.buildMemoSnapshotOverrides(overrides)
@@ -705,7 +716,7 @@ export default class extends Controller {
       }
     }
 
-    if (this.hasCreateUrlValue && this.createUrlValue) {
+    if (this.shouldUseCreateEndpoint()) {
       return this.performCreateMemoFetch(wrapped, token)
     }
 
@@ -735,7 +746,12 @@ export default class extends Controller {
       }
       if (res.status === 422) {
         const err = await res.json()
-        console.error("メモを作成できませんでした:", err.errors)
+        const message =
+          Array.isArray(err.errors) && err.errors.length > 0
+            ? err.errors.join("\n")
+            : "メモを作成できませんでした"
+        console.error("メモを作成できませんでした:", err.errors ?? err)
+        window.alert(message)
       }
     } catch (e) {
       console.error(e)
@@ -745,16 +761,24 @@ export default class extends Controller {
     return false
   }
 
+  memoFormElement() {
+    return this.element.matches("form")
+      ? this.element
+      : this.element.querySelector("form")
+  }
+
   promoteCreatedMemo(data) {
     if (!data?.id) return
 
-    this.createUrlValue = ""
     if (data.draft_url) this.draftUrlValue = data.draft_url
     this.memoIdValue = data.id
+    this.createUrlValue = ""
+    this.element.removeAttribute("data-memo-draft-create-url-value")
     this._creating = false
     this._formInteracted = true
 
-    const form = this.element
+    const form = this.memoFormElement()
+    if (!form) return
     if (data.update_url) {
       form.action = data.update_url
       let methodInput = form.querySelector('input[name="_method"]')

@@ -195,7 +195,7 @@ class MemosController < ApplicationController
             edit_path: edit_memo_path(@memo),
             update_url: memo_path(@memo),
             show_path: memo_path(@memo),
-            form_dom_id: dom_id(@memo, :edit_form),
+            form_dom_id: helpers.dom_id(@memo, :edit_form),
             title_unfilled: @memo.title_unfilled?,
             slug: @memo.slug,
             tsuzura_authorize_url: internal_tsuzura_sign_urls_path,
@@ -239,9 +239,20 @@ class MemosController < ApplicationController
 
   def destroy
     authorize @memo
-    dir_id = @memo.memo_directory_id
+    memo_id = @memo.id
     @memo.destroy
-    redirect_to memos_url(memo_directory_id: dir_id), notice: "メモを削除しました。", status: :see_other
+    load_sidebar_memos_list
+
+    respond_to do |format|
+      format.html do
+        redirect_to memos_path(memo_sidebar_nav_query),
+          notice: "メモを削除しました。",
+          status: :see_other
+      end
+      format.turbo_stream do
+        render turbo_stream: memo_destroy_sidebar_streams(memo_id)
+      end
+    end
   end
 
   def checklist_toggle
@@ -540,7 +551,7 @@ class MemosController < ApplicationController
       MemoDirectory::UserSpace.default_home_directory(rodauth.rails_account.id).id
     end
   rescue ActiveRecord::RecordNotFound
-    MemoDirectory.root.id
+    MemoDirectory::UserSpace.default_home_directory(rodauth.rails_account.id).id
   end
 
   def set_memo
@@ -617,5 +628,13 @@ class MemosController < ApplicationController
     raise ArgumentError, "properties must be a YAML mapping (object)" unless parsed.is_a?(Hash)
 
     parsed.deep_stringify_keys
+  end
+
+  def memo_destroy_sidebar_streams(memo_id)
+    [
+      turbo_stream.remove("sidebar_row_memo_#{memo_id}"),
+      turbo_stream.replace("memos_list_panel", partial: "memos/list_panel"),
+      turbo_stream.replace("memos_editor_scroll", partial: "memos/editor_placeholder")
+    ]
   end
 end
