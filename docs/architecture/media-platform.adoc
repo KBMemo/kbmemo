@@ -564,7 +564,7 @@ AsciiDoc の ULID 記法は「<<asciidoc-ulid,AsciiDoc 参照（ULID）>>」を�
 
 * API: `POST /v1/media/batch` または presigned URL 連続 PUT
 * EXIF `DateTimeOriginal` でソート・アルバム自動提案
-* 重複排除: `checksum` 同一なら `MediaItem` を再利用（任意 Phase）
+* 重複排除: `checksum` 同一なら `MediaItem` を再利用（**W1 完了** — link:tsuzura-watch-import.adoc[tsuzura-watch-import.adoc]）
 
 === 画像編集
 

@@ -1,0 +1,29 @@
+= Tsuzura 監視ディレクトリ取り込み（W1 以降）
+
+link:media-platform.adoc[media-platform.adoc] の Dropbox カメラアップロード型取り込み。
+
+== W1（kbmemo-media・完了）
+
+* **checksum 再利用:** `POST /v1/media/batch` は同一オーナーで同じ Active Storage checksum の `MediaItem` を再アップロードしない
+* **複数アルバム:** `album_ids[]`（+ 従来の `album_id`）で同一メディアを複数アルバムに `AlbumItem` 追加（既存リンクはスキップ）
+* **照会:** `GET /v1/media/lookup?checksum=…` → `{ item: { … } | null }`
+
+[source,bash]
+----
+# 既存アルバムへ追加（重複ファイルはリンクのみ）
+curl -H "Authorization: Bearer $TSUZURA_API_TOKEN" \
+  -F "album_ids[]=$ALBUM_A" -F "album_ids[]=$ALBUM_B" \
+  -F "files[]=@photo.jpg" \
+  https://media.kbmemo.net/v1/media/batch
+
+# 取り込み前の照会（watch manifest 用）
+curl -H "Authorization: Bearer $TSUZURA_API_TOKEN" \
+  "https://media.kbmemo.net/v1/media/lookup?checksum=BASE64MD5"
+----
+
+レスポンス `stats`: `created`（新規 blob）、`linked`（既存メディアを新アルバムへ追加）、`total`。
+
+== W2 以降（未実装）
+
+* EXIF → `captured_at`、日付アルバム自動作成
+* `tsuzura watch` + ローカル manifest
