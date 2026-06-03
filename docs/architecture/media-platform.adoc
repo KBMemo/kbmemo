@@ -813,8 +813,8 @@ sign_urls（JSON+CSRF）、TSUZURA_PUBLIC_URL、kbmemo-media bin/deploy。
 
 === Phase 2 残（任意・Phase 3 前）
 
-* `properties.media_album_id` — link:memo-properties.adoc[memo-properties.adoc]
-* ピッカー内サムネ（署名 URL プレビュー）
+* ~~`properties.media_album_id`~~ — 実装済み（link:memo-properties.adoc[memo-properties.adoc]）
+* ~~ピッカー内サムネ（署名 URL プレビュー）~~ — 保存済みメモのピッカーで実装済み
 
 === Phase 6 以降
 

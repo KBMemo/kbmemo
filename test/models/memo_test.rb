@@ -295,6 +295,18 @@ class MemoTest < ActiveSupport::TestCase
     assert_equal "note-#{Memo.slug_suffix_for(uid)}", Memo.global_slug_for("note-#{legacy}", uid)
   end
 
+  test "media_album_id reads and writes ULID in properties" do
+    memo = memos(:one)
+    ulid = ULID.generate.to_s
+    memo.media_album_id = ulid
+    assert_equal ulid.upcase, memo.properties["media_album_id"]
+    assert_equal ulid.upcase, memo.media_album_id
+
+    memo.media_album_id = nil
+    assert_nil memo.media_album_id
+    assert_not memo.properties.key?("media_album_id")
+  end
+
   test "scheduled_on reads and writes ISO8601 date in properties" do
     memo = memos(:one)
     memo.scheduled_on = Date.new(2026, 5, 15)

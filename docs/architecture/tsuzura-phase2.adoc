@@ -160,8 +160,8 @@ image::media:01JHBCDF1234567890ABCDEF[width=720]
 
 == 未決（Phase 2 以降）
 
-* `memos.properties` の `media_album_id` — 未実装（link:memo-properties.adoc[memo-properties.adoc]）
-* ピッカー内サムネプレビュー — 任意（現状は ULID リスト）
+* `memos.properties` の `media_album_id` — ✓ `MemoPropertyOptions`（ピッカーでアルバム挿入時に YAML 更新）
+* ピッカー内サムネプレビュー — ✓ 保存済みメモで `sign_urls` 経由（新規メモは ULID のみ）
 * upload 上限の数値固定 — nginx / Rack は production.adoc 参照
 
 == 非ゴール（変更なし）

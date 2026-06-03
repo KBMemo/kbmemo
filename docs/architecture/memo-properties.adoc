@@ -99,6 +99,10 @@ AsciiDoc 本文と双方向同期が必要な場合はサービスを正とす�
 |`asciidoc_sample`
 |オブジェクト
 |記法サンプル seed の冪等キー。`syntax_ref_id`
+
+|`media_album_id`
+|文字列（ULID）
+|Tsuzura 主アルバム。ピッカーで `album::` 挿入時に自動設定。`MemoPropertyOptions#media_album_id`
 |===
 
 新キーを足したら **この表に追記** する。

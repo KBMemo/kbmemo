@@ -1,10 +1,15 @@
 import { Controller } from "@hotwired/stimulus"
+import { fetchTsuzuraPreviewCache } from "@kbmemo/adoc-kbmemo"
+
+const PICKER_THUMB_LIMIT = 48
 
 export default class extends Controller {
   static targets = ["dialog", "list", "detail", "status", "insertAlbum", "insertImages"]
   static values = {
     albumsUrl: String,
     albumUrlTemplate: String,
+    signUrlsUrl: String,
+    memoId: Number,
     editorSelector: String
   }
 
@@ -106,7 +111,7 @@ export default class extends Controller {
         return
       }
       const data = await res.json()
-      this._renderAlbumDetail(data)
+      await this._renderAlbumDetail(data)
       this._setStatus("挿入する項目を選んでください。")
     } catch (error) {
       console.error(error)
@@ -114,27 +119,61 @@ export default class extends Controller {
     }
   }
 
-  _renderAlbumDetail(album) {
-    const ids = album.media_item_ids || []
+  async _renderAlbumDetail(album) {
+    const ids = (album.media_item_ids || []).map((id) => String(id).toUpperCase())
     if (!ids.length) {
       this.detailTarget.innerHTML = '<p class="px-3 py-2 text-sm kb-text-muted">写真がありません</p>'
       return
     }
 
+    const thumbIds = ids.slice(0, PICKER_THUMB_LIMIT)
+    let urlById = new Map()
+    if (this.canSignThumbnails()) {
+      const { urls } = await fetchTsuzuraPreviewCache(
+        this.signUrlsUrlValue,
+        String(this.memoIdValue),
+        thumbIds,
+        []
+      )
+      urlById = urls
+    }
+
+    const overflow = ids.length > PICKER_THUMB_LIMIT ? ids.length - PICKER_THUMB_LIMIT : 0
+    const gridItems = ids
+      .map((id) => {
+        const signed = urlById.get(id)
+        const thumb = signed
+          ? `<img src="${this._escape(signed)}" alt="" class="h-14 w-14 shrink-0 rounded object-cover border kb-border" loading="lazy" decoding="async">`
+          : `<span class="flex h-14 w-14 shrink-0 items-center justify-center rounded border kb-border bg-[var(--kb-bg-muted)] text-[10px] kb-text-muted">—</span>`
+        return `<li class="border-b kb-border px-2 py-1.5">
+            <label class="flex cursor-pointer items-center gap-2 text-sm">
+              <input type="checkbox" value="${this._escape(id)}" data-action="change->tsuzura-picker#toggleMedia">
+              ${thumb}
+              <code class="min-w-0 truncate text-xs">${this._escape(id)}</code>
+            </label>
+          </li>`
+      })
+      .join("")
+
+    const overflowNote =
+      overflow > 0
+        ? `<p class="px-3 py-1 text-xs kb-text-muted">他 ${overflow} 件（サムネは先頭 ${PICKER_THUMB_LIMIT} 件）</p>`
+        : ""
+    const thumbHint = this.canSignThumbnails()
+      ? ""
+      : '<p class="px-3 py-1 text-xs kb-text-muted">保存後のメモでサムネを表示できます。</p>'
+
     this.detailTarget.innerHTML = `
       <p class="px-3 py-2 text-sm font-medium kb-text-primary">${this._escape(album.title || "")}</p>
-      <ul class="max-h-48 overflow-y-auto">
-        ${ids
-          .map(
-            (id) => `<li class="border-b kb-border px-3 py-1.5">
-              <label class="flex cursor-pointer items-center gap-2 text-sm">
-                <input type="checkbox" value="${this._escape(id)}" data-action="change->tsuzura-picker#toggleMedia">
-                <code class="text-xs">${this._escape(id)}</code>
-              </label>
-            </li>`
-          )
-          .join("")}
-      </ul>`
+      ${thumbHint}
+      <ul class="max-h-56 overflow-y-auto">
+        ${gridItems}
+      </ul>
+      ${overflowNote}`
+  }
+
+  canSignThumbnails() {
+    return Boolean(this.hasSignUrlsUrlValue && this.signUrlsUrlValue && this.hasMemoIdValue && this.memoIdValue)
   }
 
   toggleMedia(event) {
@@ -151,12 +190,22 @@ export default class extends Controller {
   insertAlbum() {
     if (!this._currentAlbumId) return
     this._insertText(`album::${this._currentAlbumId}[]\n`)
+    this._patchMemoProperty("media_album_id", this._currentAlbumId.toUpperCase())
   }
 
   insertImages() {
     if (this._selectedMediaIds.size === 0) return
     const lines = [...this._selectedMediaIds].sort().map((id) => `image::media:${id}[]`)
     this._insertText(`${lines.join("\n")}\n`)
+  }
+
+  _patchMemoProperty(key, value) {
+    this.element.dispatchEvent(
+      new CustomEvent("memo-draft:patch-property", {
+        bubbles: true,
+        detail: { key, value }
+      })
+    )
   }
 
   _insertText(text) {

@@ -85,7 +85,7 @@ PATCH /v1/media/01JH…/edits
 |画面 |内容
 
 |`GET /media/:id/edit`
-|プレビュー + 回転（90° 刻み）+ crop（% 入力）+ ぼかし矩形（座標・強度）
+|プレビュー + 回転（90° 刻み）+ crop（割合 0〜1）+ ぼかし矩形（複数・強度）
 
 |`PATCH /media/:id/edits`
 |同上 Stack を保存（HTML フォーム or fetch）
@@ -142,8 +142,8 @@ file（原本）
 |media-platform.adoc 更新、本 doc、production メモ（任意）
 
 |3d
-|任意
-|ピッカー内サムネ、`properties.media_album_id`
+|`kbmemo_site`（任意）
+|✓ ピッカー内サムネ（`sign_urls`）、`properties.media_album_id`（アルバム挿入時）
 
 |===
 

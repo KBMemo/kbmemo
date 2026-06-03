@@ -4,6 +4,20 @@ import { csrfFetchHeaders, getCsrfToken } from "@kbmemo/adoc-kbmemo"
 
 const TITLE_PLACEHOLDER = " - 未入力 - "
 
+function mergeTopLevelPropertiesYaml(yaml, key, value) {
+  const lines = (yaml ?? "").split(/\r?\n/)
+  const prefix = `${key}:`
+  const kept = lines.filter((line) => !line.startsWith(prefix))
+  if (value != null && value !== "") {
+    const normalized = String(value).trim()
+    const formatted = /^[0-9A-Z]{26}$/i.test(normalized)
+      ? normalized.toUpperCase()
+      : JSON.stringify(normalized)
+    kept.push(`${key}: ${formatted}`)
+  }
+  return kept.join("\n").trim()
+}
+
 // ドラフトは常にフォームの現在値をまとめて PATCH/POST する（分割 PATCH の競合でサイドバーが古いままになるのを防ぐ）。
 // 入力は debounce、ディレクトリ変更は即時送信。
 export default class extends Controller {
@@ -55,6 +69,8 @@ export default class extends Controller {
       }
     }
     document.addEventListener("turbo:render", this._onTurboRender)
+    this._onPatchProperty = (event) => this.patchProperty(event)
+    this.element.addEventListener("memo-draft:patch-property", this._onPatchProperty)
     if (this.isNewMemoForm()) {
       this.resetNewMemoFormFields()
     }
@@ -69,6 +85,9 @@ export default class extends Controller {
 
   disconnect() {
     document.removeEventListener("turbo:render", this._onTurboRender)
+    if (this._onPatchProperty) {
+      this.element.removeEventListener("memo-draft:patch-property", this._onPatchProperty)
+    }
     this._remoteChannel?.close()
     this._remoteChannel = null
   }
@@ -401,6 +420,17 @@ export default class extends Controller {
 
   propertiesInput(event) {
     if (ifComposing(event)) return
+    this.autosaveDraft()
+  }
+
+  patchProperty(event) {
+    const { key, value } = event.detail ?? {}
+    if (!key) return
+
+    const field = this.propertiesField()
+    if (!field) return
+
+    field.value = mergeTopLevelPropertiesYaml(field.value, key, value)
     this.autosaveDraft()
   }
 
