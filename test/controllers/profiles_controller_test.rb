@@ -39,6 +39,15 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_not account.reload.openai_api_key_configured?
   end
 
+  test "signed-in user sees clip bookmarklet setup on profile" do
+    get edit_profile_url
+    assert_response :success
+    assert_includes response.body, "clip-bookmarklet-setup"
+    assert_includes response.body, "kbmemo に保存"
+    assert_includes response.body, "kbmemo にコピー"
+    assert_not_includes response.body, "clip-bookmarklet-api-token"
+  end
+
   test "signed-in user can generate and revoke clip api token" do
     account = accounts(:one)
     assert_not account.clip_api_token_configured?
@@ -47,6 +56,10 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert account.reload.clip_api_token_configured?
     assert_match(/kbmemo_/, response.body)
+    assert_includes response.body, "clip-bookmarklet-setup"
+    assert_includes response.body, "kbmemo に保存"
+    assert_includes response.body, "javascript:"
+    assert_not_includes response.body, 'id="clip-bookmarklet-api-token"'
 
     delete clip_api_token_profile_url
     assert_redirected_to edit_profile_path

@@ -1,0 +1,38 @@
+ruby:
+  setup_base_url = local_assigns.fetch(:base_url) { request.base_url }
+  revealed_token = local_assigns.fetch(:revealed_token) { nil }
+  token_configured = local_assigns.fetch(:token_configured) { false }
+  api_href = revealed_token.present? ? ClipBookmarkletHelper.api_bookmarklet_href(setup_base_url, revealed_token) : nil
+  clipboard_href = ClipBookmarkletHelper.clipboard_bookmarklet_href
+  api_link_classes = "mt-2 inline-block cursor-grab rounded-full border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-950 no-underline"
+  api_ready = api_href.present?
+
+.mt-8.rounded-lg.kb-chrome-panel.p-4 data-controller="clip-bookmarklet-setup" data-clip-bookmarklet-setup-default-base-url-value=setup_base_url data-clip-bookmarklet-setup-revealed-token-value=(revealed_token.to_s) data-clip-bookmarklet-setup-token-configured-value=(token_configured ? "true" : "false")
+  h3.text-sm.font-semibold.kb-text-primary Web クリップ ブックマークレット
+  p.mt-1.text-sm.kb-text-secondary
+    | Web ページで選択した範囲を kbmemo へ保存します。クリップ API トークンを発行したら、下のリンクをブックマークバーへドラッグしてください（URL やトークンの手入力は不要です）。
+
+  - if revealed_token.present?
+    p.mt-2.text-xs.text-amber-800
+      | いま発行したトークンを埋め込んだブックマークレットです。このリンクをブックマークバーへドラッグしてください。
+
+  p.mt-2.text-xs.kb-text-muted.hidden data-clip-bookmarklet-setup-target="statusMessage"
+
+  .mt-4
+    p.text-sm.font-medium.kb-text-primary API 直保存（おすすめ）
+    p.mt-1.text-xs.kb-text-muted
+      | 選択範囲を
+      code.kb-code-inline home/u-&lt;id&gt;/clippings
+      |  に直接保存します。
+    - api_classes = api_ready ? api_link_classes : "#{api_link_classes} opacity-50 pointer-events-none"
+    a class=api_classes href=(api_href || "#") data-clip-bookmarklet-setup-target="apiBookmarkletLink" data-prefilled=(api_ready ? "true" : "false") aria-disabled=(api_ready ? "false" : "true")
+      | kbmemo に保存
+
+  .mt-4
+    p.text-sm.font-medium.kb-text-primary クリップボード経由
+    p.mt-1.text-xs.kb-text-muted kbmemo エディタで Ctrl+V して貼り付ける方式です（API トークン不要）。
+    a.mt-2.inline-block.cursor-grab.rounded-full.border.border-indigo-200.bg-indigo-50.px-4.py-2.text-sm.font-semibold.text-indigo-950.no-underline href=clipboard_href data-clip-bookmarklet-setup-target="clipboardBookmarkletLink"
+      | kbmemo にコピー
+
+  p.mt-4.text-xs.kb-text-muted
+    = link_to "ブックマークレット設定を別ページで開く", "/bookmarklets/index.html", class: "kb-chrome-link underline", target: "_blank", rel: "noopener"

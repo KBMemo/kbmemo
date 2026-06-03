@@ -127,6 +127,8 @@ section.mt-10#clip-api-token
     - if @account.clip_api_token_configured?
       = button_to "トークンを無効化", clip_api_token_profile_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "API からのクリップができなくなります。続行しますか？" } }
 
+  = render "profiles/clip_bookmarklet_setup", base_url: request.base_url, revealed_token: @revealed_clip_api_token, token_configured: @account.clip_api_token_configured?
+
 section.mt-10#tsuzura-cli-token
   h2 class=kb_section_title Tsuzura CLI トークン
   p.mt-1.text-sm.kb-text-secondary
