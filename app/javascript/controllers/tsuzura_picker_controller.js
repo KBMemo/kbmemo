@@ -10,6 +10,7 @@ export default class extends Controller {
     albumUrlTemplate: String,
     signUrlsUrl: String,
     memoId: Number,
+    manageUrl: { type: String, default: "http://localhost:3008" },
     editorSelector: String
   }
 
@@ -66,7 +67,12 @@ export default class extends Controller {
         return
       }
       this._renderAlbums(data.albums || [])
-      this._setStatus((data.albums || []).length ? "アルバムを選んでください。" : "アルバムがありません。media.kbmemo.net で作成できます。")
+      const manageHint = this.manageUrlLabel()
+      this._setStatus(
+        (data.albums || []).length
+          ? "アルバムを選んでください。"
+          : `アルバムがありません。${manageHint} で作成できます。`
+      )
     } catch (error) {
       console.error(error)
       this._setStatus("読み込みに失敗しました。")
@@ -223,6 +229,16 @@ export default class extends Controller {
 
   _setStatus(message) {
     if (this.hasStatusTarget) this.statusTarget.textContent = message
+  }
+
+  manageUrlLabel() {
+    if (!this.hasManageUrlValue) return "Tsuzura（:3008）"
+    try {
+      const host = new URL(this.manageUrlValue, window.location.origin).host
+      return host || this.manageUrlValue
+    } catch {
+      return this.manageUrlValue
+    }
   }
 
   _escape(text) {

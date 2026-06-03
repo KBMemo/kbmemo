@@ -81,6 +81,20 @@ module ApplicationHelper
     rodauth.rails_account.present?
   end
 
+  def tsuzura_manage_url
+    Tsuzura::Endpoints.web_manage_url
+  end
+
+  def tsuzura_manage_link_label
+    host = URI.parse(tsuzura_manage_url).host
+    port = URI.parse(tsuzura_manage_url).port
+    return host if port.blank? || [ 80, 443 ].include?(port)
+
+    "#{host}:#{port}"
+  rescue URI::InvalidURIError
+    tsuzura_manage_url
+  end
+
   def kb_account_theme_json
     return "null" unless rodauth.rails_account
 

@@ -39,7 +39,7 @@ module Tsuzura
       private
 
       def api_base_url
-        ENV.fetch("TSUZURA_BASE_URL", "http://localhost:3008").chomp("/") + "/"
+        Endpoints.api_base_url
       end
 
       def internal_secret

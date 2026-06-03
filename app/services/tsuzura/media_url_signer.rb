@@ -19,13 +19,7 @@ module Tsuzura
       end
 
       def base_url
-        explicit = ENV["TSUZURA_PUBLIC_URL"].presence ||
-          Rails.application.credentials.dig(:tsuzura, :public_url).presence
-        return explicit.to_s.strip.chomp("/") if explicit.present?
-
-        return PRODUCTION_DEFAULT_PUBLIC_URL if Rails.env.production?
-
-        "http://localhost:3008"
+        Endpoints.public_url
       end
 
       def sign(media_id:, memo_id:, exp: 1.hour.from_now)

@@ -4,25 +4,16 @@ require "test_helper"
 
 module Tsuzura
   class MediaUrlSignerTest < ActiveSupport::TestCase
-    test "production defaults public url when env is unset" do
+    test "base_url delegates to Endpoints" do
       with_env("TSUZURA_PUBLIC_URL" => nil) do
-        Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
-          assert_equal "https://media.kbmemo.net", MediaUrlSigner.base_url
-        end
+        assert_equal Endpoints.public_url, MediaUrlSigner.base_url
       end
     end
 
-    test "development defaults to localhost when env is unset" do
-      with_env("TSUZURA_PUBLIC_URL" => nil) do
-        assert_equal "http://localhost:3008", MediaUrlSigner.base_url
-      end
-    end
-
-    test "prefers TSUZURA_PUBLIC_URL over production default" do
-      with_env("TSUZURA_PUBLIC_URL" => "https://cdn.example.test/") do
-        Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
-          assert_equal "https://cdn.example.test", MediaUrlSigner.base_url
-        end
+    test "sign builds url on configured public host" do
+      with_env("TSUZURA_PUBLIC_URL" => "http://localhost:3008") do
+        url = MediaUrlSigner.sign(media_id: ULID.generate, memo_id: 1)
+        assert_includes url, "http://localhost:3008/v1/media/"
       end
     end
 

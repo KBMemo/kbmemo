@@ -13,5 +13,5 @@ dialog.tsuzura-picker-dialog.memo-directory-dialog.kb-modal-panel class="p-0" da
         | アルバムを挿入
       button.kb-chrome-btn-secondary.px-3.py-1.5.text-sm type="button" disabled=true data-tsuzura-picker-target="insertImages" data-action="tsuzura-picker#insertImages"
         | 選択した画像を挿入
-      a.text-sm.kb-text-secondary.ml-auto href="https://media.kbmemo.net" target="_blank" rel="noopener"
-        | media.kbmemo.net で管理
+      a.text-sm.kb-text-secondary.ml-auto href=tsuzura_manage_url target="_blank" rel="noopener"
+        = "#{tsuzura_manage_link_label} で管理"

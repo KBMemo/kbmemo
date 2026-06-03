@@ -30,6 +30,7 @@
 - **Phase 1・2 完了**（CLI + マクロ表示 + media Web UI + メモ編集ピッカー）。詳細: `docs/architecture/tsuzura-phase2.adoc`
 - 全体設計: `docs/architecture/media-platform.adoc`。実装リポジトリ: `kbmemo-media`（別 clone）
 - ピッカー: `tsuzura-picker` / `POST /internal/tsuzura/sign_urls`（JSON + CSRF）。本文は `album::` / `image::media:` のみ保存
+- **開発:** `Tsuzura::Endpoints` の既定は `http://localhost:3008`（credentials の本番 URL は development では使わない）。`kbmemo-media` を `PORT=3008` で起動。本番 API を試すときだけ `TSUZURA_*` を export
 
 ## Stack (short)
 
