@@ -271,6 +271,59 @@ function convertFigure(figure) {
 }
 
 /**
+ * @param {string} src
+ * @param {string} alt
+ * @param {string} linkHref
+ */
+function formatLinkedImageAdoc(src, alt, linkHref) {
+  const prefix = /^https?:\/\//i.test(src) ? 'image:' : 'image::'
+  return `${prefix}${src}${formatImageMacroAttributes(alt, linkHref)}`
+}
+
+/**
+ * @param {string} alt
+ * @param {string} linkHref
+ */
+function formatImageMacroAttributes(alt, linkHref) {
+  /** @type {string[]} */
+  const parts = []
+  if (alt) parts.push(quoteImageAlt(escapeImageAlt(alt)))
+  if (linkHref) parts.push(`link=${linkHref}`)
+  return parts.length ? `[${parts.join(', ')}]` : '[]'
+}
+
+/**
+ * @param {string} text
+ */
+function escapeImageAlt(text) {
+  return text.replace(/\\/g, '\\\\').replace(/\[/g, '\\[').replace(/\]/g, '\\]')
+}
+
+/**
+ * @param {string} text
+ */
+function quoteImageAlt(text) {
+  if (/[,"]/.test(text)) return `"${text.replace(/"/g, '""')}"`
+  return text
+}
+
+/**
+ * @param {HTMLAnchorElement} anchor
+ * @returns {{ href: string, src: string, alt: string } | null}
+ */
+function linkedImageFromAnchor(anchor) {
+  const children = [...anchor.children]
+  if (children.length !== 1 || children[0].tagName.toLowerCase() !== 'img') return null
+
+  const img = /** @type {HTMLImageElement} */ (children[0])
+  const href = anchor.getAttribute('href')?.trim() ?? ''
+  const src = img.getAttribute('src')?.trim() ?? ''
+  if (!href || !src) return null
+
+  return { href, src, alt: img.getAttribute('alt')?.trim() ?? '' }
+}
+
+/**
  * @param {HTMLImageElement} img
  */
 function convertImageElement(img) {
@@ -334,6 +387,11 @@ function inlineNode(node) {
   if (tag === 'em' || tag === 'i') return inner ? `_${inner.trim()}_` : ''
   if (tag === 'code' || tag === 'kbd') return inner ? `\`${inner.trim()}\`` : ''
   if (tag === 'a') {
+    const linked = linkedImageFromAnchor(/** @type {HTMLAnchorElement} */ (el))
+    if (linked) {
+      return formatLinkedImageAdoc(linked.src, linked.alt, linked.href)
+    }
+
     const href = el.getAttribute('href')?.trim() ?? ''
     if (!href) return inner
     const label = inner.trim()

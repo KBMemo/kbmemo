@@ -35,7 +35,7 @@ class ClipImageImporter
       IMG_LAZY_ATTRS.each { |attr| img.remove_attribute(attr) }
     end
 
-    unwrap_linked_images!(fragment)
+    markup_linked_images_as_asciidoc!(fragment)
 
     fragment.to_html
   end
@@ -61,13 +61,35 @@ class ClipImageImporter
     false
   end
 
-  def unwrap_linked_images!(fragment)
+  def markup_linked_images_as_asciidoc!(fragment)
     fragment.css("a").each do |anchor|
       children = anchor.element_children
       next unless children.length == 1 && children.first.name == "img"
 
-      anchor.replace(children.first)
+      img = children.first
+      href = linked_image_href(anchor["href"])
+      next if href.blank?
+
+      src = img["src"].to_s.strip
+      next if src.blank?
+
+      adoc = ClipLinkedImageAdoc.format(
+        src: src,
+        alt: img["alt"].to_s,
+        link: href
+      )
+      para = Nokogiri::XML::Node.new("p", fragment)
+      para.content = adoc
+      anchor.replace(para)
     end
+  end
+
+  def linked_image_href(href)
+    raw = ClipImageSrc.normalize_attr(href)
+    return raw if raw.blank?
+    return raw if raw.match?(%r{\Ahttps?://}i)
+
+    ClipImageSrc.absolute_url(raw, base_url: @base_url).presence
   end
 
   def import_remote!(url, filename_hint: nil)

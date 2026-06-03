@@ -23,6 +23,18 @@ class PandocHtmlToAsciidocTest < ActiveSupport::TestCase
     assert_equal "Body", PandocHtmlToAsciidoc.convert(html)
   end
 
+  test "passes through linked image macro paragraph" do
+    html = <<~HTML
+      <p>image::badge.png[GitHub Release, link=https://github.com/WaveSpeedAI/wavespeed-desktop/releases/latest]</p>
+    HTML
+
+    adoc = PandocHtmlToAsciidoc.convert(html)
+
+    assert_includes adoc, "badge.png"
+    assert_includes adoc, "GitHub Release"
+    assert_includes adoc, "link=https://github.com/WaveSpeedAI/wavespeed-desktop/releases/latest"
+  end
+
   test "converts list items" do
     html = "<ul><li>First</li><li><strong>Second</strong></li></ul>"
     adoc = PandocHtmlToAsciidoc.convert(html)

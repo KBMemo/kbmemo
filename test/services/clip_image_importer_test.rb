@@ -53,10 +53,31 @@ class ClipImageImporterTest < ActiveSupport::TestCase
     assert_includes fetched_urls.first, "qiita-image-store.s3.amazonaws.com"
     assert_includes localized, 'src="3d.png"'
     assert_not_includes localized, "<a "
+    assert_includes localized, "image::3d.png"
+    assert_includes localized, "link=https://qiita-image-store.s3.amazonaws.com"
     assert_includes adoc, "3d.png"
-    assert_not_includes adoc, "qiita-image-store.s3.amazonaws.com"
+    assert_includes adoc, "link=https://qiita-image-store.s3.amazonaws.com"
+    assert_not_includes adoc, "qiita-user-contents.imgix.net"
     assert_not_includes adoc, "https%3A"
     assert @repo.absolute_asset_path_for(@memo, "3d.png").exist?
+  end
+
+  test "marks up github-style linked badge for pandoc" do
+    html = <<~HTML
+      <p><a href="https://github.com/WaveSpeedAI/wavespeed-desktop/releases/latest"><img src="https://camo.githubusercontent.com/badge.png" alt="GitHub Release"></a></p>
+    HTML
+    png = "\x89PNG\r\n\x1a\nFAKE"
+    importer = ClipImageImporter.new(@memo, base_url: "https://github.com/WaveSpeedAI/wavespeed-desktop", repo: @repo)
+    importer.define_singleton_method(:fetch) do |_url, redirect_limit: 3|
+      [ png, "image/png", "badge.png" ]
+    end
+
+    localized = importer.localize!(html, src_format: :filename)
+
+    assert_includes localized, "image::badge.png[GitHub Release, link=https://github.com/WaveSpeedAI/wavespeed-desktop/releases/latest]"
+    assert_not_includes localized, "<a "
+    assert_not_includes localized, "camo.githubusercontent.com"
+    assert @repo.absolute_asset_path_for(@memo, "badge.png").exist?
   end
 
   test "imports lazy-loaded image from data-src" do
