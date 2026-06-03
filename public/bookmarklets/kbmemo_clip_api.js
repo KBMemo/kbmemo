@@ -87,7 +87,7 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
   var popup = window.open(
     relayPageUrl(baseOrigin),
     'kbmemo_clip_relay',
-    'noopener,noreferrer,width=480,height=220'
+    'width=480,height=220'
   )
 
   if (!popup) {
