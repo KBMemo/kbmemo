@@ -100,6 +100,8 @@ export function syncSkinSelects(skinId) {
 
 /** @param {string} skinId */
 export function applySkin(skinId) {
+  const state = loadThemeStorage()
+  const previousId = state.activeSkinId
   const custom = findCustomSkin(skinId)
   const resolvedId = custom
     ? custom.id
@@ -110,12 +112,13 @@ export function applySkin(skinId) {
   document.documentElement.dataset.kbSkin = resolvedId
   syncCustomSkinStyle(custom ? resolvedId : null)
 
-  const state = loadThemeStorage()
   state.activeSkinId = resolvedId
   saveThemeStorage(state)
 
   syncSkinSelects(resolvedId)
-  document.dispatchEvent(new CustomEvent(SKIN_CHANGE_EVENT, { detail: { skinId: resolvedId } }))
+  if (previousId !== resolvedId) {
+    document.dispatchEvent(new CustomEvent(SKIN_CHANGE_EVENT, { detail: { skinId: resolvedId } }))
+  }
 
   return resolvedId
 }

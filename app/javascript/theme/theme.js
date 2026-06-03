@@ -106,6 +106,8 @@ export function syncThemeSelects(themeId) {
 
 /** @param {string} themeId */
 export function applyTheme(themeId) {
+  const state = loadThemeStorage()
+  const previousId = state.activeThemeId
   const theme = resolveTheme(themeId)
   const root = document.documentElement
   const custom = findCustomTheme(themeId)
@@ -120,14 +122,15 @@ export function applyTheme(themeId) {
     syncCustomThemeStyle(null)
   }
 
-  const state = loadThemeStorage()
   state.activeThemeId = theme.id
   saveThemeStorage(state)
 
   syncThemeSelects(theme.id)
-  document.dispatchEvent(
-    new CustomEvent(THEME_CHANGE_EVENT, { detail: { themeId: theme.id } })
-  )
+  if (previousId !== theme.id) {
+    document.dispatchEvent(
+      new CustomEvent(THEME_CHANGE_EVENT, { detail: { themeId: theme.id } })
+    )
+  }
 
   return theme.id
 }

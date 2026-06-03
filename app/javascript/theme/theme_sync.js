@@ -1,3 +1,4 @@
+import { csrfFetchHeaders, getCsrfToken } from "@kbmemo/adoc-kbmemo"
 import { THEME_CHANGE_EVENT } from "./theme.js"
 import { SKIN_CHANGE_EVENT } from "./memo_skins.js"
 import { DEFAULT_SKIN_ID, loadThemeStorage, saveThemeStorage } from "./theme_storage.js"
@@ -7,11 +8,6 @@ const SYNC_DEBOUNCE_MS = 500
 /** @returns {boolean} */
 function themeSyncEnabled() {
   return document.querySelector('meta[name="kbmemo-theme-sync"]')?.getAttribute("content") === "true"
-}
-
-/** @returns {string} */
-function csrfToken() {
-  return document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ?? ""
 }
 
 /** @param {import("./theme_storage.js").ThemeStorageState} state */
@@ -69,27 +65,47 @@ function fromServerPayload(payload) {
 }
 
 let syncTimer = null
+let syncChain = Promise.resolve()
+
+async function patchThemePreference(attempt = 0) {
+  const token = getCsrfToken()
+  const payload = toServerPayload(loadThemeStorage())
+  if (token) payload.authenticity_token = token
+
+  const response = await fetch("/theme.json", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...csrfFetchHeaders(),
+    },
+    body: JSON.stringify(payload),
+    credentials: "same-origin",
+  })
+
+  if (response.status === 422 && attempt === 0) {
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    return patchThemePreference(1)
+  }
+
+  return response
+}
 
 export function scheduleThemeSync() {
   if (!themeSyncEnabled()) return
 
   if (syncTimer != null) clearTimeout(syncTimer)
-  syncTimer = setTimeout(async () => {
+  syncTimer = setTimeout(() => {
     syncTimer = null
-    try {
-      await fetch("/theme.json", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-CSRF-Token": csrfToken(),
-        },
-        body: JSON.stringify(toServerPayload(loadThemeStorage())),
-        credentials: "same-origin",
+    syncChain = syncChain
+      .catch(() => {})
+      .then(async () => {
+        try {
+          await patchThemePreference()
+        } catch {
+          // オフライン等 — localStorage のみで継続
+        }
       })
-    } catch {
-      // オフライン等 — localStorage のみで継続
-    }
   }, SYNC_DEBOUNCE_MS)
 }
 
