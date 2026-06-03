@@ -563,7 +563,7 @@ AsciiDoc の ULID 記法は「<<asciidoc-ulid,AsciiDoc 参照（ULID）>>」を�
 === 一括登録
 
 * API: `POST /v1/media/batch` または presigned URL 連続 PUT
-* EXIF `DateTimeOriginal` でソート・アルバム自動提案
+* EXIF `DateTimeOriginal` → `exif_captured_at` / GPS、`file_mtime` 保存。日付アルバムは EXIF 撮影日があるもののみ（**W2 完了** — link:tsuzura-watch-import.adoc[tsuzura-watch-import.adoc]）
 * 重複排除: `checksum` 同一なら `MediaItem` を再利用（**W1 完了** — link:tsuzura-watch-import.adoc[tsuzura-watch-import.adoc]）
 
 === 画像編集

@@ -23,7 +23,73 @@ curl -H "Authorization: Bearer $TSUZURA_API_TOKEN" \
 
 レスポンス `stats`: `created`（新規 blob）、`linked`（既存メディアを新アルバムへ追加）、`total`。
 
-== W2 以降（未実装）
+== W2（kbmemo-media・完了）
 
-* EXIF → `captured_at`、日付アルバム自動作成
-* `tsuzura watch` + ローカル manifest
+* **メタデータ（DB）:** `captured_at`（表示用: EXIF 撮影日 → `file_mtime` → 取り込み時刻）、`file_mtime`、`exif_captured_at`（EXIF の撮影日のみ・無ければ null）、`latitude`/`longitude`（EXIF GPS）、`exif` JSON
+* **日付アルバム:** `auto_date_albums=true` で **インボックス** へは常にリンク。**`exif_captured_at` があるときだけ** `YYYY-MM-DD` 日付アルバムへリンク。EXIF 撮影日が無い写真はインボックス + `album_ids[]` / `album_title` のみ（日付アルバム対象外）
+
+[source,bash]
+----
+curl -H "Authorization: Bearer $TSUZURA_API_TOKEN" \
+  -F "auto_date_albums=true" \
+  -F "inbox_album_title=Camera Upload" \
+  -F "files[]=@photo.jpg" \
+  https://media.kbmemo.net/v1/media/batch
+
+# CLI（旅行名アルバム + 自動インボックス/日付）
+bin/tsuzura import --auto-date-albums -a "Trip 2026" ~/Dropbox/Camera\ Upload/
+----
+
+== W3（kbmemo-media CLI・manifest 完了）
+
+* **ローカル manifest:** 監視ルートごとに `~/.local/share/tsuzura/manifests/<hash>.json`（`TSUZURA_MANIFEST_DIR` で変更可）
+* **エントリキー:** 正規化した絶対パス。値: `size`, `mtime`, `checksum`, `media_id`, `imported_at`
+* **スキップ:** manifest の `size`/`mtime` が現ファイルと一致 → API へ送らない
+* **更新:** `bin/tsuzura import` / `bin/tsuzura watch run` は既定で manifest を読み書き（`--no-manifest` で無効）
+* **import 節:** 初回の `album_title` / `album_id` / `auto_date_albums` / `inbox_album_title` を保存。2 回目以降はディレクトリ指定のみで同じ取り込み先（CLI 指定は上書き）
+
+[source,json]
+----
+{
+  "version": 2,
+  "root": "/home/user/Dropbox/Camera Upload",
+  "import": {
+    "album_title": "Trip 2026",
+    "auto_date_albums": true,
+    "inbox_album_title": "Camera Upload"
+  },
+  "entries": {
+    "/home/user/Dropbox/Camera Upload/IMG_0001.jpg": {
+      "size": 4123456,
+      "mtime": 1717200000,
+      "checksum": "abc123…",
+      "media_id": "01KT40HPN43ADGG3KQ6ABJ4CJB",
+      "imported_at": "2026-06-01T12:05:00+09:00"
+    }
+  }
+}
+----
+
+[source,bash]
+----
+# 初回: 取り込みオプションを manifest に保存
+bin/tsuzura import --auto-date-albums -a "Trip 2026" ~/Dropbox/Camera\ Upload/
+
+# 2 回目以降: ディレクトリだけで同じオプション（CLI フラグ省略可）
+bin/tsuzura import ~/Dropbox/Camera\ Upload/
+bin/tsuzura watch run ~/Dropbox/Camera\ Upload/
+
+# 既に登録済みの写真だけ振り分け直し（EXIF 再読込・誤った日付アルバムから外す）
+bin/tsuzura sync-albums ~/Dropbox/Camera\ Upload/
+# API: POST /v1/media/sync_albums（`auto_date_albums` 等は batch と同じ）
+
+# 上書きする場合のみフラグを再指定
+bin/tsuzura import -a "Other album" ~/Dropbox/Camera\ Upload/
+
+bin/tsuzura manifest show ~/Dropbox/Camera\ Upload/
+----
+
+== W3 残（未実装）
+
+* Dropbox 書き込み完了待ち（`settle_seconds`）
+* `watch --daemon` / systemd timer サンプル
