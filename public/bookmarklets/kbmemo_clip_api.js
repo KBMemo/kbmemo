@@ -1,110 +1,152 @@
 /**
- * kbmemo Web クリップ API 直 POST ブックマークレット（読みやすいソース）
+ * kbmemo Web クリップ API 保存ブックマークレット（読みやすいソース）
+ *
+ * 厳しい CSP（GitHub 等）ではページ上の fetch が禁止されるため、kbmemo の relay ページを
+ * ポップアップで開き、そこから同一オリジンで /api/clips へ POST する。
  *
  * 変更したら kbmemo_clip_api.bookmarklet.js も同期してください。
- * index.html で kbmemo URL と API トークンを埋め込んでからブックマークバーへドラッグします。
- *
- * 使い方:
- * 1. /bookmarklets/index.html を開く
- * 2. kbmemo URL とクリップ API トークンを入力
- * 3. 「kbmemo に保存」をブックマークバーへドラッグ
- * 4. Web ページでテキストを選択 → ブックマークレット実行
  */
 void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
+  var RELAY_READY = 'kbmemo-clip-relay-ready';
+  var CLIP = 'kbmemo-clip';
+  var CLIP_DONE = 'kbmemo-clip-done';
+
   function stripQuotes(value) {
-    return (value || '').trim().replace(/^["']+|["']+$/g, '');
+    return (value || '').trim().replace(/^["']+|["']+$/g, '')
   }
 
   function resolveBaseOrigin(raw) {
-    var value = stripQuotes(raw).replace(/\/$/, '');
-    if (!value) return '';
+    var value = stripQuotes(raw).replace(/\/$/, '')
+    if (!value) return ''
 
     try {
-      return new URL(value).origin;
+      return new URL(value).origin
     } catch (error) {
-      return '';
+      return ''
     }
   }
 
-  function clipApiUrl(baseOrigin) {
-    return new URL('/api/clips', baseOrigin).href;
+  function relayPageUrl(baseOrigin) {
+    return new URL('/bookmarklets/relay.html', baseOrigin).href
   }
 
   function absoluteKbmemoUrl(baseOrigin, path) {
-    return new URL(path, baseOrigin).href;
+    return new URL(path, baseOrigin).href
   }
 
-  var selection = window.getSelection();
+  var selection = window.getSelection()
   if (!selection || selection.isCollapsed) {
-    window.alert('テキストを選択してから実行してください。');
-    return;
+    window.alert('テキストを選択してから実行してください。')
+    return
   }
 
-  var baseOrigin = resolveBaseOrigin(baseUrl);
-  apiToken = stripQuotes(apiToken);
+  var baseOrigin = resolveBaseOrigin(baseUrl)
+  apiToken = stripQuotes(apiToken)
 
   if (!baseOrigin || !apiToken) {
     window.alert(
-      'kbmemo の URL と API トークンが設定されていません。/bookmarklets/index.html から再インストールしてください。'
-    );
-    return;
+      'kbmemo の URL と API トークンが設定されていません。プロフィールからブックマークレットを取り直してください。'
+    )
+    return
   }
 
   if (!/^kbmemo_/.test(apiToken)) {
     window.alert(
-      'API トークンが正しくありません。プロフィールで発行した kbmemo_... を /bookmarklets/index.html のトークン欄に入力して、ブックマークレットを作り直してください。'
-    );
-    return;
+      'API トークンが正しくありません。プロフィールでトークンを再発行してブックマークレットを取り直してください。'
+    )
+    return
   }
 
-  var range = selection.getRangeAt(0);
-  var wrapper = document.createElement('div');
-  wrapper.appendChild(range.cloneContents());
+  var range = selection.getRangeAt(0)
+  var wrapper = document.createElement('div')
+  wrapper.appendChild(range.cloneContents())
 
-  var url = window.location.href;
-  var title = document.title;
-  var metadata = JSON.stringify({ url: url, title: title });
+  var pageUrl = window.location.href
+  var pageTitle = document.title
+  var metadata = JSON.stringify({ url: pageUrl, title: pageTitle })
   var html =
-    '<!--kbmemo:' + metadata + '-->' +
-    '<blockquote cite="' + url.replace(/"/g, '&quot;') + '">' + wrapper.innerHTML + '</blockquote>';
-  var plain = selection.toString();
+    '<!--kbmemo:' +
+    metadata +
+    '-->' +
+    '<blockquote cite="' +
+    pageUrl.replace(/"/g, '&quot;') +
+    '">' +
+    wrapper.innerHTML +
+    '</blockquote>'
+  var plain = selection.toString()
 
-  fetch(clipApiUrl(baseOrigin), {
-    method: 'POST',
-    headers: {
-      Authorization: 'Bearer ' + apiToken,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify({ html: html, url: url, title: title, plain: plain }),
-  })
-    .then(function (response) {
-      return response
-        .json()
-        .catch(function () {
-          return {};
-        })
-        .then(function (data) {
-          return { ok: response.ok, status: response.status, data: data };
-        });
-    })
-    .then(function (result) {
-      if (!result.ok) {
-        var msg =
-          (result.data &&
-            (result.data.error || (result.data.errors && result.data.errors.join(', ')))) ||
-          'HTTP ' + result.status;
-        throw new Error(msg);
-      }
+  var clipPayload = {
+    type: CLIP,
+    token: apiToken,
+    html: html,
+    url: pageUrl,
+    title: pageTitle,
+    plain: plain,
+  }
 
-      var openPath = result.data.show_path || result.data.edit_path;
-      if (openPath && window.confirm('kbmemo に保存しました。メモを開きますか？')) {
-        window.open(absoluteKbmemoUrl(baseOrigin, openPath), '_blank', 'noopener');
-      } else {
-        window.alert('kbmemo に保存しました。');
-      }
-    })
-    .catch(function (error) {
-      window.alert('保存に失敗しました: ' + (error && error.message ? error.message : error));
-    });
-}(__KBMEMO_BASE__, __KBMEMO_TOKEN__);
+  var popup = window.open(
+    relayPageUrl(baseOrigin),
+    'kbmemo_clip_relay',
+    'noopener,noreferrer,width=480,height=220'
+  )
+
+  if (!popup) {
+    window.alert(
+      'ポップアップがブロックされました。kbmemo への保存にはポップアップを許可するか、「kbmemo にコピー」ブックマークレットをお使いください。'
+    )
+    return
+  }
+
+  var finished = false
+  var timeout = window.setTimeout(function () {
+    if (finished) return
+    finished = true
+    window.removeEventListener('message', onMessage)
+    window.alert('kbmemo への接続がタイムアウトしました。')
+    try {
+      popup.close()
+    } catch (error) {
+      /* ignore */
+    }
+  }, 60000)
+
+  function onMessage(event) {
+    if (finished) return
+    if (event.source !== popup) return
+
+    var originOk = false
+    try {
+      originOk = new URL(event.origin).origin === baseOrigin
+    } catch (error) {
+      originOk = false
+    }
+    if (!originOk) return
+
+    if (event.data && event.data.type === RELAY_READY) {
+      popup.postMessage(clipPayload, baseOrigin)
+      return
+    }
+
+    if (!event.data || event.data.type !== CLIP_DONE) return
+
+    finished = true
+    window.clearTimeout(timeout)
+    window.removeEventListener('message', onMessage)
+
+    if (!event.data.ok) {
+      window.alert(
+        '保存に失敗しました: ' + (event.data.error || '不明なエラー')
+      )
+      return
+    }
+
+    var openPath = event.data.data && (event.data.data.show_path || event.data.data.edit_path)
+    if (openPath && window.confirm('kbmemo に保存しました。メモを開きますか？')) {
+      window.open(absoluteKbmemoUrl(baseOrigin, openPath), '_blank', 'noopener')
+    } else {
+      window.alert('kbmemo に保存しました。')
+    }
+  }
+
+  window.addEventListener('message', onMessage)
+}(__KBMEMO_BASE__, __KBMEMO_TOKEN__)

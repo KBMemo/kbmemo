@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>kbmemo に保存中…</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 1.5rem;
+        line-height: 1.5;
+        color: #1a1a1a;
+      }
+
+      p {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <p id="status">kbmemo に送信中…</p>
+    <script>
+      ;(() => {
+        const RELAY_READY = 'kbmemo-clip-relay-ready'
+        const CLIP = 'kbmemo-clip'
+        const CLIP_DONE = 'kbmemo-clip-done'
+        const statusEl = document.getElementById('status')
+
+        function setStatus(text) {
+          if (statusEl) statusEl.textContent = text
+        }
+
+        if (!window.opener) {
+          setStatus('このページはブックマークレットから開いてください。')
+          return
+        }
+
+        window.opener.postMessage({ type: RELAY_READY }, '*')
+
+        window.addEventListener('message', (event) => {
+          if (event.source !== window.opener) return
+          if (!event.data || event.data.type !== CLIP) return
+
+          const token = (event.data.token || '').trim()
+          if (!/^kbmemo_/.test(token)) {
+            setStatus('API トークンが無効です。')
+            window.opener.postMessage(
+              { type: CLIP_DONE, ok: false, error: 'invalid token' },
+              '*'
+            )
+            return
+          }
+
+          setStatus('kbmemo に送信中…')
+
+          fetch('/api/clips', {
+            method: 'POST',
+            headers: {
+              Authorization: 'Bearer ' + token,
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+            },
+            body: JSON.stringify({
+              html: event.data.html,
+              url: event.data.url,
+              title: event.data.title,
+              plain: event.data.plain,
+            }),
+          })
+            .then((response) =>
+              response
+                .json()
+                .catch(() => ({}))
+                .then((data) => ({ ok: response.ok, status: response.status, data }))
+            )
+            .then((result) => {
+              if (!result.ok) {
+                const msg =
+                  (result.data &&
+                    (result.data.error ||
+                      (result.data.errors && result.data.errors.join(', ')))) ||
+                  'HTTP ' + result.status
+                throw new Error(msg)
+              }
+
+              setStatus('保存しました。')
+              window.opener.postMessage(
+                { type: CLIP_DONE, ok: true, data: result.data },
+                '*'
+              )
+              window.setTimeout(() => window.close(), 400)
+            })
+            .catch((error) => {
+              const message = error && error.message ? error.message : String(error)
+              setStatus('保存に失敗しました: ' + message)
+              window.opener.postMessage(
+                { type: CLIP_DONE, ok: false, error: message },
+                '*'
+              )
+            })
+        })
+      })()
+    </script>
+  </body>
+</html>
