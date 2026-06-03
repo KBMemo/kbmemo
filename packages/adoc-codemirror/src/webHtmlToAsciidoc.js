@@ -35,6 +35,12 @@ export function webHtmlToAsciidoc(html) {
  * @param {ParentNode} root
  */
 function sanitizeTree(root) {
+  for (const el of [...root.querySelectorAll('a.anchor, a[href^="#"]')]) {
+    if (isDecorativeHeadingAnchor(el)) {
+      el.remove()
+    }
+  }
+
   for (const el of [...root.querySelectorAll('*')]) {
     const tag = el.tagName.toLowerCase()
     if (SKIP_TAGS.has(tag)) {
@@ -308,6 +314,18 @@ function quoteImageAlt(text) {
 }
 
 /**
+ * @param {HTMLElement} el
+ */
+function isDecorativeHeadingAnchor(el) {
+  const href = el.getAttribute('href')?.trim() ?? ''
+  if (!href.startsWith('#')) return false
+
+  const children = [...el.children]
+  if (children.length === 0 && !(el.textContent ?? '').trim()) return true
+  return children.length > 0 && children.every((child) => child.tagName.toLowerCase() === 'svg')
+}
+
+/**
  * @param {HTMLAnchorElement} anchor
  * @returns {{ href: string, src: string, alt: string } | null}
  */
@@ -387,9 +405,12 @@ function inlineNode(node) {
   if (tag === 'em' || tag === 'i') return inner ? `_${inner.trim()}_` : ''
   if (tag === 'code' || tag === 'kbd') return inner ? `\`${inner.trim()}\`` : ''
   if (tag === 'a') {
+    if (isDecorativeHeadingAnchor(el)) return ''
+
     const linked = linkedImageFromAnchor(/** @type {HTMLAnchorElement} */ (el))
     if (linked) {
-      return formatLinkedImageAdoc(linked.src, linked.alt, linked.href)
+      const link = linked.href !== linked.src ? linked.href : ''
+      return formatLinkedImageAdoc(linked.src, linked.alt, link)
     }
 
     const href = el.getAttribute('href')?.trim() ?? ''

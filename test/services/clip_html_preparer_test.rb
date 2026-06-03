@@ -31,4 +31,21 @@ class ClipHtmlPreparerTest < ActiveSupport::TestCase
     assert_not_includes prepared, "HeroSection_"
     assert_not_includes prepared, 'data-test="1"'
   end
+
+  test "removes github heading permalink anchors and svg icons" do
+    html = <<~HTML
+      <h2>
+        <a id="user-content-wavespeed" class="anchor" href="#wavespeed">
+          <svg class="octicon octicon-link" aria-hidden="true"><path d="m7.775 3.275"/></svg>
+        </a>
+        WaveSpeed
+      </h2>
+    HTML
+
+    prepared = ClipHtmlPreparer.prepare(html)
+
+    assert_includes prepared, "WaveSpeed"
+    assert_not_includes prepared, "<svg"
+    assert_not_includes prepared, 'href="#wavespeed"'
+  end
 end

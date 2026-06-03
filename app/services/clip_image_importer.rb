@@ -36,6 +36,7 @@ class ClipImageImporter
     end
 
     markup_linked_images_as_asciidoc!(fragment)
+    markup_remote_images_as_asciidoc!(fragment)
 
     fragment.to_html
   end
@@ -63,25 +64,49 @@ class ClipImageImporter
 
   def markup_linked_images_as_asciidoc!(fragment)
     fragment.css("a").each do |anchor|
-      children = anchor.element_children
-      next unless children.length == 1 && children.first.name == "img"
+      img = single_image_anchor_child(anchor)
+      next unless img
 
-      img = children.first
       href = linked_image_href(anchor["href"])
-      next if href.blank?
-
       src = img["src"].to_s.strip
       next if src.blank?
+
+      link = href.presence
+      link = nil if link.present? && link == src
 
       adoc = ClipLinkedImageAdoc.format(
         src: src,
         alt: img["alt"].to_s,
-        link: href
+        link: link.to_s
       )
-      para = Nokogiri::XML::Node.new("p", fragment)
-      para.content = adoc
-      anchor.replace(para)
+      replace_with_adoc_paragraph!(fragment, anchor, adoc)
     end
+  end
+
+  def markup_remote_images_as_asciidoc!(fragment)
+    fragment.css("img").each do |img|
+      next if img.ancestors("a").any? { |anchor| single_image_anchor_child(anchor) }
+
+      src = img["src"].to_s.strip
+      next if src.blank?
+      next unless src.match?(%r{\Ahttps?://}i)
+
+      adoc = ClipLinkedImageAdoc.format(src: src, alt: img["alt"].to_s)
+      replace_with_adoc_paragraph!(fragment, img, adoc)
+    end
+  end
+
+  def single_image_anchor_child(anchor)
+    children = anchor.element_children
+    return nil unless children.length == 1 && children.first.name == "img"
+
+    children.first
+  end
+
+  def replace_with_adoc_paragraph!(fragment, node, adoc)
+    para = Nokogiri::XML::Node.new("p", fragment)
+    para.content = adoc
+    node.replace(para)
   end
 
   def linked_image_href(href)

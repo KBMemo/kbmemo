@@ -80,6 +80,23 @@ class ClipImageImporterTest < ActiveSupport::TestCase
     assert @repo.absolute_asset_path_for(@memo, "badge.png").exist?
   end
 
+  test "keeps private github user images as remote image macro when fetch fails" do
+    private_url = "https://private-user-images.githubusercontent.com/209755920/568104381.png?jwt=example"
+    html = <<~HTML
+      <p><a class="image" href="#{private_url}"><img src="#{private_url}" alt="Playground Screenshot"></a></p>
+    HTML
+    importer = ClipImageImporter.new(@memo, base_url: "https://github.com/org/repo", repo: @repo)
+    importer.define_singleton_method(:fetch) { |*| raise ClipImageImporter::Error, "forbidden" }
+
+    localized = importer.localize!(html, src_format: :filename)
+    adoc = PandocHtmlToAsciidoc.convert(localized)
+
+    assert_includes localized, "image:#{private_url}"
+    assert_includes localized, "Playground Screenshot"
+    assert_not_includes localized, "<img"
+    assert_includes adoc, "Playground Screenshot"
+  end
+
   test "imports lazy-loaded image from data-src" do
     html = <<~HTML
       <p><img data-src="https://qiita-user-contents.imgix.net/https%3A%2F%2Fqiita-image-store.s3.amazonaws.com%2F0%2F202772%2Fpic.png?ixlib=rb-4.0.0"

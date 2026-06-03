@@ -11,6 +11,7 @@ class ClipHtmlPreparer
 
       fragment = Nokogiri::HTML.fragment(trimmed)
       unwrap_blockquotes!(fragment)
+      strip_github_clip_artifacts!(fragment)
       strip_presentation_attributes!(fragment)
       fragment.to_html.strip
     end
@@ -21,6 +22,25 @@ class ClipHtmlPreparer
       fragment.css("blockquote").each do |blockquote|
         blockquote.replace(blockquote.inner_html)
       end
+    end
+
+    def strip_github_clip_artifacts!(fragment)
+      fragment.css("svg").each(&:remove)
+
+      fragment.css("a").each do |anchor|
+        anchor.remove if decorative_heading_anchor?(anchor)
+      end
+    end
+
+    def decorative_heading_anchor?(anchor)
+      href = anchor["href"].to_s.strip
+      return false unless href.start_with?("#")
+
+      children = anchor.element_children
+      return true if children.empty? && anchor.text.to_s.strip.blank?
+      return true if children.any? && children.all? { |node| node.name == "svg" }
+
+      false
     end
 
     def strip_presentation_attributes!(fragment)
