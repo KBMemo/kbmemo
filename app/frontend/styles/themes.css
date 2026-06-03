@@ -118,11 +118,22 @@ html[data-kb-theme-base="minimal"] {
 }
 
 .kb-chrome-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: -0.025em;
   color: var(--kb-text-primary);
   text-decoration: none;
+}
+
+.kb-chrome-brand-icon {
+  display: block;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--kb-text-primary);
 }
 
 .kb-chrome-link {

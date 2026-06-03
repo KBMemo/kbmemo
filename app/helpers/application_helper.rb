@@ -206,4 +206,12 @@ module ApplicationHelper
   def kb_btn_primary_sm
     "kb-chrome-btn-primary px-4 py-2 text-sm"
   end
+
+  # Header KB monogram (public/kbmemo-brand.svg). Inline so fill=currentColor follows theme.
+  def kbmemo_brand_icon
+    path = Rails.root.join("public/kbmemo-brand.svg")
+    svg = File.read(path)
+    svg = svg.sub("<svg ", '<svg class="kb-chrome-brand-icon" ')
+    raw svg
+  end
 end
