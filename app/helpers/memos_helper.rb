@@ -61,6 +61,8 @@ module MemosHelper
   end
 
   def memo_sidebar_nav_query
+    return {} unless controller.respond_to?(:memo_sidebar_nav_query)
+
     controller.memo_sidebar_nav_query
   end
 
