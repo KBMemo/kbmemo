@@ -15,6 +15,31 @@
       p {
         margin: 0;
       }
+
+      .actions {
+        margin-top: 1rem;
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .actions a,
+      .actions button {
+        font: inherit;
+        padding: 0.4rem 0.75rem;
+        border-radius: 0.375rem;
+        border: 1px solid #ccc;
+        background: #fff;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .actions a.primary {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: #fff;
+      }
     </style>
   </head>
   <body>
@@ -28,6 +53,32 @@
 
         function setStatus(text) {
           if (statusEl) statusEl.textContent = text
+        }
+
+        function showSuccessActions(data) {
+          setStatus('kbmemo に保存しました。')
+
+          const actions = document.createElement('div')
+          actions.className = 'actions'
+
+          const openPath = data && (data.show_path || data.edit_path)
+          if (openPath) {
+            const openLink = document.createElement('a')
+            openLink.href = openPath
+            openLink.target = '_blank'
+            openLink.rel = 'noopener'
+            openLink.className = 'primary'
+            openLink.textContent = 'メモを開く'
+            actions.appendChild(openLink)
+          }
+
+          const closeBtn = document.createElement('button')
+          closeBtn.type = 'button'
+          closeBtn.textContent = '閉じる'
+          closeBtn.addEventListener('click', () => window.close())
+          actions.appendChild(closeBtn)
+
+          if (statusEl) statusEl.after(actions)
         }
 
         if (!window.opener) {
@@ -83,12 +134,11 @@
                 throw new Error(msg)
               }
 
-              setStatus('保存しました。')
               window.opener.postMessage(
                 { type: CLIP_DONE, ok: true, data: result.data },
                 '*'
               )
-              window.setTimeout(() => window.close(), 400)
+              showSuccessActions(result.data)
             })
             .catch((error) => {
               const message = error && error.message ? error.message : String(error)

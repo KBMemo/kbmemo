@@ -30,10 +30,6 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
     return new URL('/bookmarklets/relay.html', baseOrigin).href
   }
 
-  function absoluteKbmemoUrl(baseOrigin, path) {
-    return new URL(path, baseOrigin).href
-  }
-
   var selection = window.getSelection()
   if (!selection || selection.isCollapsed) {
     window.alert('テキストを選択してから実行してください。')
@@ -87,7 +83,7 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
   var popup = window.open(
     relayPageUrl(baseOrigin),
     'kbmemo_clip_relay',
-    'width=480,height=220'
+    'width=480,height=280'
   )
 
   if (!popup) {
@@ -133,19 +129,8 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
     window.clearTimeout(timeout)
     window.removeEventListener('message', onMessage)
 
-    if (!event.data.ok) {
-      window.alert(
-        '保存に失敗しました: ' + (event.data.error || '不明なエラー')
-      )
-      return
-    }
-
-    var openPath = event.data.data && (event.data.data.show_path || event.data.data.edit_path)
-    if (openPath && window.confirm('kbmemo に保存しました。メモを開きますか？')) {
-      window.open(absoluteKbmemoUrl(baseOrigin, openPath), '_blank', 'noopener')
-    } else {
-      window.alert('kbmemo に保存しました。')
-    }
+    // Success and error feedback are shown in the relay popup (active window).
+    // Avoid alert/confirm here: Chrome suppresses them on background tabs.
   }
 
   window.addEventListener('message', onMessage)
