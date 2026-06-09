@@ -215,26 +215,35 @@ class MemosController < ApplicationController
   def update
     authorize @memo
     unless assign_memo_fields(@memo)
-      render :edit, status: :unprocessable_entity
+      render_commit_failure(:edit)
       return
     end
 
     commit_memo!(redirect_path: memo_path(@memo))
   rescue MemoRepository::Error => e
     flash.now[:alert] = e.message
-    render :edit, status: :unprocessable_entity
+    render_commit_failure(:edit)
   end
 
   def commit
     authorize @memo, :commit?
     unless @memo.display_as_draft?
-      redirect_to memo_path(@memo)
+      respond_to do |format|
+        format.html { redirect_to memo_path(@memo) }
+        format.turbo_stream { render_commit_success_streams }
+      end
       return
     end
 
     commit_memo!(redirect_path: memo_path(@memo), failure_render: nil)
   rescue MemoRepository::Error => e
-    redirect_to memo_path(@memo), alert: e.message
+    respond_to do |format|
+      format.html { redirect_to memo_path(@memo), alert: e.message }
+      format.turbo_stream do
+        flash.now[:alert] = e.message
+        render_commit_success_streams(status: :unprocessable_entity)
+      end
+    end
   end
 
   def destroy
@@ -429,10 +438,18 @@ class MemosController < ApplicationController
     @memo.apply_slug_from_title_rules!
 
     unless @memo.valid?
-      if failure_render
-        render failure_render, status: :unprocessable_entity
-      else
-        redirect_to edit_memo_path(@memo), alert: @memo.errors.full_messages.join(" ")
+      respond_to do |format|
+        format.html do
+          if failure_render
+            render failure_render, status: :unprocessable_entity
+          else
+            redirect_to edit_memo_path(@memo), alert: @memo.errors.full_messages.join(" ")
+          end
+        end
+        format.turbo_stream do
+          flash.now[:alert] = @memo.errors.full_messages.join(" ")
+          render_commit_failure_stream(failure_render || :edit)
+        end
       end
       return
     end
@@ -441,7 +458,46 @@ class MemosController < ApplicationController
     @memo.save!
     @memo.update_column(:file_committed_at, @memo.updated_at)
     broadcast_updated_show_content
-    redirect_to redirect_path, notice: "ファイルへ保存し、Git に記録しました。"
+    respond_to do |format|
+      format.html { redirect_to redirect_path, notice: "ファイルへ保存し、Git に記録しました。" }
+      format.turbo_stream do
+        flash.now[:notice] = "ファイルへ保存し、Git に記録しました。"
+        load_sidebar_memos_list
+        render_commit_success_streams
+      end
+    end
+  end
+
+  def render_commit_success_streams(status: :ok)
+    load_sidebar_memos_list unless defined?(@memos)
+    render turbo_stream: [
+      turbo_stream.replace(
+        "memos_editor_scroll",
+        partial: "memos/show_editor",
+        locals: { memo: @memo }
+      ),
+      turbo_stream.replace("memos_list_panel", partial: "memos/list_panel"),
+      turbo_stream.replace("flash-live", partial: "shared/flash_toasts"),
+      turbo_stream.remove("memo_ai_sidebar_region")
+    ], status: status
+  end
+
+  def render_commit_failure(view)
+    respond_to do |format|
+      format.html { render view, status: :unprocessable_entity }
+      format.turbo_stream { render_commit_failure_stream(view) }
+    end
+  end
+
+  def render_commit_failure_stream(_view)
+    render turbo_stream: [
+      turbo_stream.replace(
+        "memos_editor_scroll",
+        partial: "memos/edit_editor",
+        locals: { memo: @memo }
+      ),
+      turbo_stream.replace("flash-live", partial: "shared/flash_toasts")
+    ], status: :unprocessable_entity
   end
 
   def write_memo_to_git!

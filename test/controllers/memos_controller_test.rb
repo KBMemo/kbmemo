@@ -576,6 +576,31 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes repo.absolute_path_for(memo).read, "Git integration"
   end
 
+  test "update via turbo stream replaces editor without full page redirect" do
+    memo = memos(:one)
+    patch memo_url(memo),
+      params: {
+        memo: {
+          title: "Turbo commit title",
+          body: "= Turbo commit\n\nParagraph.",
+          slug: "turbo-commit-slug",
+          title_manual: "1",
+          slug_manual: "1"
+        }
+      },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    assert_response :success
+    assert_includes response.media_type, "turbo-stream"
+    assert_includes @response.body, %(turbo-stream action="replace" target="memos_editor_scroll")
+    assert_includes @response.body, %(turbo-stream action="replace" target="memos_list_panel")
+    assert_includes @response.body, %(turbo-stream action="replace" target="flash-live")
+    assert_includes @response.body, %(turbo-stream action="remove" target="memo_ai_sidebar_region")
+    assert_includes @response.body, "Turbo commit title"
+    assert_includes @response.body, "Git に記録"
+    assert memo.reload.file_committed_at.present?
+  end
+
   test "commit from show persists current db memo to git" do
     memo = memos(:one)
     t = 1.hour.ago.change(usec: 0)

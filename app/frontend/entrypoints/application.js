@@ -10,11 +10,12 @@ import {
   loadOpenDirectoryIds,
   syncOpenDirectoryIdsFromPanel
 } from "../../javascript/memo_directory_nav_open.js"
-import { createIcons, BookOpen, CircleHelp, Copy, Eye, GripVertical, Kanban, Link2, PanelLeftOpen, Pencil, Plus, Trash2 } from "lucide"
+import { createIcons, ArrowLeft, BookOpen, CircleHelp, Copy, Eye, GripVertical, Kanban, Link2, PanelLeftOpen, Pencil, Plus, Trash2 } from "lucide"
 
 const renderLucideIcons = () => {
   createIcons({
     icons: {
+      ArrowLeft,
       BookOpen,
       CircleHelp,
       Copy,

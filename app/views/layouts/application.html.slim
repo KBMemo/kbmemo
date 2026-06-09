@@ -82,7 +82,7 @@ html data-kb-theme="default" data-kb-theme-base="default" data-kb-skin="auto"
             div#memos_editor_scroll[class="flex-1 px-4 py-5 md:px-8"]
               = yield :memos_editor
           - if content_for?(:memo_ai_sidebar)
-            div class="flex min-h-0 shrink-0 max-md:w-full max-md:max-h-[min(42vh,360px)] max-md:flex-col md:h-full md:max-h-full md:flex-row md:items-stretch md:overflow-hidden" data-controller="memo-ai-sidebar" data-memo-ai-sidebar-storage-key-value="kbmemo_memo_ai_sidebar_v1"
+            div#memo_ai_sidebar_region class="flex min-h-0 shrink-0 max-md:w-full max-md:max-h-[min(42vh,360px)] max-md:flex-col md:h-full md:max-h-full md:flex-row md:items-stretch md:overflow-hidden" data-controller="memo-ai-sidebar" data-memo-ai-sidebar-storage-key-value="kbmemo_memo_ai_sidebar_v1"
               button class=kb_sidebar_toggle_btn type="button" data-memo-ai-sidebar-target="toggleButton" data-action="memo-ai-sidebar#toggle" aria-expanded="true" aria-controls="memo_ai_sidebar_panel" title="AI パネルを折りたたむ"
                 span.select-none.tracking-tighter[aria-hidden="true" data-memo-ai-sidebar-target="toggleGlyph"] »»
                 span.sr-only AI パネル
