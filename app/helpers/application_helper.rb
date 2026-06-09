@@ -225,7 +225,7 @@ module ApplicationHelper
   def kbmemo_brand_icon
     path = Rails.root.join("public/kbmemo-brand.svg")
     svg = File.read(path)
-    svg = svg.sub("<svg ", '<svg class="kb-chrome-brand-icon" ')
+    svg = svg.sub("<svg ", '<svg class="kb-chrome-brand-icon" width="28" height="28" ')
     raw svg
   end
 end

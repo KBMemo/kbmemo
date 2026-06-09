@@ -98,7 +98,9 @@ export default class extends Controller {
     if (!form || event.target !== form) return
 
     if (event.submitter?.dataset?.memoCommit === "true") {
+      event.preventDefault()
       this.flushBodyEditor()
+      void this.performCommit(event.target, event.submitter)
       return
     }
     event.preventDefault()
@@ -107,6 +109,40 @@ export default class extends Controller {
   prepareShowNavigation(event) {
     if (event.button !== 0) return
     this.flushBodyEditor()
+  }
+
+  async performCommit(form, submitter) {
+    if (!(form instanceof HTMLFormElement)) return
+
+    const formData = new FormData(form)
+    if (submitter?.name) {
+      formData.append(submitter.name, submitter.value)
+    }
+    submitter?.setAttribute("disabled", "disabled")
+
+    try {
+      const res = await fetch(form.action, {
+        method: form.method || "post",
+        headers: { Accept: "text/vnd.turbo-stream.html" },
+        body: formData,
+        credentials: "same-origin"
+      })
+      const stream = await res.text()
+      if (stream.trim() && window.Turbo?.renderStreamMessage) {
+        window.Turbo.renderStreamMessage(stream)
+      }
+      if (res.ok) {
+        const url = new URL(res.url, window.location.origin)
+        if (url.href !== window.location.href) {
+          window.history.pushState(window.history.state, "", url.href)
+        }
+      }
+    } catch (e) {
+      console.error(e)
+      window.alert("コミットに失敗しました")
+    } finally {
+      submitter?.removeAttribute("disabled")
+    }
   }
 
   flushBodyEditor() {
