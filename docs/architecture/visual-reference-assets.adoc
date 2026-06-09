@@ -1,0 +1,27 @@
+= Visual Reference Assets
+
+This directory records non-runtime visual reference material for KBMemo and related projects.
+These files are intentionally kept outside `app/assets/images` so they are not treated as application UI assets until a concrete implementation chooses to use or adapt them.
+
+== Files
+
+[cols="1,3", options="header"]
+|===
+|File
+|Purpose
+
+|link:../assets/visual-references/tsurezure-hanko-logo.svg[tsurezure-hanko-logo.svg]
+|Red hanko-style logo reference for the Tsurezure/KBMemo visual identity.
+
+|link:../assets/visual-references/tsurezure1.svg[tsurezure1.svg]
+|Black square mark reference for Tsurezure-style identity exploration.
+
+|link:../assets/visual-references/tsuzura1.svg[tsuzura1.svg]
+|Red square mark reference for Tsuzura/media identity exploration.
+|===
+
+== Usage Policy
+
+* Treat these files as design references, not production assets.
+* When a reference is adopted into the product UI, copy or derive the final optimized asset into the appropriate runtime asset directory and document the use at that time.
+* Keep original reference filenames stable so design notes and issue links remain valid.
