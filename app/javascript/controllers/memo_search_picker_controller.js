@@ -139,22 +139,44 @@ export default class extends Controller {
     this._activeIndex = items.length ? 0 : -1
 
     if (!items.length) {
-      this.resultsTarget.innerHTML =
-        '<p class="px-3 py-2 text-sm kb-text-muted">該当するメモがありません</p>'
+      const empty = document.createElement("p")
+      empty.className = "px-3 py-2 text-sm kb-text-muted"
+      empty.textContent = "該当するメモがありません"
+      this.resultsTarget.replaceChildren(empty)
       return
     }
 
-    this.resultsTarget.innerHTML = items
-      .map((item, index) => {
-        const tags = (item.tags || []).slice(0, 3).join(", ")
-        const tagLine = tags ? `<span class="kb-text-subtle"> · ${this._escape(tags)}</span>` : ""
-        return `<button type="button" role="option" class="block w-full border-b kb-border px-3 py-2 text-left text-sm kb-hover-row" data-action="memo-search-picker#select" data-memo-id="${item.id}" data-memo-title="${this._escapeAttr(item.title)}" data-index="${index}">
-          <span class="font-medium kb-text-primary">${this._escape(item.title)}</span>${tagLine}
-        </button>`
-      })
-      .join("")
+    this.resultsTarget.replaceChildren(
+      ...items.map((item, index) => this._buildResultButton(item, index))
+    )
 
     this._highlightActive()
+  }
+
+  _buildResultButton(item, index) {
+    const button = document.createElement("button")
+    button.type = "button"
+    button.setAttribute("role", "option")
+    button.className = "block w-full border-b kb-border px-3 py-2 text-left text-sm kb-hover-row"
+    button.setAttribute("data-action", "memo-search-picker#select")
+    button.dataset.memoId = String(item.id)
+    button.dataset.memoTitle = String(item.title || "")
+    button.dataset.index = String(index)
+
+    const title = document.createElement("span")
+    title.className = "font-medium kb-text-primary"
+    title.textContent = String(item.title || "")
+    button.append(title)
+
+    const tags = (item.tags || []).slice(0, 3).join(", ")
+    if (tags) {
+      const tagLine = document.createElement("span")
+      tagLine.className = "kb-text-subtle"
+      tagLine.textContent = ` · ${tags}`
+      button.append(tagLine)
+    }
+
+    return button
   }
 
   _moveActive(delta) {
@@ -192,15 +214,4 @@ export default class extends Controller {
     buttons[this._activeIndex]?.scrollIntoView({ block: "nearest" })
   }
 
-  _escape(text) {
-    return String(text)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-  }
-
-  _escapeAttr(text) {
-    return this._escape(text).replace(/'/g, "&#39;")
-  }
 }

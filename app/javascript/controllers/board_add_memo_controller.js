@@ -45,19 +45,37 @@ export default class extends Controller {
   _renderResults(items) {
     if (!this.hasResultsTarget) return
     if (!items.length) {
-      this.resultsTarget.innerHTML = '<p class="px-3 py-2 text-sm kb-text-muted">該当するメモがありません</p>'
+      const empty = document.createElement("p")
+      empty.className = "px-3 py-2 text-sm kb-text-muted"
+      empty.textContent = "該当するメモがありません"
+      this.resultsTarget.replaceChildren(empty)
       return
     }
 
-    this.resultsTarget.innerHTML = items
-      .map((item) => {
-        const tags = (item.tags || []).slice(0, 3).join(", ")
-        const tagLine = tags ? `<span class="kb-text-subtle"> · ${this._escape(tags)}</span>` : ""
-        return `<button type="button" class="block w-full border-b kb-border px-3 py-2 text-left text-sm kb-hover-row" data-action="board-add-memo#add" data-memo-id="${item.id}">
-          <span class="font-medium kb-text-primary">${this._escape(item.title)}</span>${tagLine}
-        </button>`
-      })
-      .join("")
+    this.resultsTarget.replaceChildren(...items.map((item) => this._buildResultButton(item)))
+  }
+
+  _buildResultButton(item) {
+    const button = document.createElement("button")
+    button.type = "button"
+    button.className = "block w-full border-b kb-border px-3 py-2 text-left text-sm kb-hover-row"
+    button.setAttribute("data-action", "board-add-memo#add")
+    button.dataset.memoId = String(item.id)
+
+    const title = document.createElement("span")
+    title.className = "font-medium kb-text-primary"
+    title.textContent = String(item.title || "")
+    button.append(title)
+
+    const tags = (item.tags || []).slice(0, 3).join(", ")
+    if (tags) {
+      const tagLine = document.createElement("span")
+      tagLine.className = "kb-text-subtle"
+      tagLine.textContent = ` · ${tags}`
+      button.append(tagLine)
+    }
+
+    return button
   }
 
   async add(event) {
@@ -91,11 +109,4 @@ export default class extends Controller {
     }
   }
 
-  _escape(text) {
-    return String(text)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-  }
 }

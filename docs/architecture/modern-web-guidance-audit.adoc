@@ -42,6 +42,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * Rails model form の validation error 表示に `aria-invalid` / `aria-describedby` を付与する共通 helper を追加し、memo / memo directory / board / notebook / tag / profile の主要 field に適用した。
 * `render_diagram` endpoint の成功レスポンスに `X-Kbmemo-Svg-Sanitized: MemoSvgSanitizer` / `X-Content-Type-Options: nosniff` / `Cache-Control: no-store` と `sanitized: true` を付与し、フロント側はこの契約を満たす SVG だけを挿入するようにした。
 * `memo_ai_panel_controller.js` の message rendering も `innerHTML` から DOM API ベースへ変更し、AI 応答・ユーザー入力を常に text node として挿入するようにした。
+* `memo_search_picker_controller.js` / `board_add_memo_controller.js` の検索結果描画を `innerHTML` 文字列組み立てから `createElement` / `textContent` / `dataset` ベースへ変更した。
 
 == 現状の良い点
 
@@ -64,8 +65,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P0
 |Security
-|`memo_ai_panel_controller.js` は error 表示と message rendering を DOM API ベースへ置換済み。AI 応答・ユーザー入力は text node として挿入する。
-|残る `innerHTML` は SVG icon / sanitize 済み SVG / server-rendered fragment / local escape 済み picker HTML など、用途ごとに境界を明示しながら縮小する。
+|`memo_ai_panel_controller.js` は error 表示と message rendering を DOM API ベースへ置換済み。`memo_search_picker_controller.js` / `board_add_memo_controller.js` の検索結果描画も DOM API ベースへ置換済み。
+|残る `innerHTML` は SVG icon / sanitize 済み SVG / server-rendered fragment / editor package 内の固定 dialog template など、用途ごとに境界を明示しながら縮小する。
 
 |P0
 |Security
@@ -185,6 +186,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * DONE: CSP を report-only で有効化する
 * DONE: theme bootstrap の inline script を外部化する
 * DONE: `memo_ai_panel_controller.js` の error / message `innerHTML` を除去する
+* DONE: memo search / board add picker の検索結果 `innerHTML` を除去する
 
 === Phase 2
 
