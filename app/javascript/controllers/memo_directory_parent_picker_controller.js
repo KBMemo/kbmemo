@@ -38,7 +38,7 @@ export default class extends Controller {
   }
 
   markSelected(button) {
-    const selectedClass = ["bg-[var(--kb-bg-muted)]", "font-medium", "kb-text-primary"]
+    const selectedClass = ["kb-selected-row", "font-medium", "kb-text-primary"]
     const unselectedClass = ["kb-text-secondary"]
 
     this.optionTargets.forEach((el) => {

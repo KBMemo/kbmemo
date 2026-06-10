@@ -131,9 +131,9 @@ export default class extends Controller {
       .map((entry) => {
         const isUser = entry.role === "user"
         const label = isUser ? "あなた" : "AI"
-        const bubble = isUser ? "bg-[var(--kb-bg-muted)] kb-text-primary" : "bg-emerald-50 text-emerald-950"
+        const bubble = isUser ? "kb-ai-message-user" : "bg-emerald-50 text-emerald-950"
         const escaped = this.escapeHtml(entry.content).replace(/\n/g, "<br>")
-        return `<div class="mb-3"><p class="mb-0.5 text-[10px] font-medium uppercase tracking-wide kb-text-muted">${label}</p><div class="rounded-md px-2 py-1.5 text-xs leading-relaxed ${bubble}">${escaped}</div></div>`
+        return `<div class="mb-3"><p class="mb-0.5 kb-ai-message-label font-medium uppercase tracking-wide kb-text-muted">${label}</p><div class="rounded-md px-2 py-1.5 text-xs leading-relaxed ${bubble}">${escaped}</div></div>`
       })
       .join("")
 

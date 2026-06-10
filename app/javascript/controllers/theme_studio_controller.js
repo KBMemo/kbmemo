@@ -368,7 +368,7 @@ export default class extends Controller {
   buildTokenRow(name, value) {
     const meta = tokenMeta(name)
     const row = document.createElement("div")
-    row.className = "theme-studio-token-row grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center"
+    row.className = "theme-studio-token-row grid gap-2 items-center"
 
     const label = document.createElement("span")
     label.className = "font-mono text-xs kb-text-secondary truncate"

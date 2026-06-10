@@ -67,7 +67,7 @@ html data-kb-theme="default" data-kb-theme-base="default" data-kb-skin="auto"
         div[class="hidden" aria-hidden="true"]
           = yield
         div class="kb-chrome-workspace kb-workspace-min flex -mx-4 flex-col border-t md:flex-row md:items-start" data-controller="memo-sidebar" data-memo-sidebar-storage-key-value="kbmemo_memo_sidebar_v1"
-          #memo_sidebar_shell.kb-chrome-panel[class="kb-workspace-panel-max flex max-md:w-full flex-shrink-0 flex-col border-b transition-[width] duration-200 ease-out md:h-auto md:self-start md:flex-shrink-0 md:border-b-0 md:border-r md:border-t-0" data-theme-slot="memo-sidebar" data-memo-sidebar-target="shell"]
+          #memo_sidebar_shell.kb-chrome-panel[class="kb-workspace-panel-max flex max-md:w-full flex-shrink-0 flex-col border-b kb-sidebar-width-transition duration-200 ease-out md:h-auto md:self-start md:flex-shrink-0 md:border-b-0 md:border-r md:border-t-0" data-theme-slot="memo-sidebar" data-memo-sidebar-target="shell"]
             button.kb-chrome-muted-bar.flex.w-full.shrink-0.items-center.justify-center.gap-2.border-b.px-2.py-2.text-left.text-xs.font-medium.md:hidden[type="button" data-memo-sidebar-target="toggleButtonMobile" data-action="memo-sidebar#toggle" aria-expanded="true" aria-controls="memos_list_panel"]
               span.text-sm.leading-none.tabular-nums[aria-hidden="true" data-memo-sidebar-target="toggleGlyphMobile"] ◀
               span.sr-only メモ一覧サイドバー
@@ -87,7 +87,7 @@ html data-kb-theme="default" data-kb-theme-base="default" data-kb-skin="auto"
                 span.select-none.tracking-tighter[aria-hidden="true" data-memo-ai-sidebar-target="toggleGlyph"] »»
                 span.sr-only AI パネル
               div class=kb_resizer role="separator" aria-orientation="vertical" aria-label="AI パネルの幅を変更" title="ドラッグして幅を変更" tabindex="-1" data-memo-ai-sidebar-target="resizer" data-action="pointerdown->memo-ai-sidebar#resizerPointerDown"
-              #memo_ai_sidebar_shell.kb-chrome-panel[class="flex max-md:w-full min-h-0 flex-shrink-0 flex-col overflow-hidden border-t transition-[width,max-height] duration-200 ease-out md:max-h-full md:h-full md:border-t-0 md:border-l md:border-b-0" data-theme-slot="memo-sidebar" data-memo-ai-sidebar-target="shell"]
+              #memo_ai_sidebar_shell.kb-chrome-panel[class="flex max-md:w-full min-h-0 flex-shrink-0 flex-col overflow-hidden border-t kb-sidebar-size-transition duration-200 ease-out md:max-h-full md:h-full md:border-t-0 md:border-l md:border-b-0" data-theme-slot="memo-sidebar" data-memo-ai-sidebar-target="shell"]
                 button.kb-chrome-muted-bar.flex.w-full.shrink-0.items-center.justify-center.gap-2.border-b.px-2.py-2.text-left.text-xs.font-medium.md:hidden[type="button" data-memo-ai-sidebar-target="toggleButtonMobile" data-action="memo-ai-sidebar#toggle" aria-expanded="true" aria-controls="memo_ai_sidebar_panel"]
                   span.text-sm.leading-none.tabular-nums[aria-hidden="true" data-memo-ai-sidebar-target="toggleGlyphMobile"] »»
                   span.sr-only AI パネル
@@ -98,7 +98,7 @@ html data-kb-theme="default" data-kb-theme-base="default" data-kb-skin="auto"
         div[class="hidden" aria-hidden="true"]
           = yield
         div class="kb-chrome-workspace kb-workspace-min flex -mx-4 flex-col border-t md:flex-row md:items-start" data-controller="memo-sidebar notebook-memo-tree" data-memo-sidebar-storage-key-value="kbmemo_notebook_sidebar_v1" data-notebook-memo-tree-reorder-url-value=reorder_memos_notebook_path(@notebook)
-          #notebook_sidebar_shell.kb-chrome-panel[class="kb-workspace-panel-max flex max-md:w-full flex-shrink-0 flex-col border-b transition-[width] duration-200 ease-out md:h-auto md:self-start md:flex-shrink-0 md:border-b-0 md:border-r md:border-t-0" data-theme-slot="memo-sidebar" data-memo-sidebar-target="shell"]
+          #notebook_sidebar_shell.kb-chrome-panel[class="kb-workspace-panel-max flex max-md:w-full flex-shrink-0 flex-col border-b kb-sidebar-width-transition duration-200 ease-out md:h-auto md:self-start md:flex-shrink-0 md:border-b-0 md:border-r md:border-t-0" data-theme-slot="memo-sidebar" data-memo-sidebar-target="shell"]
             button.kb-chrome-muted-bar.flex.w-full.shrink-0.items-center.justify-center.gap-2.border-b.px-2.py-2.text-left.text-xs.font-medium.md:hidden[type="button" data-memo-sidebar-target="toggleButtonMobile" data-action="memo-sidebar#toggle" aria-expanded="true" aria-controls="notebook_memo_tree"]
               span.text-sm.leading-none.tabular-nums[aria-hidden="true" data-memo-sidebar-target="toggleGlyphMobile"] ◀
               span.sr-only ノートブックメモ一覧

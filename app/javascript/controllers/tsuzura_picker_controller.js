@@ -150,7 +150,7 @@ export default class extends Controller {
         const signed = urlById.get(id)
         const thumb = signed
           ? `<img src="${this._escape(signed)}" alt="" class="h-14 w-14 shrink-0 rounded object-cover border kb-border" loading="lazy" decoding="async">`
-          : `<span class="flex h-14 w-14 shrink-0 items-center justify-center rounded border kb-border bg-[var(--kb-bg-muted)] text-[10px] kb-text-muted">—</span>`
+          : `<span class="kb-tsuzura-thumb-placeholder flex h-14 w-14 shrink-0 items-center justify-center rounded border kb-border kb-text-muted">—</span>`
         return `<li class="border-b kb-border px-2 py-1.5">
             <label class="flex cursor-pointer items-center gap-2 text-sm">
               <input type="checkbox" value="${this._escape(id)}" data-action="change->tsuzura-picker#toggleMedia">
