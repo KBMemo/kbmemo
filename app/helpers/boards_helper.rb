@@ -59,7 +59,7 @@ module BoardsHelper
   end
 
   def board_schedule_view_tab_classes(view)
-    base = "kb-sidebar-tab min-w-0 flex-1 rounded-md px-1.5 py-1.5 text-center text-[11px] font-medium transition #{kb_focus_ring}"
+    base = "kb-sidebar-tab #{kb_focus_ring}"
     active = @schedule_calendar&.view == view
     [ base, active ? "is-active" : nil ].compact.join(" ")
   end

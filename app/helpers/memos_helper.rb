@@ -38,14 +38,14 @@ module MemosHelper
   end
 
   def memo_sidebar_link_classes(key)
-    base = "kb-sidebar-link block border-l-2 px-3 py-3 text-sm transition #{kb_focus_ring}"
+    base = "kb-sidebar-link #{kb_focus_ring}"
     active = memo_sidebar_selected?(key) ? "is-active" : ""
     [base, active].join(" ")
   end
 
   # メモ一覧の行（グリップ＋リンク）用。左ボーダーで選択中を示す。
   def memo_sidebar_memo_list_row_classes(memo_id)
-    base = "kb-sidebar-row flex min-w-0 flex-1 items-stretch border-l-2 text-sm transition"
+    base = "kb-sidebar-row"
     active = memo_sidebar_selected?(memo_id) ? "is-active" : ""
     [base, active].join(" ")
   end
@@ -134,7 +134,7 @@ module MemosHelper
   end
 
   def memo_sidebar_view_tab_classes(mode)
-    base = "kb-sidebar-tab min-w-0 flex-1 rounded-md px-1.5 py-1.5 text-center text-[11px] font-medium transition #{kb_focus_ring}"
+    base = "kb-sidebar-tab #{kb_focus_ring}"
     active = defined?(@sidebar_view) && @sidebar_view == mode
     [base, active ? "is-active" : nil].compact.join(" ")
   end
@@ -217,11 +217,11 @@ module MemosHelper
   end
 
   def memo_directory_parent_picker_button_classes(selected:)
-    base = "w-full min-w-0 truncate rounded-md px-2 py-1.5 text-left text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kb-border-strong)]"
+    base = "kb-directory-picker-option kb-focus-ring"
     if selected
-      "#{base} bg-[var(--kb-bg-muted)] font-medium kb-text-primary"
+      "#{base} is-selected"
     else
-      "#{base} kb-text-secondary hover:bg-[var(--kb-bg-muted)]"
+      base
     end
   end
 
@@ -279,14 +279,14 @@ module MemosHelper
   end
 
   def memo_directory_nav_link_classes(directory)
-    base = "kb-sidebar-nav block rounded-md px-2 py-1.5 text-sm transition #{kb_focus_ring}"
+    base = "kb-sidebar-nav #{kb_focus_ring}"
     active = defined?(@sidebar_view) && @sidebar_view == "directory" &&
       defined?(@current_memo_directory) && @current_memo_directory&.id == directory.id
     [base, active ? "is-active" : nil].compact.join(" ")
   end
 
   def memo_tag_nav_link_classes(tag)
-    base = "kb-sidebar-nav block rounded-md px-2 py-1.5 text-sm transition #{kb_focus_ring}"
+    base = "kb-sidebar-nav #{kb_focus_ring}"
     active = defined?(@sidebar_view) && @sidebar_view == "tag" &&
       defined?(@current_tag) && @current_tag&.id == tag.id
     [base, active ? "is-active" : nil].compact.join(" ")
@@ -547,10 +547,7 @@ module MemosHelper
 
   # タグ行のインライン入力（チップの右に伸びる）
   def memo_form_tag_input_inline
-    [
-      "kb-field-inline min-w-[6rem] flex-1 border-0 border-b-0 bg-transparent px-0 py-0.5",
-      "text-sm shadow-none focus:outline-none focus:ring-0"
-    ].join(" ")
+    "kb-field-inline"
   end
 
   def memo_tag_names_for_datalist
@@ -603,7 +600,7 @@ module MemosHelper
 
   # 編集フォーム用：下線のみのコンパクト入力
   def memo_sidebar_search_input
-    "kb-input block w-full min-w-0 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-0 focus:border-[var(--kb-accent)]"
+    "kb-input kb-field-input min-w-0"
   end
 
   MEMO_ASSET_URL_PATH = %r{\A/memos/(\d+)/assets/(.+)\z}
@@ -709,15 +706,15 @@ module MemosHelper
     err = memo.errors[:properties_yaml].any?
     border = err ? "border-red-500 focus:border-red-600" : "border-[var(--kb-border-strong)] focus:border-[var(--kb-accent)]"
     [
-      "kb-underline-input block w-full px-0 py-1.5 min-h-[5rem] border-0 border-b #{border}",
-      "font-mono text-sm leading-relaxed resize-y shadow-none focus:outline-none focus:ring-0"
+      "kb-underline-input min-h-[5rem] border-0 border-b #{border}",
+      "font-mono text-sm leading-relaxed resize-y"
     ].join(" ")
   end
 
   def memo_form_underline_body
     [
-      "kb-underline-input block w-full px-0 py-2 min-h-[18rem]",
-      "font-mono text-sm leading-relaxed resize-y shadow-none focus:outline-none focus:ring-0"
+      "kb-underline-input min-h-[18rem] py-2",
+      "font-mono text-sm leading-relaxed resize-y"
     ].join(" ")
   end
 
