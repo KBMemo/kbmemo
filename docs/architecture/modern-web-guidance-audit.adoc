@@ -37,6 +37,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `bundle exec vite build --force` で ineffective dynamic import 警告が消え、`application` chunk は約 1.79 MB から約 491.86 kB まで縮小した。`svg_editor` と editor/preview 系 async chunk の size warning は残る。
 * SVG editor entry から `svgedit` 本体と CSS の static import を外し、`memo_svg_editor_controller.js` 接続時の dynamic import に変更。`svg_editor` entry は約 2.19 MB から約 2.12 kB まで縮小し、SVGEdit 本体は `Editor` async chunk に分離した。
 * editor / preview 系 import を package root から必要 module の direct import へ寄せ、`@kbmemo/adoc-kbmemo` の不要 export 巻き込みを削減した。`adoc-kbmemo` async chunk は約 1.10 MB から約 344.96 kB まで縮小した。
+* `scripts/report-vite-bundles.mjs` / `npm run report:bundles` を追加し、Vite manifest から JS / CSS bundle size と gzip size を確認できるようにした。
+* release 前の Lighthouse / CWV / bundle size 確認手順を `docs/architecture/web-performance-checklist.adoc` に追加した。
 
 == 現状の良い点
 
@@ -119,8 +121,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P2
 |Performance
-|継続的な測定点が docs に無い。
-|Lighthouse / CWV の運用基準を docs 化し、最低でも LCP / INP / CLS と bundle size を release 前確認項目にする。
+|`docs/architecture/web-performance-checklist.adoc` と `npm run report:bundles` を追加済み。
+|release 前に LCP / INP / CLS と bundle size を確認する。必要なら CI の artifact / threshold に昇格する。
 |===
 
 == 具体的な観察メモ
@@ -193,7 +195,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 === Phase 4
 
 * `utility-compat.css` を縮小運用へ切り替える
-* Lighthouse / CWV / bundle size の確認手順を docs に追加する
+* DONE: Lighthouse / CWV / bundle size の確認手順を docs に追加する
+* DONE: Vite bundle size report script を追加する
 
 == 補足
 

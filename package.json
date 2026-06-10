@@ -17,6 +17,7 @@
   "scripts": {
     "build:packages": "npm run build --workspace @kbmemo/adoc-kbmemo --workspace @kbmemo/adoc-codemirror --workspace @kbmemo/adoc-preview --workspace @kbmemo/adoc-wysiwyg --workspace @kbmemo/adoc-editor",
     "test:packages": "vitest run",
+    "report:bundles": "node scripts/report-vite-bundles.mjs",
     "report:syntax-coverage": "node scripts/report-syntax-coverage.mjs",
     "report:syntax-coverage:json": "node scripts/report-syntax-coverage.mjs --write",
     "pack:packages": "npm run build:packages && node scripts/verify-package-tarballs.mjs",
