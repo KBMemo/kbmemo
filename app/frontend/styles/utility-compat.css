@@ -248,6 +248,7 @@
 }
 
 @media (min-width: 768px) {
+  [class~="md:hidden"] { display: none; }
   [class~="md:border-b-0"] { border-bottom-width: 0; }
   [class~="md:border-l"] { border-left: 1px solid var(--kb-border); }
   [class~="md:border-r"] { border-right: 1px solid var(--kb-border); }
