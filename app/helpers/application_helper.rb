@@ -173,6 +173,26 @@ module ApplicationHelper
     end
   end
 
+  def kb_field_error_id(record, attribute)
+    "#{record.model_name.param_key}_#{attribute}_error"
+  end
+
+  def kb_field_error_message(record, attribute)
+    record.errors[attribute].first
+  end
+
+  def kb_field_error?(record, attribute)
+    record.errors[attribute].any?
+  end
+
+  def kb_field_error_aria(record, attribute, describedby: nil)
+    return nil unless kb_field_error?(record, attribute)
+
+    ids = Array(describedby).compact_blank
+    ids << kb_field_error_id(record, attribute)
+    { invalid: true, describedby: ids.join(" ") }
+  end
+
   def kb_auth_underline_field_classes
     "mt-2 w-full kb-underline-input py-2 px-0 text-sm"
   end

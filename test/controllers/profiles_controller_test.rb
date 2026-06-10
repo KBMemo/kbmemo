@@ -25,6 +25,8 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_includes response.body, "too long"
+    assert_select "input#account_nickname[aria-invalid='true'][aria-describedby='account-nickname-help account_nickname_error']"
+    assert_select "#account_nickname_error", text: /too long/
   end
 
   test "signed-in user can save and clear openai api key" do

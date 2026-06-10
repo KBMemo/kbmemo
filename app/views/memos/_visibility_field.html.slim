@@ -8,11 +8,11 @@ div.min-w-0
             i[data-lucide="circle-help" class="h-4 w-4"]
           div class="absolute left-0 top-6 z-20 w-80 #{kb_hint_popover}"
             | 「グループ」系は共有グループの指定が必要です。一覧・編集は権限のあるメモのみ表示されます。
-      = f.select :visibility, memo_visibility_options_for_select, {}, class: memo_form_underline_input("font-sans min-w-0 flex-1")
+      = f.select :visibility, memo_visibility_options_for_select, {}, class: memo_form_underline_input("font-sans min-w-0 flex-1"), aria: kb_field_error_aria(memo, :visibility)
     .flex.min-w-0.flex-1.items-center.gap-2
       = f.label :memo_group_id, "共有グループ", class: "text-sm font-medium kb-text-primary whitespace-nowrap shrink-0"
-      = f.select :memo_group_id, @memo_groups_for_form.map { |g| [g.name, g.id] }, { include_blank: "（なし）" }, class: memo_form_underline_input("font-sans min-w-0 flex-1")
+      = f.select :memo_group_id, @memo_groups_for_form.map { |g| [g.name, g.id] }, { include_blank: "（なし）" }, class: memo_form_underline_input("font-sans min-w-0 flex-1"), aria: kb_field_error_aria(memo, :memo_group_id)
   - if memo.errors[:visibility].any?
-    p.mt-1.text-sm.kb-status-danger = memo.errors[:visibility].first
+    p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(memo, :visibility) = memo.errors[:visibility].first
   - if memo.errors[:memo_group_id].any?
-    p.mt-1.text-sm.kb-status-danger = memo.errors[:memo_group_id].first
+    p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(memo, :memo_group_id) = memo.errors[:memo_group_id].first

@@ -6,6 +6,7 @@ ruby:
   initial_path = unselected && placeholder_text.present? ? placeholder_text : memo_directory_path_from_root_label(selected_directory)
   field_value = unselected ? "" : selected_directory.id
   hidden_data = { memo_directory_parent_picker_target: "hiddenInput" }.merge(hidden_field_data || {})
+  hidden_aria = local_assigns[:hidden_field_aria]
   sidebar_open_memo = local_assigns[:sidebar_open_memo]
   sidebar_open_path = local_assigns[:sidebar_open_path].presence || (sidebar_open_memo ? edit_memo_path(sidebar_open_memo) : nil)
   picker_controllers = sidebar_open_path ? "memo-directory-parent-picker memo-directory-sidebar-open" : "memo-directory-parent-picker"
@@ -19,9 +20,9 @@ ruby:
       button type="button" class="#{kb_icon_btn('shrink-0 ml-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5')} disabled:cursor-not-allowed disabled:opacity-40" title="サイドバーでこのディレクトリを表示" data-memo-directory-sidebar-open-target="button" data-action="click->memo-directory-sidebar-open#open" aria-label="サイドバーでこのディレクトリを表示"
         i.h-4.w-4 aria-hidden="true" data-lucide="panel-left-open"
   - if local_assigns[:form_builder]
-    = form_builder.hidden_field field_method, value: field_value, data: hidden_data
+    = form_builder.hidden_field field_method, value: field_value, data: hidden_data, aria: hidden_aria
   - else
-    = hidden_field_tag field_name, field_value, id: field_id, data: hidden_data
+    = hidden_field_tag field_name, field_value, id: field_id, data: hidden_data, aria: hidden_aria
   div class="kb-menu-panel kb-picker-panel absolute left-0 top-full z-30 mt-1 hidden w-full max-w-md overflow-y-auto rounded-md py-2" data-memo-directory-parent-picker-target="panel" role="listbox"
     ul.list-none.px-2.pl-0
       - picker_roots.each do |dir|

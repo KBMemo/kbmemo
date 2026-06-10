@@ -22,8 +22,10 @@ section.mt-10
 
   div
     = f.label :nickname, "ニックネーム", class: kb_label
-    = f.text_field :nickname, class: "#{kb_field_input_classes} max-w-md", autocomplete: "nickname", maxlength: 40, placeholder: "例: けんせい"
-    p.mt-1.text-xs.kb-text-muted 最大40文字
+    = f.text_field :nickname, class: "#{kb_field_input_classes} max-w-md", autocomplete: "nickname", maxlength: 40, placeholder: "例: けんせい", aria: kb_field_error_aria(@account, :nickname, describedby: "account-nickname-help")
+    - if kb_field_error?(@account, :nickname)
+      p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(@account, :nickname) = kb_field_error_message(@account, :nickname)
+    p#account-nickname-help.mt-1.text-xs.kb-text-muted 最大40文字
 
   div
     = f.label :openai_api_key, "OpenAI API キー", class: kb_label
@@ -31,11 +33,13 @@ section.mt-10
       p.mt-1.text-xs.kb-status-success 設定済み（再入力すると上書きします）
     - else
       p.mt-1.text-xs.kb-status-warning 未設定 — AI パネルは利用できません
-    = f.password_field :openai_api_key, class: "#{kb_field_input_classes} max-w-md font-mono", autocomplete: "off", placeholder: "sk-…"
+    = f.password_field :openai_api_key, class: "#{kb_field_input_classes} max-w-md font-mono", autocomplete: "off", placeholder: "sk-…", aria: kb_field_error_aria(@account, :openai_api_key, describedby: "account-openai-api-key-help")
+    - if kb_field_error?(@account, :openai_api_key)
+      p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(@account, :openai_api_key) = kb_field_error_message(@account, :openai_api_key)
     .mt-2.flex.items-center.gap-2
       = f.check_box :clear_openai_api_key, class: "rounded kb-border"
       = f.label :clear_openai_api_key, "保存済みのキーを削除する", class: "text-sm kb-text-secondary"
-    p.mt-1.text-xs.kb-text-muted
+    p#account-openai-api-key-help.mt-1.text-xs.kb-text-muted
       | API キーは
       = link_to "platform.openai.com", "https://platform.openai.com/api-keys", class: "kb-chrome-link underline", target: "_blank", rel: "noopener"
       |  で発行できます（ChatGPT Plus とは別課金）。

@@ -20,8 +20,10 @@ ruby:
   - unless @memo_directory.persisted?
     div
       = f.label :path_segment, "識別子（Git 上のフォルダ名）", class: "mb-1 block text-sm font-medium kb-text-primary"
-      = f.text_field :path_segment, autocomplete: "off", placeholder: "work", class: memo_form_underline_input("font-mono text-sm")
-      p.mt-1.text-xs.kb-text-muted 英小文字・数字・ハイフンのみ。作成後は変更できません。
+      = f.text_field :path_segment, autocomplete: "off", placeholder: "work", class: memo_form_underline_input("font-mono text-sm"), aria: kb_field_error_aria(@memo_directory, :path_segment, describedby: "memo-directory-path-segment-help")
+      - if kb_field_error?(@memo_directory, :path_segment)
+        p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(@memo_directory, :path_segment) = kb_field_error_message(@memo_directory, :path_segment)
+      p#memo-directory-path-segment-help.mt-1.text-xs.kb-text-muted 英小文字・数字・ハイフンのみ。作成後は変更できません。
 
   - if @memo_directory.persisted? && @memo_directory.root?
     / ルートの親は変更不可
@@ -33,6 +35,8 @@ ruby:
   - elsif @memo_directory.parent_selectable?
     div
       = render "parent_picker", f: f
+      - if kb_field_error?(@memo_directory, :parent_id)
+        p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(@memo_directory, :parent_id) = kb_field_error_message(@memo_directory, :parent_id)
       p.mt-1.text-xs.kb-text-muted 一覧・Git 上の階層が変わります。Home / Share / Public の直下には移動できません。
   - elsif @memo_directory.parent
     .text-sm.kb-text-secondary
@@ -42,8 +46,10 @@ ruby:
 
   div
     = f.label :label, "ラベル（一覧表示名）", class: "mb-1 block text-sm font-medium kb-text-primary"
-    = f.text_field :label, autocomplete: "off", class: memo_form_underline_input
-    p.mt-1.text-xs.kb-text-muted 未入力のときは識別子を表示します（ルート以外）。
+    = f.text_field :label, autocomplete: "off", class: memo_form_underline_input, aria: kb_field_error_aria(@memo_directory, :label, describedby: "memo-directory-label-help")
+    - if kb_field_error?(@memo_directory, :label)
+      p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(@memo_directory, :label) = kb_field_error_message(@memo_directory, :label)
+    p#memo-directory-label-help.mt-1.text-xs.kb-text-muted 未入力のときは識別子を表示します（ルート以外）。
 
   .flex.gap-3.pt-2
     = f.submit(@memo_directory.persisted? ? "更新" : "作成", class: "kb-chrome-btn-primary kb-btn-sm")
