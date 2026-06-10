@@ -96,6 +96,7 @@ class ThemesControllerTest < ActionDispatch::IntegrationTest
   test "layout includes theme sync meta for signed-in user" do
     get memos_url
     assert_includes response.body, 'name="kbmemo-theme-sync"'
-    assert_includes response.body, "__KBMEMO_ACCOUNT_THEME__"
+    assert_includes response.body, 'id="kbmemo-account-theme-json"'
+    assert_includes response.body, '"active_theme_id":"default"'
   end
 end
