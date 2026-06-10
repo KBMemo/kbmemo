@@ -44,6 +44,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `memo_ai_panel_controller.js` の message rendering も `innerHTML` から DOM API ベースへ変更し、AI 応答・ユーザー入力を常に text node として挿入するようにした。
 * `memo_search_picker_controller.js` / `board_add_memo_controller.js` の検索結果描画を `innerHTML` 文字列組み立てから `createElement` / `textContent` / `dataset` ベースへ変更した。
 * `tsuzura_picker_controller.js` の album list / photo list / error・empty 表示を `innerHTML` 文字列組み立てから `createElement` / `textContent` / `dataset` ベースへ変更した。
+* `utility-compat.css` の重複 utility / 空 rule を削除し、`npm run check:utility-compat` で shrink-only baseline（有効行数・rule 数・重複 selector）を確認できるようにした。
 
 == 現状の良い点
 
@@ -116,8 +117,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P2
 |CSS
-|`utility-compat.css` が Tailwind 置換レイヤとして成長している。現状は実用上問題ないが、長期では再び utility 膨張に戻りやすい。
-|「互換 layer は縮小専用」と決め、**新規 utility 追加を抑制**する。原則は semantic class を `themes.css` に置く。lint かレビュー項目で固定するとよい。
+|`utility-compat.css` は Tailwind 置換レイヤとして残しているが、重複 utility / 空 rule は削除済み。`npm run check:utility-compat` で有効行数・rule 数・重複 selector を baseline 以内に固定している。
+|互換 layer は縮小専用として運用する。新規 styling は原則 semantic class を `themes.css` に置き、やむを得ず utility を増やす場合だけ baseline 更新を明示的にレビューする。
 
 |P2
 |HTML / Accessibility
@@ -208,7 +209,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 === Phase 4
 
 * DONE: Rails model form の validation error を field 単位で `aria-invalid` / `aria-describedby` に接続する
-* `utility-compat.css` を縮小運用へ切り替える
+* DONE: `utility-compat.css` を縮小運用へ切り替える
 * DONE: Lighthouse / CWV / bundle size の確認手順を docs に追加する
 * DONE: Vite bundle size report script を追加する
 
