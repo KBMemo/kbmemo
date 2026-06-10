@@ -19,7 +19,14 @@ class MemoTsuzuraMacroTest < ActiveSupport::TestCase
   end
 
   test "leaves media macro unchanged when viewer cannot show memo" do
-    other = memos(:two)
+    other = Memo.create!(
+      title: "Other private memo",
+      body: "private",
+      memo_directory: memo_directories(:work),
+      account: accounts(:two),
+      visibility: :owner_read_write,
+      file_committed_at: Time.current
+    )
     body = "image::media:#{@ulid}[]\n"
     out = MemoTsuzuraMacro.new(memo: other, viewer: @account).substitute(body)
     assert_equal body, out

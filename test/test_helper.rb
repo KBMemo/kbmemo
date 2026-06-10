@@ -3,6 +3,41 @@ require_relative "../config/environment"
 require "rails/test_help"
 require "fileutils"
 
+unless Object.method_defined?(:stub)
+  class Object
+    def stub(name, replacement)
+      singleton = singleton_class
+      existed = singleton.method_defined?(name) ||
+        singleton.private_method_defined?(name) ||
+        singleton.protected_method_defined?(name)
+      original = singleton.instance_method(name) if existed
+      visibility =
+        if singleton.private_method_defined?(name)
+          :private
+        elsif singleton.protected_method_defined?(name)
+          :protected
+        else
+          :public
+        end
+
+      define_singleton_method(name) do |*args, **kwargs, &block|
+        next replacement unless replacement.respond_to?(:call)
+
+        kwargs.empty? ? replacement.call(*args, &block) : replacement.call(*args, **kwargs, &block)
+      end
+
+      yield
+    ensure
+      if existed
+        singleton.define_method(name, original)
+        singleton.__send__(visibility, name)
+      else
+        singleton.__send__(:remove_method, name) if singleton.method_defined?(name)
+      end
+    end
+  end
+end
+
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers

@@ -74,7 +74,14 @@ class Internal::TsuzuraControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "authorize rejects private memo for other user" do
-    memo = memos(:two)
+    memo = Memo.create!(
+      title: "Other private memo",
+      body: "private",
+      memo_directory: memo_directories(:work),
+      account: accounts(:two),
+      visibility: :owner_read_write,
+      file_committed_at: Time.current
+    )
     post internal_tsuzura_sign_urls_path,
       params: { memo_id: memo.id, media_ids: [ @ulid ] },
       as: :json
