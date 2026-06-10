@@ -12,7 +12,7 @@ ruby:
   = hidden_field_tag :board_picker, "1" if params[:board_picker].present?
 
   - if @memo_directory.errors.any?
-    .rounded-md.border.border-red-200.bg-red-50.px-4.py-3.text-sm.text-red-900
+    .kb-alert.kb-alert-danger
       ul.list-inside.list-disc
         - @memo_directory.errors.full_messages.each do |msg|
           li = msg

@@ -6,5 +6,5 @@
       button type="button" class=kb_icon_btn("inline-flex h-6 w-6") title="ディレクトリを編集" aria-label="ディレクトリを編集" data-action="click->memo-directory-dialog#openEdit:stop" data-memo-directory-dialog-id-param=dir.id
         i class="h-3.5 w-3.5" data-lucide="pencil" aria-hidden="true"
     - if policy(dir).destroy? && dir.deletable?
-      button type="button" class="inline-flex h-6 w-6 items-center justify-center rounded kb-text-subtle hover:bg-red-100 hover:text-red-700 #{kb_focus_ring}" title="ディレクトリを削除" aria-label="ディレクトリを削除" data-action="click->memo-directory-dialog#deleteDirectory:stop" data-memo-directory-dialog-id-param=dir.id data-memo-directory-dialog-name-param=dir.display_name
+      button type="button" class="inline-flex h-6 w-6 items-center justify-center rounded kb-danger-icon-btn #{kb_focus_ring}" title="ディレクトリを削除" aria-label="ディレクトリを削除" data-action="click->memo-directory-dialog#deleteDirectory:stop" data-memo-directory-dialog-id-param=dir.id data-memo-directory-dialog-name-param=dir.display_name
         i class="h-3.5 w-3.5" data-lucide="trash-2" aria-hidden="true"

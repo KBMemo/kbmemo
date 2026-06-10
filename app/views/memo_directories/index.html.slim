@@ -26,6 +26,6 @@
                     = link_to "編集", edit_memo_directory_path(d), class: "kb-text-secondary hover:kb-text-primary"
                   - if policy(d).destroy? && d.deletable?
                     = " · "
-                    = button_to "削除", memo_directory_path(d), method: :delete, form: { data: { turbo_confirm: "「#{d.display_name}」を削除しますか？" } }, class: "text-red-600 hover:text-red-800"
+                    = button_to "削除", memo_directory_path(d), method: :delete, form: { data: { turbo_confirm: "「#{d.display_name}」を削除しますか？" } }, class: "kb-danger-action"
     - else
       p.text-sm.kb-text-muted ディレクトリがありません。

@@ -4,9 +4,9 @@ ruby:
   - flash.each do |level, message|
     - next if message.blank?
     - next if secret_flash_keys.include?(level.to_sym)
-    - alert_classes = (level.to_sym == :notice) ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"
-    - dismiss_ring = (level.to_sym == :notice) ? "focus-visible:ring-emerald-400" : "focus-visible:ring-amber-400"
-    div class="pointer-events-auto flex items-start gap-2 rounded-md border px-3 py-2 text-sm shadow-md transition-all duration-200 ease-out #{alert_classes}" role="status" data-flash-notice-target="message"
+    - alert_classes = (level.to_sym == :notice) ? "kb-alert-success" : "kb-alert-warning"
+    - dismiss_ring = (level.to_sym == :notice) ? "kb-flash-dismiss-success" : "kb-flash-dismiss-warning"
+    div class="pointer-events-auto flex items-start gap-2 kb-alert shadow-md transition-all duration-200 ease-out #{alert_classes}" role="status" data-flash-notice-target="message"
       span.min-w-0.flex-1 = message
-      button.shrink-0.rounded.p-0.5.text-base.leading-none.opacity-60.hover:opacity-100.focus:outline-none.focus-visible:ring-2.focus-visible:ring-offset-1 type="button" class=dismiss_ring data-action="flash-notice#dismiss" aria-label="メッセージを閉じる"
+      button.shrink-0.rounded.p-0.5.text-base.leading-none.opacity-60.hover:opacity-100.kb-flash-dismiss type="button" class=dismiss_ring data-action="flash-notice#dismiss" aria-label="メッセージを閉じる"
         | ×

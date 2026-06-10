@@ -69,11 +69,16 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 
 /* MemoWikiLinks が Asciidoctor 経由で出力（views に文字列が無いため @apply で明示定義） */
 .memo-body .memo-wiki-broken {
-  @apply text-red-600 underline decoration-dotted;
+  color: var(--kb-status-danger-strong);
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
 }
 
 .memo-body button.memo-wiki-create-link {
-  @apply cursor-pointer text-red-600 underline decoration-dotted;
+  cursor: pointer;
+  color: var(--kb-status-danger-strong);
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
 }
 
 /* 本文 CodeMirror: ガターと編集域の重なり防止・行頭カーソル */

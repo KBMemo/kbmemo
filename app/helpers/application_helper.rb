@@ -167,7 +167,7 @@ module ApplicationHelper
 
   def kb_auth_field_classes(error: false)
     if error
-      "mt-2 text-sm w-full kb-input border-red-600 focus:border-red-600 focus:ring-red-500"
+      "mt-2 text-sm w-full kb-input kb-field-error"
     else
       "mt-2 text-sm w-full #{kb_field_input_classes}"
     end

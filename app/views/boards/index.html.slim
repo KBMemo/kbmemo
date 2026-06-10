@@ -23,6 +23,6 @@
             td.py-2.text-right
               = link_to "編集", edit_board_path(board), class: "kb-chrome-link"
               = " · "
-              = button_to "削除", board_path(board), method: :delete, form: { data: { turbo_confirm: "「#{board.title}」を削除しますか？載っているメモは残ります。" } }, class: "inline text-red-600 hover:text-red-800"
+              = button_to "削除", board_path(board), method: :delete, form: { data: { turbo_confirm: "「#{board.title}」を削除しますか？載っているメモは残ります。" } }, class: "inline kb-danger-action"
 - else
   p.text-sm.kb-text-muted ボードがありません。新規ボードを作成してください。

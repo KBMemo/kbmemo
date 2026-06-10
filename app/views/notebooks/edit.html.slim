@@ -19,4 +19,4 @@ section.mt-10
       - @notebook_memos.each do |entry|
         li.flex.items-center.justify-between.gap-3.px-3.py-2
           span.min-w-0.truncate = entry.memo.title
-          = button_to "外す", notebook_notebook_memo_path(@notebook, entry.memo), method: :delete, class: "shrink-0 text-sm text-red-600 hover:text-red-800"
+          = button_to "外す", notebook_notebook_memo_path(@notebook, entry.memo), method: :delete, class: "shrink-0 text-sm kb-danger-action"

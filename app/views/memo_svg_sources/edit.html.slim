@@ -13,7 +13,7 @@
         = link_to "メモを編集", edit_memo_path(@memo), class: "kb-action-btn kb-action-btn-sm kb-hover-row"
 
   - if flash[:alert].present?
-    p.svg-edit-page__alert.mx-4.mt-2.rounded-md.border.border-red-200.bg-red-50.px-3.py-2.text-sm.text-red-700 = flash[:alert]
+    p.svg-edit-page__alert.mx-4.mt-2.kb-alert.kb-alert-danger = flash[:alert]
 
   = form_with url: svg_source_memo_path(@memo, @index), method: :patch, class: "svg-edit-page__form", data: { controller: "memo-svg-editor", memo_svg_editor_asset_base_value: "/svgedit", memo_svg_editor_source_value: @source, action: "submit->memo-svg-editor#beforeSubmit" } do
     textarea.hidden name="source" data-memo-svg-editor-target="sourceField"

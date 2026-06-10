@@ -1,6 +1,6 @@
 = form_with model: notebook, class: "space-y-4 max-w-xl" do |f|
   - if notebook.errors.any?
-    .rounded-md.border.border-red-200.bg-red-50.px-4.py-3.text-sm.text-red-900
+    .kb-alert.kb-alert-danger
       p.font-medium 保存できませんでした。
       ul.mt-2.list-inside.list-disc
         - notebook.errors.full_messages.each do |message|

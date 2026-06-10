@@ -13,6 +13,6 @@ div.min-w-0
       = f.label :memo_group_id, "共有グループ", class: "text-sm font-medium kb-text-primary whitespace-nowrap shrink-0"
       = f.select :memo_group_id, @memo_groups_for_form.map { |g| [g.name, g.id] }, { include_blank: "（なし）" }, class: memo_form_underline_input("font-sans min-w-0 flex-1")
   - if memo.errors[:visibility].any?
-    p.mt-1.text-sm.text-red-700 = memo.errors[:visibility].first
+    p.mt-1.text-sm.kb-status-danger = memo.errors[:visibility].first
   - if memo.errors[:memo_group_id].any?
-    p.mt-1.text-sm.text-red-700 = memo.errors[:memo_group_id].first
+    p.mt-1.text-sm.kb-status-danger = memo.errors[:memo_group_id].first

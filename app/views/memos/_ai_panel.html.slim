@@ -4,13 +4,13 @@
     h2.text-sm.font-semibold.kb-text-primary AI
   .flex.min-h-0.flex-1.flex-col.gap-2.overflow-hidden.px-3.py-2
     - unless account.openai_api_key_configured?
-      p.shrink-0.text-xs.text-amber-800
+      p.shrink-0.text-xs.kb-status-warning
         | API キー未設定。
         = link_to "プロフィールで登録", edit_profile_path, class: "underline font-medium"
     p class="shrink-0 text-[10px] leading-snug kb-text-muted"
       | 送信するとメモ本文（抜粋）と会話が OpenAI に送られます。
     .kb-ai-messages.min-h-0.flex-1.overflow-y-auto.rounded-md.p-2 data-memo-ai-panel-target="messages"
-    p.hidden.shrink-0.text-xs.text-red-700 data-memo-ai-panel-target="error"
+    p.hidden.shrink-0.text-xs.kb-status-danger data-memo-ai-panel-target="error"
     label.flex.shrink-0.items-center.gap-2.text-xs.kb-text-secondary
       input.rounded.kb-border type="checkbox" checked=true data-memo-ai-panel-target="includeSelection"
       | 選択範囲もコンテキストに含める

@@ -1,9 +1,9 @@
 ruby:
-  discard_btn_class = "rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
+  discard_btn_class = "kb-warning-btn kb-focus-ring"
   discard_btn_class += " hidden" unless memo.display_as_draft?
   show_link_class = "kb-chrome-btn-secondary kb-btn-md kb-focus-ring"
   show_link_class += " hidden" unless memo.file_committed_at.present? && !memo.display_as_draft?
-  delete_btn_class = "rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
+  delete_btn_class = "kb-danger-btn kb-focus-ring"
   commit_btn_class = "kb-chrome-btn-primary kb-btn-md kb-focus-ring"
   commit_btn_class += " hidden" unless memo.persisted?
   uncommitted = memo.file_committed_at.blank?

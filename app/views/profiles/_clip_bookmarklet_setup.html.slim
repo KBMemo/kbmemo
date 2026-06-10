@@ -13,7 +13,7 @@ ruby:
     | Web ページで選択した範囲を kbmemo へ保存します。クリップ API トークンを発行したら、下のリンクをブックマークバーへドラッグしてください（URL やトークンの手入力は不要です）。GitHub など CSP が厳しいサイトではポップアップが開きます。
 
   - if revealed_token.present?
-    p.mt-2.text-xs.text-amber-800
+    p.mt-2.text-xs.kb-status-warning
       | いま発行したトークンを埋め込んだブックマークレットです。このリンクをブックマークバーへドラッグしてください。
 
   p.mt-2.text-xs.kb-text-muted.hidden data-clip-bookmarklet-setup-target="statusMessage"

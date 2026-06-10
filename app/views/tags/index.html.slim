@@ -27,6 +27,6 @@
                 = link_to "統合へ", merge_tags_path(from_tag_id: tag.id), class: "kb-chrome-link"
                 - if count.zero?
                   = " · "
-                  = button_to "削除", tag_path(tag), method: :delete, form: { data: { turbo_confirm: "「#{tag.name}」を削除しますか？" } }, class: "text-red-600 hover:text-red-800"
+                  = button_to "削除", tag_path(tag), method: :delete, form: { data: { turbo_confirm: "「#{tag.name}」を削除しますか？" } }, class: "kb-danger-action"
     - else
       p.text-sm.kb-text-muted タグがありません。

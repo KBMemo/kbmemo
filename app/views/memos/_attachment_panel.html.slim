@@ -14,9 +14,9 @@
             span class="font-mono kb-text-primary"= entry.name
             .flex.flex-wrap.items-center.gap-1
               - if entry.svg_missing
-                span class="rounded bg-amber-50 px-1.5 py-0.5 text-amber-800" SVG無し
+                span class="kb-badge kb-badge-warning" SVG無し
               - unless entry.referenced
-                span class="rounded bg-[var(--kb-bg-muted)] px-1.5 py-0.5 kb-text-secondary" 未使用
+                span class="kb-badge kb-badge-muted" 未使用
           .flex.flex-wrap.items-center.gap-1.sm:justify-end
             - if entry.edit_url
               = link_to "編集",
@@ -28,5 +28,5 @@
               button class="rounded border kb-border bg-white px-2 py-0.5 kb-text-secondary kb-hover-row" type="button" data-action="memo-attachments#insert" data-memo-attachments-text-param=entry.insert_text
                 | 挿入
             - if can_manage && entry.delete_path
-              button class="rounded border border-red-200 bg-white px-2 py-0.5 text-red-700 hover:bg-red-50" type="button" data-action="memo-attachments#remove" data-destroy-path=entry.delete_path data-memo-id=memo.id data-destroy-name=entry.name
+              button class="kb-danger-btn kb-btn-xs" type="button" data-action="memo-attachments#remove" data-destroy-path=entry.delete_path data-memo-id=memo.id data-destroy-name=entry.name
                 | 削除

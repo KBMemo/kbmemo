@@ -30,6 +30,6 @@ p.mb-6.text-sm.kb-text-secondary
             td.py-2.text-right
               = link_to "編集", edit_notebook_path(notebook), class: "kb-chrome-link"
               = " · "
-              = button_to "削除", notebook_path(notebook), method: :delete, form: { data: { turbo_confirm: "「#{notebook.title}」を削除しますか？メモ本文は残ります。" } }, class: "inline text-red-600 hover:text-red-800"
+              = button_to "削除", notebook_path(notebook), method: :delete, form: { data: { turbo_confirm: "「#{notebook.title}」を削除しますか？メモ本文は残ります。" } }, class: "inline kb-danger-action"
 - else
   p.text-sm.kb-text-muted ノートブックがありません。新規作成してください。
