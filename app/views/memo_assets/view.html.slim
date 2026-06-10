@@ -4,32 +4,32 @@
   data-controller="diagram-svg-viewer"
   data-diagram-svg-viewer-src-value=@asset_url
 ]
-  header.flex.shrink-0.flex-wrap.items-center.justify-between.gap-2.border-b.kb-border.bg-white.px-4.py-3.md:sticky.md:top-0.md:z-20
+  header.kb-pane-header.flex.flex-wrap.items-center.justify-between.gap-2.px-4.py-3.md:sticky.md:top-0.md:z-20
     div
       h1.text-sm.font-semibold.kb-text-primary 画像
       p.mt-0.5.text-xs.kb-text-secondary
         code.kb-text-secondary= @asset_relative
     .flex.flex-wrap.items-center.gap-2
-      button.rounded-md.border.kb-border.bg-white.px-2.py-1.text-xs.font-medium.kb-text-primary.kb-hover-row[
+      button.kb-action-btn.kb-action-btn-sm.kb-hover-row[
         type="button"
         data-action="diagram-svg-viewer#zoomOut"
         title="縮小"
       ]
         | −
-      button.rounded-md.border.kb-border.bg-white.px-2.py-1.text-xs.font-medium.kb-text-primary.kb-hover-row[
+      button.kb-action-btn.kb-action-btn-sm.kb-hover-row[
         type="button"
         data-action="diagram-svg-viewer#resetZoom"
         title="100%"
         data-diagram-svg-viewer-target="scaleLabel"
       ]
         | 100%
-      button.rounded-md.border.kb-border.bg-white.px-2.py-1.text-xs.font-medium.kb-text-primary.kb-hover-row[
+      button.kb-action-btn.kb-action-btn-sm.kb-hover-row[
         type="button"
         data-action="diagram-svg-viewer#zoomIn"
         title="拡大"
       ]
         | ＋
-      button.rounded-md.border.kb-border.bg-white.px-2.py-1.text-xs.font-medium.kb-text-primary.kb-hover-row[
+      button.kb-action-btn.kb-action-btn-sm.kb-hover-row[
         type="button"
         data-action="diagram-svg-viewer#fitToWindow"
         title="画面に合わせる"

@@ -17,7 +17,7 @@ ruby:
         span.sr-only 保存先
         = link_to memo_directory_path_from_root_label(dir),
           memo_sidebar_open_memo_path(open_memo, memo_directory_id: dir.id),
-          class: "block truncate underline decoration-[var(--kb-border-strong)] hover:text-[var(--kb-text-primary)]",
+          class: "block truncate kb-inline-link",
           title: "サイドバーでこのディレクトリを表示"
     - if @sidebar_view == "directory"
       - nav_dir_children = memo_directory_nav_children_index(@memo_directories_for_nav || [])
@@ -34,7 +34,7 @@ ruby:
                 span.truncate = tag.name
       - else
         p.mb-2.text-xs.kb-text-secondary タグがまだありません。メモの編集画面でタグを付けられます。
-      = link_to "タグを管理…", tags_path, class: "mb-2 inline-block text-xs kb-text-secondary underline decoration-[var(--kb-border-strong)] hover:text-[var(--kb-text-primary)]"
+      = link_to "タグを管理…", tags_path, class: "mb-2 inline-block text-xs kb-text-secondary kb-inline-link"
     - elsif @sidebar_view == "search"
       .mb-2 data-controller="memo-search"
         = form_tag memos_path, method: :get, class: "flex min-w-0 gap-1", data: { memo_search_target: "form", turbo: "false" } do
@@ -56,7 +56,7 @@ ruby:
         p.truncate.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted メモ一覧
       - if @sidebar_view == "directory"
         .flex.shrink-0.items-center.gap-1
-          = link_to "管理", manage_memos_path(memo_directory_id: (@current_memo_directory&.root? ? nil : @current_memo_directory&.id)), class: "text-xs kb-text-secondary underline decoration-[var(--kb-border-strong)] hover:text-[var(--kb-text-primary)]", title: "ディレクトリ・メモ管理画面を開く", data: { turbo: false }
+          = link_to "管理", manage_memos_path(memo_directory_id: (@current_memo_directory&.root? ? nil : @current_memo_directory&.id)), class: "text-xs kb-text-secondary kb-inline-link", title: "ディレクトリ・メモ管理画面を開く", data: { turbo: false }
           details.relative.shrink-0
             summary class=kb_hint_trigger
               i[data-lucide="circle-help" class="h-4 w-4"]

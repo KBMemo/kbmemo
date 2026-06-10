@@ -21,11 +21,11 @@
             - if entry.edit_url
               = link_to "編集",
                 entry.edit_url,
-                class: "rounded border kb-border bg-white px-2 py-0.5 kb-text-secondary kb-hover-row",
+                class: "kb-action-btn kb-action-btn-sm kb-hover-row",
                 target: "_blank",
                 rel: "noopener"
             - unless entry.referenced
-              button class="rounded border kb-border bg-white px-2 py-0.5 kb-text-secondary kb-hover-row" type="button" data-action="memo-attachments#insert" data-memo-attachments-text-param=entry.insert_text
+              button class="kb-action-btn kb-action-btn-sm kb-hover-row" type="button" data-action="memo-attachments#insert" data-memo-attachments-text-param=entry.insert_text
                 | 挿入
             - if can_manage && entry.delete_path
               button class="kb-danger-btn kb-btn-xs" type="button" data-action="memo-attachments#remove" data-destroy-path=entry.delete_path data-memo-id=memo.id data-destroy-name=entry.name

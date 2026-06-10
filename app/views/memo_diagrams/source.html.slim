@@ -4,7 +4,7 @@
   data-controller="diagram-source-viewer"
   data-diagram-source-viewer-engine-value=@engine.to_s
 ]
-  header.flex.shrink-0.flex-wrap.items-center.justify-between.gap-2.border-b.kb-border.bg-white.px-4.py-3.md:sticky.md:top-0.md:z-20
+  header.kb-pane-header.flex.flex-wrap.items-center.justify-between.gap-2.px-4.py-3.md:sticky.md:top-0.md:z-20
     div
       h1.text-sm.font-semibold.kb-text-primary ダイアグラムソース
       p.mt-0.5.text-xs.kb-text-secondary
@@ -15,7 +15,7 @@
         = link_to "ビューアで開く", view_memo_diagram_path(@memo, params[:diagram_key]), class: "kb-action-btn kb-action-btn-sm kb-hover-row", target: "_blank", rel: "noopener"
       = link_to "編集", edit_memo_diagram_path(@memo, params[:diagram_key]), class: "kb-action-btn kb-action-btn-sm kb-hover-row"
       = link_to "元ファイル", asset_memo_path(@memo, @source_relative), class: "kb-action-btn kb-action-btn-sm kb-hover-row", target: "_blank", rel: "noopener"
-  .diagram-source-viewer__body.min-h-0.flex-1.overflow-hidden.bg-white
+  .diagram-source-viewer__body.kb-viewer-body.min-h-0.flex-1.overflow-hidden
     textarea.sr-only[readonly=true data-diagram-source-viewer-target="field"]
       = @source
     div class="diagram-source-viewer__host h-full min-h-[calc(100vh-3.5rem)] md:min-h-[calc(100vh-4rem)]" data-diagram-source-viewer-target="host"
