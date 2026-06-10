@@ -1,3 +1,7 @@
+@import "open-props/fonts";
+@import "open-props/sizes";
+@import "open-props/borders";
+@import "open-props/shadows";
 @import "tailwindcss";
 @import "katex/dist/katex.min.css";
 @import "highlight.js/styles/github.min.css";
