@@ -76,6 +76,35 @@ export default class extends Controller {
     this.resizerTarget.addEventListener("pointercancel", this._onPointerUp)
   }
 
+  resizerKeydown(event) {
+    if (this._collapsed || !window.matchMedia("(min-width: 768px)").matches) return
+
+    const step = event.shiftKey ? 50 : 20
+    let nextWidth = null
+
+    switch (event.key) {
+      case "ArrowLeft":
+        nextWidth = this._width + step
+        break
+      case "ArrowRight":
+        nextWidth = this._width - step
+        break
+      case "Home":
+        nextWidth = this._minWidth()
+        break
+      case "End":
+        nextWidth = this._maxWidth()
+        break
+      default:
+        return
+    }
+
+    event.preventDefault()
+    this._width = clamp(nextWidth, this._minWidth(), this._maxWidth())
+    this._writePrefs()
+    this._applyLayout()
+  }
+
   _readPrefs() {
     try {
       const raw = localStorage.getItem(this.storageKeyValue)
@@ -116,11 +145,30 @@ export default class extends Controller {
     document.body.style.userSelect = ""
   }
 
+  _minWidth() {
+    return 220
+  }
+
+  _maxWidth() {
+    return Math.min(Math.floor(window.innerWidth * 0.45), 480)
+  }
+
+  _updateResizerA11y() {
+    if (!this.hasResizerTarget) return
+
+    const enabled = !this._collapsed && window.matchMedia("(min-width: 768px)").matches
+    this.resizerTarget.tabIndex = enabled ? 0 : -1
+    this.resizerTarget.setAttribute("aria-disabled", String(!enabled))
+    this.resizerTarget.setAttribute("aria-valuemin", String(this._minWidth()))
+    this.resizerTarget.setAttribute("aria-valuemax", String(this._maxWidth()))
+    this.resizerTarget.setAttribute("aria-valuenow", String(Math.round(this._width)))
+  }
+
   _dragMove(event) {
     if (!this._dragging || !this.hasShellTarget) return
     const shellRect = this.shellTarget.getBoundingClientRect()
-    const maxPx = Math.min(Math.floor(window.innerWidth * 0.45), 480)
-    this._width = clamp(shellRect.right - event.clientX, 220, maxPx)
+    const maxPx = this._maxWidth()
+    this._width = clamp(shellRect.right - event.clientX, this._minWidth(), maxPx)
     this.shellTarget.style.width = `${this._width}px`
     this.shellTarget.style.maxWidth = `${maxPx}px`
     this._positionToggleButton()
@@ -141,7 +189,7 @@ export default class extends Controller {
 
     if (md) {
       this.shellTarget.style.maxHeight = ""
-      const maxPx = Math.min(Math.floor(window.innerWidth * 0.45), 480)
+      const maxPx = this._maxWidth()
       if (this._collapsed) {
         this.shellTarget.style.flexBasis = "0"
         this.shellTarget.style.width = "0"
@@ -154,7 +202,7 @@ export default class extends Controller {
           this.resizerTarget.classList.add("pointer-events-none", "opacity-40")
         }
       } else {
-        this._width = clamp(this._width, 220, maxPx)
+        this._width = clamp(this._width, this._minWidth(), maxPx)
         this.shellTarget.style.flexBasis = ""
         this.shellTarget.style.width = `${this._width}px`
         this.shellTarget.style.minWidth = ""
@@ -188,6 +236,7 @@ export default class extends Controller {
     }
 
     this._updateToggleUi()
+    this._updateResizerA11y()
     this._positionToggleButton()
   }
 

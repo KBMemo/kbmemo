@@ -30,6 +30,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * Tsuzura picker dialog に `aria-labelledby` / `aria-describedby` を追加。
 * `code_block_tools_controller.js` の sanitize 済み SVG 注入を `replaceWithSanitizedSvg` に隔離し、loading / error 表示を DOM API ベースへ変更。
 * `user_menu_controller.js` に `aria-controls`、open 時 focus、Escape focus return、Arrow/Home/End navigation を追加。
+* ディレクトリ dialog に `aria-labelledby` を追加し、server-rendered fragment の `innerHTML` 代入を `replaceWithServerRenderedForm` に隔離。
+* サイドバー resizer を keyboard 操作可能な separator にし、Arrow/Home/End resize と `aria-valuenow` 同期を追加。
 
 == 現状の良い点
 
@@ -77,13 +79,13 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P1
 |Accessibility / HTML/JS
-|Tsuzura picker は `aria-labelledby` / `aria-describedby` 付与済み。ディレクトリ dialog は Ajax で body を差し替えるため未対応。
-|ディレクトリ dialog は読み込まれる見出し ID と wrapper の `aria-labelledby` を controller 側で接続する。
+|Tsuzura picker は `aria-labelledby` / `aria-describedby` 付与済み。ディレクトリ dialog は `aria-labelledby` 付与済みで、fragment 代入も専用メソッドに隔離済み。
+|補助説明が必要な dialog が増えた場合は `aria-describedby` も追加する。
 
 |P1
 |Accessibility
-|サイドバー resizer は `role="separator"` を持つが `tabindex="-1"` で、キーボード操作経路が無い。
-|separator を本当に操作可能にするなら **focusable + Arrow key resize** を実装する。やらないなら単なる装飾 divider として扱い、role を外す。
+|サイドバー resizer は focusable separator として Arrow/Home/End で幅変更可能。`aria-valuemin` / `aria-valuemax` / `aria-valuenow` も同期済み。
+|必要に応じて操作説明のヘルプ文や `aria-valuetext` を追加する。
 
 |P1
 |Forms / Accessibility
@@ -139,7 +141,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** open 後の focus 遷移、Escape 時の focus return、Arrow/Home/End navigation を追加済み。
 * `app/javascript/controllers/memo_directory_dialog_controller.js`
 ** native `showModal()` を使っている点は良い。
-** `bodyTarget.innerHTML = await res.text()` は server-rendered fragment 前提なので、信頼境界を docs で固定しておきたい。
+** `replaceWithServerRenderedForm` に隔離済み。server-rendered fragment 前提の信頼境界はコードコメントで明示。
 
 === 3. Security sink
 
@@ -169,8 +171,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 * DONE: `lang="ja"` を全 layout に付与する
 * DONE: skip link を追加する
-* PARTIAL: dialog の `aria-labelledby` / `aria-describedby` を揃える（Tsuzura 済み、ディレクトリ dialog 未対応）
-* TODO: resizer のアクセシビリティ方針を決める
+* DONE: dialog の accessible name / description を揃える（Tsuzura は `aria-labelledby` / `aria-describedby`、ディレクトリ dialog は `aria-labelledby` 済み）
+* DONE: resizer のアクセシビリティ方針を決め、keyboard resize を実装する
 
 === Phase 3
 

@@ -76,7 +76,7 @@ html lang="ja" data-kb-theme="default" data-kb-theme-base="default" data-kb-skin
           button class=kb_sidebar_toggle_btn type="button" data-memo-sidebar-target="toggleButton" data-action="memo-sidebar#toggle" aria-expanded="true" aria-controls="memos_list_panel" title="メモ一覧サイドバーを折りたたむ"
             span.select-none.tracking-tighter[aria-hidden="true" data-memo-sidebar-target="toggleGlyph"] ««
             span.sr-only メモ一覧サイドバー
-          div class=kb_resizer role="separator" aria-orientation="vertical" aria-label="サイドバーの幅を変更" title="ドラッグして幅を変更" tabindex="-1" data-memo-sidebar-target="resizer" data-action="pointerdown->memo-sidebar#resizerPointerDown"
+          div class=kb_resizer role="separator" aria-orientation="vertical" aria-label="サイドバーの幅を変更" title="ドラッグまたは左右キーで幅を変更" tabindex="0" data-memo-sidebar-target="resizer" data-action="pointerdown->memo-sidebar#resizerPointerDown keydown->memo-sidebar#resizerKeydown"
           section[class="kb-workspace-min flex min-w-0 flex-1 flex-col"]
             div#memos_editor_scroll[class="flex-1 px-4 py-5 md:px-8"]
               = yield :memos_editor
@@ -85,7 +85,7 @@ html lang="ja" data-kb-theme="default" data-kb-theme-base="default" data-kb-skin
               button class=kb_sidebar_toggle_btn type="button" data-memo-ai-sidebar-target="toggleButton" data-action="memo-ai-sidebar#toggle" aria-expanded="true" aria-controls="memo_ai_sidebar_panel" title="AI パネルを折りたたむ"
                 span.select-none.tracking-tighter[aria-hidden="true" data-memo-ai-sidebar-target="toggleGlyph"] »»
                 span.sr-only AI パネル
-              div class=kb_resizer role="separator" aria-orientation="vertical" aria-label="AI パネルの幅を変更" title="ドラッグして幅を変更" tabindex="-1" data-memo-ai-sidebar-target="resizer" data-action="pointerdown->memo-ai-sidebar#resizerPointerDown"
+              div class=kb_resizer role="separator" aria-orientation="vertical" aria-label="AI パネルの幅を変更" title="ドラッグまたは左右キーで幅を変更" tabindex="0" data-memo-ai-sidebar-target="resizer" data-action="pointerdown->memo-ai-sidebar#resizerPointerDown keydown->memo-ai-sidebar#resizerKeydown"
               #memo_ai_sidebar_shell.kb-chrome-panel[class="flex max-md:w-full min-h-0 flex-shrink-0 flex-col overflow-hidden border-t kb-sidebar-size-transition duration-200 ease-out md:max-h-full md:h-full md:border-t-0 md:border-l md:border-b-0" data-theme-slot="memo-sidebar" data-memo-ai-sidebar-target="shell"]
                 button.kb-chrome-muted-bar.flex.w-full.shrink-0.items-center.justify-center.gap-2.border-b.px-2.py-2.text-left.text-xs.font-medium.md:hidden[type="button" data-memo-ai-sidebar-target="toggleButtonMobile" data-action="memo-ai-sidebar#toggle" aria-expanded="true" aria-controls="memo_ai_sidebar_panel"]
                   span.text-sm.leading-none.tabular-nums[aria-hidden="true" data-memo-ai-sidebar-target="toggleGlyphMobile"] »»
@@ -107,7 +107,7 @@ html lang="ja" data-kb-theme="default" data-kb-theme-base="default" data-kb-skin
           button class=kb_sidebar_toggle_btn type="button" data-memo-sidebar-target="toggleButton" data-action="memo-sidebar#toggle" aria-expanded="true" aria-controls="notebook_memo_tree" title="メモ一覧サイドバーを折りたたむ"
             span.select-none.tracking-tighter[aria-hidden="true" data-memo-sidebar-target="toggleGlyph"] ««
             span.sr-only ノートブックメモ一覧
-          div class=kb_resizer role="separator" aria-orientation="vertical" aria-label="サイドバーの幅を変更" title="ドラッグして幅を変更" tabindex="-1" data-memo-sidebar-target="resizer" data-action="pointerdown->memo-sidebar#resizerPointerDown"
+          div class=kb_resizer role="separator" aria-orientation="vertical" aria-label="サイドバーの幅を変更" title="ドラッグまたは左右キーで幅を変更" tabindex="0" data-memo-sidebar-target="resizer" data-action="pointerdown->memo-sidebar#resizerPointerDown keydown->memo-sidebar#resizerKeydown"
           section[class="kb-workspace-min flex min-w-0 flex-1 flex-col"]
             div#notebook_memo_panel[class="flex-1 px-4 py-5 md:px-8"]
               = yield :notebook_memo_panel

@@ -104,11 +104,16 @@ export default class extends Controller {
     })
     if (!res.ok) return
 
-    this.bodyTarget.innerHTML = await res.text()
+    this.replaceWithServerRenderedForm(await res.text())
     if (typeof this.dialogTarget.showModal === "function") {
       this.dialogTarget.showModal()
     }
     document.dispatchEvent(new Event("turbo:render"))
+  }
+
+  replaceWithServerRenderedForm(html) {
+    // The memo directory dialog only loads same-origin server-rendered form fragments.
+    this.bodyTarget.innerHTML = html
   }
 
   submitStart(event) {
