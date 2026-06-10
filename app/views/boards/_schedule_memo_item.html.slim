@@ -2,4 +2,4 @@ li.rounded-md.border.kb-border.px-2.py-2
   = link_to memo.title, memo_path(memo), class: "block text-sm font-medium kb-text-primary hover:opacity-80 line-clamp-2", data: { turbo: false }
   - meta = board_schedule_item_meta(memo)
   - if meta.present?
-    p class="mt-1 text-[10px] kb-text-muted" = meta
+    p class="mt-1 kb-text-2xs kb-text-muted" = meta

@@ -433,7 +433,7 @@ export default class extends Controller {
       }
       const text = document.createElement("span")
       text.className = navigable
-        ? "min-w-0 truncate underline decoration-[var(--kb-border-strong)]"
+        ? "min-w-0 truncate underline kb-underline-border-strong"
         : "min-w-0 truncate"
       text.textContent = label
       pill.appendChild(text)
@@ -444,7 +444,7 @@ export default class extends Controller {
       btn.setAttribute("data-action", "click->memo-draft#removeTagFromParam")
       btn.setAttribute("data-memo-draft-tag-index-param", String(index))
       btn.className =
-        "shrink-0 rounded p-0.5 text-base leading-none kb-text-subtle hover:bg-[var(--kb-bg-muted)] hover:kb-text-secondary"
+        "shrink-0 rounded p-0.5 text-base leading-none kb-text-subtle kb-hover-muted hover:kb-text-secondary"
       btn.textContent = "×"
       pill.appendChild(btn)
 

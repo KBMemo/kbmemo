@@ -143,18 +143,24 @@ export default class extends Controller {
       this.shellTarget.style.maxHeight = ""
       const maxPx = Math.min(Math.floor(window.innerWidth * 0.45), 480)
       if (this._collapsed) {
-        this.shellTarget.style.width = "3rem"
-        this.shellTarget.style.minWidth = "3rem"
-        this.shellTarget.style.maxWidth = "3rem"
+        this.shellTarget.style.flexBasis = "0"
+        this.shellTarget.style.width = "0"
+        this.shellTarget.style.minWidth = "0"
+        this.shellTarget.style.maxWidth = "0"
+        this.shellTarget.style.borderWidth = "0"
+        this.shellTarget.style.overflow = "hidden"
         if (this.hasBodyTarget) this.bodyTarget.classList.add("hidden")
         if (this.hasResizerTarget) {
           this.resizerTarget.classList.add("pointer-events-none", "opacity-40")
         }
       } else {
         this._width = clamp(this._width, 220, maxPx)
+        this.shellTarget.style.flexBasis = ""
         this.shellTarget.style.width = `${this._width}px`
         this.shellTarget.style.minWidth = ""
         this.shellTarget.style.maxWidth = `${maxPx}px`
+        this.shellTarget.style.borderWidth = ""
+        this.shellTarget.style.overflow = ""
         if (this.hasBodyTarget) this.bodyTarget.classList.remove("hidden")
         if (this.hasResizerTarget) {
           this.resizerTarget.classList.remove("pointer-events-none", "opacity-40")
@@ -164,10 +170,15 @@ export default class extends Controller {
       this.shellTarget.style.width = ""
       this.shellTarget.style.minWidth = ""
       this.shellTarget.style.maxWidth = ""
+      this.shellTarget.style.flexBasis = ""
       if (this._collapsed) {
+        this.shellTarget.style.borderWidth = "0"
+        this.shellTarget.style.overflow = "hidden"
         this.shellTarget.style.maxHeight = "3rem"
         if (this.hasBodyTarget) this.bodyTarget.classList.add("hidden")
       } else {
+        this.shellTarget.style.borderWidth = ""
+        this.shellTarget.style.overflow = ""
         this.shellTarget.style.maxHeight = "min(42vh, 360px)"
         if (this.hasBodyTarget) this.bodyTarget.classList.remove("hidden")
       }

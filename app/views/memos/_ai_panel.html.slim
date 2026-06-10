@@ -4,18 +4,18 @@
     h2.text-sm.font-semibold.kb-text-primary AI
   .flex.min-h-0.flex-1.flex-col.gap-2.overflow-hidden.px-3.py-2
     - unless account.openai_api_key_configured?
-      p.shrink-0.text-xs.text-amber-800
+      p.shrink-0.text-xs.kb-status-warning
         | API キー未設定。
         = link_to "プロフィールで登録", edit_profile_path, class: "underline font-medium"
-    p class="shrink-0 text-[10px] leading-snug kb-text-muted"
+    p class="shrink-0 kb-text-2xs leading-snug kb-text-muted"
       | 送信するとメモ本文（抜粋）と会話が OpenAI に送られます。
     .kb-ai-messages.min-h-0.flex-1.overflow-y-auto.rounded-md.p-2 data-memo-ai-panel-target="messages"
-    p.hidden.shrink-0.text-xs.text-red-700 data-memo-ai-panel-target="error"
+    p.hidden.shrink-0.text-xs.kb-status-danger data-memo-ai-panel-target="error"
     label.flex.shrink-0.items-center.gap-2.text-xs.kb-text-secondary
       input.rounded.kb-border type="checkbox" checked=true data-memo-ai-panel-target="includeSelection"
       | 選択範囲もコンテキストに含める
-    textarea.kb-input.w-full.shrink-0.resize-none.rounded-md.px-2.py-1.5.text-xs.font-sans.leading-relaxed rows=3 placeholder="例: 次の節を AsciiDoc で追記して" data-memo-ai-panel-target="input" data-action="keydown.enter->memo-ai-panel#send:prevent"
+    textarea.kb-input.kb-input-xs.w-full.shrink-0.resize-none.font-sans.leading-relaxed rows=3 placeholder="例: 次の節を AsciiDoc で追記して" data-memo-ai-panel-target="input" data-action="keydown.enter->memo-ai-panel#send:prevent"
     .flex.shrink-0.flex-wrap.gap-2
-      button.kb-chrome-btn-primary.px-2.py-1.text-xs type="button" data-theme-slot="btn-primary" data-memo-ai-panel-target="sendButton" data-action="memo-ai-panel#send" 送信
-      button.kb-chrome-btn-secondary.px-2.py-1.text-xs type="button" data-action="memo-ai-panel#insertLastReply" 応答を挿入
-      button.kb-toolbar-btn.px-2.py-1.text-xs type="button" data-action="memo-ai-panel#clearChat" 履歴を消去
+      button.kb-chrome-btn-primary.kb-btn-xs type="button" data-theme-slot="btn-primary" data-memo-ai-panel-target="sendButton" data-action="memo-ai-panel#send" 送信
+      button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="memo-ai-panel#insertLastReply" 応答を挿入
+      button.kb-toolbar-btn type="button" data-action="memo-ai-panel#clearChat" 履歴を消去

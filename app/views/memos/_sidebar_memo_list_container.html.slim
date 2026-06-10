@@ -1,6 +1,6 @@
 #memo_sidebar_memo_list_container
   - if @memos&.any?
-    ul#memo_sidebar_memo_list class="divide-y divide-[var(--kb-border)]" data-history-memo-ids=memo_sidebar_history_memo_ids
+    ul#memo_sidebar_memo_list class="kb-divide-y" data-history-memo-ids=memo_sidebar_history_memo_ids
       - @memos.each do |memo|
         li.flex.min-h-0.min-w-0 id=dom_id(memo, :sidebar_row)
           - nav_q = memo_sidebar_nav_query
@@ -8,10 +8,10 @@
             .flex.min-w-0.flex-1 class=memo_sidebar_memo_list_row_classes(memo.id)
               span.inline-flex.shrink-0.cursor-grab.select-none.self-start.pt-3.pl-1.kb-text-subtle.hover:kb-text-secondary role="button" tabindex="0" title="ここをドラッグしてディレクトリへ移動" draggable="true" data-draft-url=draft_memo_path(memo, nav_q) data-memo-directory-id=memo.memo_directory_id data-action="dragstart->memo-directory-dnd#memoDragStart dragend->memo-directory-dnd#memoDragEnd"
                 i.h-4.w-4 aria-hidden="true" data-lucide="grip-vertical"
-              = link_to memo_sidebar_memo_main_href(memo), class: "min-w-0 flex-1 px-2 py-3 text-left text-inherit no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--kb-border-strong)]", draggable: "false" do
+              = link_to memo_sidebar_memo_main_href(memo), class: "min-w-0 flex-1 px-2 py-3 text-left text-inherit no-underline kb-focus-ring-inset", draggable: "false" do
                 = render "memos/list_panel_memo_row_inner", memo: memo, timestamp: memo_list_timestamp(memo)
           - else
-            = link_to memo_sidebar_memo_main_href(memo), class: "#{memo_sidebar_memo_list_row_classes(memo.id)} min-w-0 flex-1 px-2 py-3 text-left text-inherit no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--kb-border-strong)]", draggable: "false" do
+            = link_to memo_sidebar_memo_main_href(memo), class: "#{memo_sidebar_memo_list_row_classes(memo.id)} min-w-0 flex-1 px-2 py-3 text-left text-inherit no-underline kb-focus-ring-inset", draggable: "false" do
               = render "memos/list_panel_memo_row_inner", memo: memo, timestamp: memo_list_timestamp(memo)
   - else
     .px-3.py-8.text-center.text-sm.kb-text-muted

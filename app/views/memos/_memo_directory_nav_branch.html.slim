@@ -11,9 +11,9 @@ li.mb-0.5.min-w-0
   - if has_children
     = tag.details(**memo_directory_nav_details_attrs(dir)) do
       summary.flex.min-w-0.cursor-pointer.list-none.items-center.gap-1.rounded-md.px-1.py-0.kb-text-muted.kb-hover-row.memo-directory-nav-summary
-        span aria-hidden="true" class="shrink-0 text-[10px] leading-none kb-text-subtle transition-transform select-none group-open:rotate-90" ▶
+        span aria-hidden="true" class="kb-tree-caret" ▶
         = render "memos/memo_directory_nav_row", dir: dir, drop_data: drop_data
-      ul.mt-0.5.space-y-0.5.border-l.kb-border.pl-2.ml-2
+      ul.kb-tree-children.space-y-0.5
         - children.each do |child|
           = render "memos/memo_directory_nav_branch", dir: child, by_parent: by_parent
   - else

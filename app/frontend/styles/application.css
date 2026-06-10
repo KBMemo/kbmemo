@@ -1,4 +1,8 @@
-@import "tailwindcss";
+@import "open-props/fonts";
+@import "open-props/sizes";
+@import "open-props/borders";
+@import "open-props/shadows";
+@import "./utility-compat.css";
 @import "katex/dist/katex.min.css";
 @import "highlight.js/styles/github.min.css";
 @import "@kbmemo/adoc-preview/preview_hljs.css";
@@ -9,17 +13,6 @@
 @import "./diagram_svg_viewer.css";
 @import "./diagram_source_viewer.css";
 
-/* app/views は JS の依存グラフに含まれない — Tailwind にコンテンツパスを明示する。
-   `{slim,erb,html}` の brace 展開は環境によって取りこぼしがあるため拡張子を分ける。 */
-@source "../../views/**/*.slim";
-@source "../../views/**/*.erb";
-@source "../../views/**/*.html";
-@source "../../helpers/**/*.rb";
-@source "../../javascript/**/*.js";
-@source "../entrypoints/**/*.js";
-/* Asciidoctor が実行時 HTML に出力するクラス（Slim/JS ソースに文字列が無い） */
-@source inline("conum");
-@source inline("colist");
 
 /* メモ→ディレクトリ DnD 中のカーソル（memo_directory_dnd_controller が html にクラス付与） */
 html.memo-directory-dnd-dragging,
@@ -65,11 +58,16 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 
 /* MemoWikiLinks が Asciidoctor 経由で出力（views に文字列が無いため @apply で明示定義） */
 .memo-body .memo-wiki-broken {
-  @apply text-red-600 underline decoration-dotted;
+  color: var(--kb-status-danger-strong);
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
 }
 
 .memo-body button.memo-wiki-create-link {
-  @apply cursor-pointer text-red-600 underline decoration-dotted;
+  cursor: pointer;
+  color: var(--kb-status-danger-strong);
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
 }
 
 /* 本文 CodeMirror: ガターと編集域の重なり防止・行頭カーソル */
@@ -94,15 +92,19 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 }
 
 /* adoc_editor ライブプレビュー（Phase B） */
+.memo-body-editor {
+  min-height: var(--size-14);
+}
+
 .memo-body-editor__workspace {
   display: block;
-  min-height: 18rem;
+  min-height: var(--size-14);
 }
 
 .memo-body-editor--live-preview .memo-body-editor__workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  min-height: 24rem;
+  min-height: var(--size-15);
 }
 
 .memo-body-editor__source,
@@ -225,7 +227,7 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 .memo-body-editor--wysiwyg-mode {
   display: flex;
   flex-direction: column;
-  min-height: 18rem;
+  min-height: var(--size-14);
 }
 
 .memo-body-editor__asset-toolbar {
@@ -256,7 +258,7 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 }
 
 .memo-body-editor__wysiwyg-content {
-  min-height: 18rem;
+  min-height: var(--size-14);
   overflow: visible;
   padding: 1.5rem 2rem;
   outline: none;
@@ -264,6 +266,30 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 
 .memo-body-editor__wysiwyg-content:focus {
   box-shadow: inset 0 0 0 2px rgb(9 105 218 / 0.25);
+}
+
+.memo-editor-placeholder {
+  min-height: min(50vh, var(--size-15));
+}
+
+@media (min-width: 768px) {
+  .memo-editor-placeholder {
+    min-height: 0;
+  }
+}
+
+.memo-attachment-panel {
+  font-size: var(--kb-font-size-xs);
+}
+
+.memo-attachment-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  .memo-attachment-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
 }
 
 .memo-body-editor__wysiwyg-content > .wysiwyg-append-control {
@@ -317,7 +343,7 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 }
 
 .memo-diagram-editor .cm-scroller {
-  min-height: 24rem;
+  min-height: var(--size-15);
 }
 
 .memo-diagram-editor .cm-content {

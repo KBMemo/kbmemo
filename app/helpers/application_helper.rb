@@ -30,7 +30,7 @@ module ApplicationHelper
 
   def content_max_width_class
     return "max-w-none" if theme_studio_layout?
-    return "max-w-[1800px]" if wide_content_layout?
+    return "kb-content-wide" if wide_content_layout?
 
     "max-w-3xl"
   end
@@ -122,27 +122,27 @@ module ApplicationHelper
   end
 
   def kb_focus_ring
-    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kb-border-strong)] focus-visible:ring-offset-2"
+    "kb-focus-ring"
   end
 
   def kb_field_input_classes
-    "kb-input mt-1 block w-full rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-[var(--kb-accent)]"
+    "kb-input kb-field-input"
   end
 
   def kb_page_title
-    "text-xl font-semibold kb-text-primary"
+    "kb-page-title"
   end
 
   def kb_section_title
-    "text-base font-semibold kb-text-primary"
+    "kb-section-title"
   end
 
   def kb_label
-    "block text-sm font-medium kb-text-primary"
+    "kb-label"
   end
 
   def kb_link_table
-    "font-medium kb-text-primary underline decoration-[var(--kb-border-strong)] hover:opacity-80"
+    "kb-link-table"
   end
 
   def kb_link_muted
@@ -150,24 +150,24 @@ module ApplicationHelper
   end
 
   def kb_toolbar_btn
-    "kb-toolbar-btn rounded-md px-2 py-1 text-xs font-medium"
+    "kb-toolbar-btn"
   end
 
   def kb_table
-    "kb-table w-full border-collapse text-sm"
+    "kb-table"
   end
 
   def kb_table_head
-    "border-b kb-border text-left text-xs uppercase kb-text-muted"
+    "kb-table-head"
   end
 
   def kb_underline_input(extra = "")
-    ["kb-underline-input block w-full px-0 py-1.5 shadow-none focus:outline-none focus:ring-0", extra].reject(&:blank?).join(" ")
+    ["kb-underline-input", extra].reject(&:blank?).join(" ")
   end
 
   def kb_auth_field_classes(error: false)
     if error
-      "mt-2 text-sm w-full kb-input border-red-600 focus:border-red-600 focus:ring-red-500"
+      "mt-2 text-sm w-full kb-input kb-field-error"
     else
       "mt-2 text-sm w-full #{kb_field_input_classes}"
     end
@@ -178,19 +178,19 @@ module ApplicationHelper
   end
 
   def kb_auth_submit_classes
-    "kb-chrome-btn-primary w-full cursor-pointer px-4 py-2.5 #{kb_focus_ring}"
+    "kb-chrome-btn-primary kb-auth-submit #{kb_focus_ring}"
   end
 
   def kb_hint_popover
-    "kb-hint-popover absolute z-20 w-72 rounded-md p-2 text-xs leading-relaxed"
+    "kb-hint-popover"
   end
 
   def kb_hint_trigger
-    "flex h-5 w-5 cursor-pointer list-none items-center justify-center rounded kb-text-subtle hover:bg-[var(--kb-bg-muted)] hover:text-[var(--kb-text-secondary)]"
+    "kb-hint-trigger"
   end
 
   def kb_tag_input_row
-    "kb-tag-input-row flex min-h-9 flex-wrap items-center gap-2 pb-1 pt-0.5"
+    "kb-tag-input-row"
   end
 
   def kb_icon_btn(extra = "")
@@ -198,27 +198,23 @@ module ApplicationHelper
   end
 
   def kb_resizer
-    "kb-resizer hidden shrink-0 self-stretch w-2 cursor-col-resize md:block z-10"
+    "kb-resizer"
   end
 
   def kb_sidebar_toggle_btn
-    [
-      "hidden md:flex fixed z-30 h-8 w-5 items-center justify-center rounded-sm bg-transparent",
-      "text-base leading-none kb-text-subtle hover:bg-[color-mix(in_srgb,var(--kb-bg-muted)_90%,transparent)]",
-      "hover:text-[var(--kb-text-secondary)]", kb_focus_ring
-    ].join(" ")
+    ["kb-sidebar-toggle-btn", kb_focus_ring].join(" ")
   end
 
   def kb_toolbar_btn_sm
-    "#{kb_toolbar_btn} px-2 py-1 text-xs font-medium"
+    kb_toolbar_btn
   end
 
   def kb_btn_secondary_sm
-    "kb-chrome-btn-secondary px-4 py-2 text-sm"
+    "kb-chrome-btn-secondary kb-btn-sm"
   end
 
   def kb_btn_primary_sm
-    "kb-chrome-btn-primary px-4 py-2 text-sm"
+    "kb-chrome-btn-primary kb-btn-sm"
   end
 
   # Header KB monogram (public/kbmemo-brand.svg). Inline so fill=currentColor follows theme.

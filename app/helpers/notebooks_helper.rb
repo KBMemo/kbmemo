@@ -40,7 +40,7 @@ module NotebooksHelper
 
   def notebook_memo_tree_row_classes(entry, selected_memo:)
     active = selected_memo&.id == entry.memo_id
-    base = "kb-sidebar-link block min-w-0 flex-1 truncate border-l-2 px-2 py-1.5 text-sm transition #{kb_focus_ring}"
+    base = "kb-sidebar-link min-w-0 flex-1 truncate #{kb_focus_ring}"
     [base, active ? "is-active" : ""].join(" ")
   end
 

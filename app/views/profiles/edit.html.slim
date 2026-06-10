@@ -16,7 +16,7 @@ section.mt-10
 
 = form_with model: @account, url: profile_path, method: :patch, class: "mt-6 space-y-8" do |f|
   - if @account.errors.any?
-    ul.mb-4.list-inside.list-disc.text-sm.text-red-700
+    ul.mb-4.list-inside.list-disc.text-sm.kb-status-danger
       - @account.errors.full_messages.each do |msg|
         li = msg
 
@@ -28,9 +28,9 @@ section.mt-10
   div
     = f.label :openai_api_key, "OpenAI API キー", class: kb_label
     - if @account.openai_api_key_configured?
-      p.mt-1.text-xs.text-emerald-700 設定済み（再入力すると上書きします）
+      p.mt-1.text-xs.kb-status-success 設定済み（再入力すると上書きします）
     - else
-      p.mt-1.text-xs.text-amber-700 未設定 — AI パネルは利用できません
+      p.mt-1.text-xs.kb-status-warning 未設定 — AI パネルは利用できません
     = f.password_field :openai_api_key, class: "#{kb_field_input_classes} max-w-md font-mono", autocomplete: "off", placeholder: "sk-…"
     .mt-2.flex.items-center.gap-2
       = f.check_box :clear_openai_api_key, class: "rounded kb-border"
@@ -41,8 +41,8 @@ section.mt-10
       |  で発行できます（ChatGPT Plus とは別課金）。
 
   .flex.flex-wrap.gap-3
-    = f.submit "保存", class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }
-    = link_to "メモ一覧へ", memos_path, class: "kb-chrome-btn-secondary px-4 py-2"
+    = f.submit "保存", class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
+    = link_to "メモ一覧へ", memos_path, class: "kb-chrome-btn-secondary kb-btn-md"
 
 section.mt-10
   h2 class=kb_section_title Google Calendar
@@ -50,7 +50,7 @@ section.mt-10
     | 予定をメモとして取り込み、カンバンの予定日（scheduled_on）に反映します。読み取り専用で同期されます。
   - if GoogleCalendar::Credentials.valid?
     - if @account.google_calendar_connected?
-      p.mt-2.text-xs.text-emerald-700 Google Calendar 連携済み
+      p.mt-2.text-xs.kb-status-success Google Calendar 連携済み
       - if @account.google_calendar_meta["last_synced_at"].present?
         p.mt-1.text-xs.kb-text-muted
           | 最終同期:
@@ -61,18 +61,18 @@ section.mt-10
           = @google_calendar_synced_memos_count
           | 件
       .mt-4.flex.flex-wrap.gap-3
-        = button_to "今すぐ同期", google_calendar_sync_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }
-        = button_to "取り込みデータをクリア", google_calendar_clear_data_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "Google Calendar から取り込んだメモをすべて削除します。連携は維持され、次回同期で再取り込みできます。続行しますか？" } }
-        = button_to "連携を解除", google_calendar_disconnect_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "Google Calendar 連携を解除しますか？" } }
+        = button_to "今すぐ同期", google_calendar_sync_path, method: :post, class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
+        = button_to "取り込みデータをクリア", google_calendar_clear_data_path, method: :delete, class: "kb-chrome-btn-secondary kb-btn-md", form: { data: { turbo_confirm: "Google Calendar から取り込んだメモをすべて削除します。連携は維持され、次回同期で再取り込みできます。続行しますか？" } }
+        = button_to "連携を解除", google_calendar_disconnect_path, method: :delete, class: "kb-chrome-btn-secondary kb-btn-md", form: { data: { turbo_confirm: "Google Calendar 連携を解除しますか？" } }
       p.mt-3.text-xs.kb-text-muted
         | CLI:
         code.kb-code-inline bin/rails kbmemo:google_calendar:clear ACCOUNT_ID=#{@account.id}
     - else
-      p.mt-2.text-xs.text-amber-700 未連携
+      p.mt-2.text-xs.kb-status-warning 未連携
       .mt-4
-        = link_to "Google Calendar と連携", google_calendar_connect_path, class: "kb-chrome-btn-primary px-4 py-2 inline-block", data: { theme_slot: "btn-primary" }
+        = link_to "Google Calendar と連携", google_calendar_connect_path, class: "kb-chrome-btn-primary kb-btn-md inline-block", data: { theme_slot: "btn-primary" }
   - else
-    p.mt-2.text-xs.text-amber-700
+    p.mt-2.text-xs.kb-status-warning
       - if (reason = GoogleCalendar::Credentials.misconfiguration_reason)
         = reason
       - else
@@ -104,7 +104,7 @@ section.mt-10#clip-api-token
     code.kb-code-inline Authorization
     |  ヘッダーに付けてください。
   - if @account.clip_api_token_configured?
-    p.mt-2.text-xs.text-emerald-700
+    p.mt-2.text-xs.kb-status-success
       | 設定済み（先頭:
       code.kb-code-inline = @account.clip_api_token_prefix
       | ）
@@ -113,19 +113,19 @@ section.mt-10#clip-api-token
         | 発行日時:
         = l(@account.clip_api_token_created_at, format: :long)
   - else
-    p.mt-2.text-xs.text-amber-700 未設定 — API からのクリップは利用できません
+    p.mt-2.text-xs.kb-status-warning 未設定 — API からのクリップは利用できません
 
   - if @revealed_clip_api_token.present?
-    .mt-4.rounded-md.border.border-amber-300.bg-amber-50.p-4 role="status"
-      p.text-sm.font-medium.text-amber-900 発行したトークン（再表示できません）
+    .mt-4.kb-alert.kb-alert-warning role="status"
+      p.text-sm.font-medium 発行したトークン（再表示できません）
       code.mt-2.block.overflow-x-auto.rounded.kb-chrome-panel.px-3.py-2.text-xs.kb-text-primary = @revealed_clip_api_token
     script
       | document.getElementById("clip-api-token")?.scrollIntoView({ block: "start" });
 
   .mt-4.flex.flex-wrap.gap-3
-    = button_to "トークンを発行", clip_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
+    = button_to "トークンを発行", clip_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
     - if @account.clip_api_token_configured?
-      = button_to "トークンを無効化", clip_api_token_profile_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "API からのクリップができなくなります。続行しますか？" } }
+      = button_to "トークンを無効化", clip_api_token_profile_path, method: :delete, class: "kb-chrome-btn-secondary kb-btn-md", form: { data: { turbo_confirm: "API からのクリップができなくなります。続行しますか？" } }
 
   = render "profiles/clip_bookmarklet_setup", base_url: request.base_url, revealed_token: @revealed_clip_api_token, token_configured: @account.clip_api_token_configured?
 
@@ -140,7 +140,7 @@ section.mt-10#tsuzura-cli-token
     code.kb-code-inline TSUZURA_API_TOKEN
     | に設定してください。
   - if @account.tsuzura_api_token_configured?
-    p.mt-2.text-xs.text-emerald-700
+    p.mt-2.text-xs.kb-status-success
       | 設定済み（先頭:
       code.kb-code-inline = @account.tsuzura_api_token_prefix
       | ）
@@ -149,16 +149,16 @@ section.mt-10#tsuzura-cli-token
         | 発行日時:
         = l(@account.tsuzura_api_token_created_at, format: :long)
   - else
-    p.mt-2.text-xs.text-amber-700 未設定 — CLI からの登録は利用できません
+    p.mt-2.text-xs.kb-status-warning 未設定 — CLI からの登録は利用できません
 
   - if @revealed_tsuzura_api_token.present?
-    .mt-4.rounded-md.border.border-amber-300.bg-amber-50.p-4 role="status"
-      p.text-sm.font-medium.text-amber-900 発行したトークン（再表示できません）
+    .mt-4.kb-alert.kb-alert-warning role="status"
+      p.text-sm.font-medium 発行したトークン（再表示できません）
       code.mt-2.block.overflow-x-auto.rounded.kb-chrome-panel.px-3.py-2.text-xs.kb-text-primary = @revealed_tsuzura_api_token
     script
       | document.getElementById("tsuzura-cli-token")?.scrollIntoView({ block: "start" });
 
   .mt-4.flex.flex-wrap.gap-3
-    = button_to "トークンを発行", tsuzura_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
+    = button_to "トークンを発行", tsuzura_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
     - if @account.tsuzura_api_token_configured?
-      = button_to "トークンを無効化", tsuzura_api_token_profile_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "CLI からの登録ができなくなります。続行しますか？" } }
+      = button_to "トークンを無効化", tsuzura_api_token_profile_path, method: :delete, class: "kb-chrome-btn-secondary kb-btn-md", form: { data: { turbo_confirm: "CLI からの登録ができなくなります。続行しますか？" } }

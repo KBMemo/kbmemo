@@ -4,39 +4,39 @@
   data-controller="diagram-svg-viewer"
   data-diagram-svg-viewer-src-value=@svg_asset_url
 ]
-  header.flex.shrink-0.flex-wrap.items-center.justify-between.gap-2.border-b.kb-border.bg-white.px-4.py-3.md:sticky.md:top-0.md:z-20
+  header.kb-pane-header.flex.flex-wrap.items-center.justify-between.gap-2.px-4.py-3.md:sticky.md:top-0.md:z-20
     div
       h1.text-sm.font-semibold.kb-text-primary ダイアグラム
       p.mt-0.5.text-xs.kb-text-secondary
         code.kb-text-secondary= @source_relative
     .flex.flex-wrap.items-center.gap-2
-      button.rounded-md.border.kb-border.bg-white.px-2.py-1.text-xs.font-medium.kb-text-primary.kb-hover-row[
+      button.kb-action-btn.kb-action-btn-sm.kb-hover-row[
         type="button"
         data-action="diagram-svg-viewer#zoomOut"
         title="縮小"
       ]
         | −
-      button.rounded-md.border.kb-border.bg-white.px-2.py-1.text-xs.font-medium.kb-text-primary.kb-hover-row[
+      button.kb-action-btn.kb-action-btn-sm.kb-hover-row[
         type="button"
         data-action="diagram-svg-viewer#resetZoom"
         title="100%"
         data-diagram-svg-viewer-target="scaleLabel"
       ]
         | 100%
-      button.rounded-md.border.kb-border.bg-white.px-2.py-1.text-xs.font-medium.kb-text-primary.kb-hover-row[
+      button.kb-action-btn.kb-action-btn-sm.kb-hover-row[
         type="button"
         data-action="diagram-svg-viewer#zoomIn"
         title="拡大"
       ]
         | ＋
-      button.rounded-md.border.kb-border.bg-white.px-2.py-1.text-xs.font-medium.kb-text-primary.kb-hover-row[
+      button.kb-action-btn.kb-action-btn-sm.kb-hover-row[
         type="button"
         data-action="diagram-svg-viewer#fitToWindow"
         title="画面に合わせる"
       ]
         | 画面に合わせる
-      = link_to "ソース", source_memo_diagram_path(@memo, params[:diagram_key]), class: "rounded-md border kb-border bg-white px-2 py-1 text-xs font-medium kb-text-primary kb-hover-row", target: "_blank", rel: "noopener"
-      = link_to "編集", edit_memo_diagram_path(@memo, params[:diagram_key]), class: "rounded-md border kb-border bg-white px-2 py-1 text-xs font-medium kb-text-primary kb-hover-row"
+      = link_to "ソース", source_memo_diagram_path(@memo, params[:diagram_key]), class: "kb-action-btn kb-action-btn-sm kb-hover-row", target: "_blank", rel: "noopener"
+      = link_to "編集", edit_memo_diagram_path(@memo, params[:diagram_key]), class: "kb-action-btn kb-action-btn-sm kb-hover-row"
   .diagram-svg-viewer__stage.flex.min-h-0.flex-1.items-center.justify-center.overflow-hidden.p-4[
     data-diagram-svg-viewer-target="stage"
     data-action="wheel->diagram-svg-viewer#wheel:prevent pointerdown->diagram-svg-viewer#pointerDown pointermove->diagram-svg-viewer#pointerMove pointerup->diagram-svg-viewer#pointerUp pointercancel->diagram-svg-viewer#pointerUp"

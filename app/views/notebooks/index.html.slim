@@ -2,14 +2,14 @@
 
 .mb-6.flex.flex-wrap.items-end.justify-between.gap-3
   h1 class=kb_page_title ノートブック
-  = link_to "新規ノートブック", new_notebook_path, class: "kb-chrome-btn-primary px-3 py-1.5 text-sm", data: { theme_slot: "btn-primary" }
+  = link_to "新規ノートブック", new_notebook_path, class: "kb-chrome-btn-primary kb-btn-sm", data: { theme_slot: "btn-primary" }
 
 p.mb-6.text-sm.kb-text-secondary
   | テーマごとにメモを集め、Blog・Manual Page・自分用ノートとして整理できます。
 
 - if @notebooks.any?
   .overflow-x-auto
-    table class="#{kb_table} min-w-[720px]"
+    table class="#{kb_table} kb-table-notebooks"
       thead class=kb_table_head
         tr
           th.py-2.pr-3 タイトル
@@ -30,6 +30,6 @@ p.mb-6.text-sm.kb-text-secondary
             td.py-2.text-right
               = link_to "編集", edit_notebook_path(notebook), class: "kb-chrome-link"
               = " · "
-              = button_to "削除", notebook_path(notebook), method: :delete, form: { data: { turbo_confirm: "「#{notebook.title}」を削除しますか？メモ本文は残ります。" } }, class: "inline text-red-600 hover:text-red-800"
+              = button_to "削除", notebook_path(notebook), method: :delete, form: { data: { turbo_confirm: "「#{notebook.title}」を削除しますか？メモ本文は残ります。" } }, class: "inline kb-danger-action"
 - else
   p.text-sm.kb-text-muted ノートブックがありません。新規作成してください。

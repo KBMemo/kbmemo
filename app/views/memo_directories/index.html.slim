@@ -11,7 +11,7 @@
             th.py-2.pr-3 パス
             th.py-2.pr-3 ラベル
             th.py-2
-        tbody class="divide-y divide-[var(--kb-border)]"
+        tbody class="kb-divide-y"
           - @memo_directories.each do |d|
             tr class=(d.directory_list_readonly? ? "kb-text-muted" : nil)
               td.py-2.pr-3.font-mono.text-xs = d.root? ? "（ルート）" : d.full_path
@@ -26,6 +26,6 @@
                     = link_to "編集", edit_memo_directory_path(d), class: "kb-text-secondary hover:kb-text-primary"
                   - if policy(d).destroy? && d.deletable?
                     = " · "
-                    = button_to "削除", memo_directory_path(d), method: :delete, form: { data: { turbo_confirm: "「#{d.display_name}」を削除しますか？" } }, class: "text-red-600 hover:text-red-800"
+                    = button_to "削除", memo_directory_path(d), method: :delete, form: { data: { turbo_confirm: "「#{d.display_name}」を削除しますか？" } }, class: "kb-danger-action"
     - else
       p.text-sm.kb-text-muted ディレクトリがありません。

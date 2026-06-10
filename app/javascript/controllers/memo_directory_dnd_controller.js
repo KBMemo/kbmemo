@@ -40,14 +40,14 @@ export default class extends Controller {
     const el = event.currentTarget
     const targetId = el.dataset.memoDirectoryId ? String(el.dataset.memoDirectoryId) : ""
     if (!targetId || targetId === this._dragSourceDirectoryId) return
-    el.classList.add("ring-2", "ring-blue-500", "bg-blue-50/80")
+    el.classList.add("kb-drop-highlight")
   }
 
   dragLeaveDirectory(event) {
     const el = event.currentTarget
     const rt = event.relatedTarget
     if (rt && el.contains(rt)) return
-    el.classList.remove("ring-2", "ring-blue-500", "bg-blue-50/80")
+    el.classList.remove("kb-drop-highlight")
   }
 
   async dropOnDirectory(event) {
@@ -96,7 +96,7 @@ export default class extends Controller {
 
   _clearDropHighlights() {
     this.element.querySelectorAll("[data-drop-directory]").forEach((el) => {
-      el.classList.remove("ring-2", "ring-blue-500", "bg-blue-50/80")
+      el.classList.remove("kb-drop-highlight")
     })
   }
 }

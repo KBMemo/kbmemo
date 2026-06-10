@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 const TOAST_BASE =
   "pointer-events-auto flex items-start gap-2 rounded-md border px-3 py-2 text-sm shadow-md transition-all duration-200 ease-out"
 const DISMISS_BASE =
-  "shrink-0 rounded p-0.5 text-base leading-none opacity-60 hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+  "shrink-0 rounded p-0.5 text-base leading-none opacity-60 hover:opacity-100 kb-flash-dismiss"
 
 // 画面上部へ Rails flash と同様の一時 notice を表示する（固定トースト）
 export default class extends Controller {
@@ -50,7 +50,7 @@ export default class extends Controller {
     container.dataset.flashNoticeTarget = "live"
     container.setAttribute("aria-live", "polite")
     container.className =
-      "pointer-events-none fixed top-4 right-4 z-50 flex w-[min(100%-2rem,24rem)] flex-col gap-2"
+      "kb-flash-stack pointer-events-none fixed top-4 right-4 z-50 flex flex-col gap-2"
     this.element.appendChild(container)
     return container
   }
@@ -79,16 +79,16 @@ export default class extends Controller {
 
   messageClasses(level) {
     if (String(level) === "notice") {
-      return `${TOAST_BASE} border-emerald-200 bg-emerald-50 text-emerald-900`
+      return `${TOAST_BASE} kb-flash-success`
     }
-    return `${TOAST_BASE} border-amber-200 bg-amber-50 text-amber-900`
+    return `${TOAST_BASE} kb-flash-warning`
   }
 
   dismissButtonClasses(level) {
     if (String(level) === "notice") {
-      return `${DISMISS_BASE} focus-visible:ring-emerald-400`
+      return `${DISMISS_BASE} kb-flash-dismiss-success`
     }
-    return `${DISMISS_BASE} focus-visible:ring-amber-400`
+    return `${DISMISS_BASE} kb-flash-dismiss-warning`
   }
 
   showElement(el) {

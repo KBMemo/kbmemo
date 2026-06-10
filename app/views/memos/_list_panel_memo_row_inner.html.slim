@@ -13,7 +13,7 @@
     - if memo.tags.any?
       ul.mt-1.5.flex.flex-wrap.gap-1
         - memo.tags.take(4).each do |tag|
-          li[class="rounded bg-[var(--kb-bg-muted)] px-1.5 py-0.5 text-[11px] kb-text-secondary"] = tag.name
+          li[class="kb-list-tag"] = tag.name
         - if memo.tags.size > 4
-          li[class="text-[11px] kb-text-subtle"]
+          li[class="kb-list-tag-more"]
             | …

@@ -50,19 +50,19 @@ div data-controller="theme-studio" data-theme-studio-editing-theme-id-value=(@ed
           input class="#{kb_field_input_classes} w-full rounded px-2 py-1" type="text" placeholder="カスタムスキン名" data-skin-studio-target="name"
           textarea class="#{kb_field_input_classes} w-full rounded px-2 py-1 font-mono text-xs" rows=6 placeholder=".memo-body { ... }" data-skin-studio-target="css"
           .flex.flex-wrap.gap-2
-            button.kb-chrome-btn-primary type="button" data-theme-slot="btn-primary" data-action="skin-studio#saveCustom" 保存して適用
-            button.kb-chrome-btn-secondary type="button" data-action="skin-studio#newCustom" 新規
+            button.kb-chrome-btn-primary.kb-btn-sm type="button" data-theme-slot="btn-primary" data-action="skin-studio#saveCustom" 保存して適用
+            button.kb-chrome-btn-secondary.kb-btn-sm type="button" data-action="skin-studio#newCustom" 新規
         p.mt-3.text-sm.font-medium.kb-text-primary 保存済みカスタムスキン
         ul.mt-2.space-y-1 data-skin-studio-target="customList"
         p.mt-2.text-xs.kb-text-muted data-skin-studio-target="status"
 
       .flex.flex-wrap.gap-2
-        button.kb-chrome-btn-primary type="button" data-theme-slot="btn-primary" data-action="theme-studio#saveTheme" 保存
-        button.kb-chrome-btn-secondary type="button" data-action="theme-studio#applyTheme" 適用
-        button.kb-chrome-btn-secondary type="button" data-action="theme-studio#newTheme" 新規
-        button.kb-chrome-btn-secondary type="button" data-action="theme-studio#exportTheme" JSON
-        button.kb-chrome-btn-secondary type="button" data-action="theme-studio#exportYaml" YAML
-        button.kb-chrome-btn-secondary type="button" data-action="theme-studio#triggerImport" インポート
+        button.kb-chrome-btn-primary.kb-btn-sm type="button" data-theme-slot="btn-primary" data-action="theme-studio#saveTheme" 保存
+        button.kb-chrome-btn-secondary.kb-btn-sm type="button" data-action="theme-studio#applyTheme" 適用
+        button.kb-chrome-btn-secondary.kb-btn-sm type="button" data-action="theme-studio#newTheme" 新規
+        button.kb-chrome-btn-secondary.kb-btn-sm type="button" data-action="theme-studio#exportTheme" JSON
+        button.kb-chrome-btn-secondary.kb-btn-sm type="button" data-action="theme-studio#exportYaml" YAML
+        button.kb-chrome-btn-secondary.kb-btn-sm type="button" data-action="theme-studio#triggerImport" インポート
         input.hidden type="file" accept="application/json,.json,application/x-yaml,text/yaml,text/x-yaml,.yml,.yaml" data-theme-studio-target="importFile" data-action="change->theme-studio#importTheme"
 
       p.text-xs.kb-text-muted data-theme-studio-target="status"
@@ -73,7 +73,7 @@ div data-controller="theme-studio" data-theme-studio-editing-theme-id-value=(@ed
           button.theme-studio-tab.is-active type="button" data-sample-name="show" data-action="theme-studio#selectSample" 表示
           button.theme-studio-tab type="button" data-sample-name="edit" data-action="theme-studio#selectSample" 編集
           button.theme-studio-tab type="button" data-sample-name="kanban" data-action="theme-studio#selectSample" カンバン
-          button.ml-auto.rounded.border.border-blue-300.bg-blue-50.px-3.py-1.text-sm.font-medium.text-blue-800.hover:bg-blue-100 type="button" data-theme-studio-target="designToggle" data-action="theme-studio#toggleDesignMode" aria-pressed="false" Design モード: OFF
+          button.kb-theme-studio-design-toggle.px-3.py-1.text-sm.font-medium type="button" data-theme-studio-target="designToggle" data-action="theme-studio#toggleDesignMode" aria-pressed="false" Design モード: OFF
 
         .theme-studio-preview-body
           .theme-studio-highlight hidden="" data-theme-studio-target="highlight"

@@ -1,17 +1,17 @@
 ruby:
-  discard_btn_class = "rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
+  discard_btn_class = "kb-warning-btn kb-focus-ring"
   discard_btn_class += " hidden" unless memo.display_as_draft?
-  show_link_class = "kb-chrome-btn-secondary px-4 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kb-border-strong)] focus-visible:ring-offset-2"
+  show_link_class = "kb-chrome-btn-secondary kb-btn-md kb-focus-ring"
   show_link_class += " hidden" unless memo.file_committed_at.present? && !memo.display_as_draft?
-  delete_btn_class = "rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
-  commit_btn_class = "kb-chrome-btn-primary px-4 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kb-border-strong)] focus-visible:ring-offset-2"
+  delete_btn_class = "kb-danger-btn kb-focus-ring"
+  commit_btn_class = "kb-chrome-btn-primary kb-btn-md kb-focus-ring"
   commit_btn_class += " hidden" unless memo.persisted?
   uncommitted = memo.file_committed_at.blank?
   memo_edit_form_id = local_assigns.fetch(:memo_edit_form_id) { dom_id(memo, :edit_form) }
 
 #memo_form_actions.mt-4.flex.flex-wrap.items-center.justify-end.gap-2
   - if memo.persisted? && memo.notebook.present? && policy(memo.notebook).show?
-    = link_to notebook_path(memo.notebook, memo_id: memo.id), class: "kb-chrome-btn-secondary mr-auto inline-flex items-center gap-1 px-4 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kb-border-strong)] focus-visible:ring-offset-2", title: "ノートブックに戻る" do
+    = link_to notebook_path(memo.notebook, memo_id: memo.id), class: "kb-chrome-btn-secondary kb-btn-md kb-focus-ring mr-auto inline-flex items-center gap-1", title: "ノートブックに戻る" do
       i class="h-3.5 w-3.5" aria-hidden="true" data-lucide="arrow-left"
       span = "#{memo.notebook.title} に戻る"
   - if uncommitted && memo.persisted?

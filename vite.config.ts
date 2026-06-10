@@ -1,7 +1,6 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
-import tailwindcss from '@tailwindcss/vite'
 import RubyPlugin from 'vite-plugin-ruby'
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
@@ -49,6 +48,5 @@ export default defineConfig({
   },
   plugins: [
     RubyPlugin(),
-    tailwindcss(),
   ],
 })

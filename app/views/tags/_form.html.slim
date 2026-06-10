@@ -1,6 +1,6 @@
 = form_with model: @tag, class: "space-y-5" do |f|
   - if @tag.errors.any?
-    .rounded-md.border.border-red-200.bg-red-50.px-4.py-3.text-sm.text-red-900
+    .kb-alert.kb-alert-danger
       ul.list-inside.list-disc
         - @tag.errors.full_messages.each do |msg|
           li = msg
@@ -11,5 +11,5 @@
     p.mt-1.text-xs.kb-text-muted 表示名が変わります。同一の表記（大文字小文字・前後空白の違いなど）は内部キーでまとまります。
 
   .flex.gap-3.pt-2
-    = f.submit "更新", class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }
-    = link_to "一覧へ", tags_path, class: "kb-chrome-btn-secondary px-4 py-2"
+    = f.submit "更新", class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
+    = link_to "一覧へ", tags_path, class: "kb-chrome-btn-secondary kb-btn-md"

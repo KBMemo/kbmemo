@@ -12,7 +12,7 @@ ruby:
   = hidden_field_tag :board_picker, "1" if params[:board_picker].present?
 
   - if @memo_directory.errors.any?
-    .rounded-md.border.border-red-200.bg-red-50.px-4.py-3.text-sm.text-red-900
+    .kb-alert.kb-alert-danger
       ul.list-inside.list-disc
         - @memo_directory.errors.full_messages.each do |msg|
           li = msg
@@ -46,8 +46,8 @@ ruby:
     p.mt-1.text-xs.kb-text-muted 未入力のときは識別子を表示します（ルート以外）。
 
   .flex.gap-3.pt-2
-    = f.submit(@memo_directory.persisted? ? "更新" : "作成", class: "kb-chrome-btn-primary px-4 py-2 text-sm")
+    = f.submit(@memo_directory.persisted? ? "更新" : "作成", class: "kb-chrome-btn-primary kb-btn-sm")
     - if dialog_mode
-      button type="button" class="rounded-md border kb-border bg-white px-4 py-2 text-sm font-medium kb-text-primary kb-hover-row" data-action="click->memo-directory-dialog#cancel" キャンセル
+      button type="button" class="kb-action-btn kb-hover-row" data-action="click->memo-directory-dialog#cancel" キャンセル
     - else
-      = link_to "一覧へ", memo_directories_path, class: "rounded-md border kb-border bg-white px-4 py-2 text-sm font-medium kb-text-primary kb-hover-row"
+      = link_to "一覧へ", memo_directories_path, class: "kb-action-btn kb-hover-row"

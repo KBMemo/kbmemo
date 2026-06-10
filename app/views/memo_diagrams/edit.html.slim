@@ -10,10 +10,10 @@ div.w-full
         | #{@engine} ·
         code.kb-text-secondary= @source_relative
     .flex.flex-wrap.gap-2
-      = link_to "メモに戻る", edit_memo_path(@memo), class: "rounded-md border kb-border bg-white px-3 py-1.5 text-sm font-medium kb-text-primary kb-hover-row", target: "_blank", rel: "noopener"
-      = link_to "メモを表示", memo_path(@memo), class: "rounded-md border kb-border bg-white px-3 py-1.5 text-sm font-medium kb-text-primary kb-hover-row", target: "_blank", rel: "noopener"
+      = link_to "メモに戻る", edit_memo_path(@memo), class: "kb-action-btn kb-action-btn-sm kb-hover-row", target: "_blank", rel: "noopener"
+      = link_to "メモを表示", memo_path(@memo), class: "kb-action-btn kb-action-btn-sm kb-hover-row", target: "_blank", rel: "noopener"
 
-  div class="mt-4 rounded-md border kb-border bg-[var(--kb-bg-muted)] px-3 py-2 text-sm kb-text-secondary"
+  div class="mt-4 kb-muted-bar px-3 py-2 text-sm"
     | 本文への挿入:
     code.ml-1= asciidoc
     | （保存後にメモへコミットすると Git に記録されます）
@@ -24,17 +24,17 @@ div.w-full
       data-memo-diagram-editor-engine-value=@engine.to_s
       data-memo-diagram-editor-preview-url-value=preview_memo_diagram_path(@memo, diagram_key)
     ]
-      .memo-diagram-editor.rounded-md.border.kb-border.bg-white
-        label#diagram-source-label class="block border-b kb-border bg-[var(--kb-bg-muted)] px-3 py-2 text-sm font-medium kb-text-secondary" for="source" ソース
+      .memo-diagram-editor.kb-chrome-panel.rounded-md.border
+        label#diagram-source-label class="block border-b kb-border kb-chrome-muted-bar px-3 py-2 text-sm font-medium" for="source" ソース
         textarea#source.sr-only name="source" required=true tabindex="-1" autocomplete="off" data-memo-diagram-editor-target="field"
           = @source
         div.memo-diagram-editor__host.relative[data-memo-diagram-editor-target="host"]
 
-      .memo-diagram-editor-preview.rounded-md.border.kb-border.bg-white
-        div class="border-b kb-border bg-[var(--kb-bg-muted)] px-3 py-2 text-sm font-medium kb-text-secondary" プレビュー
+      .memo-diagram-editor-preview.kb-chrome-panel.rounded-md.border
+        div class="border-b kb-border kb-chrome-muted-bar px-3 py-2 text-sm font-medium" プレビュー
         p.hidden.px-3.py-2.text-xs.kb-text-muted data-memo-diagram-editor-target="previewLoading"
           | 生成中…
-        p.hidden.px-3.py-2.text-sm.text-red-600 data-memo-diagram-editor-target="previewError"
+        p.hidden.px-3.py-2.text-sm.kb-status-danger data-memo-diagram-editor-target="previewError"
         .memo-diagram-editor-preview__canvas.flex.min-h-96.items-start.justify-center.p-4 data-memo-diagram-editor-target="preview"
 
     p.text-xs.kb-text-muted
@@ -45,5 +45,5 @@ div.w-full
       | としてプレビューされます。
 
     .flex.gap-2
-      = f.submit "保存して SVG を更新", class: "kb-chrome-btn-primary px-4 py-2 text-sm"
-      = link_to "キャンセル", edit_memo_path(@memo), class: "rounded-md border kb-border bg-white px-4 py-2 text-sm font-medium kb-text-primary kb-hover-row"
+      = f.submit "保存して SVG を更新", class: "kb-chrome-btn-primary kb-btn-sm"
+      = link_to "キャンセル", edit_memo_path(@memo), class: "kb-action-btn kb-hover-row"

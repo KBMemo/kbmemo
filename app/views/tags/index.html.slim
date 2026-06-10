@@ -4,7 +4,7 @@
   .max-w-3xl
     .mb-6.flex.flex-wrap.items-end.justify-between.gap-3
       h1 class=kb_page_title タグ
-      = link_to "タグを統合…", merge_tags_path, class: "kb-chrome-btn-secondary px-3 py-1.5 text-sm"
+      = link_to "タグを統合…", merge_tags_path, class: "kb-chrome-btn-secondary kb-btn-sm"
     p.mb-4.text-sm.leading-relaxed.kb-text-secondary
       | メモに付いているタグの一覧です。名前の変更・未使用タグの削除・似たタグの統合ができます。
     - if @tags.any?
@@ -27,6 +27,6 @@
                 = link_to "統合へ", merge_tags_path(from_tag_id: tag.id), class: "kb-chrome-link"
                 - if count.zero?
                   = " · "
-                  = button_to "削除", tag_path(tag), method: :delete, form: { data: { turbo_confirm: "「#{tag.name}」を削除しますか？" } }, class: "text-red-600 hover:text-red-800"
+                  = button_to "削除", tag_path(tag), method: :delete, form: { data: { turbo_confirm: "「#{tag.name}」を削除しますか？" } }, class: "kb-danger-action"
     - else
       p.text-sm.kb-text-muted タグがありません。

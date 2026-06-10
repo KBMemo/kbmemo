@@ -14,13 +14,13 @@
       .kb-card.flex.flex-wrap.items-center.gap-3.px-3.py-2
         span.text-xs.font-medium.uppercase.kb-text-muted = "列 #{index + 1}"
         = form_with model: column, url: board_board_column_path(@board, column), method: :patch, class: "flex min-w-0 flex-1 flex-wrap items-center gap-2" do |f|
-          = f.text_field :name, class: "kb-input min-w-[8rem] flex-1 rounded-md px-2 py-1 text-sm"
-          = f.submit "名前を保存", class: "kb-chrome-btn-secondary px-2 py-1 text-xs"
+          = f.text_field :name, class: "kb-input kb-input-sm kb-field-min-sm flex-1"
+          = f.submit "名前を保存", class: "kb-chrome-btn-secondary kb-btn-xs"
         .flex.items-center.gap-1
           - if index.positive?
-            = button_to "←", swap_board_board_column_path(@board, column, other_column_id: @board_columns[index - 1].id), method: :post, class: "kb-toolbar-btn px-2 py-1 text-xs", title: "左へ"
+            = button_to "←", swap_board_board_column_path(@board, column, other_column_id: @board_columns[index - 1].id), method: :post, class: "kb-toolbar-btn", title: "左へ"
           - if index < @board_columns.size - 1
-            = button_to "→", swap_board_board_column_path(@board, column, other_column_id: @board_columns[index + 1].id), method: :post, class: "kb-toolbar-btn px-2 py-1 text-xs", title: "右へ"
+            = button_to "→", swap_board_board_column_path(@board, column, other_column_id: @board_columns[index + 1].id), method: :post, class: "kb-toolbar-btn", title: "右へ"
 
 .mt-4
   = link_to "カンバンに戻る", board_path(@board), class: "kb-chrome-link text-sm"

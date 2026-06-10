@@ -368,7 +368,7 @@ export default class extends Controller {
   buildTokenRow(name, value) {
     const meta = tokenMeta(name)
     const row = document.createElement("div")
-    row.className = "theme-studio-token-row grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center"
+    row.className = "theme-studio-token-row grid gap-2 items-center"
 
     const label = document.createElement("span")
     label.className = "font-mono text-xs kb-text-secondary truncate"
@@ -459,7 +459,7 @@ export default class extends Controller {
         const del = document.createElement("button")
         del.type = "button"
         del.textContent = "削除"
-        del.className = "shrink-0 text-xs text-red-600 hover:text-red-800"
+        del.className = "shrink-0 text-xs kb-text-danger"
         del.dataset.themeId = theme.id
         del.addEventListener("click", () => this.deleteTheme(theme.id))
 

@@ -1,6 +1,6 @@
 #manage_memo_list.kb-card.overflow-hidden
   - if memos&.any?
-    ul class="divide-y divide-[var(--kb-border)]"
+    ul class="kb-divide-y"
       - memos.each do |memo|
         - can_edit = policy(memo).update?
         li.flex.min-w-0.items-start.gap-3.px-3.py-3
@@ -9,7 +9,7 @@
               input type="checkbox" value=memo.id data-memo-bulk-manage-target="checkbox" data-action="change->memo-bulk-manage#updateCount" aria-label="メモを選択"
             - else
               input.opacity-40 type="checkbox" disabled=true title="編集権限がありません" aria-label="編集権限がありません"
-          = link_to memo_path(memo), class: "min-w-0 flex-1 no-underline text-inherit focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--kb-border-strong)]", data: { turbo: false } do
+          = link_to memo_path(memo), class: "min-w-0 flex-1 no-underline text-inherit kb-focus-ring-inset", data: { turbo: false } do
             = render "memos/list_panel_memo_row_inner", memo: memo, timestamp: memo_list_timestamp(memo)
   - else
     .px-3.py-10.text-center.text-sm.kb-text-muted

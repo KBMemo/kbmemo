@@ -15,6 +15,12 @@ export default class extends Controller {
   static targets = ["panel", "button", "themeSelect", "skinSelect"]
 
   connect() {
+    this._closeOtherMenus = (event) => {
+      if (event.detail?.source === this.element) return
+      this.hide()
+    }
+    document.addEventListener("user-menu:close", this._closeOtherMenus)
+
     if (this.hasThemeSelectTarget) {
       populateThemeSelect(this.themeSelectTarget)
       this.themeSelectTarget.value = getStoredThemeId()
@@ -36,6 +42,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    document.removeEventListener("user-menu:close", this._closeOtherMenus)
     this.teardownDocumentListeners()
   }
 
@@ -54,6 +61,7 @@ export default class extends Controller {
   }
 
   show() {
+    document.dispatchEvent(new CustomEvent("user-menu:close", { detail: { source: this.element } }))
     this.panelTarget.classList.remove("hidden")
     this.buttonTarget.setAttribute("aria-expanded", "true")
     this._outside = (e) => {

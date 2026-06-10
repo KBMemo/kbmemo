@@ -1,5 +1,5 @@
 - card_dom_id = dom_id(memo, :board_card)
-article.rounded-md.border.kb-border.p-3.shadow-sm.hover:opacity-95[id=card_dom_id data-theme-slot="kanban-card" data-board-kanban-dnd-target="card" data-memo-id=memo.id data-column-id=column.id data-position=memo.kanban_position draggable="true" data-action="dragstart->board-kanban-dnd#cardDragStart dragend->board-kanban-dnd#cardDragEnd"]
+article.kb-kanban-card[id=card_dom_id data-theme-slot="kanban-card" data-board-kanban-dnd-target="card" data-memo-id=memo.id data-column-id=column.id data-position=memo.kanban_position draggable="true" data-action="dragstart->board-kanban-dnd#cardDragStart dragend->board-kanban-dnd#cardDragEnd"]
   .flex.items-start.gap-2
     button.mt-0.5.cursor-grab.kb-text-subtle.hover:kb-text-secondary[type="button" aria-label="ドラッグ" data-action="mousedown->board-kanban-dnd#prepareDrag" tabindex="-1"]
       | ⋮⋮
@@ -11,16 +11,16 @@ article.rounded-md.border.kb-border.p-3.shadow-sm.hover:opacity-95[id=card_dom_i
       - if memo.tags.any?
         .mt-2.flex.flex-wrap.gap-1
           - memo.tags.first(3).each do |tag|
-            span class="rounded bg-[var(--kb-bg-muted)] px-1.5 py-0.5 text-[10px] kb-text-secondary" = tag.name
+            span class="kb-chip-xs" = tag.name
           - if memo.tags.size > 3
-            span class="text-[10px] kb-text-subtle" = "+#{memo.tags.size - 3}"
+            span class="kb-text-2xs kb-text-subtle" = "+#{memo.tags.size - 3}"
       = form_with url: schedule_board_board_card_path(board, memo), method: :patch, class: "mt-2 flex items-center gap-1", data: { turbo_frame: "board_schedule_panel" } do
         - if defined?(@schedule_calendar) && @schedule_calendar
           = hidden_field_tag :schedule_month, @schedule_calendar.month.strftime("%Y-%m")
           = hidden_field_tag :schedule_day, @schedule_calendar.selected_day.strftime("%Y-%m-%d")
           = hidden_field_tag :schedule_view, @schedule_calendar.view
         label.sr-only for="scheduled_on_#{memo.id}" 予定日
-        = date_field_tag :scheduled_on, memo.scheduled_on, id: "scheduled_on_#{memo.id}", class: "kb-input max-w-[9rem] rounded px-1.5 py-0.5 text-[10px]", title: "予定日"
-        = submit_tag "保存", class: "text-[10px] kb-text-secondary underline decoration-[var(--kb-border-strong)] hover:text-[var(--kb-text-primary)]"
-      p class="mt-1 text-[10px] kb-text-subtle" = l(memo.updated_at, format: :short)
-    = button_to "外す", board_board_card_path(board, memo), method: :delete, form: { data: { turbo_confirm: "ボードから外しますか？メモ自体は削除されません。" } }, class: "shrink-0 text-[10px] kb-text-subtle hover:text-red-600", title: "ボードから外す"
+        = date_field_tag :scheduled_on, memo.scheduled_on, id: "scheduled_on_#{memo.id}", class: "kb-input kb-input-2xs kb-field-max-date", title: "予定日"
+        = submit_tag "保存", class: "kb-text-2xs kb-text-secondary kb-inline-link"
+      p class="mt-1 kb-text-2xs kb-text-subtle" = l(memo.updated_at, format: :short)
+    = button_to "外す", board_board_card_path(board, memo), method: :delete, form: { data: { turbo_confirm: "ボードから外しますか？メモ自体は削除されません。" } }, class: "shrink-0 kb-text-2xs kb-danger-action", title: "ボードから外す"

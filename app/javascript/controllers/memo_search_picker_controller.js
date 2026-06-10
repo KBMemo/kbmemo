@@ -186,7 +186,7 @@ export default class extends Controller {
     if (!this.hasResultsTarget) return
     const buttons = this.resultsTarget.querySelectorAll("button[data-index]")
     buttons.forEach((button, index) => {
-      button.classList.toggle("bg-[var(--kb-bg-muted)]", index === this._activeIndex)
+      button.classList.toggle("kb-selected-row", index === this._activeIndex)
       button.setAttribute("aria-selected", index === this._activeIndex ? "true" : "false")
     })
     buttons[this._activeIndex]?.scrollIntoView({ block: "nearest" })

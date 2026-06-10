@@ -20,7 +20,7 @@ ruby:
                 i class="h-3.5 w-3.5 shrink-0 kb-text-subtle" aria-hidden="true" data-lucide="kanban"
                 = link_to memo.board.title,
                   board_path(memo.board),
-                  class: "min-w-0 truncate underline decoration-[var(--kb-border-strong)] hover:text-[var(--kb-text-primary)]",
+                  class: "min-w-0 truncate kb-inline-link",
                   title: "カンバンボードを開く"
             - if memo.notebook.present? && policy(memo.notebook).show?
               span.kb-text-subtle aria-hidden="true" ·
@@ -28,7 +28,7 @@ ruby:
                 i class="h-3.5 w-3.5 shrink-0 kb-text-subtle" aria-hidden="true" data-lucide="book-open"
                 = link_to memo.notebook.title,
                   notebook_path(memo.notebook, memo_id: memo.id),
-                  class: "min-w-0 truncate underline decoration-[var(--kb-border-strong)] hover:text-[var(--kb-text-primary)]",
+                  class: "min-w-0 truncate kb-inline-link",
                   title: "ノートブックを開く"
             - dir = memo.memo_directory
             - if metadata_editable
@@ -48,7 +48,7 @@ ruby:
               span.kb-text-subtle aria-hidden="true" ·
               = link_to memo_directory_path_from_root_label(dir),
                 memo_path(memo, memo_directory_id: dir.id),
-                class: "underline decoration-[var(--kb-border-strong)] hover:text-[var(--kb-text-primary)]",
+                class: "kb-inline-link",
                 title: "サイドバーでこのディレクトリを表示"
             - if memo.slug.present?
               span.kb-text-subtle aria-hidden="true" ·
@@ -59,15 +59,15 @@ ruby:
       - elsif memo.google_calendar_read_only?
         span.text-sm.kb-text-muted Google Calendar
       - elsif memo.display_as_draft? && policy(memo).update?
-        = button_to "コミット", commit_memo_path(memo), method: :patch, title: "ファイルへ保存して、Gitに記録", class: "kb-chrome-btn-primary", data: { theme_slot: "btn-primary" }
-        = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-secondary"
+        = button_to "コミット", commit_memo_path(memo), method: :patch, title: "ファイルへ保存して、Gitに記録", class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
+        = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-secondary kb-btn-md"
       - elsif policy(memo).update?
-        = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-primary", data: { theme_slot: "btn-primary" }
+        = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
       - if policy(memo).destroy?
-        = button_to "削除", memo_path(memo), method: :delete, form: { data: { turbo_confirm: "このメモを削除しますか？" } }, class: "rounded-md border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
+        = button_to "削除", memo_path(memo), method: :delete, form: { data: { turbo_confirm: "このメモを削除しますか？" } }, class: "kb-danger-btn kb-btn-sm"
 
   - if memo.docs_sync_read_only?
-    .mb-4.rounded-md.border.kb-border.px-3.py-2.text-sm.kb-text-secondary
+    .mb-4.kb-muted-bar.px-3.py-2.text-sm
       | このメモは Git リポジトリの
       code.font-mono.text-xs docs/
       |  から同期されています。変更は AsciiDoc を編集して
@@ -80,7 +80,7 @@ ruby:
           | ）
 
   - if memo.google_calendar_read_only?
-    .mb-4.rounded-md.border.kb-border.px-3.py-2.text-sm.kb-text-secondary
+    .mb-4.kb-muted-bar.px-3.py-2.text-sm
       | このメモは Google Calendar から同期されています。KBMemo 上では閲覧のみです。変更は Google Calendar 側で行い、
       = link_to "プロフィール", edit_profile_path, class: "kb-chrome-link underline"
       |  から同期してください。
@@ -99,7 +99,7 @@ ruby:
         button.shrink-0.inline-flex.h-6.w-6.items-center.justify-center.rounded.kb-toolbar-btn type="button" data-action="expandable-hint#toggle" aria-expanded="false" aria-controls="memo-properties-panel" title="プロパティ全文を表示"
           span.leading-none data-expandable-hint-target="toggleIcon" aria-hidden="true"
             | ▼
-      pre#memo-properties-panel.hidden.overflow-x-auto.rounded-md.p-3.font-mono.text-xs.kb-text-primary style="background: var(--kb-bg-subtle)" data-expandable-hint-target="panel"
+      pre#memo-properties-panel.hidden.overflow-x-auto.kb-muted-bar.p-3.font-mono.text-xs.kb-text-primary data-expandable-hint-target="panel"
         = memo_properties_yaml_value(memo)
 
   - checklist_editable = memo_checklist_editable?(memo)

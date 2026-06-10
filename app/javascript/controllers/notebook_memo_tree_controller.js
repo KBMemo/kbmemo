@@ -33,7 +33,7 @@ export default class extends Controller {
     if (!this._dragEntryId) return
     const row = event.currentTarget.closest("[data-notebook-memo-row]")
     if (!row || row.dataset.notebookMemoId === this._dragEntryId) return
-    row.classList.add("ring-2", "ring-blue-500", "bg-blue-50/80")
+    row.classList.add("kb-drop-highlight")
   }
 
   dragLeaveRow(event) {
@@ -41,7 +41,7 @@ export default class extends Controller {
     if (!row) return
     const rt = event.relatedTarget
     if (rt && row.contains(rt)) return
-    row.classList.remove("ring-2", "ring-blue-500", "bg-blue-50/80")
+    row.classList.remove("kb-drop-highlight")
   }
 
   async dropOnRow(event) {
@@ -146,7 +146,7 @@ export default class extends Controller {
 
   _clearHighlights() {
     this.element.querySelectorAll("[data-notebook-memo-row]").forEach((el) => {
-      el.classList.remove("ring-2", "ring-blue-500", "bg-blue-50/80")
+      el.classList.remove("kb-drop-highlight")
     })
   }
 }
