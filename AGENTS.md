@@ -32,6 +32,10 @@
 - ピッカー: `tsuzura-picker` / `POST /internal/tsuzura/sign_urls`（JSON + CSRF）。本文は `album::` / `image::media:` のみ保存
 - **開発:** `Tsuzura::Endpoints` の既定は `http://localhost:3008`（credentials の本番 URL は development では使わない）。`kbmemo-media` を `PORT=3008` で起動。本番 API を試すときだけ `TSUZURA_*` を export
 
+## テスト実行
+
+- Rails test が sandbox 内 DB 接続（`bowmore.artif.org` の DNS、`/var/run/postgresql` socket、`127.0.0.1:5432` TCP など）で失敗する場合は、同じコマンドを `require_escalated` で再実行する。
+
 ## Stack (short)
 
 - Rails 8, Rodauth, Pundit, Turbo, Stimulus, Vite
