@@ -1,4 +1,4 @@
-import { appImageSrc, memoAssetRelativePath, memoAssetSrc } from "@kbmemo/adoc-kbmemo"
+import { appImageSrc, memoAssetRelativePath, memoAssetSrc } from "../adoc-kbmemo/src/image_syntax.js"
 
 /**
  * @param {ParentNode} container

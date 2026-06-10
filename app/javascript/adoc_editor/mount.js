@@ -13,8 +13,10 @@ export function createLivePreview(options) {
 
 export {
   asciidocHighlight,
+} from '../../../packages/adoc-codemirror/src/codemirror.js'
+export {
   refreshHighlights,
   refreshPreview,
   clearParseCache,
-} from '@kbmemo/adoc-codemirror'
+} from '../../../packages/adoc-codemirror/src/parseSession.js'
 export { createMemoWysiwygEditor } from './wysiwyg_mount.js'

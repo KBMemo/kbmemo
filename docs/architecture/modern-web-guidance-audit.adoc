@@ -36,6 +36,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * メモ本文 syntax highlight は `@kbmemo/adoc-codemirror` package root ではなく `codeHighlight` 単体を dynamic import し、閲覧ページで不要な Asciidoctor / CodeMirror 系依存を初期 bundle から外した。
 * `bundle exec vite build --force` で ineffective dynamic import 警告が消え、`application` chunk は約 1.79 MB から約 491.86 kB まで縮小した。`svg_editor` と editor/preview 系 async chunk の size warning は残る。
 * SVG editor entry から `svgedit` 本体と CSS の static import を外し、`memo_svg_editor_controller.js` 接続時の dynamic import に変更。`svg_editor` entry は約 2.19 MB から約 2.12 kB まで縮小し、SVGEdit 本体は `Editor` async chunk に分離した。
+* editor / preview 系 import を package root から必要 module の direct import へ寄せ、`@kbmemo/adoc-kbmemo` の不要 export 巻き込みを削減した。`adoc-kbmemo` async chunk は約 1.10 MB から約 344.96 kB まで縮小した。
 
 == 現状の良い点
 
@@ -98,8 +99,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P1
 |Performance / JS
-|route 固有の Stimulus controller は lazy 登録へ変更済み。メモ本文 highlight も `codeHighlight` 単体 dynamic import に切り出し済み。SVG editor も entry と SVGEdit 本体を分離済み。直近の `bundle exec vite build --force` では `application` が約 491.86 kB、`svg_editor` entry が約 2.12 kB。ineffective dynamic import 警告は解消済み。
-|次は editor/preview 系 async chunk を分割する。特に `adoc-kbmemo` / Asciidoctor / CodeMirror の読み込み境界を再確認する。
+|route 固有の Stimulus controller は lazy 登録へ変更済み。メモ本文 highlight も `codeHighlight` 単体 dynamic import に切り出し済み。SVG editor も entry と SVGEdit 本体を分離済み。editor / preview 系は package root import を避ける形へ寄せた。直近の `bundle exec vite build --force` では `application` が約 491.99 kB、`svg_editor` entry が約 2.12 kB、`adoc-kbmemo` async chunk が約 344.96 kB。ineffective dynamic import 警告は解消済み。
+|次は CodeMirror / Asciidoctor 側の async chunk 境界を検討する。現状は source editor 初期化に必要なため、無理に割るより測定と UX 影響を見て判断する。
 
 |P1
 |Performance / HTML/JS
@@ -159,9 +160,10 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 === 4. Performance
 
-* Vite build は成功するが、editor/preview 系 async chunk の size warning は継続している。
-* `application` 初期 chunk は約 491.86 kB まで縮小済み。
+* Vite build は成功するが、CodeMirror と SVGEdit 本体の async chunk size warning は継続している。
+* `application` 初期 chunk は約 491.99 kB まで縮小済み。
 * `svg_editor` entry は約 2.12 kB まで縮小済み。SVGEdit 本体は `Editor` async chunk として、`memo-svg-editor` 接続後に読み込む。
+* `adoc-kbmemo` async chunk は package root import を避けることで約 344.96 kB まで縮小済み。
 * `packages/adoc-codemirror/index.js` の package root を本文閲覧 highlight から外したため、閲覧ページの syntax highlight は `codeHighlight` chunk のみを遅延取得する。
 * editor 系の JS は `memo-body-editor` controller が存在する画面でのみ読み込む構成へ寄せた。
 
@@ -185,7 +187,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * DONE: bundle 分割を見直す（Stimulus controller lazy 登録、本文 highlight の単体 dynamic import）
 * DONE: ineffective dynamic import を解消する
 * DONE: SVG editor entry と SVGEdit 本体を分離する
-* TODO: editor / preview 系 async chunk をさらに分ける
+* DONE: editor / preview 系の package root import を direct import へ寄せる
+* TODO: CodeMirror / Asciidoctor async chunk の測定と追加分割可否を検討する
 
 === Phase 4
 

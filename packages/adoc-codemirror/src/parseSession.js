@@ -1,13 +1,10 @@
 import { loadDocument } from './instance.js'
 import { computeHighlights } from './highlight.js'
-import {
-  normalizeMemoImagePathsInSource,
-  restrictPassthroughInSource,
-  substituteDiagramsForPreview,
-  substituteTsuzuraForPreview,
-  substituteWikiLinksForPreview,
-  tsuzuraCacheKey,
-} from '@kbmemo/adoc-kbmemo'
+import { normalizeMemoImagePathsInSource } from '../../adoc-kbmemo/src/image_syntax.js'
+import { restrictPassthroughInSource } from '../../adoc-kbmemo/src/passthrough_restrict.js'
+import { substituteDiagramsForPreview } from '../../adoc-kbmemo/src/diagram_substitute.js'
+import { substituteTsuzuraForPreview, tsuzuraCacheKey } from '../../adoc-kbmemo/src/tsuzura_substitute.js'
+import { substituteWikiLinksForPreview } from '../../adoc-kbmemo/src/wiki_link_substitute.js'
 
 /** @typedef {{ from: number, to: number, className: string }} HighlightSpan */
 /** @typedef {{ source: string, doc: import('@asciidoctor/core').Document, html: string | null, highlights: HighlightSpan[] }} ParseCache */

@@ -1,4 +1,4 @@
-import { highlightPreviewCode } from '@kbmemo/adoc-codemirror'
+import { highlightPreviewCode } from '../adoc-codemirror/src/codeHighlight.js'
 import { resolvePreviewImages } from "./preview_assets.js"
 import { renderPreviewMath } from "./preview_math.js"
 

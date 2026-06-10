@@ -1,5 +1,6 @@
-import { refreshPreview } from '@kbmemo/adoc-codemirror'
-import { ensureTsuzuraUrlsInCache, ensureWikiLinkLabelsInCache } from '@kbmemo/adoc-kbmemo'
+import { refreshPreview } from '../adoc-codemirror/src/parseSession.js'
+import { ensureTsuzuraUrlsInCache } from '../adoc-kbmemo/src/tsuzura_substitute.js'
+import { ensureWikiLinkLabelsInCache } from '../adoc-kbmemo/src/wiki_link_substitute.js'
 import { renderPreviewHtml } from './preview.js'
 
 const PREVIEW_DEBOUNCE_MS = 300
