@@ -12,9 +12,9 @@
         span.ml-1.kb-text-muted= @engine
     .flex.flex-wrap.items-center.gap-2
       - if @has_svg
-        = link_to "ビューアで開く", view_memo_diagram_path(@memo, params[:diagram_key]), class: "rounded-md border kb-border bg-white px-2 py-1 text-xs font-medium kb-text-primary kb-hover-row", target: "_blank", rel: "noopener"
-      = link_to "編集", edit_memo_diagram_path(@memo, params[:diagram_key]), class: "rounded-md border kb-border bg-white px-2 py-1 text-xs font-medium kb-text-primary kb-hover-row"
-      = link_to "元ファイル", asset_memo_path(@memo, @source_relative), class: "rounded-md border kb-border bg-white px-2 py-1 text-xs font-medium kb-text-primary kb-hover-row", target: "_blank", rel: "noopener"
+        = link_to "ビューアで開く", view_memo_diagram_path(@memo, params[:diagram_key]), class: "kb-action-btn kb-action-btn-sm kb-hover-row", target: "_blank", rel: "noopener"
+      = link_to "編集", edit_memo_diagram_path(@memo, params[:diagram_key]), class: "kb-action-btn kb-action-btn-sm kb-hover-row"
+      = link_to "元ファイル", asset_memo_path(@memo, @source_relative), class: "kb-action-btn kb-action-btn-sm kb-hover-row", target: "_blank", rel: "noopener"
   .diagram-source-viewer__body.min-h-0.flex-1.overflow-hidden.bg-white
     textarea.sr-only[readonly=true data-diagram-source-viewer-target="field"]
       = @source

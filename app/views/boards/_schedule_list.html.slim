@@ -21,7 +21,7 @@
       .space-y-3
         - calendar.list_groups.each do |group|
           section
-            p class="mb-1 text-[11px] font-medium kb-text-muted" = l(group[:date], format: :long)
+            p class="mb-1 kb-text-2xs-plus font-medium kb-text-muted" = l(group[:date], format: :long)
             ul.space-y-2
               - group[:memos].each do |memo|
                 = render "boards/schedule_memo_item", memo: memo

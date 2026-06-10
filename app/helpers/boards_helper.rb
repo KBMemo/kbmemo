@@ -100,14 +100,10 @@ module BoardsHelper
   end
 
   def board_schedule_day_cell_classes(calendar, day)
-    classes = [
-      "kb-board-schedule-day",
-      "flex h-8 w-8 items-center justify-center rounded-md text-sm",
-      "hover:bg-[color-mix(in_srgb,var(--kb-bg-muted)_85%,transparent)]"
-    ]
+    classes = ["kb-board-schedule-day", "kb-calendar-day"]
     classes << "kb-text-subtle" unless calendar.in_month?(day)
-    classes << "font-semibold ring-1 ring-[var(--kb-border-strong)]" if calendar.today?(day)
-    classes << "bg-[color-mix(in_srgb,var(--kb-accent)_18%,transparent)] font-semibold kb-text-primary" if calendar.selected?(day)
+    classes << "is-today" if calendar.today?(day)
+    classes << "is-selected" if calendar.selected?(day)
     classes << "kb-board-schedule-day--has-items font-medium" if calendar.scheduled?(day)
     classes.join(" ")
   end

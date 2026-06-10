@@ -540,6 +540,77 @@ html[data-kb-theme-base="minimal"] {
   background: var(--kb-bg-muted);
 }
 
+
+.kb-action-btn {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--kb-border);
+  border-radius: var(--kb-radius-sm);
+  padding: var(--kb-space-2) var(--kb-space-4);
+  background: var(--kb-bg-surface);
+  color: var(--kb-text-primary);
+  font-size: var(--kb-font-size-sm);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.kb-action-btn-sm {
+  padding: var(--kb-space-1) var(--kb-space-2);
+  font-size: var(--kb-font-size-xs);
+}
+
+.kb-chip-xs {
+  border-radius: var(--kb-radius-sm);
+  padding: 0.125rem 0.375rem;
+  background: var(--kb-bg-muted);
+  color: var(--kb-text-secondary);
+  font-size: 0.625rem;
+}
+
+.kb-text-2xs {
+  font-size: 0.625rem;
+}
+
+.kb-text-2xs-plus {
+  font-size: 0.6875rem;
+}
+
+.kb-kanban-card {
+  border: 1px solid var(--kb-border);
+  border-radius: var(--kb-radius-sm);
+  padding: var(--kb-space-3);
+  box-shadow: var(--kb-shadow-sm);
+}
+
+.kb-kanban-card:hover {
+  opacity: 0.95;
+}
+
+.kb-calendar-day {
+  display: flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--kb-radius-sm);
+  font-size: var(--kb-font-size-sm);
+}
+
+.kb-calendar-day:hover {
+  background: color-mix(in srgb, var(--kb-bg-muted) 85%, transparent);
+}
+
+.kb-calendar-day.is-today {
+  box-shadow: 0 0 0 1px var(--kb-border-strong);
+  font-weight: 600;
+}
+
+.kb-calendar-day.is-selected {
+  background: color-mix(in srgb, var(--kb-accent) 18%, transparent);
+  color: var(--kb-text-primary);
+  font-weight: 600;
+}
+
 .kb-resizer {
   display: none;
   width: var(--kb-space-2);

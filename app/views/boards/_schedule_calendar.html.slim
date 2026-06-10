@@ -7,7 +7,7 @@
     thead
       tr
         - BoardScheduleCalendar::WEEKDAY_LABELS.each do |label|
-          th class="pb-1 text-[10px] font-medium uppercase tracking-wide kb-text-muted" = label
+          th class="pb-1 kb-text-2xs font-medium uppercase tracking-wide kb-text-muted" = label
     tbody
       - calendar.weeks.each do |week|
         tr
