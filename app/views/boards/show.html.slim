@@ -30,7 +30,7 @@ div class="kb-chrome-workspace flex -mx-4 flex-col border-t md:min-h-[calc(100vh
 
       #board_add_memo_panel.hidden.fixed.inset-0.z-40 data-board-add-memo-target="panel"
         .kb-overlay-backdrop.absolute.inset-0 data-action="click->board-add-memo#close"
-        div class="kb-modal-panel absolute left-1/2 top-[10vh] -translate-x-1/2 w-[min(96vw,32rem)] rounded-lg"
+        div class="kb-modal-panel kb-floating-modal rounded-lg"
           .flex.items-center.justify-between.border-b.kb-border.px-4.py-3
             h2.text-base.font-semibold.kb-text-primary 既存メモを追加
             button.kb-text-muted.hover:opacity-80 type="button" data-action="board-add-memo#close" aria-label="閉じる" ×

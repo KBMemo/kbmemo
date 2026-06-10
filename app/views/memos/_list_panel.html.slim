@@ -67,5 +67,5 @@ ruby:
       span.mr-1.kb-text-muted +
       span 新規メモ
   = render "memos/sidebar_memo_list_container"
-  dialog.memo-directory-dialog.kb-modal-panel.rounded-lg.p-0 class="max-h-[85vh] overflow-y-auto" data-memo-directory-dialog-target="dialog" data-action="click->memo-directory-dialog#backdropClick"
+  dialog.memo-directory-dialog.kb-modal-panel.kb-scroll-dialog.rounded-lg.p-0 data-memo-directory-dialog-target="dialog" data-action="click->memo-directory-dialog#backdropClick"
     #memo_directory_dialog_body.p-6 data-memo-directory-dialog-target="body"

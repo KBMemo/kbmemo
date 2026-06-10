@@ -288,6 +288,15 @@ html[data-kb-theme-base="minimal"] {
   box-shadow: var(--kb-shadow-md);
 }
 
+.kb-picker-panel {
+  max-height: var(--size-14);
+  min-width: var(--size-13);
+}
+
+.kb-control-accent {
+  accent-color: var(--kb-accent);
+}
+
 .kb-menu-item {
   color: var(--kb-text-primary);
 }
@@ -966,6 +975,7 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
 }
 
 [data-theme-slot="kanban-column"] {
+  min-width: var(--size-13);
   background-color: var(--kb-kanban-column-bg);
   border-color: var(--kb-border);
 }
@@ -1064,6 +1074,26 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   background: var(--kb-bg-surface);
   border: 1px solid var(--kb-border);
   box-shadow: var(--kb-shadow-lg);
+}
+
+.kb-scroll-dialog {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.kb-floating-modal {
+  position: absolute;
+  top: 10vh;
+  left: 50%;
+  width: min(96vw, var(--size-content-2));
+  transform: translateX(-50%);
+}
+
+.kb-tsuzura-picker-shell {
+  display: flex;
+  max-height: min(85vh, var(--size-content-2));
+  flex-direction: column;
+  background: var(--kb-bg-surface);
 }
 
 .kb-underline-input {

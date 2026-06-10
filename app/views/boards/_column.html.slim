@@ -1,6 +1,6 @@
 - column_memos = kanban_column_memos(column, visible_memo_ids)
 - column_dom_id = dom_id(column, :kanban)
-section class="flex min-w-[16rem] flex-1 flex-col rounded-lg border kb-border" id=column_dom_id data-theme-slot="kanban-column" data-board-kanban-dnd-target="column" data-column-id=column.id
+section class="flex flex-1 flex-col rounded-lg border kb-border" id=column_dom_id data-theme-slot="kanban-column" data-board-kanban-dnd-target="column" data-column-id=column.id
   header.flex.items-center.justify-between.border-b.kb-border.kb-chrome-panel.px-3.py-2.rounded-t-lg
     h2.text-sm.font-semibold.kb-text-primary = column.name
     span.text-xs.tabular-nums.kb-text-secondary = column_memos.size
