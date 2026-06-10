@@ -154,7 +154,7 @@ class MemosController < ApplicationController
 
     normalized = MemoDiagram.normalize_source(engine, source)
     svg = MemoDiagramRenderer.render(engine: engine, source: normalized)
-    render json: { svg: svg }
+    render_sanitized_diagram_svg(svg)
   rescue MemoDiagram::InvalidPath, MemoDiagramRenderer::Error, MemoDiagramRenderer::Unavailable => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
@@ -431,6 +431,13 @@ class MemosController < ApplicationController
   end
 
   private
+
+  def render_sanitized_diagram_svg(svg)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Kbmemo-Svg-Sanitized"] = "MemoSvgSanitizer"
+    response.headers["Cache-Control"] = "no-store"
+    render json: { svg: svg, sanitized: true }
+  end
 
   # Turbo の broadcast が ApplicationController.render 経由だと rodauth が無く memo_html が失敗するので、同一リクエストで HTML を組み立ててから送る。
   def commit_memo!(redirect_path:, failure_render: :edit)

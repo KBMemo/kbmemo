@@ -1304,6 +1304,10 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
         as: :json
     end
     assert_response :success
+    assert_equal "nosniff", response.headers["X-Content-Type-Options"]
+    assert_equal "MemoSvgSanitizer", response.headers["X-Kbmemo-Svg-Sanitized"]
+    assert_equal "no-store", response.headers["Cache-Control"]
+    assert_equal true, response.parsed_body["sanitized"]
     assert_equal svg, response.parsed_body["svg"]
   end
 
@@ -1320,6 +1324,10 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
       params: { engine: "svg", source: source },
       as: :json
     assert_response :success
+    assert_equal "nosniff", response.headers["X-Content-Type-Options"]
+    assert_equal "MemoSvgSanitizer", response.headers["X-Kbmemo-Svg-Sanitized"]
+    assert_equal "no-store", response.headers["Cache-Control"]
+    assert_equal true, response.parsed_body["sanitized"]
     body = response.parsed_body["svg"]
     assert_includes body, "<circle"
     assert_not_includes body, "script"

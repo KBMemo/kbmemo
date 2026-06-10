@@ -40,6 +40,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `scripts/report-vite-bundles.mjs` / `npm run report:bundles` を追加し、Vite manifest から JS / CSS bundle size と gzip size を確認できるようにした。
 * release 前の Lighthouse / CWV / bundle size 確認手順を `docs/architecture/web-performance-checklist.adoc` に追加した。
 * Rails model form の validation error 表示に `aria-invalid` / `aria-describedby` を付与する共通 helper を追加し、memo / memo directory / board / notebook / tag / profile の主要 field に適用した。
+* `render_diagram` endpoint の成功レスポンスに `X-Kbmemo-Svg-Sanitized: MemoSvgSanitizer` / `X-Content-Type-Options: nosniff` / `Cache-Control: no-store` と `sanitized: true` を付与し、フロント側はこの契約を満たす SVG だけを挿入するようにした。
 
 == 現状の良い点
 
@@ -67,8 +68,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P0
 |Security
-|`code_block_tools_controller.js` の SVG 注入は `replaceWithSanitizedSvg` に隔離済み。loading / error 表示は DOM API ベースへ変更済み。
-|次は sanitize 契約を endpoint / response header / controller test でより明示する。
+|`code_block_tools_controller.js` の SVG 注入は `replaceWithSanitizedSvg` に隔離済み。loading / error 表示は DOM API ベースへ変更済み。`render_diagram` は sanitize 済みヘッダー / JSON flag を返し、controller test で固定済み。
+|今後 Trusted Types を検討する場合は、この sink を named policy 化する候補にする。
 
 |P1
 |Accessibility / HTML
@@ -157,7 +158,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** `messagesTarget.innerHTML` は local render で escape 済み。
 ** error 表示は DOM API ベースへ置換済み。
 * `app/javascript/controllers/code_block_tools_controller.js`
-** SVG 注入は `replaceWithSanitizedSvg` に隔離済み。sanitize 契約の追加明示は残る。
+** SVG 注入は `replaceWithSanitizedSvg` に隔離済み。`render_diagram` endpoint の response header / JSON flag / controller test で sanitize 契約を明示済み。
 * `app/javascript/controllers/memo_search_picker_controller.js`
 ** こちらは `_escape` / `_escapeAttr` を入れており、比較的丁寧。
 

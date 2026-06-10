@@ -6,6 +6,8 @@ import { Controller } from "@hotwired/stimulus"
 // - svg ブロックには「画像 ⇄ ソース」トグル（サーバー側サニタイズ）
 const DIAGRAM_LANGS = new Set(["plantuml", "puml", "uml", "mermaid"])
 const TOGGLE_LANGS = new Set([...DIAGRAM_LANGS, "svg"])
+const SANITIZED_SVG_HEADER = "X-Kbmemo-Svg-Sanitized"
+const SANITIZED_SVG_HEADER_VALUE = "MemoSvgSanitizer"
 
 function toggleLabels(lang) {
   if (lang === "svg") {
@@ -229,7 +231,7 @@ export default class extends Controller {
         body: JSON.stringify({ engine: lang, source: code.textContent ?? "" }),
       })
       const data = await res.json().catch(() => ({}))
-      if (res.ok && data.svg) {
+      if (res.ok && data.svg && data.sanitized === true && this.hasSanitizedSvgHeader(res)) {
         this.replaceWithSanitizedSvg(figure, data.svg)
         state.rendered = true
         return true
@@ -246,8 +248,12 @@ export default class extends Controller {
   }
 
   replaceWithSanitizedSvg(figure, sanitizedSvg) {
-    // render_diagram returns only server-sanitized SVG from MemoDiagramRenderer.
+    // render_diagram must mark successful responses as MemoSvgSanitizer-cleaned.
     figure.innerHTML = sanitizedSvg
+  }
+
+  hasSanitizedSvgHeader(response) {
+    return response.headers.get(SANITIZED_SVG_HEADER) === SANITIZED_SVG_HEADER_VALUE
   }
 
   statusNode(message) {
