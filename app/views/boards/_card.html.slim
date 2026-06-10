@@ -20,7 +20,7 @@ article.kb-kanban-card[id=card_dom_id data-theme-slot="kanban-card" data-board-k
           = hidden_field_tag :schedule_day, @schedule_calendar.selected_day.strftime("%Y-%m-%d")
           = hidden_field_tag :schedule_view, @schedule_calendar.view
         label.sr-only for="scheduled_on_#{memo.id}" 予定日
-        = date_field_tag :scheduled_on, memo.scheduled_on, id: "scheduled_on_#{memo.id}", class: "kb-input max-w-[9rem] rounded px-1.5 py-0.5 kb-text-2xs", title: "予定日"
+        = date_field_tag :scheduled_on, memo.scheduled_on, id: "scheduled_on_#{memo.id}", class: "kb-input kb-input-2xs max-w-[9rem]", title: "予定日"
         = submit_tag "保存", class: "kb-text-2xs kb-text-secondary kb-inline-link"
       p class="mt-1 kb-text-2xs kb-text-subtle" = l(memo.updated_at, format: :short)
     = button_to "外す", board_board_card_path(board, memo), method: :delete, form: { data: { turbo_confirm: "ボードから外しますか？メモ自体は削除されません。" } }, class: "shrink-0 kb-text-2xs kb-danger-action", title: "ボードから外す"

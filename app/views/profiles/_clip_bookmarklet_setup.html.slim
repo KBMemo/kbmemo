@@ -4,7 +4,7 @@ ruby:
   token_configured = local_assigns.fetch(:token_configured) { false }
   api_href = revealed_token.present? ? ClipBookmarkletHelper.api_bookmarklet_href(setup_base_url, revealed_token) : nil
   clipboard_href = ClipBookmarkletHelper.clipboard_bookmarklet_href
-  api_link_classes = "mt-2 inline-block cursor-grab rounded-full border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-950 no-underline"
+  api_link_classes = "mt-2 kb-bookmarklet-link"
   api_ready = api_href.present?
 
 .mt-8.rounded-lg.kb-chrome-panel.p-4 data-controller="clip-bookmarklet-setup" data-clip-bookmarklet-setup-default-base-url-value=setup_base_url data-clip-bookmarklet-setup-revealed-token-value=(revealed_token.to_s) data-clip-bookmarklet-setup-token-configured-value=(token_configured ? "true" : "false")
@@ -31,7 +31,7 @@ ruby:
   .mt-4
     p.text-sm.font-medium.kb-text-primary クリップボード経由
     p.mt-1.text-xs.kb-text-muted kbmemo エディタで Ctrl+V して貼り付ける方式です（API トークン不要）。
-    a.mt-2.inline-block.cursor-grab.rounded-full.border.border-indigo-200.bg-indigo-50.px-4.py-2.text-sm.font-semibold.text-indigo-950.no-underline href=clipboard_href data-clip-bookmarklet-setup-target="clipboardBookmarkletLink"
+    a.mt-2.kb-bookmarklet-link href=clipboard_href data-clip-bookmarklet-setup-target="clipboardBookmarkletLink"
       | kbmemo にコピー
 
   p.mt-4.text-xs.kb-text-muted

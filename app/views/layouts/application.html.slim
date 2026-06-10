@@ -41,7 +41,7 @@ html data-kb-theme="default" data-kb-theme-base="default" data-kb-skin="auto"
             = link_to "管理", admin_root_path, class: "kb-chrome-link"
           - if rodauth.rails_account
             .relative[data-controller="user-menu"]
-              button.kb-input.inline-flex.max-w-56.items-center.gap-1.rounded-md.py-1.pl-2.pr-1.5.text-left.text-sm.font-medium.shadow-sm[type="button" data-user-menu-target="button" data-action="user-menu#toggle" aria-expanded="false" aria-haspopup="true" title=(rodauth.rails_account.email)]
+              button.kb-input.kb-input-sm.inline-flex.max-w-56.items-center.gap-1.text-left.font-medium.shadow-sm[type="button" data-user-menu-target="button" data-action="user-menu#toggle" aria-expanded="false" aria-haspopup="true" title=(rodauth.rails_account.email)]
                 span.min-w-0.flex-1.truncate.kb-text-primary
                   = rodauth.rails_account.display_name
                 svg.h-4.w-4.flex-shrink-0.kb-text-muted[xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"]
@@ -52,11 +52,11 @@ html data-kb-theme="default" data-kb-theme-base="default" data-kb-skin="auto"
                 .px-3.py-2 role="none"
                   label.flex.items-center.justify-between.gap-3.kb-text-primary
                     span.kb-text-secondary テーマ
-                    select.kb-input.rounded.px-1.5.py-0.5.text-sm data-theme-select="true" data-user-menu-target="themeSelect" data-action="change->user-menu#changeTheme" aria-label="表示テーマ"
+                    select.kb-input.kb-input-xs data-theme-select="true" data-user-menu-target="themeSelect" data-action="change->user-menu#changeTheme" aria-label="表示テーマ"
                 .px-3.py-2 role="none"
                   label.flex.items-center.justify-between.gap-3.kb-text-primary
                     span.kb-text-secondary 本文スキン
-                    select.kb-input.rounded.px-1.5.py-0.5.text-sm data-skin-select="true" data-user-menu-target="skinSelect" data-action="change->user-menu#changeSkin" aria-label="本文スキン"
+                    select.kb-input.kb-input-xs data-skin-select="true" data-user-menu-target="skinSelect" data-action="change->user-menu#changeSkin" aria-label="本文スキン"
                 hr.my-1.border.kb-border
                 = button_to "ログアウト", rodauth.logout_path, method: :post, form: { class: "block w-full" }, class: "kb-menu-item w-full rounded-none border-0 bg-transparent px-3 py-2 text-left text-sm font-normal", role: "menuitem"
           - if Rails.env.development?
