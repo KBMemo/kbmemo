@@ -120,23 +120,47 @@ export default class extends Controller {
   renderMessages() {
     if (!this.hasMessagesTarget) return
 
+    this.messagesTarget.replaceChildren()
+
     if (this.history.length === 0) {
-      this.messagesTarget.innerHTML = `<p class="text-xs kb-text-muted">メモの執筆・推敲を手伝います。送信すると本文の抜粋が OpenAI に送られます。</p>`
+      const empty = document.createElement("p")
+      empty.className = "text-xs kb-text-muted"
+      empty.textContent = "メモの執筆・推敲を手伝います。送信すると本文の抜粋が OpenAI に送られます。"
+      this.messagesTarget.append(empty)
       return
     }
 
-    const html = this.history
-      .map((entry) => {
-        const isUser = entry.role === "user"
-        const label = isUser ? "あなた" : "AI"
-        const bubble = isUser ? "kb-ai-message-user" : "kb-ai-message-assistant"
-        const escaped = this.escapeHtml(entry.content).replace(/\n/g, "<br>")
-        return `<div class="mb-3"><p class="mb-0.5 kb-ai-message-label font-medium uppercase tracking-wide kb-text-muted">${label}</p><div class="rounded-md px-2 py-1.5 text-xs leading-relaxed ${bubble}">${escaped}</div></div>`
-      })
-      .join("")
-
-    this.messagesTarget.innerHTML = html
+    for (const entry of this.history) {
+      this.messagesTarget.append(this.messageNode(entry))
+    }
     this.messagesTarget.scrollTop = this.messagesTarget.scrollHeight
+  }
+
+  messageNode(entry) {
+    const isUser = entry.role === "user"
+    const wrapper = document.createElement("div")
+    wrapper.className = "mb-3"
+
+    const label = document.createElement("p")
+    label.className = "mb-0.5 kb-ai-message-label font-medium uppercase tracking-wide kb-text-muted"
+    label.textContent = isUser ? "あなた" : "AI"
+
+    const bubble = document.createElement("div")
+    bubble.className = `rounded-md px-2 py-1.5 text-xs leading-relaxed ${
+      isUser ? "kb-ai-message-user" : "kb-ai-message-assistant"
+    }`
+    this.appendTextWithLineBreaks(bubble, entry.content)
+
+    wrapper.append(label, bubble)
+    return wrapper
+  }
+
+  appendTextWithLineBreaks(container, text) {
+    const lines = String(text ?? "").split("\n")
+    lines.forEach((line, index) => {
+      if (index > 0) container.append(document.createElement("br"))
+      container.append(document.createTextNode(line))
+    })
   }
 
   updateSendState() {
@@ -168,12 +192,4 @@ export default class extends Controller {
     this.errorTarget.classList.add("hidden")
   }
 
-
-  escapeHtml(text) {
-    return String(text)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-  }
 }

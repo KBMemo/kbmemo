@@ -41,6 +41,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * release 前の Lighthouse / CWV / bundle size 確認手順を `docs/architecture/web-performance-checklist.adoc` に追加した。
 * Rails model form の validation error 表示に `aria-invalid` / `aria-describedby` を付与する共通 helper を追加し、memo / memo directory / board / notebook / tag / profile の主要 field に適用した。
 * `render_diagram` endpoint の成功レスポンスに `X-Kbmemo-Svg-Sanitized: MemoSvgSanitizer` / `X-Content-Type-Options: nosniff` / `Cache-Control: no-store` と `sanitized: true` を付与し、フロント側はこの契約を満たす SVG だけを挿入するようにした。
+* `memo_ai_panel_controller.js` の message rendering も `innerHTML` から DOM API ベースへ変更し、AI 応答・ユーザー入力を常に text node として挿入するようにした。
 
 == 現状の良い点
 
@@ -63,8 +64,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P0
 |Security
-|`memo_ai_panel_controller.js` の error 表示は DOM API ベースへ置換済み。`messagesTarget.innerHTML` は local escape 済み render として残る。
-|残る `innerHTML` は「信頼済み・サニタイズ済み HTML を入れる箇所」に限定し、関数名やコメントで境界を明示する。
+|`memo_ai_panel_controller.js` は error 表示と message rendering を DOM API ベースへ置換済み。AI 応答・ユーザー入力は text node として挿入する。
+|残る `innerHTML` は SVG icon / sanitize 済み SVG / server-rendered fragment / local escape 済み picker HTML など、用途ごとに境界を明示しながら縮小する。
 
 |P0
 |Security
@@ -155,8 +156,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 === 3. Security sink
 
 * `app/javascript/controllers/memo_ai_panel_controller.js`
-** `messagesTarget.innerHTML` は local render で escape 済み。
-** error 表示は DOM API ベースへ置換済み。
+** message rendering と error 表示は DOM API ベースへ置換済み。
 * `app/javascript/controllers/code_block_tools_controller.js`
 ** SVG 注入は `replaceWithSanitizedSvg` に隔離済み。`render_diagram` endpoint の response header / JSON flag / controller test で sanitize 契約を明示済み。
 * `app/javascript/controllers/memo_search_picker_controller.js`
@@ -184,7 +184,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 * DONE: CSP を report-only で有効化する
 * DONE: theme bootstrap の inline script を外部化する
-* DONE: `memo_ai_panel_controller.js` の error `innerHTML` を除去する
+* DONE: `memo_ai_panel_controller.js` の error / message `innerHTML` を除去する
 
 === Phase 2
 
