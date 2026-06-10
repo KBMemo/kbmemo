@@ -35,6 +35,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * route 固有の Stimulus controller（memo editor、diagram viewer/editor、theme/skin studio、memo show 補助 UI 等）を dynamic import 登録へ変更し、該当 DOM があるページだけ読み込む構成へ寄せた。
 * メモ本文 syntax highlight は `@kbmemo/adoc-codemirror` package root ではなく `codeHighlight` 単体を dynamic import し、閲覧ページで不要な Asciidoctor / CodeMirror 系依存を初期 bundle から外した。
 * `bundle exec vite build --force` で ineffective dynamic import 警告が消え、`application` chunk は約 1.79 MB から約 491.86 kB まで縮小した。`svg_editor` と editor/preview 系 async chunk の size warning は残る。
+* SVG editor entry から `svgedit` 本体と CSS の static import を外し、`memo_svg_editor_controller.js` 接続時の dynamic import に変更。`svg_editor` entry は約 2.19 MB から約 2.12 kB まで縮小し、SVGEdit 本体は `Editor` async chunk に分離した。
 
 == 現状の良い点
 
@@ -97,8 +98,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P1
 |Performance / JS
-|route 固有の Stimulus controller は lazy 登録へ変更済み。メモ本文 highlight も `codeHighlight` 単体 dynamic import に切り出し済み。直近の `bundle exec vite build --force` では `application` が約 491.86 kB、`svg_editor` が約 2.19 MB。ineffective dynamic import 警告は解消済み。
-|次は `svg_editor` entry と editor/preview 系 async chunk を分割する。特に SVG editor は独立 entry のまま大きいため、SVG canvas 周辺の初期化境界を再確認する。
+|route 固有の Stimulus controller は lazy 登録へ変更済み。メモ本文 highlight も `codeHighlight` 単体 dynamic import に切り出し済み。SVG editor も entry と SVGEdit 本体を分離済み。直近の `bundle exec vite build --force` では `application` が約 491.86 kB、`svg_editor` entry が約 2.12 kB。ineffective dynamic import 警告は解消済み。
+|次は editor/preview 系 async chunk を分割する。特に `adoc-kbmemo` / Asciidoctor / CodeMirror の読み込み境界を再確認する。
 
 |P1
 |Performance / HTML/JS
@@ -158,8 +159,9 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 === 4. Performance
 
-* Vite build は成功するが、`svg_editor` と editor/preview 系 async chunk の size warning は継続している。
+* Vite build は成功するが、editor/preview 系 async chunk の size warning は継続している。
 * `application` 初期 chunk は約 491.86 kB まで縮小済み。
+* `svg_editor` entry は約 2.12 kB まで縮小済み。SVGEdit 本体は `Editor` async chunk として、`memo-svg-editor` 接続後に読み込む。
 * `packages/adoc-codemirror/index.js` の package root を本文閲覧 highlight から外したため、閲覧ページの syntax highlight は `codeHighlight` chunk のみを遅延取得する。
 * editor 系の JS は `memo-body-editor` controller が存在する画面でのみ読み込む構成へ寄せた。
 
@@ -182,7 +184,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 * DONE: bundle 分割を見直す（Stimulus controller lazy 登録、本文 highlight の単体 dynamic import）
 * DONE: ineffective dynamic import を解消する
-* TODO: route 単位で editor / viewer / studio の entry をさらに分ける
+* DONE: SVG editor entry と SVGEdit 本体を分離する
+* TODO: editor / preview 系 async chunk をさらに分ける
 
 === Phase 4
 

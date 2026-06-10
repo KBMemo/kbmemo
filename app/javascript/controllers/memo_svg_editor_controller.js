@@ -1,9 +1,23 @@
 import { Controller } from "@hotwired/stimulus"
-import Editor from "svgedit/dist/editor/Editor.js"
-import "svgedit/dist/editor/svgedit.css"
 
 const DEFAULT_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"></svg>'
 const DEFAULT_ASSET_BASE = "/svgedit"
+let svgEditorAssetsPromise = null
+
+function loadSvgEditorAssets() {
+  svgEditorAssetsPromise ??= Promise.all([
+    import("svgedit/dist/editor/Editor.js"),
+    import("svgedit/dist/editor/svgedit.css"),
+  ]).then(([editorModule]) => editorModule.default)
+  return svgEditorAssetsPromise
+}
+
+function statusMessage(className, message) {
+  const element = document.createElement("p")
+  element.className = className
+  element.textContent = message
+  return element
+}
 
 export default class extends Controller {
   static targets = ["container", "sourceField"]
@@ -14,12 +28,21 @@ export default class extends Controller {
   }
 
   async connect() {
-    this.containerTarget.innerHTML =
-      '<p class="p-4 text-sm kb-text-muted">SVG エディタを読み込み中…</p>'
+    this.disconnected = false
+    if (this.hasSourceFieldTarget) {
+      this.sourceFieldTarget.value = this.sourceValue?.trim() || DEFAULT_SVG
+    }
+
+    this.containerTarget.replaceChildren(
+      statusMessage("p-4 text-sm kb-text-muted", "SVG エディタを読み込み中…")
+    )
 
     try {
-      this.containerTarget.innerHTML = ""
-      const base = this.assetBaseValue.replace(/\/\z/, "")
+      const Editor = await loadSvgEditorAssets()
+      if (this.disconnected) return
+
+      this.containerTarget.replaceChildren()
+      const base = this.assetBaseValue.replace(/\/$/, "")
 
       this.editor = new Editor(this.containerTarget)
       this.editor.setConfig({
@@ -39,12 +62,14 @@ export default class extends Controller {
       this.resizeObserver.observe(this.containerTarget)
     } catch (error) {
       console.error("SVGEdit init failed", error)
-      this.containerTarget.innerHTML =
-        '<p class="p-4 text-sm kb-text-danger">SVG エディタの読み込みに失敗しました。</p>'
+      this.containerTarget.replaceChildren(
+        statusMessage("p-4 text-sm kb-text-danger", "SVG エディタの読み込みに失敗しました。")
+      )
     }
   }
 
   disconnect() {
+    this.disconnected = true
     this.resizeObserver?.disconnect()
   }
 
