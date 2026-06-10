@@ -1,0 +1,178 @@
+= Modern Web Guidance ベースの Web 実装監査メモ
+:toc:
+
+このメモは、2026-06-11 時点の `kbmemo_site` を、Chrome の Modern Web Guidance を軸に
+HTML / CSS / JavaScript / accessibility / performance / security の観点で見直し、
+**実装修正の優先順位**を整理したものです。
+
+== 参照
+
+* Chrome for Developers, "Get started with Modern Web Guidance"
+  https://developer.chrome.com/docs/modern-web-guidance/get-started
+* Chrome for Developers, "Explore Modern Web Guidance skills"
+  https://developer.chrome.com/docs/modern-web-guidance/explore-skills
+* MDN, "HTML: A good basis for accessibility"
+  https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Accessibility/HTML
+
+Modern Web Guidance は、semantic HTML、native interactive APIs、focus management、resource prioritization、
+XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるための指針群として整理されている。
+本監査もその分類に合わせる。
+
+== 現状の良い点
+
+* semantic な `button` / `details` / `dialog` をすでに多用している。
+* flash 通知に `aria-live="polite"` が入っている。
+* avatar と本文画像系には `loading="lazy"` / `decoding="async"` が使われている。
+* production では `force_ssl = true`、host 制限、cookie store を使っている。
+* Tailwind 依存を外し、テーマ設計を `themes.css` と Open Props に寄せている。
+
+== 優先度付き更新案
+
+[cols="1,1,3,4",options="header"]
+|===
+|優先度 |領域 |現状 |更新案
+
+|P0
+|Security
+|`config/initializers/content_security_policy.rb` が実質無効。`app/views/layouts/application.html.slim`、`app/views/layouts/diagram_viewer.html.slim` に inline script が残っている。
+|まず **実 CSP を有効化** する。テーマ初期化 script は外部 JS へ逃がし、nonce 付き inline script 依存を減らす。最初の目標は `default-src 'self'`、`object-src 'none'`、`base-uri 'self'`、`frame-ancestors 'self'`、`img-src 'self' https: data:`、`script-src 'self'`。
+
+|P0
+|Security
+|`app/javascript/controllers/memo_ai_panel_controller.js` は `errorTarget.innerHTML = message` を使っている。`message` は server 応答を混ぜる経路がある。
+|**DOM API ベースへ置換**する。エラー文は `textContent`、リンクは `createElement("a")` で組み立てる。`innerHTML` は「信頼済み・サニタイズ済み HTML を入れる箇所」に限定し、コメントで境界を明示する。
+
+|P0
+|Security
+|`code_block_tools_controller.js` は `figure.innerHTML = data.svg` を使う。コメント上はサーバー側 sanitize 済みだが、境界がコード上で弱い。
+|SVG は **サーバー sanitize を契約として文書化**し、controller 側には「sanitize 済み payload 専用」の関数名を置く。将来的には response header / endpoint 名でも区別したい。
+
+|P1
+|Accessibility / HTML
+|全レイアウトで `html[lang]` が無い。`application.html.slim`、`diagram_viewer.html.slim`、`svg_editor.html.slim` が対象。
+|`lang="ja"` を付与する。将来 i18n を広げるなら locale 連動にする。これはスクリーンリーダーと読み上げ品質に直結する。
+
+|P1
+|Accessibility / HTML
+|メインコンテンツへ飛ぶ **skip link** が無い。ヘッダナビが長く、キーボード利用者の移動コストが高い。
+|`body` 先頭に「本文へスキップ」を追加し、`main` に `id` を付ける。表示は focus 時のみでよい。
+
+|P1
+|Accessibility / JS
+|`user_menu_controller.js` は open/close 制御はあるが、focus 移動、`aria-controls`、menu 内キーボード移動が弱い。
+|ヘッダメニューは **button + controlled popup** として整理し、開いたら最初の項目へ focus、Escape で trigger へ戻す。role=`menu` を維持するなら矢印キー移動まで実装する。
+
+|P1
+|Accessibility / HTML/JS
+|`dialog` は使っているが、`aria-labelledby` / `aria-describedby` の紐付けが弱い。例: `app/views/memos/_tsuzura_picker.html.slim`、ディレクトリ dialog。
+|各 dialog に見出し ID を振り、`aria-labelledby` を付ける。補助説明がある dialog には `aria-describedby` を付ける。
+
+|P1
+|Accessibility
+|サイドバー resizer は `role="separator"` を持つが `tabindex="-1"` で、キーボード操作経路が無い。
+|separator を本当に操作可能にするなら **focusable + Arrow key resize** を実装する。やらないなら単なる装飾 divider として扱い、role を外す。
+
+|P1
+|Forms / Accessibility
+|エラー表示は視覚中心で、`aria-invalid`、`aria-describedby`、field 単位の関連付けが不足している。
+|Rails form helper 出力に合わせて、invalid 時は `aria-invalid="true"`、field error message の ID を `aria-describedby` へ接続する。summary がある場合は先頭に置く。
+
+|P1
+|Performance / JS
+|直近の `bundle exec vite build --force` では `application` が約 1.79 MB、`svg_editor` が約 2.19 MB。さらに ineffective dynamic import 警告が出ている。
+|**route 単位の bundle 分離**を進める。特に `@kbmemo/adoc-codemirror` 系は static import と dynamic import が混在しているため、読み込み境界を整理する。メモ本文 editor、SVG editor、diagram viewer、theme studio は入口をさらに分けられる。
+
+|P1
+|Performance / HTML/JS
+|テーマ初期化 script が各 layout に inline で複製され、CSP とキャッシュの両面で不利。
+|最小の bootstrap module を 1 本に切り出し、`data-*` か JSON script tag で設定を渡す。これで CSP を締めやすくなる。
+
+|P2
+|CSS
+|`utility-compat.css` が Tailwind 置換レイヤとして成長している。現状は実用上問題ないが、長期では再び utility 膨張に戻りやすい。
+|「互換 layer は縮小専用」と決め、**新規 utility 追加を抑制**する。原則は semantic class を `themes.css` に置く。lint かレビュー項目で固定するとよい。
+
+|P2
+|HTML / Accessibility
+|現在も semantic HTML は比較的良いが、custom popup / picker の増加で native 機能との差が広がりやすい。
+|Baseline を明示した上で、可能な箇所は `dialog` / `details` に寄せ、将来的には `popover` も検討する。Modern Web Guidance でも native overlays と focus management が中心テーマになっている。
+
+|P2
+|Performance
+|継続的な測定点が docs に無い。
+|Lighthouse / CWV の運用基準を docs 化し、最低でも LCP / INP / CLS と bundle size を release 前確認項目にする。
+|===
+
+== 具体的な観察メモ
+
+=== 1. Layout / HTML
+
+* `app/views/layouts/application.html.slim`
+** `html` に `lang` が無い。
+** ヘッダ先頭から `main` までの移動を短縮する skip link が無い。
+** theme bootstrap が inline script 2 本で入っている。
+* `app/views/layouts/diagram_viewer.html.slim`
+** `lang` 無し。
+** theme bootstrap inline script あり。
+* `app/views/layouts/svg_editor.html.slim`
+** `lang` 無し。
+
+=== 2. Dialog / Menu
+
+* `app/views/memos/_tsuzura_picker.html.slim`
+** 見出し `h2` はあるが、dialog 自身との `aria-labelledby` 接続が無い。
+* `app/javascript/controllers/user_menu_controller.js`
+** 排他 open/close はできている。
+** 一方で、open 後の focus 遷移、close 時の focus return、Arrow key navigation は未整備。
+* `app/javascript/controllers/memo_directory_dialog_controller.js`
+** native `showModal()` を使っている点は良い。
+** `bodyTarget.innerHTML = await res.text()` は server-rendered fragment 前提なので、信頼境界を docs で固定しておきたい。
+
+=== 3. Security sink
+
+* `app/javascript/controllers/memo_ai_panel_controller.js`
+** `messagesTarget.innerHTML` は local render で escape 済み。
+** `errorTarget.innerHTML` は server message 混在経路なので、ここは改善優先度が高い。
+* `app/javascript/controllers/code_block_tools_controller.js`
+** SVG 注入は sanitize 前提。契約が崩れると危険。
+* `app/javascript/controllers/memo_search_picker_controller.js`
+** こちらは `_escape` / `_escapeAttr` を入れており、比較的丁寧。
+
+=== 4. Performance
+
+* Vite build は成功するが、chunk size warning が継続している。
+* `packages/adoc-codemirror/index.js` は dynamic import 対象なのに static import もされており、分割効果が出ていない。
+* editor 系の JS は memo 閲覧専用画面まで引き込まない構成へ寄せたい。
+
+== 推奨実施順
+
+=== Phase 1
+
+* CSP を有効化する
+* theme bootstrap の inline script を外部化する
+* `memo_ai_panel_controller.js` の `innerHTML` を除去する
+
+=== Phase 2
+
+* `lang="ja"` を全 layout に付与する
+* skip link を追加する
+* dialog の `aria-labelledby` / `aria-describedby` を揃える
+* resizer のアクセシビリティ方針を決める
+
+=== Phase 3
+
+* bundle 分割を見直す
+* ineffective dynamic import を解消する
+* route 単位で editor / viewer / studio の entry をさらに分ける
+
+=== Phase 4
+
+* `utility-compat.css` を縮小運用へ切り替える
+* Lighthouse / CWV / bundle size の確認手順を docs に追加する
+
+== 補足
+
+Modern Web Guidance は、最新機能を無条件に採用すること自体を目的にしていない。
+`Baseline` と fallback を前提に、**native で済むものは native に寄せ、JS は必要なところだけに限定する**
+という方向が中心にある。`kbmemo_site` では、すでに `dialog` / `details` / semantic button が入っているため、
+全面作り直しではなく、**CSP・focus management・bundle 分割**の3本を先に締めるのが最も効果的である。
