@@ -28,6 +28,9 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 .memo-directory-nav-summary::-webkit-details-marker {
   display: none;
 }
+.memo-directory-nav-summary::marker {
+  content: "";
+}
 .memo-directory-nav-summary {
   list-style: none;
 }

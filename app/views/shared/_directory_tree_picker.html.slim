@@ -23,6 +23,6 @@ ruby:
   - else
     = hidden_field_tag field_name, field_value, id: field_id, data: hidden_data
   div class="kb-menu-panel kb-picker-panel absolute left-0 top-full z-30 mt-1 hidden w-full max-w-md overflow-y-auto rounded-md py-2" data-memo-directory-parent-picker-target="panel" role="listbox"
-    ul.px-2
+    ul.list-none.px-2.pl-0
       - picker_roots.each do |dir|
         = render "shared/directory_tree_picker_branch", dir: dir, by_parent: by_parent, selected_directory: (unselected ? nil : selected_directory)
