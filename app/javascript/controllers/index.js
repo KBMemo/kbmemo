@@ -10,71 +10,14 @@ application.register("flash-notice", FlashNoticeController)
 import HelloController from "./hello_controller"
 application.register("hello", HelloController)
 
-import MemoAiPanelController from "./memo_ai_panel_controller"
-application.register("memo-ai-panel", MemoAiPanelController)
-
 import MemoAiSidebarController from "./memo_ai_sidebar_controller"
 application.register("memo-ai-sidebar", MemoAiSidebarController)
-
-import MemoAttachmentsController from "./memo_attachments_controller"
-application.register("memo-attachments", MemoAttachmentsController)
-
-import MemoBodyEditorController from "./memo_body_editor_controller"
-application.register("memo-body-editor", MemoBodyEditorController)
-
-import TsuzuraPickerController from "./tsuzura_picker_controller"
-application.register("tsuzura-picker", TsuzuraPickerController)
-
-import MemoChecklistController from "./memo_checklist_controller"
-application.register("memo-checklist", MemoChecklistController)
-
-import MemoShowMetadataController from "./memo_show_metadata_controller"
-application.register("memo-show-metadata", MemoShowMetadataController)
-
-import MemoShowContextMenuController from "./memo_show_context_menu_controller"
-application.register("memo-show-context-menu", MemoShowContextMenuController)
-
-import CodeBlockToolsController from "./code_block_tools_controller"
-application.register("code-block-tools", CodeBlockToolsController)
-
-import BoardAddMemoController from "./board_add_memo_controller"
-application.register("board-add-memo", BoardAddMemoController)
-
-import MemoSearchPickerController from "./memo_search_picker_controller"
-application.register("memo-search-picker", MemoSearchPickerController)
-
-import BoardKanbanDndController from "./board_kanban_dnd_controller"
-application.register("board-kanban-dnd", BoardKanbanDndController)
-
-import DiagramSourceViewerController from "./diagram_source_viewer_controller"
-application.register("diagram-source-viewer", DiagramSourceViewerController)
-
-import DiagramSvgViewerController from "./diagram_svg_viewer_controller"
-application.register("diagram-svg-viewer", DiagramSvgViewerController)
-
-import MemoDiagramEditorController from "./memo_diagram_editor_controller"
-application.register("memo-diagram-editor", MemoDiagramEditorController)
-
-import ExpandableHintController from "./expandable_hint_controller"
-application.register("expandable-hint", ExpandableHintController)
 
 import MemoDirectoryNavOpenController from "./memo_directory_nav_open_controller"
 application.register("memo-directory-nav-open", MemoDirectoryNavOpenController)
 
-import MemoDirectoryDialogController from "./memo_directory_dialog_controller"
-application.register("memo-directory-dialog", MemoDirectoryDialogController)
-
-import MemoDirectoryDndController from "./memo_directory_dnd_controller"
-application.register("memo-directory-dnd", MemoDirectoryDndController)
-
-import MemoDirectoryParentPickerController from "./memo_directory_parent_picker_controller"
-application.register("memo-directory-parent-picker", MemoDirectoryParentPickerController)
-
 import MemoDirectorySidebarOpenController from "./memo_directory_sidebar_open_controller"
 application.register("memo-directory-sidebar-open", MemoDirectorySidebarOpenController)
-
-import MemoWikiCreateController from "./memo_wiki_create_controller"
-application.register("memo-wiki-create", MemoWikiCreateController)
 
 import MemoDraftController from "./memo_draft_controller"
 application.register("memo-draft", MemoDraftController)
@@ -86,23 +29,86 @@ if (import.meta.hot) {
   })
 }
 
-import MemoBulkManageController from "./memo_bulk_manage_controller"
-application.register("memo-bulk-manage", MemoBulkManageController)
-
-import MemoSearchController from "./memo_search_controller"
-application.register("memo-search", MemoSearchController)
-
 import MemoSidebarController from "./memo_sidebar_controller"
 application.register("memo-sidebar", MemoSidebarController)
-
-import NotebookMemoTreeController from "./notebook_memo_tree_controller"
-application.register("notebook-memo-tree", NotebookMemoTreeController)
 
 import UserMenuController from "./user_menu_controller"
 application.register("user-menu", UserMenuController)
 
-import ThemeStudioController from "./theme_studio_controller"
-application.register("theme-studio", ThemeStudioController)
+const lazyControllers = {
+  "board-add-memo": () => import("./board_add_memo_controller"),
+  "board-kanban-dnd": () => import("./board_kanban_dnd_controller"),
+  "code-block-tools": () => import("./code_block_tools_controller"),
+  "diagram-source-viewer": () => import("./diagram_source_viewer_controller"),
+  "diagram-svg-viewer": () => import("./diagram_svg_viewer_controller"),
+  "expandable-hint": () => import("./expandable_hint_controller"),
+  "memo-ai-panel": () => import("./memo_ai_panel_controller"),
+  "memo-attachments": () => import("./memo_attachments_controller"),
+  "memo-body-editor": () => import("./memo_body_editor_controller"),
+  "memo-bulk-manage": () => import("./memo_bulk_manage_controller"),
+  "memo-checklist": () => import("./memo_checklist_controller"),
+  "memo-diagram-editor": () => import("./memo_diagram_editor_controller"),
+  "memo-directory-dialog": () => import("./memo_directory_dialog_controller"),
+  "memo-directory-dnd": () => import("./memo_directory_dnd_controller"),
+  "memo-directory-parent-picker": () => import("./memo_directory_parent_picker_controller"),
+  "memo-search": () => import("./memo_search_controller"),
+  "memo-search-picker": () => import("./memo_search_picker_controller"),
+  "memo-show-context-menu": () => import("./memo_show_context_menu_controller"),
+  "memo-show-metadata": () => import("./memo_show_metadata_controller"),
+  "memo-wiki-create": () => import("./memo_wiki_create_controller"),
+  "notebook-memo-tree": () => import("./notebook_memo_tree_controller"),
+  "skin-studio": () => import("./skin_studio_controller"),
+  "theme-studio": () => import("./theme_studio_controller"),
+  "tsuzura-picker": () => import("./tsuzura_picker_controller"),
+}
 
-import SkinStudioController from "./skin_studio_controller"
-application.register("skin-studio", SkinStudioController)
+const loadedLazyControllers = new Set()
+const loadingLazyControllers = new Map()
+
+function elementHasController(element, identifier) {
+  return element?.matches?.(`[data-controller~="${identifier}"]`)
+}
+
+function rootHasController(root, identifier) {
+  if (elementHasController(root, identifier)) return true
+  return root?.querySelector?.(`[data-controller~="${identifier}"]`) != null
+}
+
+function registerLazyController(identifier, loader) {
+  if (loadedLazyControllers.has(identifier)) return
+  if (loadingLazyControllers.has(identifier)) return
+
+  const loading = loader()
+    .then((mod) => {
+      application.register(identifier, mod.default)
+      loadedLazyControllers.add(identifier)
+    })
+    .catch((error) => {
+      loadingLazyControllers.delete(identifier)
+      console.error(`Failed to load Stimulus controller "${identifier}"`, error)
+    })
+
+  loadingLazyControllers.set(identifier, loading)
+}
+
+function scanLazyControllers(root = document) {
+  Object.entries(lazyControllers).forEach(([identifier, loader]) => {
+    if (!rootHasController(root, identifier)) return
+    registerLazyController(identifier, loader)
+  })
+}
+
+scanLazyControllers()
+
+document.addEventListener("turbo:load", () => scanLazyControllers())
+document.addEventListener("turbo:render", () => scanLazyControllers())
+
+new MutationObserver((mutations) => {
+  for (const mutation of mutations) {
+    mutation.addedNodes.forEach((node) => {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        scanLazyControllers(node)
+      }
+    })
+  }
+}).observe(document.documentElement, { childList: true, subtree: true })

@@ -32,6 +32,9 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `user_menu_controller.js` に `aria-controls`、open 時 focus、Escape focus return、Arrow/Home/End navigation を追加。
 * ディレクトリ dialog に `aria-labelledby` を追加し、server-rendered fragment の `innerHTML` 代入を `replaceWithServerRenderedForm` に隔離。
 * サイドバー resizer を keyboard 操作可能な separator にし、Arrow/Home/End resize と `aria-valuenow` 同期を追加。
+* route 固有の Stimulus controller（memo editor、diagram viewer/editor、theme/skin studio、memo show 補助 UI 等）を dynamic import 登録へ変更し、該当 DOM があるページだけ読み込む構成へ寄せた。
+* メモ本文 syntax highlight は `@kbmemo/adoc-codemirror` package root ではなく `codeHighlight` 単体を dynamic import し、閲覧ページで不要な Asciidoctor / CodeMirror 系依存を初期 bundle から外した。
+* `bundle exec vite build --force` で ineffective dynamic import 警告が消え、`application` chunk は約 1.79 MB から約 491.86 kB まで縮小した。`svg_editor` と editor/preview 系 async chunk の size warning は残る。
 
 == 現状の良い点
 
@@ -94,8 +97,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P1
 |Performance / JS
-|直近の `bundle exec vite build --force` では `application` が約 1.79 MB、`svg_editor` が約 2.19 MB。さらに ineffective dynamic import 警告が出ている。
-|**route 単位の bundle 分離**を進める。特に `@kbmemo/adoc-codemirror` 系は static import と dynamic import が混在しているため、読み込み境界を整理する。メモ本文 editor、SVG editor、diagram viewer、theme studio は入口をさらに分けられる。
+|route 固有の Stimulus controller は lazy 登録へ変更済み。メモ本文 highlight も `codeHighlight` 単体 dynamic import に切り出し済み。直近の `bundle exec vite build --force` では `application` が約 491.86 kB、`svg_editor` が約 2.19 MB。ineffective dynamic import 警告は解消済み。
+|次は `svg_editor` entry と editor/preview 系 async chunk を分割する。特に SVG editor は独立 entry のまま大きいため、SVG canvas 周辺の初期化境界を再確認する。
 
 |P1
 |Performance / HTML/JS
@@ -155,9 +158,10 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 === 4. Performance
 
-* Vite build は成功するが、chunk size warning が継続している。
-* `packages/adoc-codemirror/index.js` は dynamic import 対象なのに static import もされており、分割効果が出ていない。
-* editor 系の JS は memo 閲覧専用画面まで引き込まない構成へ寄せたい。
+* Vite build は成功するが、`svg_editor` と editor/preview 系 async chunk の size warning は継続している。
+* `application` 初期 chunk は約 491.86 kB まで縮小済み。
+* `packages/adoc-codemirror/index.js` の package root を本文閲覧 highlight から外したため、閲覧ページの syntax highlight は `codeHighlight` chunk のみを遅延取得する。
+* editor 系の JS は `memo-body-editor` controller が存在する画面でのみ読み込む構成へ寄せた。
 
 == 推奨実施順
 
@@ -176,8 +180,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 === Phase 3
 
-* TODO: bundle 分割を見直す
-* TODO: ineffective dynamic import を解消する
+* DONE: bundle 分割を見直す（Stimulus controller lazy 登録、本文 highlight の単体 dynamic import）
+* DONE: ineffective dynamic import を解消する
 * TODO: route 単位で editor / viewer / studio の entry をさらに分ける
 
 === Phase 4
