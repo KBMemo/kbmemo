@@ -11,7 +11,7 @@ ruby:
     h1.text-xl.font-semibold.kb-text-primary ディレクトリ・メモ管理
     p.mt-1.text-sm.kb-text-secondary
       | 左でフォルダを選び、右の一覧でメモにチェックを入れて一括操作します。
-  = link_to "メモ一覧へ戻る", memos_path(memo_directory_id: filter_dir_id), class: "kb-chrome-btn-secondary shrink-0 px-3 py-1.5 text-sm", data: { turbo: false }
+  = link_to "メモ一覧へ戻る", memos_path(memo_directory_id: filter_dir_id), class: "kb-chrome-btn-secondary kb-btn-sm shrink-0", data: { turbo: false }
 
 .flex.flex-col.gap-4 class="md:flex-row md:items-start"
   aside class="kb-card w-full shrink-0 p-3 md:w-72 md:sticky md:top-4"

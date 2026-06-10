@@ -14,8 +14,8 @@
           = label_tag :target_tag_id, "統合先（残るタグ）", class: "#{kb_label} mb-1"
           = select_tag :target_tag_id, options_from_collection_for_select(@tags_for_select, :id, :name, nil), class: kb_field_input_classes
         .flex.flex-wrap.gap-3.pt-2
-          = submit_tag "統合する", class: "kb-chrome-btn-primary px-4 py-2", data: { turbo_confirm: "統合元のタグを削除し、メモの紐付けを移します。よろしいですか？", theme_slot: "btn-primary" }
-          = link_to "一覧へ", tags_path, class: "kb-chrome-btn-secondary px-4 py-2"
+          = submit_tag "統合する", class: "kb-chrome-btn-primary kb-btn-md", data: { turbo_confirm: "統合元のタグを削除し、メモの紐付けを移します。よろしいですか？", theme_slot: "btn-primary" }
+          = link_to "一覧へ", tags_path, class: "kb-chrome-btn-secondary kb-btn-md"
     - elsif @tags_for_select.any?
       p.text-sm.kb-text-muted タグが1件しかないため、統合できる相手がありません。
       p.mt-4

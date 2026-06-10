@@ -11,7 +11,7 @@ section.mt-10
     div.min-w-[min(100%,20rem)].flex-1
       = label_tag :memo_query, "メモ", class: kb_label
       = render "notebooks/memo_picker_field", notebook: @notebook, picker_id: "notebook_edit_memo_picker", placeholder: "タイトル・本文で検索"
-    = submit_tag "追加", class: "kb-chrome-btn-primary px-4 py-2 text-sm", disabled: true, data: { memo_search_picker_target: "submit", theme_slot: "btn-primary" }
+    = submit_tag "追加", class: "kb-chrome-btn-primary kb-btn-sm", disabled: true, data: { memo_search_picker_target: "submit", theme_slot: "btn-primary" }
 
   - if @notebook_memos.any?
     h3.mt-8.text-sm.font-semibold.kb-text-primary 含まれるメモ

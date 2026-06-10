@@ -41,8 +41,8 @@ section.mt-10
       |  で発行できます（ChatGPT Plus とは別課金）。
 
   .flex.flex-wrap.gap-3
-    = f.submit "保存", class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }
-    = link_to "メモ一覧へ", memos_path, class: "kb-chrome-btn-secondary px-4 py-2"
+    = f.submit "保存", class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
+    = link_to "メモ一覧へ", memos_path, class: "kb-chrome-btn-secondary kb-btn-md"
 
 section.mt-10
   h2 class=kb_section_title Google Calendar
@@ -61,16 +61,16 @@ section.mt-10
           = @google_calendar_synced_memos_count
           | 件
       .mt-4.flex.flex-wrap.gap-3
-        = button_to "今すぐ同期", google_calendar_sync_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }
-        = button_to "取り込みデータをクリア", google_calendar_clear_data_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "Google Calendar から取り込んだメモをすべて削除します。連携は維持され、次回同期で再取り込みできます。続行しますか？" } }
-        = button_to "連携を解除", google_calendar_disconnect_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "Google Calendar 連携を解除しますか？" } }
+        = button_to "今すぐ同期", google_calendar_sync_path, method: :post, class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
+        = button_to "取り込みデータをクリア", google_calendar_clear_data_path, method: :delete, class: "kb-chrome-btn-secondary kb-btn-md", form: { data: { turbo_confirm: "Google Calendar から取り込んだメモをすべて削除します。連携は維持され、次回同期で再取り込みできます。続行しますか？" } }
+        = button_to "連携を解除", google_calendar_disconnect_path, method: :delete, class: "kb-chrome-btn-secondary kb-btn-md", form: { data: { turbo_confirm: "Google Calendar 連携を解除しますか？" } }
       p.mt-3.text-xs.kb-text-muted
         | CLI:
         code.kb-code-inline bin/rails kbmemo:google_calendar:clear ACCOUNT_ID=#{@account.id}
     - else
       p.mt-2.text-xs.text-amber-700 未連携
       .mt-4
-        = link_to "Google Calendar と連携", google_calendar_connect_path, class: "kb-chrome-btn-primary px-4 py-2 inline-block", data: { theme_slot: "btn-primary" }
+        = link_to "Google Calendar と連携", google_calendar_connect_path, class: "kb-chrome-btn-primary kb-btn-md inline-block", data: { theme_slot: "btn-primary" }
   - else
     p.mt-2.text-xs.text-amber-700
       - if (reason = GoogleCalendar::Credentials.misconfiguration_reason)
@@ -123,9 +123,9 @@ section.mt-10#clip-api-token
       | document.getElementById("clip-api-token")?.scrollIntoView({ block: "start" });
 
   .mt-4.flex.flex-wrap.gap-3
-    = button_to "トークンを発行", clip_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
+    = button_to "トークンを発行", clip_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
     - if @account.clip_api_token_configured?
-      = button_to "トークンを無効化", clip_api_token_profile_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "API からのクリップができなくなります。続行しますか？" } }
+      = button_to "トークンを無効化", clip_api_token_profile_path, method: :delete, class: "kb-chrome-btn-secondary kb-btn-md", form: { data: { turbo_confirm: "API からのクリップができなくなります。続行しますか？" } }
 
   = render "profiles/clip_bookmarklet_setup", base_url: request.base_url, revealed_token: @revealed_clip_api_token, token_configured: @account.clip_api_token_configured?
 
@@ -159,6 +159,6 @@ section.mt-10#tsuzura-cli-token
       | document.getElementById("tsuzura-cli-token")?.scrollIntoView({ block: "start" });
 
   .mt-4.flex.flex-wrap.gap-3
-    = button_to "トークンを発行", tsuzura_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
+    = button_to "トークンを発行", tsuzura_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
     - if @account.tsuzura_api_token_configured?
-      = button_to "トークンを無効化", tsuzura_api_token_profile_path, method: :delete, class: "kb-chrome-btn-secondary px-4 py-2", form: { data: { turbo_confirm: "CLI からの登録ができなくなります。続行しますか？" } }
+      = button_to "トークンを無効化", tsuzura_api_token_profile_path, method: :delete, class: "kb-chrome-btn-secondary kb-btn-md", form: { data: { turbo_confirm: "CLI からの登録ができなくなります。続行しますか？" } }

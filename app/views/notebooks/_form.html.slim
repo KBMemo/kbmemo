@@ -28,5 +28,5 @@
     = f.collection_select :memo_directory_id, @memo_directory_options, :id, :labeled_path_from_root, { include_blank: "（未指定）" }, class: kb_field_input_classes
 
   .flex.flex-wrap.gap-2
-    = f.submit submit_label, class: "kb-chrome-btn-primary px-4 py-2 text-sm", data: { theme_slot: "btn-primary" }
-    = link_to "キャンセル", notebook.persisted? ? notebook_path(notebook) : notebooks_path, class: "kb-chrome-btn-secondary px-4 py-2 text-sm"
+    = f.submit submit_label, class: "kb-chrome-btn-primary kb-btn-sm", data: { theme_slot: "btn-primary" }
+    = link_to "キャンセル", notebook.persisted? ? notebook_path(notebook) : notebooks_path, class: "kb-chrome-btn-secondary kb-btn-sm"

@@ -22,11 +22,11 @@ div class="kb-chrome-workspace flex -mx-4 flex-col border-t md:min-h-[calc(100vh
             = " · "
             = link_to "設定", edit_board_path(@board), class: "kb-chrome-link"
         .flex.flex-wrap.items-center.gap-2
-          button.kb-chrome-btn-secondary type="button" data-action="board-add-memo#open" 既存メモを追加
+          button.kb-chrome-btn-secondary.kb-btn-md type="button" data-action="board-add-memo#open" 既存メモを追加
           = form_with url: board_board_cards_path(@board), method: :post, class: "flex items-center gap-2", data: { turbo: true } do |f|
             = hidden_field_tag :kanban_column_id, @board_columns.first&.id
             = text_field_tag :title, nil, placeholder: "新規カードのタイトル", required: true, class: "kb-input w-48 rounded-md px-2 py-1.5 text-sm sm:w-64"
-            = submit_tag "追加", class: "kb-chrome-btn-primary", data: { theme_slot: "btn-primary" }
+            = submit_tag "追加", class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
 
       #board_add_memo_panel.hidden.fixed.inset-0.z-40 data-board-add-memo-target="panel"
         .kb-overlay-backdrop.absolute.inset-0 data-action="click->board-add-memo#close"

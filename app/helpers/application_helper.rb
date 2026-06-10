@@ -206,15 +206,15 @@ module ApplicationHelper
   end
 
   def kb_toolbar_btn_sm
-    "#{kb_toolbar_btn} px-2 py-1 text-xs font-medium"
+    kb_toolbar_btn
   end
 
   def kb_btn_secondary_sm
-    "kb-chrome-btn-secondary px-4 py-2 text-sm"
+    "kb-chrome-btn-secondary kb-btn-sm"
   end
 
   def kb_btn_primary_sm
-    "kb-chrome-btn-primary px-4 py-2 text-sm"
+    "kb-chrome-btn-primary kb-btn-sm"
   end
 
   # Header KB monogram (public/kbmemo-brand.svg). Inline so fill=currentColor follows theme.

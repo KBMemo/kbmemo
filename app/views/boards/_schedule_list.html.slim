@@ -3,9 +3,9 @@
     h2.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted 予定
     - if calendar.week_view?
       .flex.min-w-0.items-center.gap-1
-        = link_to "‹", board_schedule_week_path(board, calendar.prev_week_day), class: "kb-chrome-btn-secondary inline-flex h-6 w-6 shrink-0 items-center justify-center p-0 text-xs", title: "前の週", data: { turbo_frame: "board_schedule_panel" }
+        = link_to "‹", board_schedule_week_path(board, calendar.prev_week_day), class: "kb-chrome-btn-secondary kb-icon-square-sm shrink-0", title: "前の週", data: { turbo_frame: "board_schedule_panel" }
         p.truncate.text-xs.kb-text-secondary = board_schedule_list_heading(calendar)
-        = link_to "›", board_schedule_week_path(board, calendar.next_week_day), class: "kb-chrome-btn-secondary inline-flex h-6 w-6 shrink-0 items-center justify-center p-0 text-xs", title: "次の週", data: { turbo_frame: "board_schedule_panel" }
+        = link_to "›", board_schedule_week_path(board, calendar.next_week_day), class: "kb-chrome-btn-secondary kb-icon-square-sm shrink-0", title: "次の週", data: { turbo_frame: "board_schedule_panel" }
     - else
       p.text-xs.kb-text-secondary = board_schedule_list_heading(calendar)
   .min-h-0.flex-1.overflow-y-auto

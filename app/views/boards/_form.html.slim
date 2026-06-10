@@ -20,7 +20,7 @@ div data-controller="memo-directory-dialog" data-memo-directory-dialog-new-query
         p.text-xs.kb-text-muted ボード上から新規メモを作るときの Git 配置先です。
 
     .flex.flex-wrap.items-center.gap-3
-      = f.submit submit_label, class: "kb-chrome-btn-primary px-4 py-2", data: { theme_slot: "btn-primary" }
+      = f.submit submit_label, class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
       - if board.persisted?
         = link_to "キャンセル", board_path(board), class: "kb-chrome-link text-sm"
       - else

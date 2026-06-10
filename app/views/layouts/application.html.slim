@@ -61,7 +61,7 @@ html data-kb-theme="default" data-kb-theme-base="default" data-kb-skin="auto"
                 = button_to "ログアウト", rodauth.logout_path, method: :post, form: { class: "block w-full" }, class: "kb-menu-item w-full rounded-none border-0 bg-transparent px-3 py-2 text-left text-sm font-normal", role: "menuitem"
           - if Rails.env.development?
             = link_to "送信メール", "/letter_opener", class: "kb-chrome-link kb-text-muted", target: "_blank", rel: "noopener"
-          = link_to "新規メモ", new_memo_path_with_current_directory, class: "kb-chrome-btn-primary", data: { theme_slot: "btn-primary", turbo: false }
+          = link_to "新規メモ", new_memo_path_with_current_directory, class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary", turbo: false }
     main.mx-auto.w-full.px-4 class=[content_max_width_class, (theme_studio_layout? ? "py-4" : (wide_content_layout? ? "py-6" : "py-8"))].join(" ")
       - if memos_wide_layout?
         div[class="hidden" aria-hidden="true"]
