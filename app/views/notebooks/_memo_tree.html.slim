@@ -5,7 +5,7 @@ ruby:
 
 #notebook_memo_tree.min-w-0
   - if roots.any?
-    ul.mt-0.5.space-y-0.5 data-tree-children="" data-action=( @can_manage ? "dragover->notebook-memo-tree#allowDrop drop->notebook-memo-tree#dropOnRoot" : nil )
+    ul.mt-0.5.list-none.space-y-0.5.p-0 data-tree-children="" data-action=( @can_manage ? "dragover->notebook-memo-tree#allowDrop drop->notebook-memo-tree#dropOnRoot" : nil )
       - roots.each do |entry|
         = render "notebooks/memo_tree_branch", entry: entry, by_parent: by_parent, selected_memo_id: selected_id, can_manage: @can_manage
   - else

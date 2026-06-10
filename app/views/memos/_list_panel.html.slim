@@ -21,7 +21,7 @@ ruby:
           title: "サイドバーでこのディレクトリを表示"
     - if @sidebar_view == "directory"
       - nav_dir_children = memo_directory_nav_children_index(@memo_directories_for_nav || [])
-      ul.mb-2.space-y-0.5
+      ul.mb-2.list-none.space-y-0.5.p-0
         - memo_directory_nav_tree_roots(@memo_directories_for_nav || [], nav_dir_children).each do |dir|
           = render "memos/memo_directory_nav_branch", dir: dir, by_parent: nav_dir_children
     - elsif @sidebar_view == "tag"

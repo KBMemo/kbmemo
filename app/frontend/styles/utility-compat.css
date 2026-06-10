@@ -23,6 +23,7 @@
 .flex { display: flex; }
 .inline-flex { display: inline-flex; }
 .grid { display: grid; }
+.list-none { list-style: none; }
 
 .flex-1 { flex: 1 1 0%; }
 .flex-col { flex-direction: column; }
@@ -86,6 +87,7 @@
 .w-80 { width: 20rem; }
 
 .p-0 { padding: 0; }
+.pl-0 { padding-left: 0; }
 [class~="p-0.5"] { padding: 0.125rem; }
 .p-2 { padding: 0.5rem; }
 .p-3 { padding: 0.75rem; }

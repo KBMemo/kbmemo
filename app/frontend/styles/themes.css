@@ -1413,7 +1413,12 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   margin-top: 0.125rem;
   margin-left: var(--kb-space-2);
   padding-left: var(--kb-space-2);
+  list-style: none;
   border-left: 1px solid var(--kb-border);
+}
+
+.kb-tree-children > li {
+  list-style: none;
 }
 
 .kb-list-tag {
