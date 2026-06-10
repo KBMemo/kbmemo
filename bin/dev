@@ -1,2 +1,49 @@
 #!/usr/bin/env ruby
-exec "./bin/rails", "server", *ARGV
+# frozen_string_literal: true
+
+APP_ROOT = File.expand_path("..", __dir__)
+COMMANDS = [
+  ["vite", "./bin/vite", "dev"],
+  ["web", "./bin/rails", "server"],
+].freeze
+
+Dir.chdir(APP_ROOT) do
+  pids = {}
+  stopping = false
+
+  stop_children = lambda do
+    next if stopping
+
+    stopping = true
+    pids.each_value do |pid|
+      begin
+        Process.kill("TERM", pid)
+      rescue Errno::ESRCH
+      end
+    end
+  end
+
+  Signal.trap("INT") { stop_children.call }
+  Signal.trap("TERM") { stop_children.call }
+
+  COMMANDS.each do |name, *command|
+    command += ARGV if name == "web"
+    pids[name] = spawn(*command)
+  end
+
+  status = nil
+  begin
+    _pid, status = Process.wait2
+  rescue Errno::ECHILD
+  ensure
+    stop_children.call
+    pids.each_value do |pid|
+      begin
+        Process.wait(pid)
+      rescue Errno::ECHILD
+      end
+    end
+  end
+
+  exit(status&.signaled? ? 128 + status.termsig : status&.exitstatus || 0)
+end
