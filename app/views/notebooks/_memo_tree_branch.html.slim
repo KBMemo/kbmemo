@@ -23,9 +23,9 @@ li *row_attrs
   - if has_children
     = tag.details(open: open, class: "group") do
       summary.flex.min-w-0.list-none.items-center.gap-0.5.rounded-md.kb-hover-row.memo-directory-nav-summary
-        span aria-hidden="true" class="shrink-0 cursor-pointer text-[10px] leading-none kb-text-subtle transition-transform select-none group-open:rotate-90" ▶
+        span aria-hidden="true" class="kb-tree-caret cursor-pointer" ▶
         = render "notebooks/memo_tree_row", entry: entry, can_manage: can_manage, row_drop: row_drop
-      ul.mt-0.5.space-y-0.5.border-l.kb-border.pl-2.ml-2 data-tree-children="" data-action=(can_manage ? "dragover->notebook-memo-tree#allowDrop drop->notebook-memo-tree#dropOnChildren" : nil)
+      ul.kb-tree-children.space-y-0.5 data-tree-children="" data-action=(can_manage ? "dragover->notebook-memo-tree#allowDrop drop->notebook-memo-tree#dropOnChildren" : nil)
         - children.each do |child|
           = render "notebooks/memo_tree_branch", entry: child, by_parent: by_parent, selected_memo_id: selected_memo_id, can_manage: can_manage
   - else

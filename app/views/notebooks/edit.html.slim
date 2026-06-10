@@ -15,7 +15,7 @@ section.mt-10
 
   - if @notebook_memos.any?
     h3.mt-8.text-sm.font-semibold.kb-text-primary 含まれるメモ
-    ul.mt-3 class="divide-y divide-[var(--kb-border)] rounded-md border kb-border"
+    ul.mt-3 class="kb-divide-y rounded-md border kb-border"
       - @notebook_memos.each do |entry|
         li.flex.items-center.justify-between.gap-3.px-3.py-2
           span.min-w-0.truncate = entry.memo.title

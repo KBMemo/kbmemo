@@ -1,6 +1,6 @@
 #memo_sidebar_memo_list_container
   - if @memos&.any?
-    ul#memo_sidebar_memo_list class="divide-y divide-[var(--kb-border)]" data-history-memo-ids=memo_sidebar_history_memo_ids
+    ul#memo_sidebar_memo_list class="kb-divide-y" data-history-memo-ids=memo_sidebar_history_memo_ids
       - @memos.each do |memo|
         li.flex.min-h-0.min-w-0 id=dom_id(memo, :sidebar_row)
           - nav_q = memo_sidebar_nav_query
