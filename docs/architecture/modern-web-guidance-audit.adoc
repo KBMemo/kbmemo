@@ -18,6 +18,17 @@ Modern Web Guidance は、semantic HTML、native interactive APIs、focus manage
 XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるための指針群として整理されている。
 本監査もその分類に合わせる。
 
+== 実施ログ
+
+=== 2026-06-11
+
+* CSP は `config/initializers/content_security_policy.rb` で report-only として有効化。既存ページの違反収集を前提にし、enforcement は次段階に残す。
+* `application.html.slim` / `diagram_viewer.html.slim` のテーマ初期化 inline script を削除し、`application` entrypoint が `script[type="application/json"]` の account theme payload を読む構成へ変更。
+* `memo_ai_panel_controller.js` の error 表示を `innerHTML` から `textContent` / `createElement` ベースへ変更。
+* `application.html.slim` / `diagram_viewer.html.slim` / `svg_editor.html.slim` に `lang="ja"` を付与。
+* `application.html.slim` に skip link と `main#main-content` を追加。
+* Tsuzura picker dialog に `aria-labelledby` / `aria-describedby` を追加。
+
 == 現状の良い点
 
 * semantic な `button` / `details` / `dialog` をすでに多用している。

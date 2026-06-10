@@ -59,11 +59,9 @@ export default class extends Controller {
       const data = await res.json().catch(() => ({}))
 
       if (!res.ok) {
-        let message = data.error || "AI との通信に失敗しました。"
-        if (data.settings_url) {
-          message = `${message} ${this.profileLinkHtml(data.settings_url)}`
-        }
-        this.showError(message)
+        this.showError(data.error || "AI との通信に失敗しました。", {
+          settingsUrl: data.settings_url
+        })
         return
       }
 
@@ -147,9 +145,20 @@ export default class extends Controller {
     this.sendButtonTarget.textContent = this.sending ? "送信中…" : "送信"
   }
 
-  showError(message) {
+  showError(message, options = {}) {
     if (!this.hasErrorTarget) return
-    this.errorTarget.innerHTML = message
+    this.errorTarget.replaceChildren()
+    this.errorTarget.append(document.createTextNode(String(message)))
+
+    if (options.settingsUrl) {
+      this.errorTarget.append(" ")
+      const link = document.createElement("a")
+      link.href = String(options.settingsUrl)
+      link.className = "underline"
+      link.textContent = "プロフィール"
+      this.errorTarget.append(link)
+    }
+
     this.errorTarget.classList.remove("hidden")
   }
 
@@ -159,10 +168,6 @@ export default class extends Controller {
     this.errorTarget.classList.add("hidden")
   }
 
-  profileLinkHtml(url) {
-    const safe = this.escapeHtml(url)
-    return `<a href="${safe}" class="underline">プロフィール</a>`
-  }
 
   escapeHtml(text) {
     return String(text)

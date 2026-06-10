@@ -1,10 +1,10 @@
-dialog.tsuzura-picker-dialog.memo-directory-dialog.kb-modal-panel class="p-0" data-tsuzura-picker-target="dialog" data-action="click->tsuzura-picker#backdropClose"
+dialog.tsuzura-picker-dialog.memo-directory-dialog.kb-modal-panel class="p-0" aria-labelledby="tsuzura-picker-title" aria-describedby="tsuzura-picker-status" data-tsuzura-picker-target="dialog" data-action="click->tsuzura-picker#backdropClose"
   div class="kb-tsuzura-picker-shell"
     .flex.items-center.justify-between.border-b.kb-border.px-4.py-3
-      h2.text-base.font-semibold.kb-text-primary Tsuzura から挿入
+      h2#tsuzura-picker-title.text-base.font-semibold.kb-text-primary Tsuzura から挿入
       button.kb-toolbar-btn type="button" data-action="tsuzura-picker#close" aria-label="閉じる"
         | ✕
-    p.px-4.py-2.text-xs.kb-text-muted data-tsuzura-picker-target="status"
+    p#tsuzura-picker-status.px-4.py-2.text-xs.kb-text-muted data-tsuzura-picker-target="status"
     .grid.min-h-0.flex-1.gap-0.border-t.kb-border class="grid-cols-1 md:grid-cols-2"
       .min-h-0.overflow-y-auto.border-b.kb-border class="md:border-b-0 md:border-r" data-tsuzura-picker-target="list"
       .min-h-0.overflow-y-auto data-tsuzura-picker-target="detail"
