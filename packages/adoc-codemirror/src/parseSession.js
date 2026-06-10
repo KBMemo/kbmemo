@@ -2,7 +2,7 @@ import { loadDocument } from './instance.js'
 import { computeHighlights } from './highlight.js'
 import { normalizeMemoImagePathsInSource } from '../../adoc-kbmemo/src/image_syntax.js'
 import { restrictPassthroughInSource } from '../../adoc-kbmemo/src/passthrough_restrict.js'
-import { substituteDiagramsForPreview } from '../../adoc-kbmemo/src/diagram_substitute.js'
+import { diagramAvailabilityCacheKey, substituteDiagramsForPreview } from '../../adoc-kbmemo/src/diagram_substitute.js'
 import { substituteTsuzuraForPreview, tsuzuraCacheKey } from '../../adoc-kbmemo/src/tsuzura_substitute.js'
 import { substituteWikiLinksForPreview } from '../../adoc-kbmemo/src/wiki_link_substitute.js'
 
@@ -15,6 +15,8 @@ let cache = { source: '', doc: null, html: null, highlights: [] }
 let cachePreviewMemoId
 /** @type {string | undefined} */
 let cachePreviewWikiLabelsKey
+/** @type {string | undefined} */
+let cachePreviewDiagramKey
 
 /**
  * Parse for editor highlights (sync on every keystroke).
@@ -33,6 +35,7 @@ export function refreshHighlights(source) {
   cache = { source, doc, highlights, html: null }
   cachePreviewMemoId = undefined
   cachePreviewWikiLabelsKey = undefined
+  cachePreviewDiagramKey = undefined
   cachePreviewTsuzuraKey = undefined
   return highlights
 }
@@ -72,10 +75,11 @@ function wikiLabelsCacheKey(wikiLabels) {
 let cachePreviewTsuzuraKey
 
 /**
+ * @param {Map<string, boolean> | undefined} diagramAvailability
  * @param {{ urls?: Map<string, string>, albums?: Map<string, string[]> } | undefined} tsuzuraCache
  */
-function previewSourceForConvert(source, memoId, wikiLabels, tsuzuraCache) {
-  let processed = substituteDiagramsForPreview(source)
+function previewSourceForConvert(source, memoId, wikiLabels, diagramAvailability, tsuzuraCache) {
+  let processed = substituteDiagramsForPreview(source, diagramAvailability)
   if (wikiLabels !== undefined) {
     processed = substituteWikiLinksForPreview(processed, wikiLabels)
   }
@@ -93,17 +97,19 @@ function previewSourceForConvert(source, memoId, wikiLabels, tsuzuraCache) {
  * Reuses doc/highlights from {@link refreshHighlights} when possible.
  *
  * @param {string} source
- * @param {{ memoId?: string | null, wikiLabels?: Map<string, object>, tsuzuraCache?: { urls: Map<string, string>, albums: Map<string, string[]> } }} [options]
+ * @param {{ memoId?: string | null, diagramAvailability?: Map<string, boolean>, wikiLabels?: Map<string, object>, tsuzuraCache?: { urls: Map<string, string>, albums: Map<string, string[]> } }} [options]
  */
-export function refreshPreview(source, { memoId, wikiLabels, tsuzuraCache } = {}) {
+export function refreshPreview(source, { memoId, diagramAvailability, wikiLabels, tsuzuraCache } = {}) {
+  const diagramKey = diagramAvailability !== undefined ? diagramAvailabilityCacheKey(diagramAvailability) : undefined
   const labelsKey = wikiLabels !== undefined ? wikiLabelsCacheKey(wikiLabels) : undefined
   const tsuzuraKey = tsuzuraCache !== undefined ? tsuzuraCacheKey(tsuzuraCache) : undefined
-  const previewSource = previewSourceForConvert(source, memoId, wikiLabels, tsuzuraCache)
+  const previewSource = previewSourceForConvert(source, memoId, wikiLabels, diagramAvailability, tsuzuraCache)
 
   if (
     cache.source === source &&
     cache.html &&
     cachePreviewMemoId === memoId &&
+    cachePreviewDiagramKey === diagramKey &&
     cachePreviewWikiLabelsKey === labelsKey &&
     cachePreviewTsuzuraKey === tsuzuraKey
   ) {
@@ -116,6 +122,7 @@ export function refreshPreview(source, { memoId, wikiLabels, tsuzuraCache } = {}
     cache = { source, doc, highlights, html: null }
     cachePreviewMemoId = undefined
     cachePreviewWikiLabelsKey = undefined
+    cachePreviewDiagramKey = undefined
     cachePreviewTsuzuraKey = undefined
   }
 
@@ -123,6 +130,7 @@ export function refreshPreview(source, { memoId, wikiLabels, tsuzuraCache } = {}
     previewSource === source ? cache.doc : loadDocument(previewSource)
   cache.html = previewDoc.convert(previewConvertOptions(memoId))
   cachePreviewMemoId = memoId
+  cachePreviewDiagramKey = diagramKey
   cachePreviewWikiLabelsKey = labelsKey
   cachePreviewTsuzuraKey = tsuzuraKey
   return { html: cache.html, highlights: cache.highlights }
@@ -132,5 +140,6 @@ export function clearParseCache() {
   cache = { source: '', doc: null, html: null, highlights: [] }
   cachePreviewMemoId = undefined
   cachePreviewWikiLabelsKey = undefined
+  cachePreviewDiagramKey = undefined
   cachePreviewTsuzuraKey = undefined
 }
