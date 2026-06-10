@@ -28,6 +28,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `application.html.slim` / `diagram_viewer.html.slim` / `svg_editor.html.slim` に `lang="ja"` を付与。
 * `application.html.slim` に skip link と `main#main-content` を追加。
 * Tsuzura picker dialog に `aria-labelledby` / `aria-describedby` を追加。
+* `code_block_tools_controller.js` の sanitize 済み SVG 注入を `replaceWithSanitizedSvg` に隔離し、loading / error 表示を DOM API ベースへ変更。
+* `user_menu_controller.js` に `aria-controls`、open 時 focus、Escape focus return、Arrow/Home/End navigation を追加。
 
 == 現状の良い点
 
@@ -45,38 +47,38 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P0
 |Security
-|`config/initializers/content_security_policy.rb` が実質無効。`app/views/layouts/application.html.slim`、`app/views/layouts/diagram_viewer.html.slim` に inline script が残っている。
-|まず **実 CSP を有効化** する。テーマ初期化 script は外部 JS へ逃がし、nonce 付き inline script 依存を減らす。最初の目標は `default-src 'self'`、`object-src 'none'`、`base-uri 'self'`、`frame-ancestors 'self'`、`img-src 'self' https: data:`、`script-src 'self'`。
+|CSP は report-only で有効化済み。`application.html.slim` / `diagram_viewer.html.slim` のテーマ初期化 inline script は削除済み。
+|report-only 違反を確認し、必要な fetch / style / asset origin を整理してから enforcement へ移行する。
 
 |P0
 |Security
-|`app/javascript/controllers/memo_ai_panel_controller.js` は `errorTarget.innerHTML = message` を使っている。`message` は server 応答を混ぜる経路がある。
-|**DOM API ベースへ置換**する。エラー文は `textContent`、リンクは `createElement("a")` で組み立てる。`innerHTML` は「信頼済み・サニタイズ済み HTML を入れる箇所」に限定し、コメントで境界を明示する。
+|`memo_ai_panel_controller.js` の error 表示は DOM API ベースへ置換済み。`messagesTarget.innerHTML` は local escape 済み render として残る。
+|残る `innerHTML` は「信頼済み・サニタイズ済み HTML を入れる箇所」に限定し、関数名やコメントで境界を明示する。
 
 |P0
 |Security
-|`code_block_tools_controller.js` は `figure.innerHTML = data.svg` を使う。コメント上はサーバー側 sanitize 済みだが、境界がコード上で弱い。
-|SVG は **サーバー sanitize を契約として文書化**し、controller 側には「sanitize 済み payload 専用」の関数名を置く。将来的には response header / endpoint 名でも区別したい。
+|`code_block_tools_controller.js` の SVG 注入は `replaceWithSanitizedSvg` に隔離済み。loading / error 表示は DOM API ベースへ変更済み。
+|次は sanitize 契約を endpoint / response header / controller test でより明示する。
 
 |P1
 |Accessibility / HTML
-|全レイアウトで `html[lang]` が無い。`application.html.slim`、`diagram_viewer.html.slim`、`svg_editor.html.slim` が対象。
-|`lang="ja"` を付与する。将来 i18n を広げるなら locale 連動にする。これはスクリーンリーダーと読み上げ品質に直結する。
+|`application.html.slim`、`diagram_viewer.html.slim`、`svg_editor.html.slim` は `lang="ja"` 付与済み。
+|将来 i18n を広げるなら locale 連動にする。
 
 |P1
 |Accessibility / HTML
-|メインコンテンツへ飛ぶ **skip link** が無い。ヘッダナビが長く、キーボード利用者の移動コストが高い。
-|`body` 先頭に「本文へスキップ」を追加し、`main` に `id` を付ける。表示は focus 時のみでよい。
+|`application.html.slim` は skip link と `main#main-content` 追加済み。
+|長いナビゲーションを持つ layout が増えた場合は同じ pattern を使う。
 
 |P1
 |Accessibility / JS
-|`user_menu_controller.js` は open/close 制御はあるが、focus 移動、`aria-controls`、menu 内キーボード移動が弱い。
-|ヘッダメニューは **button + controlled popup** として整理し、開いたら最初の項目へ focus、Escape で trigger へ戻す。role=`menu` を維持するなら矢印キー移動まで実装する。
+|`user_menu_controller.js` は `aria-controls`、open 時の初期 focus、Escape の focus return、menuitem の Arrow/Home/End 移動を追加済み。
+|select は native 操作を優先して Tab 移動対象に残す。今後 popover 化する場合は role 設計も再評価する。
 
 |P1
 |Accessibility / HTML/JS
-|`dialog` は使っているが、`aria-labelledby` / `aria-describedby` の紐付けが弱い。例: `app/views/memos/_tsuzura_picker.html.slim`、ディレクトリ dialog。
-|各 dialog に見出し ID を振り、`aria-labelledby` を付ける。補助説明がある dialog には `aria-describedby` を付ける。
+|Tsuzura picker は `aria-labelledby` / `aria-describedby` 付与済み。ディレクトリ dialog は Ajax で body を差し替えるため未対応。
+|ディレクトリ dialog は読み込まれる見出し ID と wrapper の `aria-labelledby` を controller 側で接続する。
 
 |P1
 |Accessibility
@@ -95,8 +97,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P1
 |Performance / HTML/JS
-|テーマ初期化 script が各 layout に inline で複製され、CSP とキャッシュの両面で不利。
-|最小の bootstrap module を 1 本に切り出し、`data-*` か JSON script tag で設定を渡す。これで CSP を締めやすくなる。
+|テーマ初期化 inline script は削除済み。account theme payload は JSON script tag で渡している。
+|今後は初期描画前のテーマちらつきと CSP enforcement の両立を検証する。
 
 |P2
 |CSS
@@ -119,22 +121,22 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 === 1. Layout / HTML
 
 * `app/views/layouts/application.html.slim`
-** `html` に `lang` が無い。
-** ヘッダ先頭から `main` までの移動を短縮する skip link が無い。
-** theme bootstrap が inline script 2 本で入っている。
+** `lang="ja"` 付与済み。
+** skip link と `main#main-content` 追加済み。
+** theme bootstrap inline script は削除済み。
 * `app/views/layouts/diagram_viewer.html.slim`
-** `lang` 無し。
-** theme bootstrap inline script あり。
+** `lang="ja"` 付与済み。
+** theme bootstrap inline script は削除済み。
 * `app/views/layouts/svg_editor.html.slim`
-** `lang` 無し。
+** `lang="ja"` 付与済み。
 
 === 2. Dialog / Menu
 
 * `app/views/memos/_tsuzura_picker.html.slim`
-** 見出し `h2` はあるが、dialog 自身との `aria-labelledby` 接続が無い。
+** `aria-labelledby` / `aria-describedby` 接続済み。
 * `app/javascript/controllers/user_menu_controller.js`
 ** 排他 open/close はできている。
-** 一方で、open 後の focus 遷移、close 時の focus return、Arrow key navigation は未整備。
+** open 後の focus 遷移、Escape 時の focus return、Arrow/Home/End navigation を追加済み。
 * `app/javascript/controllers/memo_directory_dialog_controller.js`
 ** native `showModal()` を使っている点は良い。
 ** `bodyTarget.innerHTML = await res.text()` は server-rendered fragment 前提なので、信頼境界を docs で固定しておきたい。
@@ -143,9 +145,9 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 * `app/javascript/controllers/memo_ai_panel_controller.js`
 ** `messagesTarget.innerHTML` は local render で escape 済み。
-** `errorTarget.innerHTML` は server message 混在経路なので、ここは改善優先度が高い。
+** error 表示は DOM API ベースへ置換済み。
 * `app/javascript/controllers/code_block_tools_controller.js`
-** SVG 注入は sanitize 前提。契約が崩れると危険。
+** SVG 注入は `replaceWithSanitizedSvg` に隔離済み。sanitize 契約の追加明示は残る。
 * `app/javascript/controllers/memo_search_picker_controller.js`
 ** こちらは `_escape` / `_escapeAttr` を入れており、比較的丁寧。
 
@@ -159,22 +161,22 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 === Phase 1
 
-* CSP を有効化する
-* theme bootstrap の inline script を外部化する
-* `memo_ai_panel_controller.js` の `innerHTML` を除去する
+* DONE: CSP を report-only で有効化する
+* DONE: theme bootstrap の inline script を外部化する
+* DONE: `memo_ai_panel_controller.js` の error `innerHTML` を除去する
 
 === Phase 2
 
-* `lang="ja"` を全 layout に付与する
-* skip link を追加する
-* dialog の `aria-labelledby` / `aria-describedby` を揃える
-* resizer のアクセシビリティ方針を決める
+* DONE: `lang="ja"` を全 layout に付与する
+* DONE: skip link を追加する
+* PARTIAL: dialog の `aria-labelledby` / `aria-describedby` を揃える（Tsuzura 済み、ディレクトリ dialog 未対応）
+* TODO: resizer のアクセシビリティ方針を決める
 
 === Phase 3
 
-* bundle 分割を見直す
-* ineffective dynamic import を解消する
-* route 単位で editor / viewer / studio の entry をさらに分ける
+* TODO: bundle 分割を見直す
+* TODO: ineffective dynamic import を解消する
+* TODO: route 単位で editor / viewer / studio の entry をさらに分ける
 
 === Phase 4
 

@@ -215,7 +215,7 @@ export default class extends Controller {
     state.loading = true
     button.disabled = true
     figure.hidden = false
-    figure.innerHTML = `<span class="kb-code-diagram-status">${labels.loading}</span>`
+    figure.replaceChildren(this.statusNode(labels.loading))
 
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content")
     try {
@@ -230,22 +230,31 @@ export default class extends Controller {
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok && data.svg) {
-        // SVG はサーバー側で MemoSvgSanitizer によりサニタイズ済み。
-        figure.innerHTML = data.svg
+        this.replaceWithSanitizedSvg(figure, data.svg)
         state.rendered = true
         return true
       }
-      figure.innerHTML = ""
-      figure.appendChild(this.errorNode(data.error || labels.errorFallback))
+      figure.replaceChildren(this.errorNode(data.error || labels.errorFallback))
       return false
     } catch {
-      figure.innerHTML = ""
-      figure.appendChild(this.errorNode(lang === "svg" ? "画像の表示に失敗しました。" : "Kroki に接続できませんでした。"))
+      figure.replaceChildren(this.errorNode(lang === "svg" ? "画像の表示に失敗しました。" : "Kroki に接続できませんでした。"))
       return false
     } finally {
       state.loading = false
       button.disabled = false
     }
+  }
+
+  replaceWithSanitizedSvg(figure, sanitizedSvg) {
+    // render_diagram returns only server-sanitized SVG from MemoDiagramRenderer.
+    figure.innerHTML = sanitizedSvg
+  }
+
+  statusNode(message) {
+    const span = document.createElement("span")
+    span.className = "kb-code-diagram-status"
+    span.textContent = message
+    return span
   }
 
   errorNode(message) {
