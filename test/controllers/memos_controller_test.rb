@@ -76,14 +76,14 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select "#memos_list_panel ul.divide-y > li", count: 3
-    assert_select "#memos_list_panel ul.divide-y > li:nth-child(1) a" do |links|
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li", count: 3
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li:nth-child(1) a" do |links|
       assert_includes links.first.text, one.title
     end
-    assert_select "#memos_list_panel ul.divide-y > li:nth-child(2) a" do |links|
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li:nth-child(2) a" do |links|
       assert_includes links.first.text, three.title
     end
-    assert_select "#memos_list_panel ul.divide-y > li:nth-child(3) a" do |links|
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li:nth-child(3) a" do |links|
       assert_includes links.first.text, two.title
     end
     assert_select "#sidebar_row_memo_#{one.id}"
@@ -127,10 +127,10 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{memo_c.id},#{memo_a.id},#{memo_b.id},#{memo_d.id}']"
-    assert_select "#memos_list_panel ul.divide-y > li:nth-child(1)#sidebar_row_memo_#{memo_c.id}"
-    assert_select "#memos_list_panel ul.divide-y > li:nth-child(2)#sidebar_row_memo_#{memo_a.id}"
-    assert_select "#memos_list_panel ul.divide-y > li:nth-child(3)#sidebar_row_memo_#{memo_b.id}"
-    assert_select "#memos_list_panel ul.divide-y > li:nth-child(4)#sidebar_row_memo_#{memo_d.id}"
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li:nth-child(1)#sidebar_row_memo_#{memo_c.id}"
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li:nth-child(2)#sidebar_row_memo_#{memo_a.id}"
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li:nth-child(3)#sidebar_row_memo_#{memo_b.id}"
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li:nth-child(4)#sidebar_row_memo_#{memo_d.id}"
   end
 
   test "show records memo view history" do
@@ -199,7 +199,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{memo_c.id},#{memo_a.id},#{memo_b.id},#{memo_d.id}']"
-    assert_select "#memo_sidebar_memo_list_container ul.divide-y > li:nth-child(2)#sidebar_row_memo_#{memo_a.id}"
+    assert_select "#memo_sidebar_memo_list_container #memo_sidebar_memo_list > li:nth-child(2)#sidebar_row_memo_#{memo_a.id}"
   end
 
   test "sidebar_memo_list moves the open memo to the top for an already-viewed memo" do
@@ -229,7 +229,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :success
     assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{two.id},#{three.id},#{one.id}']"
-    assert_select "#memo_sidebar_memo_list_container ul.divide-y > li:nth-child(1)#sidebar_row_memo_#{two.id}"
+    assert_select "#memo_sidebar_memo_list_container #memo_sidebar_memo_list > li:nth-child(1)#sidebar_row_memo_#{two.id}"
   end
 
   test "sidebar_memo_list records a newly opened memo into history" do
@@ -253,7 +253,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :success
     assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{fresh.id},#{one.id}']"
-    assert_select "#memo_sidebar_memo_list_container ul.divide-y > li:nth-child(1)#sidebar_row_memo_#{fresh.id}"
+    assert_select "#memo_sidebar_memo_list_container #memo_sidebar_memo_list > li:nth-child(1)#sidebar_row_memo_#{fresh.id}"
   end
 
   test "sidebar_memo_list does not record a prefetch refresh" do
