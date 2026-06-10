@@ -706,14 +706,14 @@ module MemosHelper
     err = memo.errors[:properties_yaml].any?
     border = err ? "kb-field-error" : "kb-border kb-border-accent-focus"
     [
-      "kb-underline-input min-h-[5rem] border-0 border-b #{border}",
+      "kb-underline-input kb-properties-textarea border-0 border-b #{border}",
       "font-mono text-sm leading-relaxed resize-y"
     ].join(" ")
   end
 
   def memo_form_underline_body
     [
-      "kb-underline-input min-h-[18rem] py-2",
+      "kb-underline-input kb-body-textarea py-2",
       "font-mono text-sm leading-relaxed resize-y"
     ].join(" ")
   end

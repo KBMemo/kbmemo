@@ -8,7 +8,7 @@
 section.mt-10
   h2.text-base.font-semibold.kb-text-primary メモの追加
   = form_with url: notebook_notebook_memos_path(@notebook), method: :post, class: "mt-3 flex flex-wrap items-end gap-2", data: { controller: "memo-search-picker", memo_search_picker_search_url_value: available_memos_notebook_path(@notebook), action: "submit->memo-search-picker#submitForm" } do
-    div.min-w-[min(100%,20rem)].flex-1
+    div.kb-notebook-memo-picker-field.flex-1
       = label_tag :memo_query, "メモ", class: kb_label
       = render "notebooks/memo_picker_field", notebook: @notebook, picker_id: "notebook_edit_memo_picker", placeholder: "タイトル・本文で検索"
     = submit_tag "追加", class: "kb-chrome-btn-primary kb-btn-sm", disabled: true, data: { memo_search_picker_target: "submit", theme_slot: "btn-primary" }

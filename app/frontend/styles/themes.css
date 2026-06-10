@@ -293,8 +293,36 @@ html[data-kb-theme-base="minimal"] {
   min-width: var(--size-13);
 }
 
+.kb-nav-menu-panel {
+  max-height: min(var(--size-15), 70vh);
+}
+
+.kb-flash-stack {
+  width: min(calc(100% - var(--size-6)), var(--size-content-2));
+}
+
 .kb-control-accent {
   accent-color: var(--kb-accent);
+}
+
+.kb-table-boards {
+  min-width: var(--size-content-3);
+}
+
+.kb-table-notebooks {
+  min-width: var(--size-content-3);
+}
+
+.kb-field-min-sm {
+  min-width: var(--size-10);
+}
+
+.kb-field-max-date {
+  max-width: var(--size-11);
+}
+
+.kb-notebook-memo-picker-field {
+  min-width: min(100%, var(--size-content-2));
 }
 
 .kb-menu-item {
@@ -980,6 +1008,10 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   border-color: var(--kb-border);
 }
 
+.kb-kanban-drop-zone {
+  min-height: var(--size-13);
+}
+
 [data-theme-slot="kanban-card"] {
   background-color: var(--kb-kanban-card-bg);
   border-color: var(--kb-border);
@@ -1111,6 +1143,14 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
 
 .kb-underline-input::placeholder {
   color: var(--kb-text-subtle);
+}
+
+.kb-properties-textarea {
+  min-height: var(--size-10);
+}
+
+.kb-body-textarea {
+  min-height: var(--size-14);
 }
 
 .kb-toolbar-btn {

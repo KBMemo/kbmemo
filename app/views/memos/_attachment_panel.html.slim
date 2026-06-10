@@ -3,13 +3,13 @@
 - entries = memo_attachment_entries(memo, body: body)
 - can_manage = policy(memo).update?
 
-#memo-attachment-panel class="hidden pt-1 text-[0.8em]" data-memo-attachments-target="panel"
+#memo-attachment-panel class="memo-attachment-panel hidden pt-1" data-memo-attachments-target="panel"
   - if entries.empty?
     p class="px-1 py-2 kb-text-muted" 添付ファイルはありません
   - else
     ul class="kb-list-box"
       - entries.each do |entry|
-        li class="memo-attachment-row grid grid-cols-1 gap-2 px-2 py-2 sm:grid-cols-[minmax(0,1fr)_auto]" data-memo-attachments-target="row"
+        li class="memo-attachment-row grid gap-2 px-2 py-2" data-memo-attachments-target="row"
           .flex.min-w-0.flex-wrap.items-center.gap-x-2.gap-y-1
             span class="font-mono kb-text-primary"= entry.name
             .flex.flex-wrap.items-center.gap-1
