@@ -459,7 +459,7 @@ export default class extends Controller {
         const del = document.createElement("button")
         del.type = "button"
         del.textContent = "削除"
-        del.className = "shrink-0 text-xs text-red-600 hover:text-red-800"
+        del.className = "shrink-0 text-xs kb-text-danger"
         del.dataset.themeId = theme.id
         del.addEventListener("click", () => this.deleteTheme(theme.id))
 

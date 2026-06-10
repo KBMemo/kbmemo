@@ -40,7 +40,7 @@ export default class extends Controller {
     event.preventDefault()
     const zone = event.currentTarget.closest("[data-drop-column]")
     if (!zone || !this._dragMemoId) return
-    zone.classList.add("ring-2", "ring-blue-500", "bg-blue-50/80")
+    zone.classList.add("kb-drop-highlight")
   }
 
   dragLeaveColumn(event) {
@@ -48,7 +48,7 @@ export default class extends Controller {
     if (!zone) return
     const rt = event.relatedTarget
     if (rt && zone.contains(rt)) return
-    zone.classList.remove("ring-2", "ring-blue-500", "bg-blue-50/80")
+    zone.classList.remove("kb-drop-highlight")
   }
 
   async dropOnColumn(event) {
@@ -109,7 +109,7 @@ export default class extends Controller {
 
   _clearHighlights() {
     this.element.querySelectorAll("[data-drop-column]").forEach((el) => {
-      el.classList.remove("ring-2", "ring-blue-500", "bg-blue-50/80")
+      el.classList.remove("kb-drop-highlight")
     })
   }
 }

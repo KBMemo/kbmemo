@@ -63,7 +63,7 @@ export default class extends Controller {
           data.error ||
           `アルバム一覧を取得できませんでした（${res.status}）。Tsuzura（:3008）の起動と環境変数を確認してください。`
         this._setStatus(message)
-        this.listTarget.innerHTML = `<p class="px-3 py-2 text-sm text-red-600">${this._escape(message)}</p>`
+        this.listTarget.innerHTML = `<p class="px-3 py-2 text-sm kb-text-danger">${this._escape(message)}</p>`
         return
       }
       this._renderAlbums(data.albums || [])

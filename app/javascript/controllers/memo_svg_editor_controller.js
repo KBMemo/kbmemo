@@ -40,7 +40,7 @@ export default class extends Controller {
     } catch (error) {
       console.error("SVGEdit init failed", error)
       this.containerTarget.innerHTML =
-        '<p class="p-4 text-sm text-red-600">SVG エディタの読み込みに失敗しました。</p>'
+        '<p class="p-4 text-sm kb-text-danger">SVG エディタの読み込みに失敗しました。</p>'
     }
   }
 
