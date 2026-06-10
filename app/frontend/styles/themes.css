@@ -239,8 +239,31 @@ html[data-kb-theme-base="minimal"] {
 }
 
 .kb-chrome-workspace {
+  --kb-workspace-offset: calc(var(--size-9) + var(--size-6) + var(--size-3));
   background-color: var(--kb-bg-page);
   border-color: var(--kb-border);
+}
+
+.kb-content-wide {
+  max-width: calc(var(--size-xxl) - var(--size-11));
+}
+
+.kb-ai-sidebar-region {
+  max-height: min(42vh, calc(var(--size-14) + var(--size-7) + var(--size-2)));
+}
+
+@media (min-width: 768px) {
+  .kb-workspace-min {
+    min-height: calc(100vh - var(--kb-workspace-offset));
+  }
+
+  .kb-workspace-panel-max {
+    max-height: calc(100vh - var(--kb-workspace-offset));
+  }
+
+  .kb-ai-sidebar-region {
+    max-height: 100%;
+  }
 }
 
 .kb-chrome-muted-bar {

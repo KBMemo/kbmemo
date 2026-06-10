@@ -354,7 +354,7 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 }
 
 .memo-diagram-editor .cm-scroller {
-  min-height: 24rem;
+  min-height: var(--size-15);
 }
 
 .memo-diagram-editor .cm-content {

@@ -50,7 +50,7 @@ export default class extends Controller {
     container.dataset.flashNoticeTarget = "live"
     container.setAttribute("aria-live", "polite")
     container.className =
-      "pointer-events-none fixed top-4 right-4 z-50 flex w-[min(100%-2rem,24rem)] flex-col gap-2"
+      "kb-flash-stack pointer-events-none fixed top-4 right-4 z-50 flex flex-col gap-2"
     this.element.appendChild(container)
     return container
   }

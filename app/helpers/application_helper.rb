@@ -30,7 +30,7 @@ module ApplicationHelper
 
   def content_max_width_class
     return "max-w-none" if theme_studio_layout?
-    return "max-w-[1800px]" if wide_content_layout?
+    return "kb-content-wide" if wide_content_layout?
 
     "max-w-3xl"
   end
