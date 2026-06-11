@@ -41,4 +41,8 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_equal '"cookies", "storage", "cache"', response.headers["Clear-Site-Data"]
   end
+
+  test "session cookie uses same-site lax" do
+    assert_equal :lax, Rails.application.config.session_options[:same_site]
+  end
 end

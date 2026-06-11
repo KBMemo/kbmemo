@@ -98,5 +98,5 @@ Rails.application.configure do
     "www.kbmemo.net"
   ]
 
-  config.session_store :cookie_store, key: "_kbmemo_session", domain: ".kbmemo.net"
+  config.session_store :cookie_store, key: "_kbmemo_session", domain: ".kbmemo.net", same_site: :lax
 end

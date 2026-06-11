@@ -31,6 +31,8 @@ module Kbmemo
       Rails.root.join("storage", "memo_git_worktree").to_s
     )
 
+    config.session_store :cookie_store, key: "_kbmemo_session", same_site: :lax
+
     config.middleware.insert_before 0, ApiCorsMiddleware
 
     config.action_dispatch.default_headers.merge!(
