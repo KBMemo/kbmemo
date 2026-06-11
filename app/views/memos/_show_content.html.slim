@@ -96,7 +96,7 @@ ruby:
         h2.shrink-0.text-sm.font-semibold.kb-text-primary プロパティ
         p.min-w-0.flex-1.truncate.font-mono.text-xs.kb-text-secondary title=memo_properties_summary_line(memo)
           = memo_properties_summary_line(memo)
-        button.shrink-0.inline-flex.h-6.w-6.items-center.justify-center.rounded.kb-toolbar-btn type="button" data-action="expandable-hint#toggle" aria-expanded="false" aria-controls="memo-properties-panel" title="プロパティ全文を表示"
+        button.shrink-0.inline-flex.h-6.w-6.items-center.justify-center.rounded.kb-toolbar-btn type="button" data-expandable-hint-target="toggleButton" data-action="expandable-hint#toggle" aria-expanded="false" aria-controls="memo-properties-panel" aria-label="プロパティ全文を表示" title="プロパティ全文を表示"
           span.leading-none data-expandable-hint-target="toggleIcon" aria-hidden="true"
             | ▼
       pre#memo-properties-panel.hidden.overflow-x-auto.kb-muted-bar.p-3.font-mono.text-xs.kb-text-primary data-expandable-hint-target="panel"

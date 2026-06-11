@@ -882,6 +882,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "#memo-slug-hint", text: /タイトルと同期/
     assert_select "summary[aria-label='公開範囲の説明'][aria-describedby='memo-visibility-hint']"
     assert_select "#memo-visibility-hint", text: /共有グループ/
+    assert_select "button[aria-label='Wiki リンクの説明を表示'][aria-controls='memo-wiki-link-hint'][aria-expanded='false']"
   end
 
   test "directory sidebar hint has an accessible description" do
@@ -1080,11 +1081,12 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
   test "show displays memo directory path in metadata" do
     memo = memos(:one)
-    memo.update_columns(file_committed_at: 1.hour.ago)
+    memo.update_columns(file_committed_at: 1.hour.ago, properties: { "priority" => 1 })
     get memo_url(memo)
     assert_response :success
     assert_includes response.body, memo.memo_directory.labeled_path_from_root
     assert_includes response.body, memo.slug
+    assert_select "button[aria-label='プロパティ全文を表示'][aria-controls='memo-properties-panel'][aria-expanded='false']"
     # 編集可能な所有者はディレクトリ picker が表示される（選択中ディレクトリを反映）。
     assert_select "input#memo_show_directory_id_#{memo.id}[value=?]", memo.memo_directory_id.to_s
   end

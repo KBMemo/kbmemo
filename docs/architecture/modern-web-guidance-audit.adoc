@@ -61,6 +61,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * プロフィールのトークン発行後スクロール用 inline script を削除し、`scroll-into-view` Stimulus controller で対象 section へスクロール / focus する構成に変更した。
 * メモ一覧のドラッグ専用ハンドルから `role="button"` / `tabindex` を外し、ポインタ専用の補助操作として accessibility tree から除外した。キーボード操作ではメモ編集フォームの保存先フォルダ欄を使う説明をヒントに追加した。
 * `:user-invalid` と `aria-invalid` を同期する軽量 bridge を追加し、browser native validation が表示されるタイミングで assistive technology へも invalid state を伝えるようにした。server validation 由来の `aria-invalid` は bridge 側で解除しない。
+* `expandable-hint` の icon-only toggle は `title` に頼らず `aria-label` を持つようにし、開閉状態に合わせて `aria-expanded` / `aria-label` / `title` を同期する。
 
 == 現状の良い点
 
@@ -178,6 +179,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * メモ編集フォーム / ディレクトリサイドバーの hint `<details>`
 ** icon-only `summary` は `aria-label` と `aria-describedby` で説明本文へ接続済み。
 ** ドラッグ専用ハンドルは `aria-hidden` にし、keyboard user には編集フォームの保存先フォルダ欄を移動手段として案内する。
+* `expandable-hint`
+** Wiki リンク説明 / プロパティ全文の icon-only toggle は `aria-label` を持ち、開閉時にも label を同期する。
 
 === 3. Security sink
 
