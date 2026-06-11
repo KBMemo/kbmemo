@@ -90,6 +90,10 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   min-width: 0;
 }
 
+.memo-directory-nav-details:not([open]) > .memo-directory-nav-row {
+  display: block;
+}
+
 .memo-directory-nav-details > .kb-tree-children,
 .memo-directory-nav-leaf > .kb-tree-children {
   grid-column: 2;
