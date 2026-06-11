@@ -928,16 +928,21 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  border-radius: var(--kb-radius-sm);
-  padding: 0.375rem var(--kb-space-2);
+  border-radius: 0;
+  padding: 0.25rem 0;
   text-align: left;
   font-size: var(--kb-font-size-sm);
+  background: transparent;
 }
 
 .kb-directory-picker-option.is-selected {
-  background: var(--kb-bg-muted);
+  background: transparent;
   color: var(--kb-text-primary);
   font-weight: 500;
+}
+
+.kb-directory-picker .kb-selected-row {
+  background: transparent;
 }
 
 .kb-directory-picker-option:not(.is-selected) {
@@ -945,7 +950,8 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
 }
 
 .kb-directory-picker-option:not(.is-selected):hover {
-  background: var(--kb-bg-muted);
+  background: transparent;
+  color: var(--kb-text-primary);
 }
 
 
@@ -1480,8 +1486,8 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
 
 .kb-tree-children {
   margin-top: 0.125rem;
-  margin-left: var(--kb-space-2);
-  padding-left: var(--kb-space-2);
+  margin-left: var(--kb-space-1);
+  padding-left: var(--kb-space-1);
   list-style: none;
   border-left: 1px solid var(--kb-border);
 }
@@ -1515,8 +1521,8 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
 
 .kb-tree-nested {
   margin-top: 0.125rem;
-  margin-left: 0.5rem;
-  padding-left: 0.5rem;
+  margin-left: 0.25rem;
+  padding-left: 0.25rem;
   border-left: 1px solid var(--kb-border);
 }
 
