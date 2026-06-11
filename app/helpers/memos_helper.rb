@@ -447,6 +447,8 @@ module MemosHelper
     fragment = Nokogiri::HTML.fragment(html.to_s)
     fragment.css("img:not([loading])").each do |img|
       img["loading"] = "lazy"
+    end
+    fragment.css("img:not([decoding])").each do |img|
       img["decoding"] = "async"
     end
     fragment.to_html.html_safe

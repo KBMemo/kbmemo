@@ -65,6 +65,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * Gravatar の `img` に表示サイズと同じ `width` / `height` 属性を追加し、CSS 適用前でも aspect ratio を予約して CLS を抑える。
 * メモ詳細 / 編集フォーム上部の Gravatar は above-the-fold なので `loading="eager"` にし、非 LCP の小画像として `fetchpriority="low"` を付ける。サイドバー一覧の avatar は offscreen 行が多いため lazy loading を維持する。
 * メモサイドバー検索とボードの既存メモ検索を `<search>` 要素で囲み、検索 UI を native landmark として表現する。
+* メモ本文 HTML の画像後処理で、既存の `loading` 指定を尊重しつつ `decoding="async"` 未指定の画像へ補完するようにした。
 
 == 現状の良い点
 
@@ -225,6 +226,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 * Vite build は成功するが、CodeMirror と SVGEdit 本体の async chunk size warning は継続している。
 * Gravatar は `width` / `height` 属性で intrinsic size を明示し、layout shift を避ける。メモ詳細 / 編集フォーム上部の単体 avatar は eager loading、サイドバー一覧 avatar は lazy loading で扱う。
+* メモ本文 HTML の画像は `loading` 未指定なら lazy にし、`decoding` 未指定なら async にする。AsciiDoc / sanitizer 側で明示された `loading` は上書きしない。
 * `application` 初期 chunk は約 491.99 kB まで縮小済み。
 * `svg_editor` entry は約 2.12 kB まで縮小済み。SVGEdit 本体は `Editor` async chunk として、`memo-svg-editor` 接続後に読み込む。
 * `adoc-kbmemo` async chunk は package root import を避けることで約 344.96 kB まで縮小済み。

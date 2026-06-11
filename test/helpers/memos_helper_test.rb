@@ -219,6 +219,13 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, %(href="/memos/#{memo.id}/assets/shot.png/view")
   end
 
+  test "memo_html preserves image loading and fills missing async decoding" do
+    html = memo_html_lazy_load_images(%(<img src="/hero.png" loading="eager">)).to_s
+
+    assert_includes html, 'loading="eager"'
+    assert_includes html, 'decoding="async"'
+  end
+
   test "memo_html renders image with /images asset path alias" do
     memo = memos(:one)
     repo = MemoRepository.new
