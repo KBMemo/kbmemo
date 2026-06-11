@@ -54,6 +54,7 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "memo-search-picker"
     assert_includes response.body, available_memos_notebook_path(notebooks(:one))
     assert_select "select#memo_id", count: 0
+    assert_select ".relative.min-w-0.w-full input.kb-memo-picker-query.min-w-0.w-full"
   end
 
   test "show renders compact selected memo title and borderless add buttons" do

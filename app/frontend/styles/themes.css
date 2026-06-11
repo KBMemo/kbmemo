@@ -438,6 +438,10 @@ html[data-kb-theme-base="minimal"] {
   min-width: min(100%, var(--size-content-2));
 }
 
+.kb-memo-picker-query {
+  box-sizing: border-box;
+}
+
 .kb-menu-item {
   color: var(--kb-text-primary);
 }
