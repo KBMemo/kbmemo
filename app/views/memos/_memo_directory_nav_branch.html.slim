@@ -10,20 +10,22 @@ ruby:
 
 li.mb-0.5.min-w-0
   - if has_children && fixed_bucket
-    .flex.min-w-0.items-center.gap-1.rounded-md.py-0.pl-5.kb-hover-row
+    .memo-directory-nav-leaf.rounded-md.py-0.kb-hover-row
+      span.memo-directory-nav-caret-spacer aria-hidden="true"
       = render "memos/memo_directory_nav_row", dir: dir, drop_data: drop_data
     ul.kb-tree-children.space-y-0.5
       - children.each do |child|
         = render "memos/memo_directory_nav_branch", dir: child, by_parent: by_parent
   - elsif has_children
     = tag.details(**memo_directory_nav_details_attrs(dir)) do
-      summary.absolute.left-0.top-1.inline-flex.h-6.w-5.cursor-pointer.list-none.items-center.justify-center.rounded-md.kb-text-muted.kb-hover-row.memo-directory-nav-summary aria-label="#{dir.display_name} の子ディレクトリを開閉"
+      summary.memo-directory-nav-summary aria-label="#{dir.display_name} の子ディレクトリを開閉"
         span aria-hidden="true" class="kb-tree-caret" ▶
-      .flex.min-w-0.items-center.gap-1.rounded-md.py-0.pl-5.kb-hover-row
+      .memo-directory-nav-row.rounded-md.py-0.kb-hover-row
         = render "memos/memo_directory_nav_row", dir: dir, drop_data: drop_data
       ul.kb-tree-children.space-y-0.5
         - children.each do |child|
           = render "memos/memo_directory_nav_branch", dir: child, by_parent: by_parent
   - else
-    .flex.min-w-0.items-center.gap-1.rounded-md.py-0.pl-5.kb-hover-row
+    .memo-directory-nav-leaf.rounded-md.py-0.kb-hover-row
+      span.memo-directory-nav-caret-spacer aria-hidden="true"
       = render "memos/memo_directory_nav_row", dir: dir, drop_data: drop_data

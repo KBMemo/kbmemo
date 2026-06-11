@@ -908,6 +908,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
       assert_select "#memos_list_panel a span.truncate", text: label
       assert_select "#memos_list_panel details.memo-directory-nav-details > summary[aria-label='#{label} の子ディレクトリを開閉']", count: 0
     end
+    assert_select "#memos_list_panel details.memo-directory-nav-details > summary.memo-directory-nav-summary + .memo-directory-nav-row"
   end
 
   test "edit uncommitted memo shows delete and commit actions" do
