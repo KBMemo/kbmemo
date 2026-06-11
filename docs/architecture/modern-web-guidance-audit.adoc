@@ -62,12 +62,13 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * メモ一覧のドラッグ専用ハンドルから `role="button"` / `tabindex` を外し、ポインタ専用の補助操作として accessibility tree から除外した。キーボード操作ではメモ編集フォームの保存先フォルダ欄を使う説明をヒントに追加した。
 * `:user-invalid` と `aria-invalid` を同期する軽量 bridge を追加し、browser native validation が表示されるタイミングで assistive technology へも invalid state を伝えるようにした。server validation 由来の `aria-invalid` は bridge 側で解除しない。
 * `expandable-hint` の icon-only toggle は `title` に頼らず `aria-label` を持つようにし、開閉状態に合わせて `aria-expanded` / `aria-label` / `title` を同期する。
+* Gravatar の `img` に表示サイズと同じ `width` / `height` 属性を追加し、CSS 適用前でも aspect ratio を予約して CLS を抑える。
 
 == 現状の良い点
 
 * semantic な `button` / `details` / `dialog` をすでに多用している。
 * flash 通知に `aria-live="polite"` が入っている。
-* avatar と本文画像系には `loading="lazy"` / `decoding="async"` が使われている。
+* avatar と本文画像系には `loading="lazy"` / `decoding="async"` が使われている。avatar は `width` / `height` 属性も持つ。
 * production では `force_ssl = true`、host 制限、cookie store を使っている。
 * Tailwind 依存を外し、テーマ設計を `themes.css` と Open Props に寄せている。
 
@@ -219,6 +220,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 === 4. Performance
 
 * Vite build は成功するが、CodeMirror と SVGEdit 本体の async chunk size warning は継続している。
+* Gravatar は `width` / `height` 属性で intrinsic size を明示し、layout shift を避ける。
 * `application` 初期 chunk は約 491.99 kB まで縮小済み。
 * `svg_editor` entry は約 2.12 kB まで縮小済み。SVGEdit 本体は `Editor` async chunk として、`memo-svg-editor` 接続後に読み込む。
 * `adoc-kbmemo` async chunk は package root import を避けることで約 344.96 kB まで縮小済み。

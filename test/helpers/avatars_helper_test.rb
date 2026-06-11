@@ -17,4 +17,14 @@ class AvatarsHelperTest < ActionView::TestCase
   test "gravatar_image_tag returns empty when account nil" do
     assert_equal "", gravatar_image_tag(nil).to_s
   end
+
+  test "gravatar_image_tag sets intrinsic dimensions" do
+    html = gravatar_image_tag(accounts(:one), size: 28, extra_class: "shrink-0").to_s
+
+    assert_includes html, 'width="28"'
+    assert_includes html, 'height="28"'
+    assert_includes html, 'style="width:28px;height:28px"'
+    assert_includes html, 'loading="lazy"'
+    assert_includes html, 'decoding="async"'
+  end
 end

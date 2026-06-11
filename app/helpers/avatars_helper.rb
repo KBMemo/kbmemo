@@ -30,6 +30,8 @@ module AvatarsHelper
       alt: "#{label}のアバター",
       title: label,
       class: ["kb-avatar", extra_class].compact.join(" "),
+      width: size,
+      height: size,
       style: "width:#{size}px;height:#{size}px",
       loading: "lazy",
       decoding: "async"
