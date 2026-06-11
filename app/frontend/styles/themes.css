@@ -313,6 +313,14 @@ html[data-kb-theme-base="minimal"] {
   color: var(--kb-text-primary);
 }
 
+.kb-input:user-invalid,
+.kb-input[data-kb-client-invalid],
+.kb-field-input:user-invalid,
+.kb-field-input[data-kb-client-invalid] {
+  border-color: var(--red-7);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--red-7) 55%, transparent);
+}
+
 .kb-menu-panel {
   border: 1px solid var(--kb-border);
   background-color: var(--kb-bg-surface);

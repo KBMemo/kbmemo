@@ -2,6 +2,7 @@ import "../styles/application.css"
 
 import "@hotwired/turbo-rails"
 import "../../javascript/controllers"
+import { initUserInvalidAriaSync } from "../../javascript/forms/user_invalid_aria.js"
 import { highlightMemoBodies } from "../../javascript/memo_body_highlight.js"
 import { applyStoredThemeWithSync, bootstrapAccountTheme, initThemeSync } from "../../javascript/theme/theme_bootstrap.js"
 import { applyStoredSkin } from "../../javascript/theme/memo_skins.js"
@@ -82,6 +83,7 @@ document.addEventListener("turbo:render", () => {
 
 const accountTheme = accountThemeFromJsonScript()
 if (accountTheme) bootstrapAccountTheme(accountTheme)
+initUserInvalidAriaSync()
 
 // Turbo Stream 置換では turbo:render が来ない。before-stream-render で render を包み、
 // DOM 更新後に Lucide を掛け直す（renderStreamMessage は getter のみで上書き不可）。

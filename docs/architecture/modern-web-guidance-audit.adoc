@@ -60,6 +60,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * ダイアグラム新規作成フォームの補助文を `aria-describedby` で入力欄へ接続し、編集 / ソース / SVG ビューアに preview live region、CodeMirror の説明接続、ズームボタンの `aria-label` を追加した。
 * プロフィールのトークン発行後スクロール用 inline script を削除し、`scroll-into-view` Stimulus controller で対象 section へスクロール / focus する構成に変更した。
 * メモ一覧のドラッグ専用ハンドルから `role="button"` / `tabindex` を外し、ポインタ専用の補助操作として accessibility tree から除外した。キーボード操作ではメモ編集フォームの保存先フォルダ欄を使う説明をヒントに追加した。
+* `:user-invalid` と `aria-invalid` を同期する軽量 bridge を追加し、browser native validation が表示されるタイミングで assistive technology へも invalid state を伝えるようにした。server validation 由来の `aria-invalid` は bridge 側で解除しない。
 
 == 現状の良い点
 
@@ -117,8 +118,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P1
 |Forms / Accessibility
-|Rails model form の主要 field は、server validation error 時に `aria-invalid="true"` と field error message の `aria-describedby` を付与済み。テーマスタジオ / ボード追加 / AI パネル / メモサイドバー検索 / タグ追加入力 / ダイアグラム新規作成などの小さな non-model form controls も placeholder だけに頼らず label / description を持つ。
-|今後追加する form も `kb_field_error_aria` / `kb_field_error_id` を使う。client-side validation を増やす場合は `:user-invalid` と ARIA 状態の同期を別途検討する。
+|Rails model form の主要 field は、server validation error 時に `aria-invalid="true"` と field error message の `aria-describedby` を付与済み。テーマスタジオ / ボード追加 / AI パネル / メモサイドバー検索 / タグ追加入力 / ダイアグラム新規作成などの小さな non-model form controls も placeholder だけに頼らず label / description を持つ。client-side validation は `:user-invalid` と `aria-invalid` の同期 bridge を追加済み。
+|今後追加する form も `kb_field_error_aria` / `kb_field_error_id` を使う。client-side validation で独自メッセージを出す場合は `aria-describedby` / `aria-errormessage` の接続も合わせて追加する。
 
 |P1
 |Performance / JS
@@ -198,6 +199,9 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** `kb_field_error_aria` / `kb_field_error_id` / `kb_field_error_message` を追加済み。
 ** memo / memo directory / board / notebook / tag / profile の主要 field は server validation error 時に field 単位で error text を参照する。
 ** Rodauth form は既に field error を `aria-invalid` / `aria-describedby` へ接続済み。
+* Client-side validation
+** `:user-invalid` が match した field へ `aria-invalid="true"` を同期する。
+** bridge が付けた `aria-invalid` だけを解除し、server validation 由来の state は保持する。
 * Small tool forms
 ** テーマスタジオのカスタムスキン名 / CSS、ボードの新規カード title / 既存メモ検索、AI パネル prompt textarea、メモサイドバー検索、タグ追加入力、ダイアグラム新規作成は `sr-only` label または visible label と description を持つ。
 ** 非個人情報・ツール内コマンド入力は `autocomplete="off"` を明示する。
