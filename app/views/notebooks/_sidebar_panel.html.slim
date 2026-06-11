@@ -13,7 +13,7 @@
         = link_to "一覧", notebooks_path, class: "kb-chrome-link"
         - if @can_manage
           = link_to "編集", edit_notebook_path(@notebook), class: "kb-chrome-link"
-          = button_to create_blank_notebook_notebook_memos_path(@notebook), method: :post, form_class: "contents", class: "kb-chrome-link inline-flex items-center gap-1", title: "新規メモを作成して末尾に追加" do
+          = button_to create_blank_notebook_notebook_memos_path(@notebook), method: :post, form_class: "contents", class: "kb-chrome-link inline-flex items-center gap-1 border-0 bg-transparent p-0", title: "新規メモを作成して末尾に追加" do
             i class="h-3.5 w-3.5" aria-hidden="true" data-lucide="plus"
             span 新規メモ
           - if @notebook.notes?

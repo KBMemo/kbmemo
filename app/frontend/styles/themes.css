@@ -929,6 +929,30 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   transition: color 0.15s, background-color 0.15s;
 }
 
+.kb-notebook-tree-link {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--kb-radius-sm);
+  padding: 0.25rem var(--kb-space-2);
+  color: var(--kb-text-secondary);
+  font-size: var(--kb-font-size-sm);
+  line-height: var(--kb-line-height-tight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.kb-notebook-tree-link.is-active {
+  background: var(--kb-bg-muted);
+  color: var(--kb-text-primary);
+  font-weight: 500;
+}
+
+.kb-notebook-tree-link:hover:not(.is-active) {
+  background: var(--kb-bg-subtle);
+  color: var(--kb-text-primary);
+}
+
 .kb-directory-picker-option {
   width: 100%;
   min-width: 0;

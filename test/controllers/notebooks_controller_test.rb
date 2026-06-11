@@ -56,6 +56,19 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_select "select#memo_id", count: 0
   end
 
+  test "show renders compact selected memo title and borderless add buttons" do
+    notebook = notebooks(:one)
+    entry = notebook_memos(:one_one)
+
+    get notebook_url(notebook, memo_id: entry.memo_id)
+    assert_response :success
+    assert_select "a.kb-notebook-tree-link.is-active[href=?]",
+      notebook_path(notebook, memo_id: entry.memo_id),
+      text: notebook.display_label_for_memo(entry)
+    assert_select "button.kb-chrome-link.border-0.bg-transparent.p-0", text: /新規メモ/
+    assert_select "button.border-0.bg-transparent.p-0[title='子メモを追加']"
+  end
+
   test "available_memos returns unassigned memos filtered by query" do
     notebook = notebooks(:one)
     unassigned = memos(:two)
