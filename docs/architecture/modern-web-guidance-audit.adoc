@@ -52,6 +52,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * CSP report-only の収集導線として `POST /csp_reports` を追加し、`report-uri /csp_reports` と `Reporting-Endpoints: csp="/csp_reports"` を設定した。受信 payload は認証なしで `204` を返し、ログは query / fragment を落とした最小フィールドに限定する。
 * `scripts/report-vite-bundles.mjs` に `--kind` filter を追加し、`npm run check:bundle-budget` で `entry` bundle を 520 kB 以内に固定する CI 向け budget check を追加した。
 * メモ編集フォームとディレクトリサイドバーの `<details>` ヒントは、アイコンだけの `summary` に `aria-label` / `aria-describedby` を付け、説明本文へ接続した。
+* `@kbmemo/adoc-wysiwyg` の web paste / image paste / search-replace dialog の固定 HTML template と、空段落 placeholder の固定 HTML を `createElement` / `textContent` / `append` ベースへ変更した。
 
 == 現状の良い点
 
@@ -75,7 +76,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 |P0
 |Security
 |`memo_ai_panel_controller.js` は error 表示と message rendering を DOM API ベースへ置換済み。`memo_search_picker_controller.js` / `board_add_memo_controller.js` / `tsuzura_picker_controller.js` の picker 描画も DOM API ベースへ置換済み。`code_block_tools_controller.js` の copy / check icon も DOM API ベースへ置換済み。
-|残る `innerHTML` は sanitize 済み SVG / server-rendered fragment / editor package 内の固定 dialog template など、用途ごとに境界を明示しながら縮小する。
+|`@kbmemo/adoc-wysiwyg` の固定 dialog template / 空段落 placeholder も DOM API ベースへ置換済み。残る `innerHTML` は sanitize 済み SVG / server-rendered fragment / Asciidoctor preview HTML / syntax highlight HTML など、用途ごとに境界を明示しながら縮小する。
 
 |P0
 |Security
@@ -174,8 +175,12 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `app/javascript/controllers/code_block_tools_controller.js`
 ** copy / check icon は DOM API ベースへ置換済み。
 ** SVG 注入は `replaceWithSanitizedSvg` に隔離済み。`render_diagram` endpoint の response header / JSON flag / controller test で sanitize 契約を明示済み。
-* `app/javascript/controllers/memo_search_picker_controller.js`
-** こちらは `_escape` / `_escapeAttr` を入れており、比較的丁寧。
+* `packages/adoc-wysiwyg/webPasteDialog.js` / `imagePasteDialog.js` / `searchReplaceDialog.js`
+** 固定 dialog template は `innerHTML` を使わず DOM API で構築する。
+* `packages/adoc-wysiwyg/wysiwyg.js`
+** 空段落 placeholder の固定 HTML は DOM API で構築する。
+* `app/javascript/controllers/memo_search_picker_controller.js` / `board_add_memo_controller.js` / `tsuzura_picker_controller.js`
+** picker の検索結果・album/photo list は DOM API / `textContent` / `dataset` ベースで描画する。
 
 === 3.5. Forms / Accessibility
 

@@ -41,36 +41,7 @@ export function createSearchReplaceDialog({ onClose } = {}) {
   dialogEl = document.createElement('div')
   dialogEl.className = 'search-replace-dialog'
   dialogEl.hidden = true
-  dialogEl.innerHTML = `
-    <form class="search-replace-form">
-      <div class="search-replace-header">
-        <div>
-          <strong>検索・置換</strong>
-          <p class="search-replace-scope"></p>
-        </div>
-        <button type="button" class="search-replace-close" aria-label="閉じる">×</button>
-      </div>
-      <label class="search-replace-field">
-        <span>検索</span>
-        <input type="text" class="search-input" autocomplete="off" spellcheck="false" />
-      </label>
-      <label class="search-replace-field">
-        <span>置換</span>
-        <input type="text" class="replace-input" autocomplete="off" spellcheck="false" />
-      </label>
-      <label class="search-replace-option">
-        <input type="checkbox" class="case-sensitive-input" />
-        大文字と小文字を区別
-      </label>
-      <div class="search-replace-actions">
-        <button type="button" data-action="prev">前を検索</button>
-        <button type="button" data-action="next">次を検索</button>
-        <button type="button" data-action="replace">置換</button>
-        <button type="button" data-action="replace-all">すべて置換</button>
-      </div>
-      <p class="search-replace-status" aria-live="polite"></p>
-    </form>
-  `
+  dialogEl.append(buildDialogForm())
   document.body.append(dialogEl)
 
   const form = /** @type {HTMLFormElement} */ (dialogEl.querySelector('.search-replace-form'))
@@ -207,6 +178,83 @@ export function createSearchReplaceDialog({ onClose } = {}) {
   }
 
   return dialogEl
+}
+
+function buildDialogForm() {
+  const form = document.createElement('form')
+  form.className = 'search-replace-form'
+
+  const header = document.createElement('div')
+  header.className = 'search-replace-header'
+
+  const headingGroup = document.createElement('div')
+  const heading = document.createElement('strong')
+  heading.textContent = '検索・置換'
+  const scope = document.createElement('p')
+  scope.className = 'search-replace-scope'
+  headingGroup.append(heading, scope)
+
+  const closeButton = document.createElement('button')
+  closeButton.type = 'button'
+  closeButton.className = 'search-replace-close'
+  closeButton.setAttribute('aria-label', '閉じる')
+  closeButton.textContent = '×'
+  header.append(headingGroup, closeButton)
+
+  const option = document.createElement('label')
+  option.className = 'search-replace-option'
+  const checkbox = document.createElement('input')
+  checkbox.type = 'checkbox'
+  checkbox.className = 'case-sensitive-input'
+  option.append(checkbox, document.createTextNode('大文字と小文字を区別'))
+
+  const actions = document.createElement('div')
+  actions.className = 'search-replace-actions'
+  actions.append(
+    buildActionButton('prev', '前を検索'),
+    buildActionButton('next', '次を検索'),
+    buildActionButton('replace', '置換'),
+    buildActionButton('replace-all', 'すべて置換'),
+  )
+
+  const status = document.createElement('p')
+  status.className = 'search-replace-status'
+  status.setAttribute('aria-live', 'polite')
+
+  form.append(
+    header,
+    buildTextField('検索', 'search-input'),
+    buildTextField('置換', 'replace-input'),
+    option,
+    actions,
+    status,
+  )
+  return form
+}
+
+function buildTextField(label, inputClassName) {
+  const field = document.createElement('label')
+  field.className = 'search-replace-field'
+
+  const labelText = document.createElement('span')
+  labelText.textContent = label
+
+  const input = document.createElement('input')
+  input.type = 'text'
+  input.className = inputClassName
+  input.autocomplete = 'off'
+  input.spellcheck = false
+
+  field.append(labelText, input)
+  return field
+}
+
+function buildActionButton(action, label) {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.dataset.action = action
+  button.textContent = label
+  return button
 }
 
 /**
