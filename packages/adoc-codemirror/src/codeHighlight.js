@@ -16,6 +16,7 @@ import sql from 'highlight.js/lib/languages/sql'
 import typescript from 'highlight.js/lib/languages/typescript'
 import xml from 'highlight.js/lib/languages/xml'
 import yaml from 'highlight.js/lib/languages/yaml'
+import { setTrustedHTML } from './trusted_html.js'
 
 /** @typedef {{ from: number, to: number, className: string }} CodeSpan */
 
@@ -186,7 +187,7 @@ function highlightSourceParts(parts, lang) {
 function highlightCodeElement(block) {
   const lang = languageForCodeBlock(block)
   const parts = splitSourceParts(block)
-  block.innerHTML = highlightSourceParts(parts, lang)
+  setTrustedHTML(block, 'kbmemo-code-highlight-html', highlightSourceParts(parts, lang))
   block.classList.add('hljs')
 }
 

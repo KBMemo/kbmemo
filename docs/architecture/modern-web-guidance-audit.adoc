@@ -77,6 +77,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * Rodauth logout response に `Clear-Site-Data: "cookies", "storage", "cache"` を追加し、ログアウト時に browser 側の site data も破棄するようにした。
 * CSP report-only に `report-to csp` directive を追加し、`Reporting-Endpoints` を参照する標準 reporting path と `report-uri` fallback を併用するようにした。
 * session cookie の `SameSite=Lax` を `config.session_store` で明示し、production の domain 付き cookie store でも同じ設定を維持するようにした。
+* `packages/adoc-codemirror/src/codeHighlight.js` の syntax highlight HTML 挿入を `kbmemo-code-highlight-html` Trusted Types policy 経由にし、CSP の `trusted-types` allowlist に追加した。
 
 == 現状の良い点
 
@@ -101,7 +102,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 |P0
 |Security
 |`memo_ai_panel_controller.js` は error 表示と message rendering を DOM API ベースへ置換済み。`memo_search_picker_controller.js` / `board_add_memo_controller.js` / `tsuzura_picker_controller.js` の picker 描画も DOM API ベースへ置換済み。`code_block_tools_controller.js` の copy / check icon も DOM API ベースへ置換済み。
-|`@kbmemo/adoc-wysiwyg` の固定 dialog template / 空段落 placeholder も DOM API ベースへ置換済み。実行時に残る `innerHTML` は sanitize 済み SVG / server-rendered fragment / Asciidoctor preview HTML に限定し、Trusted Types named policy 経由で用途境界を明示済み。syntax highlight HTML は highlight.js が返す既存 contract として扱い、CSP enforcement 前に違反 report を確認する。
+|`@kbmemo/adoc-wysiwyg` の固定 dialog template / 空段落 placeholder も DOM API ベースへ置換済み。実行時に残る `innerHTML` は sanitize 済み SVG / server-rendered fragment / Asciidoctor preview HTML / syntax highlight HTML に限定し、Trusted Types named policy 経由で用途境界を明示済み。
 
 |P0
 |Security
@@ -217,6 +218,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** dialog form fragment は same-origin server-rendered HTML だけを読み込み、`kbmemo-server-rendered-fragment` policy 経由で挿入する。
 * `packages/adoc-preview/preview.js`
 ** Asciidoctor preview HTML は `kbmemo-adoc-preview-html` policy 経由で挿入し、その後の画像解決・syntax highlight・math rendering に渡す。
+* `packages/adoc-codemirror/src/codeHighlight.js`
+** highlight.js が返す syntax highlight HTML と既存 callout markup は `kbmemo-code-highlight-html` policy 経由で挿入する。
 * `packages/adoc-wysiwyg/webPasteDialog.js` / `imagePasteDialog.js` / `searchReplaceDialog.js`
 ** 固定 dialog template は `innerHTML` を使わず DOM API で構築する。
 ** Web paste / image paste は native `<dialog>` で表示し、Esc / close button / backdrop click で cancel 解決する。

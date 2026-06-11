@@ -21,6 +21,7 @@ Rails.application.configure do
     policy.style_src :self
     policy.trusted_types(
       "kbmemo-adoc-preview-html",
+      "kbmemo-code-highlight-html",
       "kbmemo-sanitized-svg",
       "kbmemo-server-rendered-fragment"
     )
