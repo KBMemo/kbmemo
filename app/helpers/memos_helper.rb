@@ -213,6 +213,8 @@ module MemosHelper
   end
 
   def memo_directory_picker_details_open?(directory, selected_parent)
+    return true if directory.direct_child_of_root?
+
     memo_directory_tree_details_open?(directory, selected_parent)
   end
 

@@ -411,6 +411,12 @@ class MemosHelperTest < ActionView::TestCase
     assert_not memo_directory_nav_details_open?(memo_directories(:home))
   end
 
+  test "memo_directory_picker_details_open opens top-level buckets by default" do
+    assert memo_directory_picker_details_open?(memo_directories(:home), nil)
+    assert memo_directory_picker_details_open?(memo_directories(:share), nil)
+    assert_not memo_directory_picker_details_open?(memo_directories(:work), nil)
+  end
+
   test "memo_directory_path_from_root_label joins segment labels from root" do
     home_u_one = memo_directories(:home_u_one)
     work = memo_directories(:work)

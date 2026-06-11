@@ -332,6 +332,55 @@ html[data-kb-theme-base="minimal"] {
   min-width: var(--size-13);
 }
 
+.kb-directory-picker {
+  inline-size: min(22rem, 100%);
+}
+
+.kb-directory-picker .kb-picker-panel {
+  inline-size: min(22rem, calc(100vw - var(--size-4)));
+}
+
+.kb-directory-picker-branch,
+.kb-directory-picker-leaf {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: start;
+}
+
+.kb-directory-picker-caret,
+.kb-directory-picker-caret-spacer {
+  grid-column: 1;
+  grid-row: 1;
+  inline-size: 1.25rem;
+  min-block-size: 1.875rem;
+}
+
+.kb-directory-picker-caret {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kb-directory-picker-row {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.kb-directory-picker-children {
+  grid-column: 2;
+  grid-row: 2;
+  margin-left: 0;
+}
+
+.kb-directory-picker-branch[data-directory-picker-open="true"] > .kb-directory-picker-caret .kb-tree-caret {
+  transform: rotate(90deg);
+}
+
 .kb-nav-menu-panel {
   max-height: min(var(--size-15), 70vh);
 }
