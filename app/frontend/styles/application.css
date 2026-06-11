@@ -80,8 +80,11 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 
 .memo-directory-nav-summary {
   cursor: pointer;
+  border: 0;
+  background: transparent;
   border-radius: var(--kb-radius-sm);
   color: var(--kb-text-muted);
+  padding: 0;
 }
 
 .memo-directory-nav-row {
@@ -90,7 +93,7 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   min-width: 0;
 }
 
-.memo-directory-nav-details:not([open]) > .memo-directory-nav-row {
+.memo-directory-nav-details > .memo-directory-nav-row {
   display: flex;
   width: 100%;
 }
@@ -99,6 +102,10 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 .memo-directory-nav-leaf > .kb-tree-children {
   grid-column: 2;
   grid-row: 2;
+}
+
+.memo-directory-nav-details[data-memo-directory-nav-open="true"] > .memo-directory-nav-summary .kb-tree-caret {
+  transform: rotate(90deg);
 }
 
 .memo-directory-dialog {

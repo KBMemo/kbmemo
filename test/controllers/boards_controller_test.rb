@@ -108,8 +108,7 @@ class BoardsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[type=hidden][name=?]", "board[memo_directory_id]"
     assert_select "[data-memo-directory-parent-picker-target='toggleButton'][aria-controls]"
     assert_select "[data-memo-directory-parent-picker-target='panel'][role='listbox'][id]"
-    assert_select "summary.memo-directory-nav-summary a", count: 0
-    assert_select "summary.memo-directory-nav-summary button", count: 0
+    assert_select "button.memo-directory-nav-summary a", count: 0
     assert_select "[data-controller~=?]", "memo-directory-dialog"
     assert_select "button[data-action*=?]", "memo-directory-dialog#openNew"
   end

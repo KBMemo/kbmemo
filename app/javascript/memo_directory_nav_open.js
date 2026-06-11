@@ -2,7 +2,7 @@ const STORAGE_KEY = "kbmemo:memoDirectoryNavOpenIds"
 
 export function openDirectoryIdsFromPanel(panel = document.getElementById("memos_list_panel")) {
   if (!panel) return []
-  return [...panel.querySelectorAll("details.memo-directory-nav-details[open]")]
+  return [...panel.querySelectorAll('[data-memo-directory-nav-branch][data-memo-directory-nav-open="true"]')]
     .map((el) => el.dataset.memoDirectoryId)
     .filter(Boolean)
 }
@@ -26,15 +26,24 @@ export function loadOpenDirectoryIds() {
 export function applyOpenDirectoryIds(ids, panel = document.getElementById("memos_list_panel")) {
   if (!panel || !ids?.length) return
   const idSet = new Set(ids.map(String))
-  for (const el of panel.querySelectorAll("details.memo-directory-nav-details")) {
-    if (idSet.has(el.dataset.memoDirectoryId)) {
-      el.open = true
-    }
+  for (const el of panel.querySelectorAll("[data-memo-directory-nav-branch]")) {
+    setBranchOpen(el, idSet.has(el.dataset.memoDirectoryId))
   }
 }
 
 export function syncOpenDirectoryIdsFromPanel() {
   saveOpenDirectoryIds(openDirectoryIdsFromPanel())
+}
+
+export function setBranchOpen(branch, open) {
+  if (!(branch instanceof HTMLElement)) return
+
+  const expanded = Boolean(open)
+  branch.dataset.memoDirectoryNavOpen = String(expanded)
+  const button = branch.querySelector(":scope > .memo-directory-nav-summary")
+  const children = branch.querySelector(":scope > .kb-tree-children")
+  button?.setAttribute("aria-expanded", String(expanded))
+  if (children) children.hidden = !expanded
 }
 
 export function appendNavOpenDirectoryFields(form) {

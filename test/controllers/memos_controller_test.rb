@@ -469,8 +469,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select '[data-controller~="memo-directory-dnd"]'
     assert_includes response.body, "memo-draft#preventSubmit"
     assert_includes response.body, "memo-draft#suppressEnterSubmit"
-    assert_select "summary.memo-directory-nav-summary a", count: 0
-    assert_select "summary.memo-directory-nav-summary button", count: 0
+    assert_select "button.memo-directory-nav-summary a", count: 0
+    assert_select "button.memo-directory-nav-summary + .memo-directory-nav-row"
     assert_select "img.kb-avatar[loading='eager'][fetchpriority='low'][width='28'][height='28']"
     assert_includes response.body, "memo_slug_field"
     assert_match(/data-memo[-_]draft[-_]tag[-_]catalog[-_]value=.*Ideas/, response.body)
@@ -906,9 +906,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
     %w[Home Share Public System].each do |label|
       assert_select "#memos_list_panel a span", text: label
-      assert_select "#memos_list_panel details.memo-directory-nav-details[open] > summary[aria-label='#{label} の子ディレクトリを開閉']"
+      assert_select "#memos_list_panel [data-memo-directory-nav-branch][data-memo-directory-nav-open='true'] > button[aria-label='#{label} の子ディレクトリを開閉']"
     end
-    assert_select "#memos_list_panel details.memo-directory-nav-details > summary.memo-directory-nav-summary + .memo-directory-nav-row"
+    assert_select "#memos_list_panel [data-memo-directory-nav-branch] > button.memo-directory-nav-summary + .memo-directory-nav-row"
   end
 
   test "edit uncommitted memo shows delete and commit actions" do
