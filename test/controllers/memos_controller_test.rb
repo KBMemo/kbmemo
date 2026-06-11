@@ -885,10 +885,14 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "directory sidebar hint has an accessible description" do
-    get memos_url
+    get memos_url(memo_directory_id: memo_directories(:work).id)
     assert_response :success
     assert_select "summary[aria-label='メモ移動方法の説明'][aria-describedby='memo-directory-move-hint']"
     assert_select "#memo-directory-move-hint", text: /ドラッグ/
+    assert_select "#memo-directory-move-hint", text: /キーボード操作/
+    assert_select "[data-memo-directory-dnd-handle][aria-hidden='true'][draggable='true']"
+    assert_select "[data-memo-directory-dnd-handle][role]", count: 0
+    assert_select "[data-memo-directory-dnd-handle][tabindex]", count: 0
   end
 
   test "edit uncommitted memo shows delete and commit actions" do

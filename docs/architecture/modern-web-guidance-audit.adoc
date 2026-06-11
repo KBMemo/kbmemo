@@ -59,6 +59,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * メモ本文エディタの編集モード切替を `role="tab"` + `aria-selected` + `tabpanel` 接続へ揃え、Arrow / Home / End で roving tabindex 操作できるようにした。
 * ダイアグラム新規作成フォームの補助文を `aria-describedby` で入力欄へ接続し、編集 / ソース / SVG ビューアに preview live region、CodeMirror の説明接続、ズームボタンの `aria-label` を追加した。
 * プロフィールのトークン発行後スクロール用 inline script を削除し、`scroll-into-view` Stimulus controller で対象 section へスクロール / focus する構成に変更した。
+* メモ一覧のドラッグ専用ハンドルから `role="button"` / `tabindex` を外し、ポインタ専用の補助操作として accessibility tree から除外した。キーボード操作ではメモ編集フォームの保存先フォルダ欄を使う説明をヒントに追加した。
 
 == 現状の良い点
 
@@ -136,7 +137,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P2
 |HTML / Accessibility
-|現在も semantic HTML は比較的良いが、custom popup / picker の増加で native 機能との差が広がりやすい。メモ編集フォームとディレクトリサイドバーの `<details>` ヒントは accessible name / description を接続済み。
+|現在も semantic HTML は比較的良いが、custom popup / picker の増加で native 機能との差が広がりやすい。メモ編集フォームとディレクトリサイドバーの `<details>` ヒントは accessible name / description を接続済み。メモ一覧のドラッグ専用ハンドルは focusable な偽ボタンにせず、キーボード操作の代替として編集フォームの保存先フォルダ欄を案内している。
 |Baseline を明示した上で、可能な箇所は `dialog` / `details` に寄せ、将来的には `popover` も検討する。popover 化する場合は fallback / polyfill 方針も合わせて決める。
 
 |P2
@@ -175,6 +176,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** resizer は `aria-valuetext` で現在幅を読み上げられるようにし、drag / keyboard resize のどちらでも値を同期する。
 * メモ編集フォーム / ディレクトリサイドバーの hint `<details>`
 ** icon-only `summary` は `aria-label` と `aria-describedby` で説明本文へ接続済み。
+** ドラッグ専用ハンドルは `aria-hidden` にし、keyboard user には編集フォームの保存先フォルダ欄を移動手段として案内する。
 
 === 3. Security sink
 
