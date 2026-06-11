@@ -7,6 +7,8 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal "nosniff", response.headers["X-Content-Type-Options"]
     assert_equal "SAMEORIGIN", response.headers["X-Frame-Options"]
+    assert_equal "same-origin-allow-popups", response.headers["Cross-Origin-Opener-Policy"]
+    assert_equal "same-origin", response.headers["Cross-Origin-Resource-Policy"]
     assert_equal "strict-origin-when-cross-origin", response.headers["Referrer-Policy"]
     assert_equal "camera=(), geolocation=(), microphone=()", response.headers["Permissions-Policy"]
     assert_equal 'csp="/csp_reports"', response.headers["Reporting-Endpoints"]

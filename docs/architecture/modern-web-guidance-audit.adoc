@@ -73,6 +73,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * 実行時に残る信頼済み HTML sink は Trusted Types の named policy 経由にし、`kbmemo-server-rendered-fragment` / `kbmemo-sanitized-svg` / `kbmemo-adoc-preview-html` の用途境界をコード上で分離した。
 * `@kbmemo/adoc-wysiwyg` の search-replace dialog も `div hidden` から native `<dialog>` へ変更し、`aria-labelledby` / `aria-describedby` / platform cancel close に対応した。
 * CSP report-only に `require-trusted-types-for 'script'` と `trusted-types` allowlist を追加し、Trusted Types 違反を `/csp_reports` で観測できるようにした。
+* `config.action_dispatch.default_headers` に `Cross-Origin-Opener-Policy: same-origin-allow-popups` / `Cross-Origin-Resource-Policy: same-origin` を追加し、低リスクな isolation companion policy を固定した。
 
 == 現状の良い点
 
@@ -80,6 +81,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * flash 通知に `aria-live="polite"` が入っている。
 * avatar と本文画像系には `loading` / `decoding="async"` が使われている。avatar は `width` / `height` 属性も持ち、above-the-fold の単体 avatar は eager + low priority にしている。
 * production では `force_ssl = true`、host 制限、cookie store を使っている。
+* `X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` / `Cross-Origin-Opener-Policy` / `Cross-Origin-Resource-Policy` を default headers で明示している。
 * Tailwind 依存を外し、テーマ設計を `themes.css` と Open Props に寄せている。
 
 == 優先度付き更新案
@@ -90,7 +92,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P0
 |Security
-|CSP は report-only で有効化済み。`application.html.slim` / `diagram_viewer.html.slim` のテーマ初期化 inline script と、プロフィールのトークン発行後スクロール inline script は削除済み。`X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` は default headers で明示済み。`/csp_reports` で report-only 違反を受けられる。Trusted Types も `require-trusted-types-for 'script'` を report-only に追加済み。
+|CSP は report-only で有効化済み。`application.html.slim` / `diagram_viewer.html.slim` のテーマ初期化 inline script と、プロフィールのトークン発行後スクロール inline script は削除済み。`X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` / `Cross-Origin-Opener-Policy` / `Cross-Origin-Resource-Policy` は default headers で明示済み。`/csp_reports` で report-only 違反を受けられる。Trusted Types も `require-trusted-types-for 'script'` を report-only に追加済み。
 |report-only 違反を確認し、必要な fetch / style / asset origin と Trusted Types sink を整理してから CSP enforcement へ移行する。ログ集計が必要になったら専用 storage / dashboard へ移す。
 
 |P0

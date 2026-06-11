@@ -34,6 +34,8 @@ module Kbmemo
     config.middleware.insert_before 0, ApiCorsMiddleware
 
     config.action_dispatch.default_headers.merge!(
+      "Cross-Origin-Opener-Policy" => "same-origin-allow-popups",
+      "Cross-Origin-Resource-Policy" => "same-origin",
       "Permissions-Policy" => "camera=(), geolocation=(), microphone=()",
       "Referrer-Policy" => "strict-origin-when-cross-origin",
       "Reporting-Endpoints" => 'csp="/csp_reports"',
