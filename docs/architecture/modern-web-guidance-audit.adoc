@@ -38,6 +38,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * SVG editor entry から `svgedit` 本体と CSS の static import を外し、`memo_svg_editor_controller.js` 接続時の dynamic import に変更。`svg_editor` entry は約 2.19 MB から約 2.12 kB まで縮小し、SVGEdit 本体は `Editor` async chunk に分離した。
 * editor / preview 系 import を package root から必要 module の direct import へ寄せ、`@kbmemo/adoc-kbmemo` の不要 export 巻き込みを削減した。`adoc-kbmemo` async chunk は約 1.10 MB から約 344.96 kB まで縮小した。
 * `scripts/report-vite-bundles.mjs` / `npm run report:bundles` を追加し、Vite manifest から JS / CSS bundle size と gzip size を確認できるようにした。
+* `scripts/report-vite-bundles.mjs` に `--focus` filter を追加し、`npm run report:editor-bundles` で CodeMirror / Asciidoctor / editor 系 async chunk だけを測定できるようにした。
 * release 前の Lighthouse / CWV / bundle size 確認手順を `docs/architecture/web-performance-checklist.adoc` に追加した。
 * Rails model form の validation error 表示に `aria-invalid` / `aria-describedby` を付与する共通 helper を追加し、memo / memo directory / board / notebook / tag / profile の主要 field に適用した。
 * `render_diagram` endpoint の成功レスポンスに `X-Kbmemo-Svg-Sanitized: MemoSvgSanitizer` / `X-Content-Type-Options: nosniff` / `Cache-Control: no-store` と `sanitized: true` を付与し、フロント側はこの契約を満たす SVG だけを挿入するようにした。
@@ -107,8 +108,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P1
 |Performance / JS
-|route 固有の Stimulus controller は lazy 登録へ変更済み。メモ本文 highlight も `codeHighlight` 単体 dynamic import に切り出し済み。SVG editor も entry と SVGEdit 本体を分離済み。editor / preview 系は package root import を避ける形へ寄せた。直近の `bundle exec vite build --force` では `application` が約 491.99 kB、`svg_editor` entry が約 2.12 kB、`adoc-kbmemo` async chunk が約 344.96 kB。ineffective dynamic import 警告は解消済み。
-|次は CodeMirror / Asciidoctor 側の async chunk 境界を検討する。現状は source editor 初期化に必要なため、無理に割るより測定と UX 影響を見て判断する。
+|route 固有の Stimulus controller は lazy 登録へ変更済み。メモ本文 highlight も `codeHighlight` 単体 dynamic import に切り出し済み。SVG editor も entry と SVGEdit 本体を分離済み。editor / preview 系は package root import を避ける形へ寄せた。直近の `bundle exec vite build --force` では `application` が約 491.99 kB、`svg_editor` entry が約 2.12 kB、`adoc-kbmemo` async chunk が約 345.03 kB。ineffective dynamic import 警告は解消済み。`npm run report:editor-bundles` で CodeMirror / Asciidoctor / editor 系 chunk を抽出できる。
+|CodeMirror / Asciidoctor 側は source editor 初期化に必要な async chunk として残す。追加分割は、`report:editor-bundles` の増加や editor 初回操作の UX 悪化が見えた場合に検討する。
 
 |P1
 |Performance / HTML/JS
@@ -204,7 +205,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * DONE: ineffective dynamic import を解消する
 * DONE: SVG editor entry と SVGEdit 本体を分離する
 * DONE: editor / preview 系の package root import を direct import へ寄せる
-* TODO: CodeMirror / Asciidoctor async chunk の測定と追加分割可否を検討する
+* DONE: CodeMirror / Asciidoctor async chunk の測定と追加分割可否を検討する
 
 === Phase 4
 

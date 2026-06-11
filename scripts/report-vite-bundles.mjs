@@ -20,6 +20,13 @@ function hasFlag(name) {
   return process.argv.includes(name)
 }
 
+function listArgValue(name) {
+  return argValue(name, "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+}
+
 function formatKb(bytes) {
   return `${(bytes / 1024).toFixed(2)} kB`
 }
@@ -41,6 +48,7 @@ const manifestPath = argValue("--manifest", DEFAULT_MANIFEST)
 const limitKb = Number(argValue("--limit-kb", String(DEFAULT_LIMIT_KB)))
 const limitBytes = Number.isFinite(limitKb) && limitKb > 0 ? limitKb * 1024 : DEFAULT_LIMIT_KB * 1024
 const failOnWarning = hasFlag("--fail-on-warning")
+const focusTerms = listArgValue("--focus")
 const publicRoot = join(dirname(manifestPath), "..")
 const manifest = readManifest(manifestPath)
 
@@ -58,12 +66,21 @@ const rows = Object.entries(manifest)
       gzipBytes,
     }
   })
+  .filter((row) => {
+    if (focusTerms.length === 0) return true
+
+    const haystack = `${row.source} ${row.file}`.toLowerCase()
+    return focusTerms.some((term) => haystack.includes(term))
+  })
   .sort((a, b) => b.bytes - a.bytes)
 
 const oversized = rows.filter((row) => row.bytes >= limitBytes)
 
 console.log(`Vite bundle report: ${manifestPath}`)
 console.log(`Warn limit: ${formatKb(limitBytes)}`)
+if (focusTerms.length > 0) {
+  console.log(`Focus: ${focusTerms.join(", ")}`)
+}
 console.log("")
 console.log("| kind | size | gzip | file | source |")
 console.log("| --- | ---: | ---: | --- | --- |")
