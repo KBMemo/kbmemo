@@ -36,7 +36,7 @@ ruby:
         p.mb-2.text-xs.kb-text-secondary タグがまだありません。メモの編集画面でタグを付けられます。
       = link_to "タグを管理…", tags_path, class: "mb-2 inline-block text-xs kb-text-secondary kb-inline-link"
     - elsif @sidebar_view == "search"
-      .mb-2 data-controller="memo-search"
+      search.mb-2 data-controller="memo-search"
         = form_tag memos_path, method: :get, class: "flex min-w-0 gap-1", data: { memo_search_target: "form", turbo: "false" } do
           = hidden_field_tag :sidebar_view, "search"
           = label_tag :q, "タイトル・本文を検索", class: "sr-only"

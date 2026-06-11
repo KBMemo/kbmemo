@@ -64,6 +64,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `expandable-hint` の icon-only toggle は `title` に頼らず `aria-label` を持つようにし、開閉状態に合わせて `aria-expanded` / `aria-label` / `title` を同期する。
 * Gravatar の `img` に表示サイズと同じ `width` / `height` 属性を追加し、CSS 適用前でも aspect ratio を予約して CLS を抑える。
 * メモ詳細 / 編集フォーム上部の Gravatar は above-the-fold なので `loading="eager"` にし、非 LCP の小画像として `fetchpriority="low"` を付ける。サイドバー一覧の avatar は offscreen 行が多いため lazy loading を維持する。
+* メモサイドバー検索とボードの既存メモ検索を `<search>` 要素で囲み、検索 UI を native landmark として表現する。
 
 == 現状の良い点
 
@@ -165,6 +166,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** account theme preference から初期 `data-kb-theme` / `data-kb-theme-base` / `data-kb-skin` と `color-scheme` を server-rendered 化済み。
 * `app/views/layouts/svg_editor.html.slim`
 ** `lang="ja"` 付与済み。
+* Search UI
+** メモサイドバー検索 / ボードの既存メモ検索は `<search>` で囲み、`role="search"` なしで landmark semantics を持たせる。
 
 === 2. Dialog / Menu
 

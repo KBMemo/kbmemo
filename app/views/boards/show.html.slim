@@ -35,7 +35,7 @@ div class="kb-chrome-workspace kb-workspace-min flex -mx-4 flex-col border-t md:
           .flex.items-center.justify-between.border-b.kb-border.px-4.py-3
             h2.text-base.font-semibold.kb-text-primary 既存メモを追加
             button.kb-text-muted.hover:opacity-80 type="button" data-action="board-add-memo#close" aria-label="閉じる" ×
-          .space-y-3.p-4
+          search.space-y-3.p-4
             = label_tag :q, "追加する既存メモを検索", class: "sr-only"
             = search_field_tag :q, nil, placeholder: "タイトル・本文で検索", autocomplete: "off", class: "kb-input kb-input-md w-full", data: { board_add_memo_target: "query", action: "input->board-add-memo#search" }
             .max-h-64.overflow-y-auto.rounded-md.border.kb-border data-board-add-memo-target="results"

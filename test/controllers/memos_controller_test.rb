@@ -31,6 +31,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, m.title
     assert_includes response.body, "検索結果"
+    assert_select "search[data-controller='memo-search']"
     assert_select "label.sr-only[for='q']", text: "タイトル・本文を検索"
   end
 
