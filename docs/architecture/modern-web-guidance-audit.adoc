@@ -49,7 +49,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `application.html.slim` / `diagram_viewer.html.slim` の `html[data-kb-theme]` / `data-kb-theme-base` / `data-kb-skin` と `meta[name="color-scheme"]` を account theme preference から server-rendered にし、inline script なしで初期描画時のテーマちらつきを抑える構成へ変更した。
 * `code_block_tools_controller.js` の copy / check icon 描画を固定 SVG 文字列の `innerHTML` から `createElementNS` / `replaceChildren` ベースへ変更した。
 * `config.action_dispatch.default_headers` に `X-Content-Type-Options: nosniff` / `Referrer-Policy: strict-origin-when-cross-origin` / `Permissions-Policy: camera=(), geolocation=(), microphone=()` を明示し、低リスクな browser security companion policy を固定した。
-* CSP report-only の収集導線として `POST /csp_reports` を追加し、`report-uri /csp_reports` と `Reporting-Endpoints: csp="/csp_reports"` を設定した。受信 payload は認証なしで `204` を返し、ログは query / fragment を落とした最小フィールドに限定する。
+* CSP report-only の収集導線として `POST /csp_reports` を追加し、`report-uri /csp_reports` / `report-to csp` と `Reporting-Endpoints: csp="/csp_reports"` を設定した。受信 payload は認証なしで `204` を返し、ログは query / fragment を落とした最小フィールドに限定する。
 * `scripts/report-vite-bundles.mjs` に `--kind` filter を追加し、`npm run check:bundle-budget` で `entry` bundle を 520 kB 以内に固定する CI 向け budget check を追加した。
 * メモ編集フォームとディレクトリサイドバーの `<details>` ヒントは、アイコンだけの `summary` に `aria-label` / `aria-describedby` を付け、説明本文へ接続した。
 * `@kbmemo/adoc-wysiwyg` の web paste / image paste / search-replace dialog の固定 HTML template と、空段落 placeholder の固定 HTML を `createElement` / `textContent` / `append` ベースへ変更した。
@@ -75,6 +75,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * CSP report-only に `require-trusted-types-for 'script'` と `trusted-types` allowlist を追加し、Trusted Types 違反を `/csp_reports` で観測できるようにした。
 * `config.action_dispatch.default_headers` に `Cross-Origin-Opener-Policy: same-origin-allow-popups` / `Cross-Origin-Resource-Policy: same-origin` を追加し、低リスクな isolation companion policy を固定した。
 * Rodauth logout response に `Clear-Site-Data: "cookies", "storage", "cache"` を追加し、ログアウト時に browser 側の site data も破棄するようにした。
+* CSP report-only に `report-to csp` directive を追加し、`Reporting-Endpoints` を参照する標準 reporting path と `report-uri` fallback を併用するようにした。
 
 == 現状の良い点
 

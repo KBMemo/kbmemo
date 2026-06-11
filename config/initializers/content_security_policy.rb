@@ -13,6 +13,8 @@ Rails.application.configure do
     policy.frame_ancestors :self
     policy.img_src :self, :https, :data, :blob
     policy.object_src :none
+    # Rails 8.1 exposes report-uri but not report-to in the CSP DSL.
+    policy.directives["report-to"] = [ "csp" ]
     policy.report_uri "/csp_reports"
     policy.require_trusted_types_for :script
     policy.script_src :self
