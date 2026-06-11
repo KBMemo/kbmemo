@@ -12,15 +12,16 @@ ruby:
   picker_controllers = sidebar_open_path ? "memo-directory-parent-picker memo-directory-sidebar-open" : "memo-directory-parent-picker"
   picker_dom_id = "#{field_id.presence || field_method || field_name}_directory_picker".parameterize(separator: "_")
   picker_panel_id = "#{picker_dom_id}_panel"
+  path_label_class = "min-w-0 flex-1 truncate text-left"
 
 .kb-directory-picker.relative.min-w-0.max-w-full data-controller=picker_controllers data-memo-directory-sidebar-open-memo-path-value=sidebar_open_path
   .flex.min-w-0.items-center.gap-1.text-sm
     span.shrink-0.font-medium.kb-text-primary = "#{label_text}："
-    span.min-w-0.flex-1.truncate.kb-text-secondary data-memo-directory-parent-picker-target="pathLabel" = initial_path
-    button type="button" class=kb_icon_btn("shrink-0 rounded px-1 py-0.5") data-memo-directory-parent-picker-target="toggleButton" data-action="click->memo-directory-parent-picker#toggle keydown->memo-directory-parent-picker#toggleKeydown" aria-expanded="false" aria-haspopup="listbox" aria-controls=picker_panel_id aria-label="#{label_text}を選択" ▼
     - if sidebar_open_path
-      button type="button" class="#{kb_icon_btn('shrink-0 inline-flex items-center gap-1 rounded px-1.5 py-0.5')} disabled:cursor-not-allowed disabled:opacity-40" title="サイドバーでこのディレクトリを表示" data-memo-directory-sidebar-open-target="button" data-action="click->memo-directory-sidebar-open#open" aria-label="サイドバーでこのディレクトリを表示"
-        i.h-4.w-4 aria-hidden="true" data-lucide="panel-left-open"
+      button type="button" class="#{path_label_class} kb-directory-picker-path-button disabled:cursor-default disabled:opacity-100" data-memo-directory-parent-picker-target="pathLabel" data-memo-directory-sidebar-open-target="button" data-action="click->memo-directory-sidebar-open#open" title="サイドバーでこのディレクトリを表示" disabled=unselected = initial_path
+    - else
+      span class="#{path_label_class} kb-text-secondary" data-memo-directory-parent-picker-target="pathLabel" = initial_path
+    button type="button" class=kb_icon_btn("shrink-0 rounded px-1 py-0.5") data-memo-directory-parent-picker-target="toggleButton" data-action="click->memo-directory-parent-picker#toggle keydown->memo-directory-parent-picker#toggleKeydown" aria-expanded="false" aria-haspopup="listbox" aria-controls=picker_panel_id aria-label="#{label_text}を選択" ▼
   - if local_assigns[:form_builder]
     = form_builder.hidden_field field_method, value: field_value, data: hidden_data, aria: hidden_aria
   - else

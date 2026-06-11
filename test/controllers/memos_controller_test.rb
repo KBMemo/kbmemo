@@ -1038,12 +1038,12 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
-  test "edit shows sidebar open button on directory field" do
+  test "edit opens sidebar directory from directory field label" do
     get edit_memo_url(memos(:one))
     assert_response :success
-    assert_select "#memo_directory_field button[aria-label='サイドバーでこのディレクトリを表示']"
+    assert_select "#memo_directory_field button[data-memo-directory-sidebar-open-target='button'][data-memo-directory-parent-picker-target='pathLabel']"
     assert_includes response.body, "memo-directory-sidebar-open"
-    assert_includes response.body, "panel-left-open"
+    assert_not_includes response.body, "panel-left-open"
   end
 
   test "show renders wiki link to another memo in body" do

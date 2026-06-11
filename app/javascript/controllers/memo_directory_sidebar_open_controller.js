@@ -41,7 +41,7 @@ export default class extends Controller {
 
     const enabled = Boolean(this._directoryInput?.value)
     this.buttonTarget.disabled = !enabled
-    this.buttonTarget.classList.toggle("opacity-40", !enabled)
-    this.buttonTarget.classList.toggle("cursor-not-allowed", !enabled)
+    this.buttonTarget.classList.toggle("kb-inline-link", enabled)
+    this.buttonTarget.classList.toggle("kb-text-secondary", !enabled)
   }
 }

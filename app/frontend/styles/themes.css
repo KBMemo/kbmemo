@@ -345,6 +345,13 @@ html[data-kb-theme-base="minimal"] {
   min-inline-size: 100%;
 }
 
+.kb-directory-picker-path-button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+}
+
 .kb-directory-picker-branch,
 .kb-directory-picker-leaf {
   display: grid;
