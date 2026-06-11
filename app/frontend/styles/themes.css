@@ -333,11 +333,16 @@ html[data-kb-theme-base="minimal"] {
 }
 
 .kb-directory-picker {
-  inline-size: min(22rem, 100%);
+  display: flex;
+  flex-direction: column;
+  inline-size: min(22rem, calc(100vw - var(--size-4)));
+  max-inline-size: 100%;
+  vertical-align: middle;
 }
 
 .kb-directory-picker .kb-picker-panel {
   inline-size: min(22rem, calc(100vw - var(--size-4)));
+  min-inline-size: 100%;
 }
 
 .kb-directory-picker-branch,
@@ -346,6 +351,7 @@ html[data-kb-theme-base="minimal"] {
   grid-template-columns: 1.25rem minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-items: start;
+  inline-size: 100%;
 }
 
 .kb-directory-picker-caret,

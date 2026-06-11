@@ -13,7 +13,7 @@ ruby:
   picker_dom_id = "#{field_id.presence || field_method || field_name}_directory_picker".parameterize(separator: "_")
   picker_panel_id = "#{picker_dom_id}_panel"
 
-.kb-directory-picker.relative.min-w-0.max-w-full.flex-1 data-controller=picker_controllers data-memo-directory-sidebar-open-memo-path-value=sidebar_open_path
+.kb-directory-picker.relative.min-w-0.max-w-full data-controller=picker_controllers data-memo-directory-sidebar-open-memo-path-value=sidebar_open_path
   .flex.min-w-0.flex-wrap.items-baseline.gap-x-1.gap-y-1.text-sm
     span.shrink-0.font-medium.kb-text-primary = "#{label_text}："
     span.min-w-0.truncate.kb-text-secondary data-memo-directory-parent-picker-target="pathLabel" = initial_path

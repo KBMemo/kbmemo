@@ -1094,6 +1094,12 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "button[aria-label='プロパティ全文を表示'][aria-controls='memo-properties-panel'][aria-expanded='false']"
     # 編集可能な所有者はディレクトリ picker が表示される（選択中ディレクトリを反映）。
     assert_select "input#memo_show_directory_id_#{memo.id}[value=?]", memo.memo_directory_id.to_s
+    assert_select "#memo_show_directory_id_#{memo.id}_directory_picker_panel[data-memo-directory-parent-picker-target='panel']" do
+      assert_select ".kb-directory-picker-row", text: "/Home"
+      assert_select ".kb-directory-picker-row", text: "/Share"
+      assert_select ".kb-directory-picker-row", text: "/Public"
+      assert_select ".kb-directory-picker-row", text: "/System"
+    end
   end
 
   test "show shows directory path link for a viewer who cannot edit" do

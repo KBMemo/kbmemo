@@ -12,9 +12,9 @@ ruby:
   details_open = memo_directory_picker_details_open?(dir, selected_directory)
   branch_children_id = "#{picker_dom_id}_branch_#{dir.id}_children"
 
-li.min-w-0
+li.w-full.min-w-0
   - if has_children
-    .kb-directory-picker-branch.w-full.min-w-0 data-directory-picker-branch="" data-directory-picker-initial-open=(details_open ? "true" : "false") data-directory-picker-open=(details_open ? "true" : "false")
+    .kb-directory-picker-branch data-directory-picker-branch="" data-directory-picker-initial-open=(details_open ? "true" : "false") data-directory-picker-open=(details_open ? "true" : "false")
       button.kb-directory-picker-caret.cursor-pointer.rounded-md type="button" aria-label="#{row_label} の子ディレクトリを開閉" aria-expanded=(details_open ? "true" : "false") aria-controls=branch_children_id data-action="memo-directory-parent-picker#toggleBranch"
         span aria-hidden="true" class="kb-tree-caret" ▶
       .kb-directory-picker-row
