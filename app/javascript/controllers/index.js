@@ -57,6 +57,7 @@ const lazyControllers = {
   "memo-show-metadata": () => import("./memo_show_metadata_controller"),
   "memo-wiki-create": () => import("./memo_wiki_create_controller"),
   "notebook-memo-tree": () => import("./notebook_memo_tree_controller"),
+  "scroll-into-view": () => import("./scroll_into_view_controller"),
   "skin-studio": () => import("./skin_studio_controller"),
   "theme-studio": () => import("./theme_studio_controller"),
   "tsuzura-picker": () => import("./tsuzura_picker_controller"),

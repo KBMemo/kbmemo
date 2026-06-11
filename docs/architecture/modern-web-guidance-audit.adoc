@@ -58,6 +58,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * メモサイドバー検索とメモ表示画面のタグ追加入力に `label.sr-only` を追加し、placeholder / `aria-label` 依存を減らした。
 * メモ本文エディタの編集モード切替を `role="tab"` + `aria-selected` + `tabpanel` 接続へ揃え、Arrow / Home / End で roving tabindex 操作できるようにした。
 * ダイアグラム新規作成フォームの補助文を `aria-describedby` で入力欄へ接続し、編集 / ソース / SVG ビューアに preview live region、CodeMirror の説明接続、ズームボタンの `aria-label` を追加した。
+* プロフィールのトークン発行後スクロール用 inline script を削除し、`scroll-into-view` Stimulus controller で対象 section へスクロール / focus する構成に変更した。
 
 == 現状の良い点
 
@@ -75,7 +76,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P0
 |Security
-|CSP は report-only で有効化済み。`application.html.slim` / `diagram_viewer.html.slim` のテーマ初期化 inline script は削除済み。`X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` は default headers で明示済み。`/csp_reports` で report-only 違反を受けられる。
+|CSP は report-only で有効化済み。`application.html.slim` / `diagram_viewer.html.slim` のテーマ初期化 inline script と、プロフィールのトークン発行後スクロール inline script は削除済み。`X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` は default headers で明示済み。`/csp_reports` で report-only 違反を受けられる。
 |report-only 違反を確認し、必要な fetch / style / asset origin を整理してから CSP enforcement へ移行する。ログ集計が必要になったら専用 storage / dashboard へ移す。
 
 |P0
