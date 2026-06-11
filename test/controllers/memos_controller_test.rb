@@ -469,6 +469,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select '[data-controller~="memo-directory-dnd"]'
     assert_includes response.body, "memo-draft#preventSubmit"
     assert_includes response.body, "memo-draft#suppressEnterSubmit"
+    assert_select "summary.memo-directory-nav-summary a", count: 0
+    assert_select "summary.memo-directory-nav-summary button", count: 0
     assert_select "img.kb-avatar[loading='eager'][fetchpriority='low'][width='28'][height='28']"
     assert_includes response.body, "memo_slug_field"
     assert_match(/data-memo[-_]draft[-_]tag[-_]catalog[-_]value=.*Ideas/, response.body)

@@ -227,7 +227,7 @@ module MemosHelper
 
   def memo_directory_nav_details_attrs(directory)
     attrs = {
-      class: "memo-directory-nav-details group w-full min-w-0",
+      class: "memo-directory-nav-details group relative w-full min-w-0",
       data: { memo_directory_id: directory.id }
     }
     attrs[:open] = true if memo_directory_nav_details_open?(directory)

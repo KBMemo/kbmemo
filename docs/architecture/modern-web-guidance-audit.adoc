@@ -66,6 +66,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * メモ詳細 / 編集フォーム上部の Gravatar は above-the-fold なので `loading="eager"` にし、非 LCP の小画像として `fetchpriority="low"` を付ける。サイドバー一覧の avatar は offscreen 行が多いため lazy loading を維持する。
 * メモサイドバー検索とボードの既存メモ検索を `<search>` 要素で囲み、検索 UI を native landmark として表現する。
 * メモ本文 HTML の画像後処理で、既存の `loading` 指定を尊重しつつ `decoding="async"` 未指定の画像へ補完するようにした。
+* ディレクトリツリーの `<summary>` 内にリンク / ボタンを入れず、`summary` は子ディレクトリ開閉専用、行の選択・編集操作は隣接 row 側の interactive element に分離した。
 
 == 現状の良い点
 
@@ -185,6 +186,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * メモ編集フォーム / ディレクトリサイドバーの hint `<details>`
 ** icon-only `summary` は `aria-label` と `aria-describedby` で説明本文へ接続済み。
 ** ドラッグ専用ハンドルは `aria-hidden` にし、keyboard user には編集フォームの保存先フォルダ欄を移動手段として案内する。
+* ディレクトリツリーの `<details>`
+** `summary` は開閉専用の caret と accessible name のみにし、リンク / ボタンを入れ子にしない。
 * `expandable-hint`
 ** Wiki リンク説明 / プロパティ全文の icon-only toggle は `aria-label` を持ち、開閉時にも label を同期する。
 
