@@ -47,6 +47,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `tsuzura_picker_controller.js` の album list / photo list / error・empty 表示を `innerHTML` 文字列組み立てから `createElement` / `textContent` / `dataset` ベースへ変更した。
 * `utility-compat.css` の重複 utility / 空 rule を削除し、`npm run check:utility-compat` で shrink-only baseline（有効行数・rule 数・重複 selector）を確認できるようにした。
 * `application.html.slim` / `diagram_viewer.html.slim` の `html[data-kb-theme]` / `data-kb-theme-base` / `data-kb-skin` と `meta[name="color-scheme"]` を account theme preference から server-rendered にし、inline script なしで初期描画時のテーマちらつきを抑える構成へ変更した。
+* `code_block_tools_controller.js` の copy / check icon 描画を固定 SVG 文字列の `innerHTML` から `createElementNS` / `replaceChildren` ベースへ変更した。
 
 == 現状の良い点
 
@@ -69,8 +70,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P0
 |Security
-|`memo_ai_panel_controller.js` は error 表示と message rendering を DOM API ベースへ置換済み。`memo_search_picker_controller.js` / `board_add_memo_controller.js` / `tsuzura_picker_controller.js` の picker 描画も DOM API ベースへ置換済み。
-|残る `innerHTML` は SVG icon / sanitize 済み SVG / server-rendered fragment / editor package 内の固定 dialog template など、用途ごとに境界を明示しながら縮小する。
+|`memo_ai_panel_controller.js` は error 表示と message rendering を DOM API ベースへ置換済み。`memo_search_picker_controller.js` / `board_add_memo_controller.js` / `tsuzura_picker_controller.js` の picker 描画も DOM API ベースへ置換済み。`code_block_tools_controller.js` の copy / check icon も DOM API ベースへ置換済み。
+|残る `innerHTML` は sanitize 済み SVG / server-rendered fragment / editor package 内の固定 dialog template など、用途ごとに境界を明示しながら縮小する。
 
 |P0
 |Security
@@ -165,6 +166,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `app/javascript/controllers/memo_ai_panel_controller.js`
 ** message rendering と error 表示は DOM API ベースへ置換済み。
 * `app/javascript/controllers/code_block_tools_controller.js`
+** copy / check icon は DOM API ベースへ置換済み。
 ** SVG 注入は `replaceWithSanitizedSvg` に隔離済み。`render_diagram` endpoint の response header / JSON flag / controller test で sanitize 契約を明示済み。
 * `app/javascript/controllers/memo_search_picker_controller.js`
 ** こちらは `_escape` / `_escapeAttr` を入れており、比較的丁寧。

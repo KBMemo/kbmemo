@@ -8,6 +8,7 @@ const DIAGRAM_LANGS = new Set(["plantuml", "puml", "uml", "mermaid"])
 const TOGGLE_LANGS = new Set([...DIAGRAM_LANGS, "svg"])
 const SANITIZED_SVG_HEADER = "X-Kbmemo-Svg-Sanitized"
 const SANITIZED_SVG_HEADER_VALUE = "MemoSvgSanitizer"
+const SVG_NS = "http://www.w3.org/2000/svg"
 
 function toggleLabels(lang) {
   if (lang === "svg") {
@@ -26,8 +27,42 @@ function toggleLabels(lang) {
   }
 }
 
-const COPY_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`
-const CHECK_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+function createIconSvg(children) {
+  const svg = document.createElementNS(SVG_NS, "svg")
+  svg.setAttribute("viewBox", "0 0 24 24")
+  svg.setAttribute("width", "14")
+  svg.setAttribute("height", "14")
+  svg.setAttribute("fill", "none")
+  svg.setAttribute("stroke", "currentColor")
+  svg.setAttribute("stroke-width", "2")
+  svg.setAttribute("stroke-linecap", "round")
+  svg.setAttribute("stroke-linejoin", "round")
+  svg.setAttribute("aria-hidden", "true")
+
+  children.forEach((child) => svg.appendChild(child))
+  return svg
+}
+
+function createSvgElement(name, attributes) {
+  const element = document.createElementNS(SVG_NS, name)
+  Object.entries(attributes).forEach(([key, value]) => {
+    element.setAttribute(key, value)
+  })
+  return element
+}
+
+function copyIcon() {
+  return createIconSvg([
+    createSvgElement("rect", { x: "9", y: "9", width: "13", height: "13", rx: "2", ry: "2" }),
+    createSvgElement("path", { d: "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" }),
+  ])
+}
+
+function checkIcon() {
+  return createIconSvg([
+    createSvgElement("polyline", { points: "20 6 9 17 4 12" }),
+  ])
+}
 
 export default class extends Controller {
   static values = {
@@ -93,7 +128,7 @@ export default class extends Controller {
     button.className = "kb-code-btn kb-code-copy"
     button.title = "コードをコピー"
     button.setAttribute("aria-label", "コードをコピー")
-    button.innerHTML = COPY_ICON
+    button.replaceChildren(copyIcon())
     button.addEventListener("click", () => this.copy(code, button))
     return button
   }
@@ -130,11 +165,11 @@ export default class extends Controller {
 
   flash(button) {
     button.classList.add("is-copied")
-    button.innerHTML = CHECK_ICON
+    button.replaceChildren(checkIcon())
     window.clearTimeout(button._copyTimer)
     button._copyTimer = window.setTimeout(() => {
       button.classList.remove("is-copied")
-      button.innerHTML = COPY_ICON
+      button.replaceChildren(copyIcon())
     }, 1200)
   }
 
