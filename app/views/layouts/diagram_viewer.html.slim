@@ -1,9 +1,10 @@
 doctype html
-html lang="ja" data-kb-theme="default" data-kb-theme-base="default"
+html lang="ja" data-kb-theme=kb_initial_theme_id data-kb-theme-base=kb_initial_theme_base data-kb-skin=kb_initial_skin_id
   head
     title
       = content_for(:title) || "ダイアグラム"
     meta[name="viewport" content="width=device-width,initial-scale=1"]
+    meta[name="color-scheme" content=kb_initial_color_scheme]
     = csrf_meta_tags
     = csp_meta_tag
     - if kb_theme_sync_enabled?

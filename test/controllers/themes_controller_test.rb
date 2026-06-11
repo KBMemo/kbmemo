@@ -99,4 +99,48 @@ class ThemesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'id="kbmemo-account-theme-json"'
     assert_includes response.body, '"active_theme_id":"default"'
   end
+
+  test "layout renders initial account theme before javascript runs" do
+    account = Account.find(accounts(:one).id)
+    account.update_theme_preference!(
+      active_theme_id: "dark",
+      active_skin_id: "github",
+      custom_themes: [],
+      custom_skins: []
+    )
+    sign_out
+    sign_in_as(:one)
+
+    get memos_url
+
+    assert_response :success
+    assert_select 'html[data-kb-theme="dark"][data-kb-theme-base="dark"][data-kb-skin="github"]'
+    assert_select 'meta[name="color-scheme"][content="dark"]'
+  end
+
+  test "layout resolves custom theme base for initial render" do
+    account = Account.find(accounts(:one).id)
+    account.update_theme_preference!(
+      active_theme_id: "custom-sepia",
+      active_skin_id: "auto",
+      custom_themes: [
+        {
+          id: "custom-sepia",
+          label: "Custom Sepia",
+          base_theme: "sepia",
+          variables: { "--kb-bg-page" => "#f5ead2" },
+          rules: []
+        }
+      ],
+      custom_skins: []
+    )
+    sign_out
+    sign_in_as(:one)
+
+    get memos_url
+
+    assert_response :success
+    assert_select 'html[data-kb-theme="custom-sepia"][data-kb-theme-base="sepia"][data-kb-skin="auto"]'
+    assert_select 'meta[name="color-scheme"][content="light"]'
+  end
 end

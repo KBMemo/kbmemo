@@ -1,9 +1,10 @@
 doctype html
-html lang="ja" data-kb-theme="default" data-kb-theme-base="default" data-kb-skin="auto"
+html lang="ja" data-kb-theme=kb_initial_theme_id data-kb-theme-base=kb_initial_theme_base data-kb-skin=kb_initial_skin_id
   head
     title
       = content_for(:title) || "Kbmemo"
     meta[name="viewport" content="width=device-width,initial-scale=1"]
+    meta[name="color-scheme" content=kb_initial_color_scheme]
     meta[name="apple-mobile-web-app-capable" content="yes"]
     meta[name="application-name" content="Kbmemo"]
     meta[name="mobile-web-app-capable" content="yes"]
