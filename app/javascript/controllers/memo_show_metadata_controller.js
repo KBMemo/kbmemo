@@ -164,7 +164,7 @@ export default class extends Controller {
       const remove = document.createElement("button")
       remove.type = "button"
       remove.className =
-        "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full kb-text-subtle kb-hover-muted hover:kb-text-secondary"
+        "ml-1 inline-flex h-5 w-5 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-base leading-none kb-text-subtle hover:kb-text-secondary"
       remove.setAttribute("aria-label", `${label} を外す`)
       remove.setAttribute("data-action", "click->memo-show-metadata#removeTagFromParam")
       remove.setAttribute("data-memo-show-metadata-tag-index-param", String(index))
