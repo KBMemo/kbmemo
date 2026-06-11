@@ -1,6 +1,6 @@
 /** @typedef {'paste' | 'skip' | 'cancel'} WebPasteDialogResult */
 
-/** @type {HTMLElement | null} */
+/** @type {HTMLDialogElement | null} */
 let dialogEl = null
 
 /** @type {((result: WebPasteDialogResult, metadata?: { url?: string, title?: string }) => void) | null} */
@@ -24,25 +24,28 @@ export function promptWebPasteSource(defaults = {}) {
     titleInput.value = defaults.title ?? ''
     urlInput.value = defaults.url ?? ''
 
-    dialogEl.hidden = false
-    urlInput.focus()
-    urlInput.select()
+    openDialog()
+    requestAnimationFrame(() => {
+      urlInput.focus()
+      urlInput.select()
+    })
   })
 }
 
 function ensureDialog() {
   if (dialogEl) return
 
-  dialogEl = document.createElement('div')
+  dialogEl = document.createElement('dialog')
   dialogEl.className = 'web-paste-dialog'
-  dialogEl.hidden = true
+  dialogEl.setAttribute('closedby', 'any')
+  dialogEl.setAttribute('aria-labelledby', 'web-paste-dialog-title')
+  dialogEl.setAttribute('aria-describedby', 'web-paste-dialog-description')
   dialogEl.append(buildDialogForm())
   document.body.append(dialogEl)
 
   const form = /** @type {HTMLFormElement} */ (dialogEl.querySelector('.web-paste-form'))
   const titleInput = /** @type {HTMLInputElement} */ (dialogEl.querySelector('.web-paste-title-input'))
   const urlInput = /** @type {HTMLInputElement} */ (dialogEl.querySelector('.web-paste-url-input'))
-  const closeButton = /** @type {HTMLButtonElement} */ (dialogEl.querySelector('.web-paste-close'))
 
   form.addEventListener('submit', (event) => {
     event.preventDefault()
@@ -52,6 +55,12 @@ function ensureDialog() {
   dialogEl.addEventListener('click', (event) => {
     const target = event.target
     if (!(target instanceof HTMLElement)) return
+
+    if (target === dialogEl && isBackdropClick(event)) {
+      event.preventDefault()
+      finishDialog('cancel')
+      return
+    }
 
     if (target.matches('[data-action="skip"]')) {
       event.preventDefault()
@@ -65,15 +74,24 @@ function ensureDialog() {
     }
   })
 
-  closeButton.addEventListener('click', () => finishDialog('cancel'))
-
-  document.addEventListener('keydown', (event) => {
-    if (dialogEl?.hidden || !pendingResolve) return
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      finishDialog('cancel')
-    }
+  dialogEl.addEventListener('cancel', (event) => {
+    event.preventDefault()
+    finishDialog('cancel')
   })
+
+  dialogEl.addEventListener('close', () => {
+    if (pendingResolve) finishDialog('cancel')
+  })
+}
+
+function openDialog() {
+  if (!dialogEl) return
+
+  if (typeof dialogEl.showModal === 'function') {
+    if (!dialogEl.open) dialogEl.showModal()
+  } else {
+    dialogEl.setAttribute('open', '')
+  }
 }
 
 function buildDialogForm() {
@@ -85,8 +103,10 @@ function buildDialogForm() {
 
   const headingGroup = document.createElement('div')
   const heading = document.createElement('strong')
+  heading.id = 'web-paste-dialog-title'
   heading.textContent = 'Web から貼り付け'
   const description = document.createElement('p')
+  description.id = 'web-paste-dialog-description'
   description.className = 'web-paste-description'
   description.textContent = '出典 URL があれば引用元リンクを末尾に追加します。'
   headingGroup.append(heading, description)
@@ -168,14 +188,33 @@ function readDialogMetadata(titleInput, urlInput) {
 }
 
 /**
+ * @param {MouseEvent} event
+ */
+function isBackdropClick(event) {
+  if (!dialogEl) return false
+
+  const rect = dialogEl.getBoundingClientRect()
+  return (
+    event.clientY < rect.top ||
+    event.clientY > rect.bottom ||
+    event.clientX < rect.left ||
+    event.clientX > rect.right
+  )
+}
+
+/**
  * @param {WebPasteDialogResult} action
  * @param {{ url?: string, title?: string }} [metadata]
  */
 function finishDialog(action, metadata) {
   if (!dialogEl || !pendingResolve) return
 
-  dialogEl.hidden = true
   const resolve = pendingResolve
   pendingResolve = null
+  if (dialogEl.open && typeof dialogEl.close === 'function') {
+    dialogEl.close(action)
+  } else {
+    dialogEl.removeAttribute('open')
+  }
   resolve(action, metadata)
 }

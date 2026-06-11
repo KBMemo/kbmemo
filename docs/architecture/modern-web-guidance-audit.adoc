@@ -68,6 +68,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * メモ本文 HTML の画像後処理で、既存の `loading` 指定を尊重しつつ `decoding="async"` 未指定の画像へ補完するようにした。
 * ディレクトリツリーの `<summary>` 内にリンク / ボタンを入れず、`summary` は子ディレクトリ開閉専用、行の選択・編集操作は隣接 row 側の interactive element に分離した。
 * ボードの「既存メモを追加」パネルを `div` ベースの疑似モーダルから native `<dialog>` に変更し、`aria-labelledby` / backdrop click / focus return を controller 側で扱うようにした。
+* `@kbmemo/adoc-wysiwyg` の Web paste / image paste dialog を `div hidden` ベースから native `<dialog>` に変更し、`showModal()` / `closedby="any"` / `aria-labelledby` / `aria-describedby` / backdrop click fallback で扱うようにした。
 
 == 現状の良い点
 
@@ -204,6 +205,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** SVG 注入は `replaceWithSanitizedSvg` に隔離済み。`render_diagram` endpoint の response header / JSON flag / controller test で sanitize 契約を明示済み。
 * `packages/adoc-wysiwyg/webPasteDialog.js` / `imagePasteDialog.js` / `searchReplaceDialog.js`
 ** 固定 dialog template は `innerHTML` を使わず DOM API で構築する。
+** Web paste / image paste は native `<dialog>` で表示し、Esc / close button / backdrop click で cancel 解決する。
 * `packages/adoc-wysiwyg/wysiwyg.js`
 ** 空段落 placeholder の固定 HTML は DOM API で構築する。
 * `app/javascript/controllers/memo_search_picker_controller.js` / `board_add_memo_controller.js` / `tsuzura_picker_controller.js`
