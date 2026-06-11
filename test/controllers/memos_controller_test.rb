@@ -4,6 +4,11 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
     get memos_url
     assert_response :success
+    assert_select "header a", text: "新規メモ", count: 0
+    assert_select "header button.kb-header-menu-trigger", text: /カンバン/
+    assert_select "header button.kb-header-menu-trigger", text: /ノートブック/
+    assert_select "header button.kb-header-menu-trigger", text: /#{Regexp.escape(accounts(:one).display_name)}/
+    assert_select "header button.kb-input[data-user-menu-target='button']", count: 0
   end
 
   test "shows a memo addressed by its uid" do

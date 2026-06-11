@@ -41,7 +41,7 @@ html lang="ja" data-kb-theme=kb_initial_theme_id data-kb-theme-base=kb_initial_t
             = link_to "管理", admin_root_path, class: "kb-chrome-link"
           - if rodauth.rails_account
             .relative[data-controller="user-menu"]
-              button.kb-input.kb-input-sm.inline-flex.max-w-56.items-center.gap-1.text-left.font-medium.shadow-sm[type="button" data-user-menu-target="button" data-action="user-menu#toggle" aria-expanded="false" aria-haspopup="true" title=(rodauth.rails_account.email)]
+              button.kb-header-menu-trigger.inline-flex.max-w-56.items-center.gap-1.text-left.font-medium[type="button" data-user-menu-target="button" data-action="user-menu#toggle" aria-expanded="false" aria-haspopup="true" title=(rodauth.rails_account.email)]
                 span.min-w-0.flex-1.truncate.kb-text-primary
                   = rodauth.rails_account.display_name
                 svg.h-4.w-4.flex-shrink-0.kb-text-muted[xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"]
@@ -61,7 +61,6 @@ html lang="ja" data-kb-theme=kb_initial_theme_id data-kb-theme-base=kb_initial_t
                 = button_to "ログアウト", rodauth.logout_path, method: :post, form: { class: "block w-full" }, class: "kb-menu-item w-full rounded-none border-0 bg-transparent px-3 py-2 text-left text-sm font-normal", role: "menuitem"
           - if Rails.env.development?
             = link_to "送信メール", "/letter_opener", class: "kb-chrome-link kb-text-muted", target: "_blank", rel: "noopener"
-          = link_to "新規メモ", new_memo_path_with_current_directory, class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary", turbo: false }
     main#main-content.mx-auto.w-full.px-4 tabindex="-1" class=[content_max_width_class, (theme_studio_layout? ? "py-4" : (wide_content_layout? ? "py-6" : "py-8"))].join(" ")
       - if memos_wide_layout?
         div[class="hidden" aria-hidden="true"]

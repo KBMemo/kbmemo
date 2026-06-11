@@ -200,6 +200,21 @@ html[data-kb-theme-base="minimal"] {
   color: var(--kb-link-hover);
 }
 
+.kb-header-menu-trigger {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--kb-link);
+  font-size: inherit;
+  line-height: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.kb-header-menu-trigger:hover {
+  color: var(--kb-link-hover);
+}
+
 .kb-chrome-btn-primary {
   display: inline-block;
   border: none;
