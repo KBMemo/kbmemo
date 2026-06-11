@@ -13,6 +13,7 @@ Rails.application.configure do
     policy.frame_ancestors :self
     policy.img_src :self, :https, :data, :blob
     policy.object_src :none
+    policy.report_uri "/csp_reports"
     policy.script_src :self
     policy.style_src :self
 

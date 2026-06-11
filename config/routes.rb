@@ -12,6 +12,8 @@ Rails.application.routes.draw do
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
+  post "csp_reports", to: "csp_reports#create"
+
   get "themes/studio", to: "themes#studio", as: :theme_studio
   resource :theme, only: %i[show update], controller: "themes", defaults: { format: :json }
 

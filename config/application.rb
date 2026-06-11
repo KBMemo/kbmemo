@@ -36,6 +36,7 @@ module Kbmemo
     config.action_dispatch.default_headers.merge!(
       "Permissions-Policy" => "camera=(), geolocation=(), microphone=()",
       "Referrer-Policy" => "strict-origin-when-cross-origin",
+      "Reporting-Endpoints" => 'csp="/csp_reports"',
       "X-Content-Type-Options" => "nosniff"
     )
   end

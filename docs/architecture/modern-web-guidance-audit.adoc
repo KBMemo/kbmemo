@@ -49,6 +49,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `application.html.slim` / `diagram_viewer.html.slim` の `html[data-kb-theme]` / `data-kb-theme-base` / `data-kb-skin` と `meta[name="color-scheme"]` を account theme preference から server-rendered にし、inline script なしで初期描画時のテーマちらつきを抑える構成へ変更した。
 * `code_block_tools_controller.js` の copy / check icon 描画を固定 SVG 文字列の `innerHTML` から `createElementNS` / `replaceChildren` ベースへ変更した。
 * `config.action_dispatch.default_headers` に `X-Content-Type-Options: nosniff` / `Referrer-Policy: strict-origin-when-cross-origin` / `Permissions-Policy: camera=(), geolocation=(), microphone=()` を明示し、低リスクな browser security companion policy を固定した。
+* CSP report-only の収集導線として `POST /csp_reports` を追加し、`report-uri /csp_reports` と `Reporting-Endpoints: csp="/csp_reports"` を設定した。受信 payload は認証なしで `204` を返し、ログは query / fragment を落とした最小フィールドに限定する。
 
 == 現状の良い点
 
@@ -66,8 +67,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P0
 |Security
-|CSP は report-only で有効化済み。`application.html.slim` / `diagram_viewer.html.slim` のテーマ初期化 inline script は削除済み。`X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` は default headers で明示済み。
-|report-only 違反を確認し、必要な fetch / style / asset origin を整理してから CSP enforcement へ移行する。必要なら `Reporting-Endpoints` / `report-to` を追加する。
+|CSP は report-only で有効化済み。`application.html.slim` / `diagram_viewer.html.slim` のテーマ初期化 inline script は削除済み。`X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` は default headers で明示済み。`/csp_reports` で report-only 違反を受けられる。
+|report-only 違反を確認し、必要な fetch / style / asset origin を整理してから CSP enforcement へ移行する。ログ集計が必要になったら専用 storage / dashboard へ移す。
 
 |P0
 |Security
