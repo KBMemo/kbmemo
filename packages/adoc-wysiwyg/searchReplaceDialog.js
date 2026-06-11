@@ -26,7 +26,7 @@ import {
 /** @type {{ type: 'codemirror', view: import('@codemirror/view').EditorView } | { type: 'document', controller: DocumentSearchController } | null} */
 let activeTarget = null
 
-/** @type {HTMLElement | null} */
+/** @type {HTMLDialogElement | null} */
 let dialogEl = null
 
 /** @type {number} */
@@ -38,9 +38,11 @@ let documentMatchIndex = -1
 export function createSearchReplaceDialog({ onClose } = {}) {
   if (dialogEl) return dialogEl
 
-  dialogEl = document.createElement('div')
+  dialogEl = document.createElement('dialog')
   dialogEl.className = 'search-replace-dialog'
-  dialogEl.hidden = true
+  dialogEl.setAttribute('closedby', 'any')
+  dialogEl.setAttribute('aria-labelledby', 'search-replace-dialog-title')
+  dialogEl.setAttribute('aria-describedby', 'search-replace-dialog-description')
   dialogEl.append(buildDialogForm())
   document.body.append(dialogEl)
 
@@ -56,6 +58,12 @@ export function createSearchReplaceDialog({ onClose } = {}) {
   })
 
   dialogEl.querySelector('.search-replace-close')?.addEventListener('click', () => {
+    closeSearchReplaceDialog()
+    onClose?.()
+  })
+
+  dialogEl.addEventListener('cancel', (event) => {
+    event.preventDefault()
     closeSearchReplaceDialog()
     onClose?.()
   })
@@ -189,10 +197,15 @@ function buildDialogForm() {
 
   const headingGroup = document.createElement('div')
   const heading = document.createElement('strong')
+  heading.id = 'search-replace-dialog-title'
   heading.textContent = '検索・置換'
+  const description = document.createElement('p')
+  description.id = 'search-replace-dialog-description'
+  description.className = 'search-replace-description'
+  description.textContent = '現在の編集対象から文字列を検索または置換します。'
   const scope = document.createElement('p')
   scope.className = 'search-replace-scope'
-  headingGroup.append(heading, scope)
+  headingGroup.append(heading, description, scope)
 
   const closeButton = document.createElement('button')
   closeButton.type = 'button'
@@ -330,7 +343,11 @@ function openDialog(config) {
   statusEl.textContent = ''
   scopeEl.textContent = config.scopeLabel ?? ''
 
-  dialogEl.hidden = false
+  if (typeof dialogEl.showModal === 'function') {
+    if (!dialogEl.open) dialogEl.showModal()
+  } else {
+    dialogEl.setAttribute('open', '')
+  }
 
   if (typeof config.x === 'number' && typeof config.y === 'number') {
     positionDialog(config.x, config.y)
@@ -346,7 +363,11 @@ function openDialog(config) {
 
 export function closeSearchReplaceDialog() {
   if (dialogEl) {
-    dialogEl.hidden = true
+    if (dialogEl.open && typeof dialogEl.close === 'function') {
+      dialogEl.close()
+    } else {
+      dialogEl.removeAttribute('open')
+    }
   }
   activeTarget = null
   documentMatchIndex = -1

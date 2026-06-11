@@ -71,6 +71,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `@kbmemo/adoc-wysiwyg` の Web paste / image paste dialog を `div hidden` ベースから native `<dialog>` に変更し、`showModal()` / `closedby="any"` / `aria-labelledby` / `aria-describedby` / backdrop click fallback で扱うようにした。
 * ディレクトリ tree picker の `role=listbox` に `aria-controls` / roving tabindex / Arrow・Home・End・Escape keyboard 操作を追加し、選択中または最初の可視 option へ focus できるようにした。
 * 実行時に残る信頼済み HTML sink は Trusted Types の named policy 経由にし、`kbmemo-server-rendered-fragment` / `kbmemo-sanitized-svg` / `kbmemo-adoc-preview-html` の用途境界をコード上で分離した。
+* `@kbmemo/adoc-wysiwyg` の search-replace dialog も `div hidden` から native `<dialog>` へ変更し、`aria-labelledby` / `aria-describedby` / platform cancel close に対応した。
 
 == 現状の良い点
 
@@ -212,6 +213,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `packages/adoc-wysiwyg/webPasteDialog.js` / `imagePasteDialog.js` / `searchReplaceDialog.js`
 ** 固定 dialog template は `innerHTML` を使わず DOM API で構築する。
 ** Web paste / image paste は native `<dialog>` で表示し、Esc / close button / backdrop click で cancel 解決する。
+** search-replace も native `<dialog>` で表示し、検索対象を見出し・説明・scope text で伝える。
 * `packages/adoc-wysiwyg/wysiwyg.js`
 ** 空段落 placeholder の固定 HTML は DOM API で構築する。
 * `app/javascript/controllers/memo_search_picker_controller.js` / `board_add_memo_controller.js` / `tsuzura_picker_controller.js`
