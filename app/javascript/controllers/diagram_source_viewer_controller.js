@@ -17,6 +17,12 @@ export default class extends Controller {
     ])
 
     const languageExtensions = await diagramLanguageExtensions(this.engineValue)
+    const a11y = EditorView.contentAttributes.of({
+      role: "textbox",
+      "aria-readonly": "true",
+      "aria-multiline": "true",
+      "aria-labelledby": "diagram-source-viewer-label"
+    })
 
     const theme = EditorView.theme({
       "&": {
@@ -41,6 +47,7 @@ export default class extends Controller {
         ...languageExtensions,
         EditorState.readOnly.of(true),
         EditorView.editable.of(false),
+        a11y,
         theme
       ]
     })

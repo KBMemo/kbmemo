@@ -34,7 +34,8 @@ export default class extends Controller {
     const a11y = EditorView.contentAttributes.of({
       role: "textbox",
       "aria-multiline": "true",
-      "aria-labelledby": "diagram-source-label"
+      "aria-labelledby": "diagram-source-label",
+      "aria-describedby": "diagram-source-help"
     })
 
     const theme = EditorView.theme({
@@ -204,6 +205,9 @@ export default class extends Controller {
   setPreviewLoading(loading) {
     if (!this.hasPreviewLoadingTarget) return
     this.previewLoadingTarget.classList.toggle("hidden", !loading)
+    if (this.hasPreviewTarget) {
+      this.previewTarget.setAttribute("aria-busy", loading ? "true" : "false")
+    }
   }
 
   showPreviewError(message) {

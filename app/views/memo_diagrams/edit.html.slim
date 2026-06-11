@@ -28,14 +28,15 @@ div.w-full
         label#diagram-source-label class="block border-b kb-border kb-chrome-muted-bar px-3 py-2 text-sm font-medium" for="source" ソース
         textarea#source.sr-only name="source" required=true tabindex="-1" autocomplete="off" data-memo-diagram-editor-target="field"
           = @source
+        p#diagram-source-help.sr-only Mermaid または PlantUML のソースを編集します。
         div.memo-diagram-editor__host.relative[data-memo-diagram-editor-target="host"]
 
       .memo-diagram-editor-preview.kb-chrome-panel.rounded-md.border
-        div class="border-b kb-border kb-chrome-muted-bar px-3 py-2 text-sm font-medium" プレビュー
-        p.hidden.px-3.py-2.text-xs.kb-text-muted data-memo-diagram-editor-target="previewLoading"
+        div#diagram-preview-label class="border-b kb-border kb-chrome-muted-bar px-3 py-2 text-sm font-medium" プレビュー
+        p#diagram-preview-loading.hidden.px-3.py-2.text-xs.kb-text-muted aria-live="polite" data-memo-diagram-editor-target="previewLoading"
           | 生成中…
-        p.hidden.px-3.py-2.text-sm.kb-status-danger data-memo-diagram-editor-target="previewError"
-        .memo-diagram-editor-preview__canvas.flex.min-h-96.items-start.justify-center.p-4 data-memo-diagram-editor-target="preview"
+        p#diagram-preview-error.hidden.px-3.py-2.text-sm.kb-status-danger role="alert" data-memo-diagram-editor-target="previewError"
+        .memo-diagram-editor-preview__canvas.flex.min-h-96.items-start.justify-center.p-4 role="img" aria-labelledby="diagram-preview-label" aria-describedby="diagram-preview-loading diagram-preview-error" data-memo-diagram-editor-target="preview"
 
     p.text-xs.kb-text-muted
       | 保存すると Kroki で SVG を生成し、

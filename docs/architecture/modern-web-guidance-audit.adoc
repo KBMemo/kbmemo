@@ -57,6 +57,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * テーマスタジオのカスタムスキン入力、ボードへの新規カード追加 / 既存メモ検索、AI パネル prompt textarea に `label.sr-only` と必要な `autocomplete` を追加し、placeholder を accessible name として使わない構成へ寄せた。
 * メモサイドバー検索とメモ表示画面のタグ追加入力に `label.sr-only` を追加し、placeholder / `aria-label` 依存を減らした。
 * メモ本文エディタの編集モード切替を `role="tab"` + `aria-selected` + `tabpanel` 接続へ揃え、Arrow / Home / End で roving tabindex 操作できるようにした。
+* ダイアグラム新規作成フォームの補助文を `aria-describedby` で入力欄へ接続し、編集 / ソース / SVG ビューアに preview live region、CodeMirror の説明接続、ズームボタンの `aria-label` を追加した。
 
 == 現状の良い点
 
@@ -114,7 +115,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P1
 |Forms / Accessibility
-|Rails model form の主要 field は、server validation error 時に `aria-invalid="true"` と field error message の `aria-describedby` を付与済み。テーマスタジオ / ボード追加 / AI パネル / メモサイドバー検索 / タグ追加入力などの小さな non-model form controls も placeholder だけに頼らず label を持つ。
+|Rails model form の主要 field は、server validation error 時に `aria-invalid="true"` と field error message の `aria-describedby` を付与済み。テーマスタジオ / ボード追加 / AI パネル / メモサイドバー検索 / タグ追加入力 / ダイアグラム新規作成などの小さな non-model form controls も placeholder だけに頼らず label / description を持つ。
 |今後追加する form も `kb_field_error_aria` / `kb_field_error_id` を使う。client-side validation を増やす場合は `:user-invalid` と ARIA 状態の同期を別途検討する。
 
 |P1
@@ -195,11 +196,15 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** memo / memo directory / board / notebook / tag / profile の主要 field は server validation error 時に field 単位で error text を参照する。
 ** Rodauth form は既に field error を `aria-invalid` / `aria-describedby` へ接続済み。
 * Small tool forms
-** テーマスタジオのカスタムスキン名 / CSS、ボードの新規カード title / 既存メモ検索、AI パネル prompt textarea、メモサイドバー検索、タグ追加入力は `sr-only` label を持つ。
+** テーマスタジオのカスタムスキン名 / CSS、ボードの新規カード title / 既存メモ検索、AI パネル prompt textarea、メモサイドバー検索、タグ追加入力、ダイアグラム新規作成は `sr-only` label または visible label と description を持つ。
 ** 非個人情報・ツール内コマンド入力は `autocomplete="off"` を明示する。
 * Memo body editor tabs
 ** 編集モード切替は `role="tab"` / `aria-selected` / `aria-controls` と `role="tabpanel"` / `aria-labelledby` を接続済み。
 ** Arrow / Home / End で tab を切り替え、active tab のみ `tabindex="0"` にする roving tabindex を使う。
+* Diagram editor / viewer
+** 新規作成フォームの filename help は `aria-describedby` で入力欄へ接続済み。
+** 編集画面の CodeMirror content は label / description を持ち、preview loading は `aria-live="polite"`、error は `role="alert"` を使う。
+** SVG / asset viewer のズーム操作ボタンは、記号表示に頼らず `aria-label` を持つ。
 
 === 4. Performance
 
