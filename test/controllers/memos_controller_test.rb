@@ -900,13 +900,13 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-memo-directory-dnd-handle][tabindex]", count: 0
   end
 
-  test "directory sidebar keeps top-level buckets visible without disclosure controls" do
+  test "directory sidebar shows disclosure controls on top-level buckets" do
     get memos_url
     assert_response :success
 
     %w[Home Share Public System].each do |label|
       assert_select "#memos_list_panel a span.truncate", text: label
-      assert_select "#memos_list_panel details.memo-directory-nav-details > summary[aria-label='#{label} の子ディレクトリを開閉']", count: 0
+      assert_select "#memos_list_panel details.memo-directory-nav-details[open] > summary[aria-label='#{label} の子ディレクトリを開閉']"
     end
     assert_select "#memos_list_panel details.memo-directory-nav-details > summary.memo-directory-nav-summary + .memo-directory-nav-row"
   end

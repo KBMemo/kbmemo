@@ -6,17 +6,9 @@ ruby:
     memo_directory_id: dir.id,
     action: "dragover->memo-directory-dnd#allowDrop dragenter->memo-directory-dnd#dragEnterDirectory dragleave->memo-directory-dnd#dragLeaveDirectory drop->memo-directory-dnd#dropOnDirectory"
   }
-  fixed_bucket = dir.top_level_bucket?
 
 li.mb-0.5.min-w-0
-  - if has_children && fixed_bucket
-    .memo-directory-nav-leaf.rounded-md.py-0.kb-hover-row
-      span.memo-directory-nav-caret-spacer aria-hidden="true"
-      = render "memos/memo_directory_nav_row", dir: dir, drop_data: drop_data
-    ul.kb-tree-children.space-y-0.5
-      - children.each do |child|
-        = render "memos/memo_directory_nav_branch", dir: child, by_parent: by_parent
-  - elsif has_children
+  - if has_children
     = tag.details(**memo_directory_nav_details_attrs(dir)) do
       summary.memo-directory-nav-summary aria-label="#{dir.display_name} の子ディレクトリを開閉"
         span aria-hidden="true" class="kb-tree-caret" ▶

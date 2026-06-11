@@ -207,6 +207,7 @@ module MemosHelper
     if defined?(@nav_open_directory_ids) && @nav_open_directory_ids.include?(directory.id)
       return true
     end
+    return true if directory.top_level_bucket?
     return true unless defined?(@current_memo_directory) && @current_memo_directory
 
     memo_directory_tree_details_open?(directory, @current_memo_directory)

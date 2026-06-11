@@ -408,7 +408,8 @@ class MemosHelperTest < ActionView::TestCase
     @current_memo_directory = memo_directories(:root)
 
     assert memo_directory_nav_details_open?(memo_directories(:public))
-    assert_not memo_directory_nav_details_open?(memo_directories(:home))
+    assert memo_directory_nav_details_open?(memo_directories(:home))
+    assert_not memo_directory_nav_details_open?(memo_directories(:work))
   end
 
   test "memo_directory_picker_details_open opens top-level buckets by default" do
