@@ -349,6 +349,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, tag.name
     assert_includes response.body, memos(:two).title
+    assert_select "#memo_sidebar_memo_list ul.list-none.p-0 li.kb-list-tag", text: tag.name
     assert_not_includes response.body, memos(:one).title
   end
 
