@@ -11,7 +11,7 @@
       time.flex-shrink-0.text-xs.kb-text-subtle datetime=timestamp.iso8601
         = timestamp.strftime("%m/%d %H:%M")
     - if memo.tags.any?
-      ul.mt-1.5.flex.flex-wrap.gap-1
+      ul.mt-1.5.flex.flex-wrap.gap-1.list-none.p-0
         - memo.tags.take(4).each do |tag|
           li[class="kb-list-tag"] = tag.name
         - if memo.tags.size > 4

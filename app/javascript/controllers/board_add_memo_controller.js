@@ -8,16 +8,35 @@ export default class extends Controller {
     defaultColumnId: String
   }
 
+  connect() {
+    this._opener = null
+  }
+
   open() {
     if (!this.hasPanelTarget) return
-    this.panelTarget.classList.remove("hidden")
-    this.queryTarget?.focus()
+    this._opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    if (typeof this.panelTarget.showModal === "function") {
+      if (!this.panelTarget.open) this.panelTarget.showModal()
+    } else {
+      this.panelTarget.setAttribute("open", "")
+    }
+    requestAnimationFrame(() => this.queryTarget?.focus())
     this.search()
   }
 
   close() {
     if (!this.hasPanelTarget) return
-    this.panelTarget.classList.add("hidden")
+    if (typeof this.panelTarget.close === "function" && this.panelTarget.open) {
+      this.panelTarget.close()
+    } else {
+      this.panelTarget.removeAttribute("open")
+    }
+    this._opener?.focus()
+    this._opener = null
+  }
+
+  backdropClick(event) {
+    if (event.target === this.panelTarget) this.close()
   }
 
   search() {

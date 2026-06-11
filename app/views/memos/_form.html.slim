@@ -49,7 +49,7 @@ ruby:
   
     - if memo.persisted? && memo.account
       .mb-3.flex.items-center.gap-2.border-b.kb-border.pb-3
-        = gravatar_image_tag(memo.account, size: 28, extra_class: "shrink-0")
+        = gravatar_image_tag(memo.account, size: 28, extra_class: "shrink-0", loading: "eager", fetchpriority: "low")
         div.min-w-0
           p.text-xs.kb-text-muted 作成者
           p.truncate.text-sm.font-medium.kb-text-primary = memo.account.display_name
@@ -93,7 +93,7 @@ ruby:
     div data-controller="expandable-hint" data-expandable-hint-expanded-value="false" data-expandable-hint-expand-label-value="Wiki リンクの説明を表示" data-expandable-hint-collapse-label-value="Wiki リンクの説明を閉じる"
       .mb-1.flex.w-full.items-center.gap-1
         = f.label :body, "本文（AsciiDoc）", id: "memo-body-label", class: "mb-0 block shrink-0 text-sm font-medium kb-text-primary"
-        button.ml-auto.inline-flex.h-6.w-6.shrink-0.items-center.justify-center.rounded.kb-toolbar-btn type="button" data-action="expandable-hint#toggle" aria-expanded="false" aria-controls="memo-wiki-link-hint" title="Wiki リンクの説明を表示"
+        button.ml-auto.inline-flex.h-6.w-6.shrink-0.items-center.justify-center.rounded.kb-toolbar-btn type="button" data-expandable-hint-target="toggleButton" data-action="expandable-hint#toggle" aria-expanded="false" aria-controls="memo-wiki-link-hint" aria-label="Wiki リンクの説明を表示" title="Wiki リンクの説明を表示"
           span.leading-none data-expandable-hint-target="toggleIcon" aria-hidden="true"
             | ▼
       p#memo-wiki-link-hint.hidden.mb-1.text-xs.kb-text-muted data-expandable-hint-target="panel"

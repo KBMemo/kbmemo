@@ -207,12 +207,15 @@ module MemosHelper
     if defined?(@nav_open_directory_ids) && @nav_open_directory_ids.include?(directory.id)
       return true
     end
+    return true if directory.top_level_bucket?
     return true unless defined?(@current_memo_directory) && @current_memo_directory
 
     memo_directory_tree_details_open?(directory, @current_memo_directory)
   end
 
   def memo_directory_picker_details_open?(directory, selected_parent)
+    return true if directory.direct_child_of_root?
+
     memo_directory_tree_details_open?(directory, selected_parent)
   end
 
@@ -227,7 +230,7 @@ module MemosHelper
 
   def memo_directory_nav_details_attrs(directory)
     attrs = {
-      class: "memo-directory-nav-details group w-full min-w-0",
+      class: "memo-directory-nav-details group relative w-full min-w-0",
       data: { memo_directory_id: directory.id }
     }
     attrs[:open] = true if memo_directory_nav_details_open?(directory)
@@ -447,6 +450,8 @@ module MemosHelper
     fragment = Nokogiri::HTML.fragment(html.to_s)
     fragment.css("img:not([loading])").each do |img|
       img["loading"] = "lazy"
+    end
+    fragment.css("img:not([decoding])").each do |img|
       img["decoding"] = "async"
     end
     fragment.to_html.html_safe

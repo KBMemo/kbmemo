@@ -219,6 +219,13 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, %(href="/memos/#{memo.id}/assets/shot.png/view")
   end
 
+  test "memo_html preserves image loading and fills missing async decoding" do
+    html = memo_html_lazy_load_images(%(<img src="/hero.png" loading="eager">)).to_s
+
+    assert_includes html, 'loading="eager"'
+    assert_includes html, 'decoding="async"'
+  end
+
   test "memo_html renders image with /images asset path alias" do
     memo = memos(:one)
     repo = MemoRepository.new
@@ -401,7 +408,14 @@ class MemosHelperTest < ActionView::TestCase
     @current_memo_directory = memo_directories(:root)
 
     assert memo_directory_nav_details_open?(memo_directories(:public))
-    assert_not memo_directory_nav_details_open?(memo_directories(:home))
+    assert memo_directory_nav_details_open?(memo_directories(:home))
+    assert_not memo_directory_nav_details_open?(memo_directories(:work))
+  end
+
+  test "memo_directory_picker_details_open opens top-level buckets by default" do
+    assert memo_directory_picker_details_open?(memo_directories(:home), nil)
+    assert memo_directory_picker_details_open?(memo_directories(:share), nil)
+    assert_not memo_directory_picker_details_open?(memo_directories(:work), nil)
   end
 
   test "memo_directory_path_from_root_label joins segment labels from root" do

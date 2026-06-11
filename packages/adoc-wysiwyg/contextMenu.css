@@ -155,10 +155,16 @@
   left: 50%;
   transform: translate(-50%, -50%);
   width: min(24rem, calc(100vw - 2rem));
+  margin: 0;
+  padding: 0;
   background: #fff;
   border: 1px solid #d0d7de;
   border-radius: 10px;
   box-shadow: 0 12px 32px rgba(27, 31, 36, 0.18);
+}
+
+.web-paste-dialog::backdrop {
+  background: rgba(27, 31, 36, 0.35);
 }
 
 .web-paste-form {
@@ -235,10 +241,16 @@
   left: 50%;
   transform: translate(-50%, -50%);
   width: min(24rem, calc(100vw - 2rem));
+  margin: 0;
+  padding: 0;
   background: #fff;
   border: 1px solid #d0d7de;
   border-radius: 10px;
   box-shadow: 0 12px 32px rgba(27, 31, 36, 0.18);
+}
+
+.image-paste-dialog::backdrop {
+  background: rgba(27, 31, 36, 0.35);
 }
 
 .image-paste-form {

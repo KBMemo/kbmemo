@@ -61,12 +61,21 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * プロフィールのトークン発行後スクロール用 inline script を削除し、`scroll-into-view` Stimulus controller で対象 section へスクロール / focus する構成に変更した。
 * メモ一覧のドラッグ専用ハンドルから `role="button"` / `tabindex` を外し、ポインタ専用の補助操作として accessibility tree から除外した。キーボード操作ではメモ編集フォームの保存先フォルダ欄を使う説明をヒントに追加した。
 * `:user-invalid` と `aria-invalid` を同期する軽量 bridge を追加し、browser native validation が表示されるタイミングで assistive technology へも invalid state を伝えるようにした。server validation 由来の `aria-invalid` は bridge 側で解除しない。
+* `expandable-hint` の icon-only toggle は `title` に頼らず `aria-label` を持つようにし、開閉状態に合わせて `aria-expanded` / `aria-label` / `title` を同期する。
+* Gravatar の `img` に表示サイズと同じ `width` / `height` 属性を追加し、CSS 適用前でも aspect ratio を予約して CLS を抑える。
+* メモ詳細 / 編集フォーム上部の Gravatar は above-the-fold なので `loading="eager"` にし、非 LCP の小画像として `fetchpriority="low"` を付ける。サイドバー一覧の avatar は offscreen 行が多いため lazy loading を維持する。
+* メモサイドバー検索とボードの既存メモ検索を `<search>` 要素で囲み、検索 UI を native landmark として表現する。
+* メモ本文 HTML の画像後処理で、既存の `loading` 指定を尊重しつつ `decoding="async"` 未指定の画像へ補完するようにした。
+* ディレクトリツリーの `<summary>` 内にリンク / ボタンを入れず、`summary` は子ディレクトリ開閉専用、行の選択・編集操作は隣接 row 側の interactive element に分離した。
+* ボードの「既存メモを追加」パネルを `div` ベースの疑似モーダルから native `<dialog>` に変更し、`aria-labelledby` / backdrop click / focus return を controller 側で扱うようにした。
+* `@kbmemo/adoc-wysiwyg` の Web paste / image paste dialog を `div hidden` ベースから native `<dialog>` に変更し、`showModal()` / `closedby="any"` / `aria-labelledby` / `aria-describedby` / backdrop click fallback で扱うようにした。
+* ディレクトリ tree picker の `role=listbox` に `aria-controls` / roving tabindex / Arrow・Home・End・Escape keyboard 操作を追加し、選択中または最初の可視 option へ focus できるようにした。
 
 == 現状の良い点
 
 * semantic な `button` / `details` / `dialog` をすでに多用している。
 * flash 通知に `aria-live="polite"` が入っている。
-* avatar と本文画像系には `loading="lazy"` / `decoding="async"` が使われている。
+* avatar と本文画像系には `loading` / `decoding="async"` が使われている。avatar は `width` / `height` 属性も持ち、above-the-fold の単体 avatar は eager + low priority にしている。
 * production では `force_ssl = true`、host 制限、cookie store を使っている。
 * Tailwind 依存を外し、テーマ設計を `themes.css` と Open Props に寄せている。
 
@@ -139,7 +148,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 |P2
 |HTML / Accessibility
 |現在も semantic HTML は比較的良いが、custom popup / picker の増加で native 機能との差が広がりやすい。メモ編集フォームとディレクトリサイドバーの `<details>` ヒントは accessible name / description を接続済み。メモ一覧のドラッグ専用ハンドルは focusable な偽ボタンにせず、キーボード操作の代替として編集フォームの保存先フォルダ欄を案内している。
-|Baseline を明示した上で、可能な箇所は `dialog` / `details` に寄せ、将来的には `popover` も検討する。popover 化する場合は fallback / polyfill 方針も合わせて決める。
+|ボードの既存メモ追加 panel は native `<dialog>` へ変更済み。Baseline を明示した上で、可能な箇所は `dialog` / `details` に寄せ、将来的には `popover` も検討する。popover 化する場合は fallback / polyfill 方針も合わせて決める。
 
 |P2
 |Performance
@@ -162,6 +171,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** account theme preference から初期 `data-kb-theme` / `data-kb-theme-base` / `data-kb-skin` と `color-scheme` を server-rendered 化済み。
 * `app/views/layouts/svg_editor.html.slim`
 ** `lang="ja"` 付与済み。
+* Search UI
+** メモサイドバー検索 / ボードの既存メモ検索は `<search>` で囲み、`role="search"` なしで landmark semantics を持たせる。
 
 === 2. Dialog / Menu
 
@@ -178,6 +189,13 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * メモ編集フォーム / ディレクトリサイドバーの hint `<details>`
 ** icon-only `summary` は `aria-label` と `aria-describedby` で説明本文へ接続済み。
 ** ドラッグ専用ハンドルは `aria-hidden` にし、keyboard user には編集フォームの保存先フォルダ欄を移動手段として案内する。
+* ディレクトリツリーの `<details>`
+** `summary` は開閉専用の caret と accessible name のみにし、リンク / ボタンを入れ子にしない。
+* ボードの既存メモ追加 dialog
+** `dialog.showModal()` を使い、見出しを `aria-labelledby` で dialog name にする。
+** close button / backdrop click / Esc close を扱い、明示 close 後は起動元 button に focus を戻す。
+* `expandable-hint`
+** Wiki リンク説明 / プロパティ全文の icon-only toggle は `aria-label` を持ち、開閉時にも label を同期する。
 
 === 3. Security sink
 
@@ -188,6 +206,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** SVG 注入は `replaceWithSanitizedSvg` に隔離済み。`render_diagram` endpoint の response header / JSON flag / controller test で sanitize 契約を明示済み。
 * `packages/adoc-wysiwyg/webPasteDialog.js` / `imagePasteDialog.js` / `searchReplaceDialog.js`
 ** 固定 dialog template は `innerHTML` を使わず DOM API で構築する。
+** Web paste / image paste は native `<dialog>` で表示し、Esc / close button / backdrop click で cancel 解決する。
 * `packages/adoc-wysiwyg/wysiwyg.js`
 ** 空段落 placeholder の固定 HTML は DOM API で構築する。
 * `app/javascript/controllers/memo_search_picker_controller.js` / `board_add_memo_controller.js` / `tsuzura_picker_controller.js`
@@ -205,6 +224,9 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * Small tool forms
 ** テーマスタジオのカスタムスキン名 / CSS、ボードの新規カード title / 既存メモ検索、AI パネル prompt textarea、メモサイドバー検索、タグ追加入力、ダイアグラム新規作成は `sr-only` label または visible label と description を持つ。
 ** 非個人情報・ツール内コマンド入力は `autocomplete="off"` を明示する。
+* Directory tree picker
+** `aria-haspopup="listbox"` の trigger は `aria-controls` で panel と接続し、panel 内 option は roving tabindex で Arrow / Home / End navigation を持つ。
+** Escape では picker を閉じ、trigger button へ focus を戻す。
 * Memo body editor tabs
 ** 編集モード切替は `role="tab"` / `aria-selected` / `aria-controls` と `role="tabpanel"` / `aria-labelledby` を接続済み。
 ** Arrow / Home / End で tab を切り替え、active tab のみ `tabindex="0"` にする roving tabindex を使う。
@@ -216,6 +238,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 === 4. Performance
 
 * Vite build は成功するが、CodeMirror と SVGEdit 本体の async chunk size warning は継続している。
+* Gravatar は `width` / `height` 属性で intrinsic size を明示し、layout shift を避ける。メモ詳細 / 編集フォーム上部の単体 avatar は eager loading、サイドバー一覧 avatar は lazy loading で扱う。
+* メモ本文 HTML の画像は `loading` 未指定なら lazy にし、`decoding` 未指定なら async にする。AsciiDoc / sanitizer 側で明示された `loading` は上書きしない。
 * `application` 初期 chunk は約 491.99 kB まで縮小済み。
 * `svg_editor` entry は約 2.12 kB まで縮小済み。SVGEdit 本体は `Editor` async chunk として、`memo-svg-editor` 接続後に読み込む。
 * `adoc-kbmemo` async chunk は package root import を避けることで約 344.96 kB まで縮小済み。

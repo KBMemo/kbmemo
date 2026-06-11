@@ -4,6 +4,11 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
     get memos_url
     assert_response :success
+    assert_select "header a", text: "新規メモ", count: 0
+    assert_select "header button.kb-header-menu-trigger", text: /カンバン/
+    assert_select "header button.kb-header-menu-trigger", text: /ノートブック/
+    assert_select "header button.kb-header-menu-trigger", text: /#{Regexp.escape(accounts(:one).display_name)}/
+    assert_select "header button.kb-input[data-user-menu-target='button']", count: 0
   end
 
   test "shows a memo addressed by its uid" do
@@ -31,6 +36,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, m.title
     assert_includes response.body, "検索結果"
+    assert_select "search[data-controller='memo-search']"
     assert_select "label.sr-only[for='q']", text: "タイトル・本文を検索"
   end
 
@@ -348,6 +354,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, tag.name
     assert_includes response.body, memos(:two).title
+    assert_select "#memo_sidebar_memo_list ul.list-none.p-0 li.kb-list-tag", text: tag.name
     assert_not_includes response.body, memos(:one).title
   end
 
@@ -468,6 +475,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select '[data-controller~="memo-directory-dnd"]'
     assert_includes response.body, "memo-draft#preventSubmit"
     assert_includes response.body, "memo-draft#suppressEnterSubmit"
+    assert_select "button.memo-directory-nav-summary a", count: 0
+    assert_select "button.memo-directory-nav-summary + .memo-directory-nav-row"
+    assert_select "img.kb-avatar[loading='eager'][fetchpriority='low'][width='28'][height='28']"
     assert_includes response.body, "memo_slug_field"
     assert_match(/data-memo[-_]draft[-_]tag[-_]catalog[-_]value=.*Ideas/, response.body)
     assert_select '[data-controller*="memo-body-editor"]'
@@ -882,6 +892,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "#memo-slug-hint", text: /タイトルと同期/
     assert_select "summary[aria-label='公開範囲の説明'][aria-describedby='memo-visibility-hint']"
     assert_select "#memo-visibility-hint", text: /共有グループ/
+    assert_select "button[aria-label='Wiki リンクの説明を表示'][aria-controls='memo-wiki-link-hint'][aria-expanded='false']"
   end
 
   test "directory sidebar hint has an accessible description" do
@@ -893,6 +904,17 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-memo-directory-dnd-handle][aria-hidden='true'][draggable='true']"
     assert_select "[data-memo-directory-dnd-handle][role]", count: 0
     assert_select "[data-memo-directory-dnd-handle][tabindex]", count: 0
+  end
+
+  test "directory sidebar shows disclosure controls on top-level buckets" do
+    get memos_url
+    assert_response :success
+
+    %w[Home Share Public System].each do |label|
+      assert_select "#memos_list_panel a span", text: label
+      assert_select "#memos_list_panel [data-memo-directory-nav-branch][data-memo-directory-nav-open='true'] > button[aria-label='#{label} の子ディレクトリを開閉']"
+    end
+    assert_select "#memos_list_panel [data-memo-directory-nav-branch] > button.memo-directory-nav-summary + .memo-directory-nav-row"
   end
 
   test "edit uncommitted memo shows delete and commit actions" do
@@ -1022,12 +1044,12 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
-  test "edit shows sidebar open button on directory field" do
+  test "edit opens sidebar directory from directory field label" do
     get edit_memo_url(memos(:one))
     assert_response :success
-    assert_select "#memo_directory_field button[aria-label='サイドバーでこのディレクトリを表示']"
+    assert_select "#memo_directory_field button[data-memo-directory-sidebar-open-target='button'][data-memo-directory-parent-picker-target='pathLabel']"
     assert_includes response.body, "memo-directory-sidebar-open"
-    assert_includes response.body, "panel-left-open"
+    assert_not_includes response.body, "panel-left-open"
   end
 
   test "show renders wiki link to another memo in body" do
@@ -1080,13 +1102,21 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
   test "show displays memo directory path in metadata" do
     memo = memos(:one)
-    memo.update_columns(file_committed_at: 1.hour.ago)
+    memo.update_columns(file_committed_at: 1.hour.ago, properties: { "priority" => 1 })
     get memo_url(memo)
     assert_response :success
     assert_includes response.body, memo.memo_directory.labeled_path_from_root
     assert_includes response.body, memo.slug
+    assert_select "img.kb-avatar[loading='eager'][fetchpriority='low'][width='36'][height='36']"
+    assert_select "button[aria-label='プロパティ全文を表示'][aria-controls='memo-properties-panel'][aria-expanded='false']"
     # 編集可能な所有者はディレクトリ picker が表示される（選択中ディレクトリを反映）。
     assert_select "input#memo_show_directory_id_#{memo.id}[value=?]", memo.memo_directory_id.to_s
+    assert_select "#memo_show_directory_id_#{memo.id}_directory_picker_panel[data-memo-directory-parent-picker-target='panel']" do
+      %w[Home Share Public System].each do |label|
+        assert_select ".kb-directory-picker-branch > .kb-directory-picker-caret[aria-label='#{label} の子ディレクトリを開閉']"
+        assert_select ".kb-directory-picker-branch > .kb-directory-picker-row", text: label
+      end
+    end
   end
 
   test "show shows directory path link for a viewer who cannot edit" do

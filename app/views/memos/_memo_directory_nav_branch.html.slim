@@ -6,16 +6,20 @@ ruby:
     memo_directory_id: dir.id,
     action: "dragover->memo-directory-dnd#allowDrop dragenter->memo-directory-dnd#dragEnterDirectory dragleave->memo-directory-dnd#dragLeaveDirectory drop->memo-directory-dnd#dropOnDirectory"
   }
+  branch_open = memo_directory_nav_details_open?(dir)
+  branch_children_id = "memo_directory_nav_#{dir.id}_children"
 
 li.mb-0.5.min-w-0
   - if has_children
-    = tag.details(**memo_directory_nav_details_attrs(dir)) do
-      summary.flex.min-w-0.cursor-pointer.list-none.items-center.gap-1.rounded-md.px-1.py-0.kb-text-muted.kb-hover-row.memo-directory-nav-summary
+    .memo-directory-nav-details.group.relative.w-full.min-w-0 data-memo-directory-id=dir.id data-memo-directory-nav-branch="" data-memo-directory-nav-open=(branch_open ? "true" : "false")
+      button.memo-directory-nav-summary type="button" aria-label="#{dir.display_name} の子ディレクトリを開閉" aria-expanded=(branch_open ? "true" : "false") aria-controls=branch_children_id data-action="memo-directory-nav-open#toggle"
         span aria-hidden="true" class="kb-tree-caret" ▶
+      .memo-directory-nav-row.rounded-md.py-0.kb-hover-row
         = render "memos/memo_directory_nav_row", dir: dir, drop_data: drop_data
-      ul.kb-tree-children.space-y-0.5
+      ul id=branch_children_id class="kb-tree-children space-y-0.5" hidden=(!branch_open)
         - children.each do |child|
           = render "memos/memo_directory_nav_branch", dir: child, by_parent: by_parent
   - else
-    .flex.min-w-0.items-center.gap-1.rounded-md.px-1.py-0.kb-hover-row
+    .memo-directory-nav-leaf.rounded-md.py-0.kb-hover-row
+      span.memo-directory-nav-caret-spacer aria-hidden="true"
       = render "memos/memo_directory_nav_row", dir: dir, drop_data: drop_data

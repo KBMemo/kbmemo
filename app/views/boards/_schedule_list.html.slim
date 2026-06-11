@@ -11,7 +11,7 @@
   .min-h-0.flex-1.overflow-y-auto
     - if calendar.day_view?
       - if calendar.list_items.any?
-        ul.space-y-2
+        ul.space-y-2.list-none.p-0
           - calendar.list_items.each do |memo|
             = render "boards/schedule_memo_item", memo: memo
       - else
@@ -22,7 +22,7 @@
         - calendar.list_groups.each do |group|
           section
             p class="mb-1 kb-text-2xs-plus font-medium kb-text-muted" = l(group[:date], format: :long)
-            ul.space-y-2
+            ul.space-y-2.list-none.p-0
               - group[:memos].each do |memo|
                 = render "boards/schedule_memo_item", memo: memo
     - else

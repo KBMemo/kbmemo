@@ -54,6 +54,23 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "memo-search-picker"
     assert_includes response.body, available_memos_notebook_path(notebooks(:one))
     assert_select "select#memo_id", count: 0
+    assert_select ".relative.min-w-0.w-full input.kb-memo-picker-query.min-w-0.w-full"
+  end
+
+  test "show renders compact selected memo title and borderless add buttons" do
+    notebook = notebooks(:one)
+    entry = notebook_memos(:one_one)
+    notebook_memos(:one_two).update!(parent: entry)
+
+    get notebook_url(notebook, memo_id: entry.memo_id)
+    assert_response :success
+    assert_select "a.kb-notebook-tree-link.is-active[href=?]",
+      notebook_path(notebook, memo_id: entry.memo_id),
+      text: notebook.display_label_for_memo(entry)
+    assert_select "button.kb-chrome-link.border-0.bg-transparent.p-0", text: /新規メモ/
+    assert_select "button.border-0.bg-transparent.p-0[title='子メモを追加']"
+    assert_select "summary.kb-notebook-tree-summary", minimum: 1
+    assert_select "summary.memo-directory-nav-summary", count: 0
   end
 
   test "available_memos returns unassigned memos filtered by query" do

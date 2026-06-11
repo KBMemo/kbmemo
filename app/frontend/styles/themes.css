@@ -200,6 +200,21 @@ html[data-kb-theme-base="minimal"] {
   color: var(--kb-link-hover);
 }
 
+.kb-header-menu-trigger {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--kb-link);
+  font-size: inherit;
+  line-height: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.kb-header-menu-trigger:hover {
+  color: var(--kb-link-hover);
+}
+
 .kb-chrome-btn-primary {
   display: inline-block;
   border: none;
@@ -332,6 +347,68 @@ html[data-kb-theme-base="minimal"] {
   min-width: var(--size-13);
 }
 
+.kb-directory-picker {
+  display: flex;
+  flex-direction: column;
+  inline-size: min(22rem, calc(100vw - var(--size-4)));
+  max-inline-size: 100%;
+  vertical-align: middle;
+}
+
+.kb-directory-picker .kb-picker-panel {
+  inline-size: min(22rem, calc(100vw - var(--size-4)));
+  min-inline-size: 100%;
+}
+
+.kb-directory-picker-path-button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+}
+
+.kb-directory-picker-branch,
+.kb-directory-picker-leaf {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: start;
+  inline-size: 100%;
+}
+
+.kb-directory-picker-caret,
+.kb-directory-picker-caret-spacer {
+  grid-column: 1;
+  grid-row: 1;
+  inline-size: 1.25rem;
+  min-block-size: 1.875rem;
+}
+
+.kb-directory-picker-caret {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kb-directory-picker-row {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.kb-directory-picker-children {
+  grid-column: 2;
+  grid-row: 2;
+  margin-left: 0;
+}
+
+.kb-directory-picker-branch[data-directory-picker-open="true"] > .kb-directory-picker-caret .kb-tree-caret {
+  transform: rotate(90deg);
+}
+
 .kb-nav-menu-panel {
   max-height: min(var(--size-15), 70vh);
 }
@@ -374,6 +451,10 @@ html[data-kb-theme-base="minimal"] {
 
 .kb-notebook-memo-picker-field {
   min-width: min(100%, var(--size-content-2));
+}
+
+.kb-memo-picker-query {
+  box-sizing: border-box;
 }
 
 .kb-menu-item {
@@ -867,22 +948,64 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   transition: color 0.15s, background-color 0.15s;
 }
 
+.kb-notebook-tree-link {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--kb-radius-sm);
+  padding: 0.25rem var(--kb-space-2);
+  color: var(--kb-text-secondary);
+  font-size: var(--kb-font-size-sm);
+  line-height: var(--kb-line-height-tight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.kb-notebook-tree-link.is-active {
+  background: var(--kb-bg-muted);
+  color: var(--kb-text-primary);
+  font-weight: 500;
+}
+
+.kb-notebook-tree-link:hover:not(.is-active) {
+  background: var(--kb-bg-subtle);
+  color: var(--kb-text-primary);
+}
+
+.kb-notebook-tree-summary {
+  cursor: pointer;
+  width: 100%;
+}
+
+.kb-notebook-tree-summary::-webkit-details-marker {
+  display: none;
+}
+
+.kb-notebook-tree-summary::marker {
+  content: "";
+}
+
 .kb-directory-picker-option {
   width: 100%;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  border-radius: var(--kb-radius-sm);
-  padding: 0.375rem var(--kb-space-2);
+  border-radius: 0;
+  padding: 0.25rem 0;
   text-align: left;
   font-size: var(--kb-font-size-sm);
+  background: transparent;
 }
 
 .kb-directory-picker-option.is-selected {
-  background: var(--kb-bg-muted);
+  background: transparent;
   color: var(--kb-text-primary);
   font-weight: 500;
+}
+
+.kb-directory-picker .kb-selected-row {
+  background: transparent;
 }
 
 .kb-directory-picker-option:not(.is-selected) {
@@ -890,7 +1013,8 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
 }
 
 .kb-directory-picker-option:not(.is-selected):hover {
-  background: var(--kb-bg-muted);
+  background: transparent;
+  color: var(--kb-text-primary);
 }
 
 
@@ -1425,8 +1549,8 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
 
 .kb-tree-children {
   margin-top: 0.125rem;
-  margin-left: var(--kb-space-2);
-  padding-left: var(--kb-space-2);
+  margin-left: var(--kb-space-1);
+  padding-left: var(--kb-space-1);
   list-style: none;
   border-left: 1px solid var(--kb-border);
 }
@@ -1460,8 +1584,8 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
 
 .kb-tree-nested {
   margin-top: 0.125rem;
-  margin-left: 0.5rem;
-  padding-left: 0.5rem;
+  margin-left: 0.25rem;
+  padding-left: 0.25rem;
   border-left: 1px solid var(--kb-border);
 }
 

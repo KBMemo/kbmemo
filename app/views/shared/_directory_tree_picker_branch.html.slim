@@ -1,30 +1,35 @@
 ruby:
   children = (by_parent[dir.id] || [])
   has_children = children.any?
-  row_label = memo_directory_path_from_root_label(dir)
-  directory_path = row_label
+  row_label = dir.display_name
+  directory_path = memo_directory_path_from_root_label(dir)
   directory_full_path = dir.full_path
   selectable = memo_directory_picker_selectable?(dir)
   selected = selectable && selected_directory&.id == dir.id
   picker_btn_class = memo_directory_parent_picker_button_classes(selected: selected)
+  picker_btn_tabindex = selected ? "0" : "-1"
   header_class = "block w-full min-w-0 truncate rounded-md px-2 py-1.5 text-left text-sm kb-text-muted"
   details_open = memo_directory_picker_details_open?(dir, selected_directory)
-  details_attrs = { class: "group w-full min-w-0" }
-  details_attrs[:open] = true if details_open
+  branch_children_id = "#{picker_dom_id}_branch_#{dir.id}_children"
 
-li.min-w-0
+li.w-full.min-w-0
   - if has_children
-    = tag.details(**details_attrs) do
-      summary.flex.min-w-0.cursor-pointer.list-none.items-center.gap-1.rounded-md.px-1.py-0.memo-directory-nav-summary
+    .kb-directory-picker-branch data-directory-picker-branch="" data-directory-picker-initial-open=(details_open ? "true" : "false") data-directory-picker-open=(details_open ? "true" : "false")
+      button.kb-directory-picker-caret.cursor-pointer.rounded-md type="button" aria-label="#{row_label} の子ディレクトリを開閉" aria-expanded=(details_open ? "true" : "false") aria-controls=branch_children_id data-action="memo-directory-parent-picker#toggleBranch"
         span aria-hidden="true" class="kb-tree-caret" ▶
+      .kb-directory-picker-row
         - if selectable
-          button type="button" class=picker_btn_class data-directory-id=dir.id data-directory-path=directory_path data-directory-full-path=directory_full_path data-action="click->memo-directory-parent-picker#select" data-memo-directory-parent-picker-target="option" aria-selected=(selected ? "true" : "false") role="option" = row_label
+          button type="button" class=picker_btn_class data-directory-id=dir.id data-directory-path=directory_path data-directory-full-path=directory_full_path data-action="click->memo-directory-parent-picker#select" data-memo-directory-parent-picker-target="option" aria-selected=(selected ? "true" : "false") role="option" tabindex=picker_btn_tabindex = row_label
         - else
           span class=header_class = row_label
-      ul.kb-tree-children.space-y-0.5
+      ul id=branch_children_id class="kb-tree-children kb-directory-picker-children space-y-0.5" hidden=(!details_open)
         - children.each do |child|
-          = render "shared/directory_tree_picker_branch", dir: child, by_parent: by_parent, selected_directory: selected_directory
+          = render "shared/directory_tree_picker_branch", dir: child, by_parent: by_parent, selected_directory: selected_directory, picker_dom_id: picker_dom_id
   - elsif selectable
-    button type="button" class=picker_btn_class data-directory-id=dir.id data-directory-path=directory_path data-directory-full-path=directory_full_path data-action="click->memo-directory-parent-picker#select" data-memo-directory-parent-picker-target="option" aria-selected=(selected ? "true" : "false") role="option" = row_label
+    .kb-directory-picker-leaf
+      span.kb-directory-picker-caret-spacer aria-hidden="true"
+      button type="button" class=picker_btn_class data-directory-id=dir.id data-directory-path=directory_path data-directory-full-path=directory_full_path data-action="click->memo-directory-parent-picker#select" data-memo-directory-parent-picker-target="option" aria-selected=(selected ? "true" : "false") role="option" tabindex=picker_btn_tabindex = row_label
   - else
-    span class=header_class = row_label
+    .kb-directory-picker-leaf
+      span.kb-directory-picker-caret-spacer aria-hidden="true"
+      span class=header_class = row_label

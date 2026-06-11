@@ -17,7 +17,7 @@ module AvatarsHelper
   end
 
   # @param size [Integer] 表示の一辺（px）
-  def gravatar_image_tag(account, size: 32, extra_class: nil)
+  def gravatar_image_tag(account, size: 32, extra_class: nil, loading: "lazy", fetchpriority: nil)
     return "".html_safe unless account
 
     label = account.display_name
@@ -25,14 +25,18 @@ module AvatarsHelper
     url = gravatar_url_for(account, pixel_size: px)
     return "".html_safe if url.blank?
 
-    image_tag(
-      url,
+    options = {
       alt: "#{label}のアバター",
       title: label,
       class: ["kb-avatar", extra_class].compact.join(" "),
+      width: size,
+      height: size,
       style: "width:#{size}px;height:#{size}px",
-      loading: "lazy",
+      loading: loading,
       decoding: "async"
-    )
+    }
+    options[:fetchpriority] = fetchpriority if fetchpriority.present?
+
+    image_tag(url, **options)
   end
 end

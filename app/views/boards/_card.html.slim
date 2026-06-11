@@ -1,7 +1,7 @@
 - card_dom_id = dom_id(memo, :board_card)
 article.kb-kanban-card[id=card_dom_id data-theme-slot="kanban-card" data-board-kanban-dnd-target="card" data-memo-id=memo.id data-column-id=column.id data-position=memo.kanban_position draggable="true" data-action="dragstart->board-kanban-dnd#cardDragStart dragend->board-kanban-dnd#cardDragEnd"]
   .flex.items-start.gap-2
-    button.mt-0.5.cursor-grab.kb-text-subtle.hover:kb-text-secondary[type="button" aria-label="ドラッグ" data-action="mousedown->board-kanban-dnd#prepareDrag" tabindex="-1"]
+    button.mt-0.5.cursor-grab.border-0.bg-transparent.p-0.kb-text-subtle.hover:kb-text-secondary[type="button" aria-label="ドラッグ" data-action="mousedown->board-kanban-dnd#prepareDrag" tabindex="-1"]
       | ⋮⋮
     .min-w-0.flex-1
       = link_to memo.title, memo_path(memo), class: "block font-medium kb-text-primary hover:opacity-80 line-clamp-2", data: { turbo: false }
@@ -23,4 +23,4 @@ article.kb-kanban-card[id=card_dom_id data-theme-slot="kanban-card" data-board-k
         = date_field_tag :scheduled_on, memo.scheduled_on, id: "scheduled_on_#{memo.id}", class: "kb-input kb-input-2xs kb-field-max-date", title: "予定日"
         = submit_tag "保存", class: "kb-text-2xs kb-text-secondary kb-inline-link"
       p class="mt-1 kb-text-2xs kb-text-subtle" = l(memo.updated_at, format: :short)
-    = button_to "外す", board_board_card_path(board, memo), method: :delete, form: { data: { turbo_confirm: "ボードから外しますか？メモ自体は削除されません。" } }, class: "shrink-0 kb-text-2xs kb-danger-action", title: "ボードから外す"
+    = button_to "外す", board_board_card_path(board, memo), method: :delete, form: { data: { turbo_confirm: "ボードから外しますか？メモ自体は削除されません。" } }, class: "shrink-0 border-0 bg-transparent p-0 kb-text-2xs kb-danger-action", title: "ボードから外す"

@@ -29,16 +29,14 @@ div class="kb-chrome-workspace kb-workspace-min flex -mx-4 flex-col border-t md:
             = text_field_tag :title, nil, placeholder: "新規カードのタイトル", required: true, autocomplete: "off", class: "kb-input kb-input-sm w-48 sm:w-64"
             = submit_tag "追加", class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
 
-      #board_add_memo_panel.hidden.fixed.inset-0.z-40 data-board-add-memo-target="panel"
-        .kb-overlay-backdrop.absolute.inset-0 data-action="click->board-add-memo#close"
-        div class="kb-modal-panel kb-floating-modal rounded-lg"
-          .flex.items-center.justify-between.border-b.kb-border.px-4.py-3
-            h2.text-base.font-semibold.kb-text-primary 既存メモを追加
-            button.kb-text-muted.hover:opacity-80 type="button" data-action="board-add-memo#close" aria-label="閉じる" ×
-          .space-y-3.p-4
-            = label_tag :q, "追加する既存メモを検索", class: "sr-only"
-            = search_field_tag :q, nil, placeholder: "タイトル・本文で検索", autocomplete: "off", class: "kb-input kb-input-md w-full", data: { board_add_memo_target: "query", action: "input->board-add-memo#search" }
-            .max-h-64.overflow-y-auto.rounded-md.border.kb-border data-board-add-memo-target="results"
-              p.px-3.py-2.text-sm.kb-text-secondary 検索してください
+      dialog#board_add_memo_panel.board-add-memo-dialog.kb-modal-panel.rounded-lg.p-0 aria-labelledby="board-add-memo-title" data-board-add-memo-target="panel" data-action="click->board-add-memo#backdropClick"
+        .flex.items-center.justify-between.border-b.kb-border.px-4.py-3
+          h2#board-add-memo-title.text-base.font-semibold.kb-text-primary 既存メモを追加
+          button.kb-text-muted.hover:opacity-80 type="button" data-action="board-add-memo#close" aria-label="閉じる" ×
+        search.space-y-3.p-4
+          = label_tag :q, "追加する既存メモを検索", class: "sr-only"
+          = search_field_tag :q, nil, placeholder: "タイトル・本文で検索", autocomplete: "off", class: "kb-input kb-input-md w-full", data: { board_add_memo_target: "query", action: "input->board-add-memo#search" }
+          .max-h-64.overflow-y-auto.rounded-md.border.kb-border data-board-add-memo-target="results"
+            p.px-3.py-2.text-sm.kb-text-secondary 検索してください
 
       = render "kanban", board: @board, board_columns: @board_columns, visible_memo_ids: @visible_memo_ids

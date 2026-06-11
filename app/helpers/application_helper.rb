@@ -39,7 +39,7 @@ module ApplicationHelper
   end
 
   def nav_boards_trigger_class
-    classes = [ "kb-chrome-link", "inline-flex", "items-center", "gap-0.5" ]
+    classes = [ "kb-header-menu-trigger", "inline-flex", "items-center", "gap-0.5" ]
     classes << "font-semibold" if controller_path == "boards"
     classes.join(" ")
   end
@@ -54,7 +54,7 @@ module ApplicationHelper
   end
 
   def nav_notebooks_trigger_class
-    classes = [ "kb-chrome-link", "inline-flex", "items-center", "gap-0.5" ]
+    classes = [ "kb-header-menu-trigger", "inline-flex", "items-center", "gap-0.5" ]
     classes << "font-semibold" if controller_path == "notebooks"
     classes.join(" ")
   end

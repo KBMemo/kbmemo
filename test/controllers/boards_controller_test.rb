@@ -12,9 +12,18 @@ class BoardsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show renders kanban" do
-    get board_url(boards(:one))
+    board = boards(:one)
+    BoardKanban::AddMemo.call(board: board, memo: memos(:one), column: board_columns(:one_todo))
+
+    get board_url(board)
     assert_response :success
     assert_includes response.body, board_columns(:one_todo).name
+    assert_select "dialog#board_add_memo_panel[aria-labelledby='board-add-memo-title']"
+    assert_select "#board-add-memo-title", text: "既存メモを追加"
+    assert_select "search label.sr-only[for='q']", text: "追加する既存メモを検索"
+    assert_select "search input[type='search'][data-board-add-memo-target='query']"
+    assert_select ".kb-kanban-card button[aria-label='ドラッグ'].border-0.bg-transparent.p-0"
+    assert_select ".kb-kanban-card button[title='ボードから外す'].border-0.bg-transparent.p-0"
   end
 
   test "show renders schedule sidebar with calendar" do
@@ -50,6 +59,7 @@ class BoardsControllerTest < ActionDispatch::IntegrationTest
     get board_url(board, schedule_month: "2026-05", schedule_day: "2026-05-15")
     assert_response :success
     assert_includes response.body, memo.title
+    assert_select ".kb-board-schedule-list ul.list-none.p-0"
   end
 
   test "create board with default columns" do
@@ -102,6 +112,9 @@ class BoardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "div##{'board_directory_picker'} [data-controller~=?]", "memo-directory-parent-picker"
     assert_select "input[type=hidden][name=?]", "board[memo_directory_id]"
+    assert_select "[data-memo-directory-parent-picker-target='toggleButton'][aria-controls]"
+    assert_select "[data-memo-directory-parent-picker-target='panel'][role='listbox'][id]"
+    assert_select "button.memo-directory-nav-summary a", count: 0
     assert_select "[data-controller~=?]", "memo-directory-dialog"
     assert_select "button[data-action*=?]", "memo-directory-dialog#openNew"
   end
