@@ -117,10 +117,10 @@ ruby:
       div class="memo-body-editor block w-full border-0 rounded-none bg-transparent border-b kb-border" data-theme-slot="memo-editor" data-controller="memo-body-editor tsuzura-picker" data-memo-body-editor-label-id-value="memo-body-label" data-memo-body-editor-wiki-completions-url-value=wiki_completions_memos_path(format: :json) data-memo-body-editor-wiki-link-labels-url-value=wiki_link_labels_memos_path(format: :json) data-memo-body-editor-tsuzura-authorize-url-value=(memo.persisted? ? internal_tsuzura_sign_urls_path : "") data-memo-body-editor-memo-id-value=(memo.persisted? ? memo.id : "") data-memo-body-editor-upload-url-value=(memo.image_assets_uploadable? ? assets_memo_path(memo) : "") data-tsuzura-picker-albums-url-value=internal_tsuzura_albums_path data-tsuzura-picker-album-url-template-value=internal_tsuzura_album_path("__ID__") data-tsuzura-picker-sign-urls-url-value=(memo.persisted? ? internal_tsuzura_sign_urls_path : "") data-tsuzura-picker-memo-id-value=(memo.persisted? ? memo.id : "") data-tsuzura-picker-manage-url-value=tsuzura_manage_url data-tsuzura-picker-editor-selector-value=".memo-body-editor"
           div.memo-body-editor__header.mb-1.border-b.kb-border.pb-2 data-controller=(memo.image_assets_uploadable? ? "memo-attachments" : nil) data-memo-attachments-expanded-value=(memo.image_assets_uploadable? ? "false" : nil)
             div.memo-body-editor__header-row
-              nav.memo-body-editor__mode-tabs role="tablist" aria-label="編集モード"
-                button.memo-body-editor__mode-tab type="button" role="tab" data-edit-mode="wysiwyg" data-memo-body-editor-target="editModeTab" data-action="memo-body-editor#setEditMode" aria-pressed="false"
+              nav.memo-body-editor__mode-tabs role="tablist" aria-label="編集モード" data-action="keydown->memo-body-editor#editModeTabKeydown"
+                button#memo_body_editor_tab_wysiwyg.memo-body-editor__mode-tab type="button" role="tab" data-edit-mode="wysiwyg" data-memo-body-editor-target="editModeTab" data-action="memo-body-editor#setEditMode" aria-controls="memo_body_editor_panel_wysiwyg" aria-selected="false" tabindex="-1"
                   | WYSIWYG
-                button.memo-body-editor__mode-tab.is-active type="button" role="tab" data-edit-mode="source" data-memo-body-editor-target="editModeTab" data-action="memo-body-editor#setEditMode" aria-pressed="true"
+                button#memo_body_editor_tab_source.memo-body-editor__mode-tab.is-active type="button" role="tab" data-edit-mode="source" data-memo-body-editor-target="editModeTab" data-action="memo-body-editor#setEditMode" aria-controls="memo_body_editor_panel_source" aria-selected="true" tabindex="0"
                   | ソース
               div.memo-body-editor__asset-toolbar
                 label.memo-body-editor__preview-toggle.memo-body-editor__source-only.inline-flex.cursor-pointer.items-center.gap-1.5 class=kb_toolbar_btn title="Asciidoctor.js によるライブプレビューを表示"
@@ -143,7 +143,7 @@ ruby:
                 span.hidden.text-xs.kb-status-danger data-memo-body-editor-target="uploadError"
             - if memo.image_assets_uploadable?
               = render "memos/attachment_panel", memo: memo, body: memo.body
-          div.memo-body-editor__source-pane data-memo-body-editor-target="sourcePane"
+          div#memo_body_editor_panel_source.memo-body-editor__source-pane role="tabpanel" aria-labelledby="memo_body_editor_tab_source" data-memo-body-editor-target="sourcePane"
             div.memo-body-editor__workspace
               div.memo-body-editor__source
                 div.memo-body-editor__host.relative[data-memo-body-editor-target="host" style="min-height: inherit"]
@@ -154,7 +154,7 @@ ruby:
                     span テーマ
                     select.kb-input.kb-input-xs aria-label="Preview theme" data-theme-select="true" data-memo-body-editor-target="previewSkinSelect"
                 div.memo-body-editor__preview-content.memo-body.asciidoctor data-theme-slot="memo-body" data-memo-body-editor-target="previewHost"
-          div.memo-body-editor__wysiwyg-pane data-memo-body-editor-target="wysiwygPane" hidden=true aria-hidden="true"
+          div#memo_body_editor_panel_wysiwyg.memo-body-editor__wysiwyg-pane role="tabpanel" aria-labelledby="memo_body_editor_tab_wysiwyg" data-memo-body-editor-target="wysiwygPane" hidden=true aria-hidden="true"
             div.memo-body-editor__wysiwyg-content.memo-body.asciidoctor contenteditable="false" spellcheck="false" data-theme-slot="memo-body" data-memo-body-editor-target="wysiwygHost"
           = f.text_area :body,
             rows: 1,

@@ -31,6 +31,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, m.title
     assert_includes response.body, "検索結果"
+    assert_select "label.sr-only[for='q']", text: "タイトル・本文を検索"
   end
 
   test "index redirects legacy q param to search tab" do
@@ -477,6 +478,11 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "ライブプレビュー"
     assert_select '[data-controller*="memo-body-editor"] [data-memo-body-editor-target="host"]'
     assert_select '[data-controller*="memo-body-editor"] [data-memo-body-editor-target="field"]'
+    assert_select "[role='tablist'][aria-label='編集モード'][data-action*='editModeTabKeydown']"
+    assert_select "button#memo_body_editor_tab_source[role='tab'][aria-selected='true'][aria-controls='memo_body_editor_panel_source'][tabindex='0']"
+    assert_select "button#memo_body_editor_tab_wysiwyg[role='tab'][aria-selected='false'][aria-controls='memo_body_editor_panel_wysiwyg'][tabindex='-1']"
+    assert_select "#memo_body_editor_panel_source[role='tabpanel'][aria-labelledby='memo_body_editor_tab_source']"
+    assert_select "#memo_body_editor_panel_wysiwyg[role='tabpanel'][aria-labelledby='memo_body_editor_tab_wysiwyg']"
   end
 
   test "should create memo and redirect" do

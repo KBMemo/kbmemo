@@ -486,6 +486,33 @@ export default class extends Controller {
     void this.switchEditMode(mode)
   }
 
+  editModeTabKeydown(event) {
+    const keys = ["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown", "Home", "End"]
+    if (!keys.includes(event.key)) return
+
+    const tabs = this.editModeTabTargets
+    const currentIndex = tabs.indexOf(event.target)
+    if (currentIndex < 0) return
+
+    event.preventDefault()
+    let nextIndex = currentIndex
+    if (event.key === "Home") {
+      nextIndex = 0
+    } else if (event.key === "End") {
+      nextIndex = tabs.length - 1
+    } else {
+      const step = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1
+      nextIndex = (currentIndex + step + tabs.length) % tabs.length
+    }
+
+    const nextTab = tabs[nextIndex]
+    nextTab?.focus()
+    const mode = nextTab?.dataset?.editMode
+    if (mode === "source" || mode === "wysiwyg") {
+      void this.switchEditMode(mode)
+    }
+  }
+
   async switchEditMode(mode) {
     if (this._editMode === mode) return
 
@@ -571,7 +598,8 @@ export default class extends Controller {
     for (const tab of this.editModeTabTargets) {
       const active = tab.dataset.editMode === this._editMode
       tab.classList.toggle("is-active", active)
-      tab.setAttribute("aria-pressed", active ? "true" : "false")
+      tab.setAttribute("aria-selected", active ? "true" : "false")
+      tab.tabIndex = active ? 0 : -1
     }
   }
 

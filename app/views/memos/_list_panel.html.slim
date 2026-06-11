@@ -39,6 +39,7 @@ ruby:
       .mb-2 data-controller="memo-search"
         = form_tag memos_path, method: :get, class: "flex min-w-0 gap-1", data: { memo_search_target: "form", turbo: "false" } do
           = hidden_field_tag :sidebar_view, "search"
+          = label_tag :q, "タイトル・本文を検索", class: "sr-only"
           = search_field_tag :q, @memo_search_query, placeholder: "タイトル・本文を検索", autocomplete: "off", class: memo_sidebar_search_input, data: { memo_search_target: "input", action: "input->memo-search#submitSearch" }
           - if @memo_search_query.present?
             button.kb-chrome-btn-secondary.kb-btn-xs.shrink-0 type="button" data-action="memo-search#clear" クリア
