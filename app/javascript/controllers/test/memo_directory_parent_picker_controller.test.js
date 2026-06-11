@@ -106,7 +106,9 @@ function pickerFixture() {
         <button type="button" role="option" aria-selected="false" tabindex="-1" data-memo-directory-parent-picker-target="option" data-action="click->memo-directory-parent-picker#select" data-directory-id="1" data-directory-path="Alpha" data-directory-full-path="/alpha">Alpha</button>
         <div class="kb-directory-picker-branch" data-directory-picker-branch data-directory-picker-initial-open="true" data-directory-picker-open="true">
           <button type="button" class="kb-directory-picker-caret" aria-expanded="true" data-action="memo-directory-parent-picker#toggleBranch">▶</button>
-          <button type="button" role="option" aria-selected="false" tabindex="-1" data-memo-directory-parent-picker-target="option" data-action="click->memo-directory-parent-picker#select" data-directory-id="2" data-directory-path="Beta" data-directory-full-path="/beta">Beta</button>
+          <div class="kb-directory-picker-row">
+            <button type="button" role="option" aria-selected="false" tabindex="-1" data-memo-directory-parent-picker-target="option" data-action="click->memo-directory-parent-picker#select" data-directory-id="2" data-directory-path="Beta" data-directory-full-path="/beta">Beta</button>
+          </div>
           <ul class="kb-directory-picker-children">
             <li>
               <button type="button" role="option" aria-selected="false" tabindex="-1" data-memo-directory-parent-picker-target="option" data-action="click->memo-directory-parent-picker#select" data-directory-id="3" data-directory-path="Gamma" data-directory-full-path="/gamma">Gamma</button>
