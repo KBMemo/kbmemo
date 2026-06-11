@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { setTrustedHTML } from "../trusted_html.js"
 import {
   appendNavOpenDirectoryFields,
   loadOpenDirectoryIds,
@@ -113,7 +114,7 @@ export default class extends Controller {
 
   replaceWithServerRenderedForm(html) {
     // The memo directory dialog only loads same-origin server-rendered form fragments.
-    this.bodyTarget.innerHTML = html
+    setTrustedHTML(this.bodyTarget, "kbmemo-server-rendered-fragment", html)
   }
 
   submitStart(event) {

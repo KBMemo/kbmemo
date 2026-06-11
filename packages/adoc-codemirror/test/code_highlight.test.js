@@ -1,7 +1,11 @@
 // @vitest-environment happy-dom
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { highlightPreviewCode } from '../src/codeHighlight.js'
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe('highlightPreviewCode', () => {
   it('highlights source blocks that include callout markers', () => {
@@ -48,5 +52,22 @@ end</code>
     highlightPreviewCode(container)
 
     expect(container.querySelector('code')?.innerHTML).toBe(before)
+  })
+
+  it('routes syntax highlight HTML through a named Trusted Types policy', () => {
+    const createPolicy = vi.fn((name, rules) => ({
+      createHTML: (value) => rules.createHTML(value),
+    }))
+    vi.stubGlobal('trustedTypes', { createPolicy })
+
+    const container = document.createElement('div')
+    container.innerHTML = `
+      <pre><code class="language-ruby" data-lang="ruby">puts 1</code></pre>
+    `
+
+    highlightPreviewCode(container)
+
+    expect(createPolicy).toHaveBeenCalledWith('kbmemo-code-highlight-html', expect.any(Object))
+    expect(container.querySelector('[class*="hljs-"]')).not.toBeNull()
   })
 })

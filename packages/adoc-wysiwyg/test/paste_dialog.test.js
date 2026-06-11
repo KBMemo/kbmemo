@@ -50,6 +50,33 @@ describe('paste dialogs', () => {
   })
 })
 
+describe('search-replace dialog', () => {
+  it('opens as a named native dialog', async () => {
+    const { openDocumentSearchReplaceDialog, closeSearchReplaceDialog } = await import('../searchReplaceDialog.js')
+    const controller = {
+      getDocument: () => 'hello world',
+      getCursorPosition: () => 0,
+      getSelectedText: () => 'hello',
+      applyDocument: vi.fn(),
+      revealMatch: vi.fn(),
+    }
+
+    openDocumentSearchReplaceDialog(controller)
+
+    const dialog = /** @type {HTMLDialogElement} */ (document.querySelector('.search-replace-dialog'))
+    expect(dialog?.tagName).toBe('DIALOG')
+    expect(dialog.open).toBe(true)
+    expect(dialog.getAttribute('closedby')).toBe('any')
+    expect(dialog.getAttribute('aria-labelledby')).toBe('search-replace-dialog-title')
+    expect(dialog.getAttribute('aria-describedby')).toBe('search-replace-dialog-description')
+    expect(dialog.querySelector('.search-input')?.value).toBe('hello')
+
+    closeSearchReplaceDialog()
+
+    expect(dialog.open).toBe(false)
+  })
+})
+
 function installDialogPolyfill() {
   const proto = window.HTMLDialogElement?.prototype ?? Object.getPrototypeOf(document.createElement('dialog'))
 

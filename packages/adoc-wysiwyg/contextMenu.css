@@ -60,10 +60,16 @@
   position: fixed;
   z-index: 2100;
   width: min(22rem, calc(100vw - 2rem));
+  margin: 0;
+  padding: 0;
   background: #fff;
   border: 1px solid #d0d7de;
   border-radius: 10px;
   box-shadow: 0 12px 32px rgba(27, 31, 36, 0.18);
+}
+
+.search-replace-dialog::backdrop {
+  background: rgba(27, 31, 36, 0.18);
 }
 
 .search-replace-form {
@@ -81,6 +87,12 @@
 }
 
 .search-replace-scope {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.search-replace-description {
   margin: 0.15rem 0 0;
   font-size: 0.75rem;
   color: #666;

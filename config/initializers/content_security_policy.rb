@@ -13,9 +13,18 @@ Rails.application.configure do
     policy.frame_ancestors :self
     policy.img_src :self, :https, :data, :blob
     policy.object_src :none
+    # Rails 8.1 exposes report-uri but not report-to in the CSP DSL.
+    policy.directives["report-to"] = [ "csp" ]
     policy.report_uri "/csp_reports"
+    policy.require_trusted_types_for :script
     policy.script_src :self
     policy.style_src :self
+    policy.trusted_types(
+      "kbmemo-adoc-preview-html",
+      "kbmemo-code-highlight-html",
+      "kbmemo-sanitized-svg",
+      "kbmemo-server-rendered-fragment"
+    )
 
     if Rails.env.development?
       vite_origin = "http://#{ViteRuby.config.host_with_port}"

@@ -49,7 +49,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `application.html.slim` / `diagram_viewer.html.slim` の `html[data-kb-theme]` / `data-kb-theme-base` / `data-kb-skin` と `meta[name="color-scheme"]` を account theme preference から server-rendered にし、inline script なしで初期描画時のテーマちらつきを抑える構成へ変更した。
 * `code_block_tools_controller.js` の copy / check icon 描画を固定 SVG 文字列の `innerHTML` から `createElementNS` / `replaceChildren` ベースへ変更した。
 * `config.action_dispatch.default_headers` に `X-Content-Type-Options: nosniff` / `Referrer-Policy: strict-origin-when-cross-origin` / `Permissions-Policy: camera=(), geolocation=(), microphone=()` を明示し、低リスクな browser security companion policy を固定した。
-* CSP report-only の収集導線として `POST /csp_reports` を追加し、`report-uri /csp_reports` と `Reporting-Endpoints: csp="/csp_reports"` を設定した。受信 payload は認証なしで `204` を返し、ログは query / fragment を落とした最小フィールドに限定する。
+* CSP report-only の収集導線として `POST /csp_reports` を追加し、`report-uri /csp_reports` / `report-to csp` と `Reporting-Endpoints: csp="/csp_reports"` を設定した。受信 payload は認証なしで `204` を返し、ログは query / fragment を落とした最小フィールドに限定する。
 * `scripts/report-vite-bundles.mjs` に `--kind` filter を追加し、`npm run check:bundle-budget` で `entry` bundle を 520 kB 以内に固定する CI 向け budget check を追加した。
 * メモ編集フォームとディレクトリサイドバーの `<details>` ヒントは、アイコンだけの `summary` に `aria-label` / `aria-describedby` を付け、説明本文へ接続した。
 * `@kbmemo/adoc-wysiwyg` の web paste / image paste / search-replace dialog の固定 HTML template と、空段落 placeholder の固定 HTML を `createElement` / `textContent` / `append` ベースへ変更した。
@@ -70,13 +70,22 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * ボードの「既存メモを追加」パネルを `div` ベースの疑似モーダルから native `<dialog>` に変更し、`aria-labelledby` / backdrop click / focus return を controller 側で扱うようにした。
 * `@kbmemo/adoc-wysiwyg` の Web paste / image paste dialog を `div hidden` ベースから native `<dialog>` に変更し、`showModal()` / `closedby="any"` / `aria-labelledby` / `aria-describedby` / backdrop click fallback で扱うようにした。
 * ディレクトリ tree picker の `role=listbox` に `aria-controls` / roving tabindex / Arrow・Home・End・Escape keyboard 操作を追加し、選択中または最初の可視 option へ focus できるようにした。
+* 実行時に残る信頼済み HTML sink は Trusted Types の named policy 経由にし、`kbmemo-server-rendered-fragment` / `kbmemo-sanitized-svg` / `kbmemo-adoc-preview-html` の用途境界をコード上で分離した。
+* `@kbmemo/adoc-wysiwyg` の search-replace dialog も `div hidden` から native `<dialog>` へ変更し、`aria-labelledby` / `aria-describedby` / platform cancel close に対応した。
+* CSP report-only に `require-trusted-types-for 'script'` と `trusted-types` allowlist を追加し、Trusted Types 違反を `/csp_reports` で観測できるようにした。
+* `config.action_dispatch.default_headers` に `Cross-Origin-Opener-Policy: same-origin-allow-popups` / `Cross-Origin-Resource-Policy: same-origin` を追加し、低リスクな isolation companion policy を固定した。
+* Rodauth logout response に `Clear-Site-Data: "cookies", "storage", "cache"` を追加し、ログアウト時に browser 側の site data も破棄するようにした。
+* CSP report-only に `report-to csp` directive を追加し、`Reporting-Endpoints` を参照する標準 reporting path と `report-uri` fallback を併用するようにした。
+* session cookie の `SameSite=Lax` を `config.session_store` で明示し、production の domain 付き cookie store でも同じ設定を維持するようにした。
+* `packages/adoc-codemirror/src/codeHighlight.js` の syntax highlight HTML 挿入を `kbmemo-code-highlight-html` Trusted Types policy 経由にし、CSP の `trusted-types` allowlist に追加した。
 
 == 現状の良い点
 
 * semantic な `button` / `details` / `dialog` をすでに多用している。
 * flash 通知に `aria-live="polite"` が入っている。
 * avatar と本文画像系には `loading` / `decoding="async"` が使われている。avatar は `width` / `height` 属性も持ち、above-the-fold の単体 avatar は eager + low priority にしている。
-* production では `force_ssl = true`、host 制限、cookie store を使っている。
+* production では `force_ssl = true`、host 制限、`SameSite=Lax` の cookie store を使っている。logout response は `Clear-Site-Data` で client-side site data を破棄する。
+* `X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` / `Cross-Origin-Opener-Policy` / `Cross-Origin-Resource-Policy` を default headers で明示している。
 * Tailwind 依存を外し、テーマ設計を `themes.css` と Open Props に寄せている。
 
 == 優先度付き更新案
@@ -87,18 +96,18 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P0
 |Security
-|CSP は report-only で有効化済み。`application.html.slim` / `diagram_viewer.html.slim` のテーマ初期化 inline script と、プロフィールのトークン発行後スクロール inline script は削除済み。`X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` は default headers で明示済み。`/csp_reports` で report-only 違反を受けられる。
-|report-only 違反を確認し、必要な fetch / style / asset origin を整理してから CSP enforcement へ移行する。ログ集計が必要になったら専用 storage / dashboard へ移す。
+|CSP は report-only で有効化済み。`application.html.slim` / `diagram_viewer.html.slim` のテーマ初期化 inline script と、プロフィールのトークン発行後スクロール inline script は削除済み。`X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` / `Cross-Origin-Opener-Policy` / `Cross-Origin-Resource-Policy` は default headers で明示済み。`/csp_reports` で report-only 違反を受けられる。Trusted Types も `require-trusted-types-for 'script'` を report-only に追加済み。
+|report-only 違反を確認し、必要な fetch / style / asset origin と Trusted Types sink を整理してから CSP enforcement へ移行する。ログ集計が必要になったら専用 storage / dashboard へ移す。
 
 |P0
 |Security
 |`memo_ai_panel_controller.js` は error 表示と message rendering を DOM API ベースへ置換済み。`memo_search_picker_controller.js` / `board_add_memo_controller.js` / `tsuzura_picker_controller.js` の picker 描画も DOM API ベースへ置換済み。`code_block_tools_controller.js` の copy / check icon も DOM API ベースへ置換済み。
-|`@kbmemo/adoc-wysiwyg` の固定 dialog template / 空段落 placeholder も DOM API ベースへ置換済み。残る `innerHTML` は sanitize 済み SVG / server-rendered fragment / Asciidoctor preview HTML / syntax highlight HTML など、用途ごとに境界を明示しながら縮小する。
+|`@kbmemo/adoc-wysiwyg` の固定 dialog template / 空段落 placeholder も DOM API ベースへ置換済み。実行時に残る `innerHTML` は sanitize 済み SVG / server-rendered fragment / Asciidoctor preview HTML / syntax highlight HTML に限定し、Trusted Types named policy 経由で用途境界を明示済み。
 
 |P0
 |Security
 |`code_block_tools_controller.js` の SVG 注入は `replaceWithSanitizedSvg` に隔離済み。loading / error 表示は DOM API ベースへ変更済み。`render_diagram` は sanitize 済みヘッダー / JSON flag を返し、controller test で固定済み。
-|今後 Trusted Types を検討する場合は、この sink を named policy 化する候補にする。
+|SVG 注入は `kbmemo-sanitized-svg` policy 経由に変更済み。Trusted Types report-only では同じ policy 名を violation の切り分け単位にする。
 
 |P1
 |Accessibility / HTML
@@ -165,6 +174,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** skip link と `main#main-content` 追加済み。
 ** theme bootstrap inline script は削除済み。
 ** account theme preference から初期 `data-kb-theme` / `data-kb-theme-base` / `data-kb-skin` と `color-scheme` を server-rendered 化済み。
+** CSP report-only は Trusted Types も観測し、許可済み policy 名を `trusted-types` directive に列挙する。
 * `app/views/layouts/diagram_viewer.html.slim`
 ** `lang="ja"` 付与済み。
 ** theme bootstrap inline script は削除済み。
@@ -203,10 +213,17 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** message rendering と error 表示は DOM API ベースへ置換済み。
 * `app/javascript/controllers/code_block_tools_controller.js`
 ** copy / check icon は DOM API ベースへ置換済み。
-** SVG 注入は `replaceWithSanitizedSvg` に隔離済み。`render_diagram` endpoint の response header / JSON flag / controller test で sanitize 契約を明示済み。
+** SVG 注入は `replaceWithSanitizedSvg` に隔離し、`kbmemo-sanitized-svg` policy 経由にしている。`render_diagram` endpoint の response header / JSON flag / controller test で sanitize 契約を明示済み。
+* `app/javascript/controllers/memo_directory_dialog_controller.js`
+** dialog form fragment は same-origin server-rendered HTML だけを読み込み、`kbmemo-server-rendered-fragment` policy 経由で挿入する。
+* `packages/adoc-preview/preview.js`
+** Asciidoctor preview HTML は `kbmemo-adoc-preview-html` policy 経由で挿入し、その後の画像解決・syntax highlight・math rendering に渡す。
+* `packages/adoc-codemirror/src/codeHighlight.js`
+** highlight.js が返す syntax highlight HTML と既存 callout markup は `kbmemo-code-highlight-html` policy 経由で挿入する。
 * `packages/adoc-wysiwyg/webPasteDialog.js` / `imagePasteDialog.js` / `searchReplaceDialog.js`
 ** 固定 dialog template は `innerHTML` を使わず DOM API で構築する。
 ** Web paste / image paste は native `<dialog>` で表示し、Esc / close button / backdrop click で cancel 解決する。
+** search-replace も native `<dialog>` で表示し、検索対象を見出し・説明・scope text で伝える。
 * `packages/adoc-wysiwyg/wysiwyg.js`
 ** 空段落 placeholder の固定 HTML は DOM API で構築する。
 * `app/javascript/controllers/memo_search_picker_controller.js` / `board_add_memo_controller.js` / `tsuzura_picker_controller.js`
