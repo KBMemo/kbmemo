@@ -50,6 +50,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `code_block_tools_controller.js` の copy / check icon 描画を固定 SVG 文字列の `innerHTML` から `createElementNS` / `replaceChildren` ベースへ変更した。
 * `config.action_dispatch.default_headers` に `X-Content-Type-Options: nosniff` / `Referrer-Policy: strict-origin-when-cross-origin` / `Permissions-Policy: camera=(), geolocation=(), microphone=()` を明示し、低リスクな browser security companion policy を固定した。
 * CSP report-only の収集導線として `POST /csp_reports` を追加し、`report-uri /csp_reports` と `Reporting-Endpoints: csp="/csp_reports"` を設定した。受信 payload は認証なしで `204` を返し、ログは query / fragment を落とした最小フィールドに限定する。
+* `scripts/report-vite-bundles.mjs` に `--kind` filter を追加し、`npm run check:bundle-budget` で `entry` bundle を 520 kB 以内に固定する CI 向け budget check を追加した。
 
 == 現状の良い点
 
@@ -132,8 +133,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P2
 |Performance
-|`docs/architecture/web-performance-checklist.adoc` と `npm run report:bundles` を追加済み。
-|release 前に LCP / INP / CLS と bundle size を確認する。必要なら CI の artifact / threshold に昇格する。
+|`docs/architecture/web-performance-checklist.adoc` と `npm run report:bundles` を追加済み。`npm run check:bundle-budget` で `entry` bundle の 520 kB budget を fail-fast できる。
+|release 前に LCP / INP / CLS と bundle size を確認する。必要なら CI artifact と Lighthouse / CWV の実測 threshold も追加する。
 |===
 
 == 具体的な観察メモ

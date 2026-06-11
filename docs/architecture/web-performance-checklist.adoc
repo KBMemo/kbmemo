@@ -32,11 +32,12 @@ npm run report:bundles
 npm run report:bundles -- --manifest public/vite-dev/.vite/manifest.json --limit-kb 500
 ----
 
-CI でしきい値超過を失敗扱いにする場合は `--fail-on-warning` を付ける。
+特定種別だけ確認するときは `--kind` を使う。`entry` だけを CI 予算にする場合は、既存の CodeMirror / SVGEdit などの heavy dynamic chunk を失敗対象から外せる。
 
 [source,sh]
 ----
-npm run report:bundles -- --limit-kb 500 --fail-on-warning
+npm run report:bundles -- --kind entry --limit-kb 520 --fail-on-warning
+npm run check:bundle-budget
 ----
 
 確認観点:
