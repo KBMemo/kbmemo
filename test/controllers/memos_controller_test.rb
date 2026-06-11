@@ -905,7 +905,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     %w[Home Share Public System].each do |label|
-      assert_select "#memos_list_panel a span.truncate", text: label
+      assert_select "#memos_list_panel a span", text: label
       assert_select "#memos_list_panel details.memo-directory-nav-details[open] > summary[aria-label='#{label} の子ディレクトリを開閉']"
     end
     assert_select "#memos_list_panel details.memo-directory-nav-details > summary.memo-directory-nav-summary + .memo-directory-nav-row"

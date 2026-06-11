@@ -91,7 +91,8 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
 }
 
 .memo-directory-nav-details:not([open]) > .memo-directory-nav-row {
-  display: block;
+  display: flex;
+  width: 100%;
 }
 
 .memo-directory-nav-details > .kb-tree-children,
