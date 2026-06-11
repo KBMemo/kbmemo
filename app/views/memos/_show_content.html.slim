@@ -6,7 +6,7 @@ ruby:
     div.min-w-0.flex-1
       h1.text-2xl.font-semibold.tracking-tight.break-words data-theme-slot="memo-title" = memo.title
       .mt-3.flex.flex-wrap.items-center.gap-x-3.gap-y-2
-        = gravatar_image_tag(memo.account, size: 36, extra_class: "shrink-0")
+        = gravatar_image_tag(memo.account, size: 36, extra_class: "shrink-0", loading: "eager", fetchpriority: "low")
         .flex.min-w-0.flex-1.flex-col.gap-1
           p.text-sm.font-medium.kb-text-primary
             span.sr-only 作成者

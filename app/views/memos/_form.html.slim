@@ -49,7 +49,7 @@ ruby:
   
     - if memo.persisted? && memo.account
       .mb-3.flex.items-center.gap-2.border-b.kb-border.pb-3
-        = gravatar_image_tag(memo.account, size: 28, extra_class: "shrink-0")
+        = gravatar_image_tag(memo.account, size: 28, extra_class: "shrink-0", loading: "eager", fetchpriority: "low")
         div.min-w-0
           p.text-xs.kb-text-muted 作成者
           p.truncate.text-sm.font-medium.kb-text-primary = memo.account.display_name

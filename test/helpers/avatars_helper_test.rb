@@ -27,4 +27,11 @@ class AvatarsHelperTest < ActionView::TestCase
     assert_includes html, 'loading="lazy"'
     assert_includes html, 'decoding="async"'
   end
+
+  test "gravatar_image_tag allows priority for above the fold avatars" do
+    html = gravatar_image_tag(accounts(:one), loading: "eager", fetchpriority: "low").to_s
+
+    assert_includes html, 'loading="eager"'
+    assert_includes html, 'fetchpriority="low"'
+  end
 end

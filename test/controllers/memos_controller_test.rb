@@ -468,6 +468,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select '[data-controller~="memo-directory-dnd"]'
     assert_includes response.body, "memo-draft#preventSubmit"
     assert_includes response.body, "memo-draft#suppressEnterSubmit"
+    assert_select "img.kb-avatar[loading='eager'][fetchpriority='low'][width='28'][height='28']"
     assert_includes response.body, "memo_slug_field"
     assert_match(/data-memo[-_]draft[-_]tag[-_]catalog[-_]value=.*Ideas/, response.body)
     assert_select '[data-controller*="memo-body-editor"]'
@@ -1086,6 +1087,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, memo.memo_directory.labeled_path_from_root
     assert_includes response.body, memo.slug
+    assert_select "img.kb-avatar[loading='eager'][fetchpriority='low'][width='36'][height='36']"
     assert_select "button[aria-label='プロパティ全文を表示'][aria-controls='memo-properties-panel'][aria-expanded='false']"
     # 編集可能な所有者はディレクトリ picker が表示される（選択中ディレクトリを反映）。
     assert_select "input#memo_show_directory_id_#{memo.id}[value=?]", memo.memo_directory_id.to_s
