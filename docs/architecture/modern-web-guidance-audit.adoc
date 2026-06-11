@@ -53,6 +53,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `scripts/report-vite-bundles.mjs` に `--kind` filter を追加し、`npm run check:bundle-budget` で `entry` bundle を 520 kB 以内に固定する CI 向け budget check を追加した。
 * メモ編集フォームとディレクトリサイドバーの `<details>` ヒントは、アイコンだけの `summary` に `aria-label` / `aria-describedby` を付け、説明本文へ接続した。
 * `@kbmemo/adoc-wysiwyg` の web paste / image paste / search-replace dialog の固定 HTML template と、空段落 placeholder の固定 HTML を `createElement` / `textContent` / `append` ベースへ変更した。
+* メモ一覧 / AI パネルのサイドバー resizer に `aria-valuetext` を追加し、keyboard resize だけでなく drag resize 中も `aria-valuenow` / `aria-valuetext` を同期するようにした。
 
 == 現状の良い点
 
@@ -105,8 +106,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P1
 |Accessibility
-|サイドバー resizer は focusable separator として Arrow/Home/End で幅変更可能。`aria-valuemin` / `aria-valuemax` / `aria-valuenow` も同期済み。
-|必要に応じて操作説明のヘルプ文や `aria-valuetext` を追加する。
+|サイドバー resizer は focusable separator として Arrow/Home/End で幅変更可能。`aria-valuemin` / `aria-valuemax` / `aria-valuenow` / `aria-valuetext` も同期済み。
+|必要に応じて操作説明のヘルプ文を追加する。
 
 |P1
 |Forms / Accessibility
@@ -165,6 +166,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `app/javascript/controllers/memo_directory_dialog_controller.js`
 ** native `showModal()` を使っている点は良い。
 ** `replaceWithServerRenderedForm` に隔離済み。server-rendered fragment 前提の信頼境界はコードコメントで明示。
+* `app/javascript/controllers/memo_sidebar_controller.js` / `memo_ai_sidebar_controller.js`
+** resizer は `aria-valuetext` で現在幅を読み上げられるようにし、drag / keyboard resize のどちらでも値を同期する。
 * メモ編集フォーム / ディレクトリサイドバーの hint `<details>`
 ** icon-only `summary` は `aria-label` と `aria-describedby` で説明本文へ接続済み。
 

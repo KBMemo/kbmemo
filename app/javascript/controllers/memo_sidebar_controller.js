@@ -161,7 +161,15 @@ export default class extends Controller {
     this.resizerTarget.setAttribute("aria-disabled", String(!enabled))
     this.resizerTarget.setAttribute("aria-valuemin", String(this._minWidth()))
     this.resizerTarget.setAttribute("aria-valuemax", String(this._maxWidth()))
-    this.resizerTarget.setAttribute("aria-valuenow", String(Math.round(this._width)))
+    this._updateResizerValueA11y()
+  }
+
+  _updateResizerValueA11y() {
+    if (!this.hasResizerTarget) return
+
+    const width = Math.round(this._width)
+    this.resizerTarget.setAttribute("aria-valuenow", String(width))
+    this.resizerTarget.setAttribute("aria-valuetext", `幅 ${width} ピクセル`)
   }
 
   _dragMove(event) {
@@ -171,6 +179,7 @@ export default class extends Controller {
     this._width = clamp(event.clientX - left, this._minWidth(), maxPx)
     this.shellTarget.style.width = `${this._width}px`
     this.shellTarget.style.maxWidth = `${maxPx}px`
+    this._updateResizerValueA11y()
     this._positionToggleButton()
   }
 
