@@ -1,18 +1,17 @@
 doctype html
-html data-kb-theme="default" data-kb-theme-base="default"
+html lang="ja" data-kb-theme=kb_initial_theme_id data-kb-theme-base=kb_initial_theme_base data-kb-skin=kb_initial_skin_id
   head
     title
       = content_for(:title) || "ダイアグラム"
     meta[name="viewport" content="width=device-width,initial-scale=1"]
+    meta[name="color-scheme" content=kb_initial_color_scheme]
     = csrf_meta_tags
     = csp_meta_tag
     - if kb_theme_sync_enabled?
       meta name="kbmemo-theme-sync" content="true"
     = vite_client_tag
     = vite_javascript_tag "application"
-    script type="text/javascript"
-      | window.__KBMEMO_ACCOUNT_THEME__ = #{raw kb_account_theme_json};
-    script type="text/javascript"
-      | (function(){try{var a=window.__KBMEMO_ACCOUNT_THEME__;if(a&&a.active_theme_id){localStorage.setItem("kbmemo_themes_v1",JSON.stringify({activeThemeId:a.active_theme_id,customThemes:(a.custom_themes||[]).map(function(t){return{id:t.id,label:t.label,baseTheme:t.base_theme,variables:t.variables||{},rules:t.rules||[]};})}));}var r=localStorage.getItem("kbmemo_themes_v1");if(!r)return;var s=JSON.parse(r);if(!s.activeThemeId)return;document.documentElement.dataset.kbTheme=s.activeThemeId;var c=(s.customThemes||[]).find(function(t){return t.id===s.activeThemeId});document.documentElement.dataset.kbThemeBase=c&&c.baseTheme?c.baseTheme:s.activeThemeId;}catch(e){}})();
+    script#kbmemo-account-theme-json type="application/json"
+      = raw json_escape(kb_account_theme_json)
   body.kb-chrome-body.min-h-screen
     = yield

@@ -13,6 +13,28 @@
 @import "./diagram_svg_viewer.css";
 @import "./diagram_source_viewer.css";
 
+.kb-skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 1000;
+  transform: translateY(-150%);
+  border: 1px solid var(--kb-border);
+  border-radius: var(--radius-2);
+  background: var(--kb-bg-surface);
+  color: var(--kb-text-primary);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-3);
+}
+
+.kb-skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid rgb(9 105 218 / 0.45);
+  outline-offset: 2px;
+}
+
 
 /* メモ→ディレクトリ DnD 中のカーソル（memo_directory_dnd_controller が html にクラス付与） */
 html.memo-directory-dnd-dragging,

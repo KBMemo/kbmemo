@@ -16,6 +16,7 @@
       = link_to "編集", edit_memo_diagram_path(@memo, params[:diagram_key]), class: "kb-action-btn kb-action-btn-sm kb-hover-row"
       = link_to "元ファイル", asset_memo_path(@memo, @source_relative), class: "kb-action-btn kb-action-btn-sm kb-hover-row", target: "_blank", rel: "noopener"
   .diagram-source-viewer__body.kb-viewer-body.min-h-0.flex-1.overflow-hidden
-    textarea.sr-only[readonly=true data-diagram-source-viewer-target="field"]
+    label#diagram-source-viewer-label.sr-only for="diagram_source_viewer_field" ダイアグラムソース
+    textarea#diagram_source_viewer_field.sr-only[readonly=true data-diagram-source-viewer-target="field"]
       = @source
-    div class="diagram-source-viewer__host h-full" data-diagram-source-viewer-target="host"
+    div class="diagram-source-viewer__host h-full" data-diagram-source-viewer-target="host" aria-labelledby="diagram-source-viewer-label"

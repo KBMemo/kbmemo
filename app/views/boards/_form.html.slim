@@ -8,7 +8,9 @@ div data-controller="memo-directory-dialog" data-memo-directory-dialog-new-query
 
     div
       = f.label :title, "ボード名", class: "#{kb_label} mb-1"
-      = f.text_field :title, required: true, class: kb_field_input_classes
+      = f.text_field :title, required: true, class: kb_field_input_classes, aria: kb_field_error_aria(board, :title)
+      - if kb_field_error?(board, :title)
+        p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(board, :title) = kb_field_error_message(board, :title)
 
     div
       #board_directory_picker

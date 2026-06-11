@@ -10,7 +10,8 @@ ruby:
     = hidden_field_tag "memo_show_tag_list", memo.tags.map(&:name).join(", "), data: { memo_show_metadata_target: "tagList" }
     div class=kb_tag_input_row
       div.flex.flex-wrap.items-center.gap-2 data-memo-show-metadata-target="tagPills"
-      = text_field_tag "memo_show_tag_input", "", id: "memo_show_tag_input_#{memo.id}", autocomplete: "off", placeholder: "タグを入力", list: list_id, class: memo_form_tag_input_inline, aria: { label: "タグ" }, data: { memo_show_metadata_target: "tagInput", action: "keydown->memo-show-metadata#tagInputKeydown change->memo-show-metadata#tagInputChange input->memo-show-metadata#tagInputInput" }
+      = label_tag "memo_show_tag_input_#{memo.id}", "タグ", class: "sr-only"
+      = text_field_tag "memo_show_tag_input", "", id: "memo_show_tag_input_#{memo.id}", autocomplete: "off", placeholder: "タグを入力", list: list_id, class: memo_form_tag_input_inline, data: { memo_show_metadata_target: "tagInput", action: "keydown->memo-show-metadata#tagInputKeydown change->memo-show-metadata#tagInputChange input->memo-show-metadata#tagInputInput" }
     datalist id=list_id
       - datalist_names.each do |name|
         option value=name

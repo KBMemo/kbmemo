@@ -1,4 +1,7 @@
 module ApplicationHelper
+  INITIAL_THEME_IDS = AccountThemePreference::BUILTIN_THEME_IDS.freeze
+  DARK_COLOR_SCHEME_IDS = %w[dark].freeze
+
   def memos_wide_layout?
     return false if memos_manage_screen?
 
@@ -81,6 +84,30 @@ module ApplicationHelper
     rodauth.rails_account.present?
   end
 
+  def kb_initial_theme_id
+    return "default" unless rodauth.rails_account
+
+    rodauth.rails_account.theme_active_id
+  end
+
+  def kb_initial_theme_base
+    active_id = kb_initial_theme_id
+    return active_id if INITIAL_THEME_IDS.include?(active_id)
+
+    custom_theme = kb_initial_theme_payload["custom_themes"].find { |theme| theme["id"] == active_id }
+    custom_theme&.fetch("base_theme", nil).presence || "default"
+  end
+
+  def kb_initial_skin_id
+    return AccountThemePreference::DEFAULT_SKIN_ID unless rodauth.rails_account
+
+    rodauth.rails_account.theme_active_skin_id
+  end
+
+  def kb_initial_color_scheme
+    DARK_COLOR_SCHEME_IDS.include?(kb_initial_theme_base) || kb_initial_skin_id == "dark" ? "dark" : "light"
+  end
+
   def tsuzura_manage_url
     Tsuzura::Endpoints.web_manage_url
   end
@@ -98,7 +125,7 @@ module ApplicationHelper
   def kb_account_theme_json
     return "null" unless rodauth.rails_account
 
-    payload = rodauth.rails_account.theme_preference_payload
+    payload = kb_initial_theme_payload
     {
       active_theme_id: payload["active_theme_id"],
       custom_themes: payload["custom_themes"].map do |theme|
@@ -119,6 +146,11 @@ module ApplicationHelper
         }
       end
     }.to_json
+  end
+
+  def kb_initial_theme_payload
+    @kb_initial_theme_payload ||= rodauth.rails_account&.theme_preference_payload ||
+                                  Account.normalize_theme_preference({})
   end
 
   def kb_focus_ring
@@ -171,6 +203,26 @@ module ApplicationHelper
     else
       "mt-2 text-sm w-full #{kb_field_input_classes}"
     end
+  end
+
+  def kb_field_error_id(record, attribute)
+    "#{record.model_name.param_key}_#{attribute}_error"
+  end
+
+  def kb_field_error_message(record, attribute)
+    record.errors[attribute].first
+  end
+
+  def kb_field_error?(record, attribute)
+    record.errors[attribute].any?
+  end
+
+  def kb_field_error_aria(record, attribute, describedby: nil)
+    return nil unless kb_field_error?(record, attribute)
+
+    ids = Array(describedby).compact_blank
+    ids << kb_field_error_id(record, attribute)
+    { invalid: true, describedby: ids.join(" ") }
   end
 
   def kb_auth_underline_field_classes

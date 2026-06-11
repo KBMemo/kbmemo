@@ -1,13 +1,16 @@
-div id="memo_slug_field" class="flex items-center gap-3"
+div id="memo_slug_field" class="flex items-start gap-3"
   = hidden_field_tag "memo[slug_manual]", memo.slug_manual ? "1" : "0", data: { memo_draft_target: "slugManualFlag" }
   .flex.items-center.gap-1
     = label_tag "memo_slug", "スラッグ", class: "text-sm font-medium kb-text-primary whitespace-nowrap"
     details.relative
-      summary class=kb_hint_trigger
-        i[data-lucide="circle-help" class="h-4 w-4"]
-      div class="absolute left-0 top-6 z-20 w-80 #{kb_hint_popover}"
+      summary class=kb_hint_trigger aria-label="スラッグ同期の説明" aria-describedby="memo-slug-hint"
+        i[data-lucide="circle-help" class="h-4 w-4" aria-hidden="true"]
+      div#memo-slug-hint class="absolute left-0 top-6 z-20 w-80 #{kb_hint_popover}"
         - if memo.file_committed_at.present?
           | ファイル保存後は手動変更のみです。
         - else
           | 初回のファイル保存まではタイトルと同期し、手動変更で同期停止、空入力で再同期します。保存時は末尾にメモ ID が付き、Wiki リンク用に全体で一意になります。
-  = text_field_tag "memo[slug]", memo.slug.to_s, id: "memo_slug", autocomplete: "off", placeholder: "example-slug", class: memo_form_underline_input("font-mono text-sm"), data: { memo_draft_target: "slug", action: "focus->memo-draft#slugFocus input->memo-draft#slugInput compositionend->memo-draft#slugInput" }
+  .min-w-0.flex-1
+    = text_field_tag "memo[slug]", memo.slug.to_s, id: "memo_slug", autocomplete: "off", placeholder: "example-slug", class: memo_form_underline_input("font-mono text-sm"), data: { memo_draft_target: "slug", action: "focus->memo-draft#slugFocus input->memo-draft#slugInput compositionend->memo-draft#slugInput" }, aria: kb_field_error_aria(memo, :slug)
+    - if kb_field_error?(memo, :slug)
+      p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(memo, :slug) = kb_field_error_message(memo, :slug)

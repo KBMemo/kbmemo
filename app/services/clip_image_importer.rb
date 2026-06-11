@@ -106,7 +106,13 @@ class ClipImageImporter
   def replace_with_adoc_paragraph!(fragment, node, adoc)
     para = Nokogiri::XML::Node.new("p", fragment)
     para.content = adoc
-    node.replace(para)
+
+    parent = node.parent
+    if parent&.element? && parent.name == "p" && parent.element_children.length == 1 && parent.text.strip.blank?
+      parent.replace(para)
+    else
+      node.replace(para)
+    end
   end
 
   def linked_image_href(href)

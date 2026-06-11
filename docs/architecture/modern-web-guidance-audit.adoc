@@ -18,6 +18,50 @@ Modern Web Guidance は、semantic HTML、native interactive APIs、focus manage
 XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるための指針群として整理されている。
 本監査もその分類に合わせる。
 
+== 実施ログ
+
+=== 2026-06-11
+
+* CSP は `config/initializers/content_security_policy.rb` で report-only として有効化。既存ページの違反収集を前提にし、enforcement は次段階に残す。
+* `application.html.slim` / `diagram_viewer.html.slim` のテーマ初期化 inline script を削除し、`application` entrypoint が `script[type="application/json"]` の account theme payload を読む構成へ変更。
+* `memo_ai_panel_controller.js` の error 表示を `innerHTML` から `textContent` / `createElement` ベースへ変更。
+* `application.html.slim` / `diagram_viewer.html.slim` / `svg_editor.html.slim` に `lang="ja"` を付与。
+* `application.html.slim` に skip link と `main#main-content` を追加。
+* Tsuzura picker dialog に `aria-labelledby` / `aria-describedby` を追加。
+* `code_block_tools_controller.js` の sanitize 済み SVG 注入を `replaceWithSanitizedSvg` に隔離し、loading / error 表示を DOM API ベースへ変更。
+* `user_menu_controller.js` に `aria-controls`、open 時 focus、Escape focus return、Arrow/Home/End navigation を追加。
+* ディレクトリ dialog に `aria-labelledby` を追加し、server-rendered fragment の `innerHTML` 代入を `replaceWithServerRenderedForm` に隔離。
+* サイドバー resizer を keyboard 操作可能な separator にし、Arrow/Home/End resize と `aria-valuenow` 同期を追加。
+* route 固有の Stimulus controller（memo editor、diagram viewer/editor、theme/skin studio、memo show 補助 UI 等）を dynamic import 登録へ変更し、該当 DOM があるページだけ読み込む構成へ寄せた。
+* メモ本文 syntax highlight は `@kbmemo/adoc-codemirror` package root ではなく `codeHighlight` 単体を dynamic import し、閲覧ページで不要な Asciidoctor / CodeMirror 系依存を初期 bundle から外した。
+* `bundle exec vite build --force` で ineffective dynamic import 警告が消え、`application` chunk は約 1.79 MB から約 491.86 kB まで縮小した。`svg_editor` と editor/preview 系 async chunk の size warning は残る。
+* SVG editor entry から `svgedit` 本体と CSS の static import を外し、`memo_svg_editor_controller.js` 接続時の dynamic import に変更。`svg_editor` entry は約 2.19 MB から約 2.12 kB まで縮小し、SVGEdit 本体は `Editor` async chunk に分離した。
+* editor / preview 系 import を package root から必要 module の direct import へ寄せ、`@kbmemo/adoc-kbmemo` の不要 export 巻き込みを削減した。`adoc-kbmemo` async chunk は約 1.10 MB から約 344.96 kB まで縮小した。
+* `scripts/report-vite-bundles.mjs` / `npm run report:bundles` を追加し、Vite manifest から JS / CSS bundle size と gzip size を確認できるようにした。
+* `scripts/report-vite-bundles.mjs` に `--focus` filter を追加し、`npm run report:editor-bundles` で CodeMirror / Asciidoctor / editor 系 async chunk だけを測定できるようにした。
+* release 前の Lighthouse / CWV / bundle size 確認手順を `docs/architecture/web-performance-checklist.adoc` に追加した。
+* Rails model form の validation error 表示に `aria-invalid` / `aria-describedby` を付与する共通 helper を追加し、memo / memo directory / board / notebook / tag / profile の主要 field に適用した。
+* `render_diagram` endpoint の成功レスポンスに `X-Kbmemo-Svg-Sanitized: MemoSvgSanitizer` / `X-Content-Type-Options: nosniff` / `Cache-Control: no-store` と `sanitized: true` を付与し、フロント側はこの契約を満たす SVG だけを挿入するようにした。
+* `memo_ai_panel_controller.js` の message rendering も `innerHTML` から DOM API ベースへ変更し、AI 応答・ユーザー入力を常に text node として挿入するようにした。
+* `memo_search_picker_controller.js` / `board_add_memo_controller.js` の検索結果描画を `innerHTML` 文字列組み立てから `createElement` / `textContent` / `dataset` ベースへ変更した。
+* `tsuzura_picker_controller.js` の album list / photo list / error・empty 表示を `innerHTML` 文字列組み立てから `createElement` / `textContent` / `dataset` ベースへ変更した。
+* `utility-compat.css` の重複 utility / 空 rule を削除し、`npm run check:utility-compat` で shrink-only baseline（有効行数・rule 数・重複 selector）を確認できるようにした。
+* `application.html.slim` / `diagram_viewer.html.slim` の `html[data-kb-theme]` / `data-kb-theme-base` / `data-kb-skin` と `meta[name="color-scheme"]` を account theme preference から server-rendered にし、inline script なしで初期描画時のテーマちらつきを抑える構成へ変更した。
+* `code_block_tools_controller.js` の copy / check icon 描画を固定 SVG 文字列の `innerHTML` から `createElementNS` / `replaceChildren` ベースへ変更した。
+* `config.action_dispatch.default_headers` に `X-Content-Type-Options: nosniff` / `Referrer-Policy: strict-origin-when-cross-origin` / `Permissions-Policy: camera=(), geolocation=(), microphone=()` を明示し、低リスクな browser security companion policy を固定した。
+* CSP report-only の収集導線として `POST /csp_reports` を追加し、`report-uri /csp_reports` と `Reporting-Endpoints: csp="/csp_reports"` を設定した。受信 payload は認証なしで `204` を返し、ログは query / fragment を落とした最小フィールドに限定する。
+* `scripts/report-vite-bundles.mjs` に `--kind` filter を追加し、`npm run check:bundle-budget` で `entry` bundle を 520 kB 以内に固定する CI 向け budget check を追加した。
+* メモ編集フォームとディレクトリサイドバーの `<details>` ヒントは、アイコンだけの `summary` に `aria-label` / `aria-describedby` を付け、説明本文へ接続した。
+* `@kbmemo/adoc-wysiwyg` の web paste / image paste / search-replace dialog の固定 HTML template と、空段落 placeholder の固定 HTML を `createElement` / `textContent` / `append` ベースへ変更した。
+* メモ一覧 / AI パネルのサイドバー resizer に `aria-valuetext` を追加し、keyboard resize だけでなく drag resize 中も `aria-valuenow` / `aria-valuetext` を同期するようにした。
+* テーマスタジオのカスタムスキン入力、ボードへの新規カード追加 / 既存メモ検索、AI パネル prompt textarea に `label.sr-only` と必要な `autocomplete` を追加し、placeholder を accessible name として使わない構成へ寄せた。
+* メモサイドバー検索とメモ表示画面のタグ追加入力に `label.sr-only` を追加し、placeholder / `aria-label` 依存を減らした。
+* メモ本文エディタの編集モード切替を `role="tab"` + `aria-selected` + `tabpanel` 接続へ揃え、Arrow / Home / End で roving tabindex 操作できるようにした。
+* ダイアグラム新規作成フォームの補助文を `aria-describedby` で入力欄へ接続し、編集 / ソース / SVG ビューアに preview live region、CodeMirror の説明接続、ズームボタンの `aria-label` を追加した。
+* プロフィールのトークン発行後スクロール用 inline script を削除し、`scroll-into-view` Stimulus controller で対象 section へスクロール / focus する構成に変更した。
+* メモ一覧のドラッグ専用ハンドルから `role="button"` / `tabindex` を外し、ポインタ専用の補助操作として accessibility tree から除外した。キーボード操作ではメモ編集フォームの保存先フォルダ欄を使う説明をヒントに追加した。
+* `:user-invalid` と `aria-invalid` を同期する軽量 bridge を追加し、browser native validation が表示されるタイミングで assistive technology へも invalid state を伝えるようにした。server validation 由来の `aria-invalid` は bridge 側で解除しない。
+
 == 現状の良い点
 
 * semantic な `button` / `details` / `dialog` をすでに多用している。
@@ -34,73 +78,73 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P0
 |Security
-|`config/initializers/content_security_policy.rb` が実質無効。`app/views/layouts/application.html.slim`、`app/views/layouts/diagram_viewer.html.slim` に inline script が残っている。
-|まず **実 CSP を有効化** する。テーマ初期化 script は外部 JS へ逃がし、nonce 付き inline script 依存を減らす。最初の目標は `default-src 'self'`、`object-src 'none'`、`base-uri 'self'`、`frame-ancestors 'self'`、`img-src 'self' https: data:`、`script-src 'self'`。
+|CSP は report-only で有効化済み。`application.html.slim` / `diagram_viewer.html.slim` のテーマ初期化 inline script と、プロフィールのトークン発行後スクロール inline script は削除済み。`X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` は default headers で明示済み。`/csp_reports` で report-only 違反を受けられる。
+|report-only 違反を確認し、必要な fetch / style / asset origin を整理してから CSP enforcement へ移行する。ログ集計が必要になったら専用 storage / dashboard へ移す。
 
 |P0
 |Security
-|`app/javascript/controllers/memo_ai_panel_controller.js` は `errorTarget.innerHTML = message` を使っている。`message` は server 応答を混ぜる経路がある。
-|**DOM API ベースへ置換**する。エラー文は `textContent`、リンクは `createElement("a")` で組み立てる。`innerHTML` は「信頼済み・サニタイズ済み HTML を入れる箇所」に限定し、コメントで境界を明示する。
+|`memo_ai_panel_controller.js` は error 表示と message rendering を DOM API ベースへ置換済み。`memo_search_picker_controller.js` / `board_add_memo_controller.js` / `tsuzura_picker_controller.js` の picker 描画も DOM API ベースへ置換済み。`code_block_tools_controller.js` の copy / check icon も DOM API ベースへ置換済み。
+|`@kbmemo/adoc-wysiwyg` の固定 dialog template / 空段落 placeholder も DOM API ベースへ置換済み。残る `innerHTML` は sanitize 済み SVG / server-rendered fragment / Asciidoctor preview HTML / syntax highlight HTML など、用途ごとに境界を明示しながら縮小する。
 
 |P0
 |Security
-|`code_block_tools_controller.js` は `figure.innerHTML = data.svg` を使う。コメント上はサーバー側 sanitize 済みだが、境界がコード上で弱い。
-|SVG は **サーバー sanitize を契約として文書化**し、controller 側には「sanitize 済み payload 専用」の関数名を置く。将来的には response header / endpoint 名でも区別したい。
+|`code_block_tools_controller.js` の SVG 注入は `replaceWithSanitizedSvg` に隔離済み。loading / error 表示は DOM API ベースへ変更済み。`render_diagram` は sanitize 済みヘッダー / JSON flag を返し、controller test で固定済み。
+|今後 Trusted Types を検討する場合は、この sink を named policy 化する候補にする。
 
 |P1
 |Accessibility / HTML
-|全レイアウトで `html[lang]` が無い。`application.html.slim`、`diagram_viewer.html.slim`、`svg_editor.html.slim` が対象。
-|`lang="ja"` を付与する。将来 i18n を広げるなら locale 連動にする。これはスクリーンリーダーと読み上げ品質に直結する。
+|`application.html.slim`、`diagram_viewer.html.slim`、`svg_editor.html.slim` は `lang="ja"` 付与済み。
+|将来 i18n を広げるなら locale 連動にする。
 
 |P1
 |Accessibility / HTML
-|メインコンテンツへ飛ぶ **skip link** が無い。ヘッダナビが長く、キーボード利用者の移動コストが高い。
-|`body` 先頭に「本文へスキップ」を追加し、`main` に `id` を付ける。表示は focus 時のみでよい。
+|`application.html.slim` は skip link と `main#main-content` 追加済み。
+|長いナビゲーションを持つ layout が増えた場合は同じ pattern を使う。
 
 |P1
 |Accessibility / JS
-|`user_menu_controller.js` は open/close 制御はあるが、focus 移動、`aria-controls`、menu 内キーボード移動が弱い。
-|ヘッダメニューは **button + controlled popup** として整理し、開いたら最初の項目へ focus、Escape で trigger へ戻す。role=`menu` を維持するなら矢印キー移動まで実装する。
+|`user_menu_controller.js` は `aria-controls`、open 時の初期 focus、Escape の focus return、menuitem の Arrow/Home/End 移動を追加済み。
+|select は native 操作を優先して Tab 移動対象に残す。今後 popover 化する場合は role 設計も再評価する。
 
 |P1
 |Accessibility / HTML/JS
-|`dialog` は使っているが、`aria-labelledby` / `aria-describedby` の紐付けが弱い。例: `app/views/memos/_tsuzura_picker.html.slim`、ディレクトリ dialog。
-|各 dialog に見出し ID を振り、`aria-labelledby` を付ける。補助説明がある dialog には `aria-describedby` を付ける。
+|Tsuzura picker は `aria-labelledby` / `aria-describedby` 付与済み。ディレクトリ dialog は `aria-labelledby` 付与済みで、fragment 代入も専用メソッドに隔離済み。
+|補助説明が必要な dialog が増えた場合は `aria-describedby` も追加する。
 
 |P1
 |Accessibility
-|サイドバー resizer は `role="separator"` を持つが `tabindex="-1"` で、キーボード操作経路が無い。
-|separator を本当に操作可能にするなら **focusable + Arrow key resize** を実装する。やらないなら単なる装飾 divider として扱い、role を外す。
+|サイドバー resizer は focusable separator として Arrow/Home/End で幅変更可能。`aria-valuemin` / `aria-valuemax` / `aria-valuenow` / `aria-valuetext` も同期済み。
+|必要に応じて操作説明のヘルプ文を追加する。
 
 |P1
 |Forms / Accessibility
-|エラー表示は視覚中心で、`aria-invalid`、`aria-describedby`、field 単位の関連付けが不足している。
-|Rails form helper 出力に合わせて、invalid 時は `aria-invalid="true"`、field error message の ID を `aria-describedby` へ接続する。summary がある場合は先頭に置く。
+|Rails model form の主要 field は、server validation error 時に `aria-invalid="true"` と field error message の `aria-describedby` を付与済み。テーマスタジオ / ボード追加 / AI パネル / メモサイドバー検索 / タグ追加入力 / ダイアグラム新規作成などの小さな non-model form controls も placeholder だけに頼らず label / description を持つ。client-side validation は `:user-invalid` と `aria-invalid` の同期 bridge を追加済み。
+|今後追加する form も `kb_field_error_aria` / `kb_field_error_id` を使う。client-side validation で独自メッセージを出す場合は `aria-describedby` / `aria-errormessage` の接続も合わせて追加する。
 
 |P1
 |Performance / JS
-|直近の `bundle exec vite build --force` では `application` が約 1.79 MB、`svg_editor` が約 2.19 MB。さらに ineffective dynamic import 警告が出ている。
-|**route 単位の bundle 分離**を進める。特に `@kbmemo/adoc-codemirror` 系は static import と dynamic import が混在しているため、読み込み境界を整理する。メモ本文 editor、SVG editor、diagram viewer、theme studio は入口をさらに分けられる。
+|route 固有の Stimulus controller は lazy 登録へ変更済み。メモ本文 highlight も `codeHighlight` 単体 dynamic import に切り出し済み。SVG editor も entry と SVGEdit 本体を分離済み。editor / preview 系は package root import を避ける形へ寄せた。直近の `bundle exec vite build --force` では `application` が約 491.99 kB、`svg_editor` entry が約 2.12 kB、`adoc-kbmemo` async chunk が約 345.03 kB。ineffective dynamic import 警告は解消済み。`npm run report:editor-bundles` で CodeMirror / Asciidoctor / editor 系 chunk を抽出できる。
+|CodeMirror / Asciidoctor 側は source editor 初期化に必要な async chunk として残す。追加分割は、`report:editor-bundles` の増加や editor 初回操作の UX 悪化が見えた場合に検討する。
 
 |P1
 |Performance / HTML/JS
-|テーマ初期化 script が各 layout に inline で複製され、CSP とキャッシュの両面で不利。
-|最小の bootstrap module を 1 本に切り出し、`data-*` か JSON script tag で設定を渡す。これで CSP を締めやすくなる。
+|テーマ初期化 inline script は削除済み。account theme payload は JSON script tag で渡し、初期 `html` テーマ属性と `color-scheme` は server-rendered にしている。
+|カスタムテーマの詳細 CSS は CSP を崩さず JS 適用に残す。enforcement 移行前に report-only 違反と初期描画の見え方を実ブラウザで確認する。
 
 |P2
 |CSS
-|`utility-compat.css` が Tailwind 置換レイヤとして成長している。現状は実用上問題ないが、長期では再び utility 膨張に戻りやすい。
-|「互換 layer は縮小専用」と決め、**新規 utility 追加を抑制**する。原則は semantic class を `themes.css` に置く。lint かレビュー項目で固定するとよい。
+|`utility-compat.css` は Tailwind 置換レイヤとして残しているが、重複 utility / 空 rule は削除済み。`npm run check:utility-compat` で有効行数・rule 数・重複 selector を baseline 以内に固定している。
+|互換 layer は縮小専用として運用する。新規 styling は原則 semantic class を `themes.css` に置き、やむを得ず utility を増やす場合だけ baseline 更新を明示的にレビューする。
 
 |P2
 |HTML / Accessibility
-|現在も semantic HTML は比較的良いが、custom popup / picker の増加で native 機能との差が広がりやすい。
-|Baseline を明示した上で、可能な箇所は `dialog` / `details` に寄せ、将来的には `popover` も検討する。Modern Web Guidance でも native overlays と focus management が中心テーマになっている。
+|現在も semantic HTML は比較的良いが、custom popup / picker の増加で native 機能との差が広がりやすい。メモ編集フォームとディレクトリサイドバーの `<details>` ヒントは accessible name / description を接続済み。メモ一覧のドラッグ専用ハンドルは focusable な偽ボタンにせず、キーボード操作の代替として編集フォームの保存先フォルダ欄を案内している。
+|Baseline を明示した上で、可能な箇所は `dialog` / `details` に寄せ、将来的には `popover` も検討する。popover 化する場合は fallback / polyfill 方針も合わせて決める。
 
 |P2
 |Performance
-|継続的な測定点が docs に無い。
-|Lighthouse / CWV の運用基準を docs 化し、最低でも LCP / INP / CLS と bundle size を release 前確認項目にする。
+|`docs/architecture/web-performance-checklist.adoc` と `npm run report:bundles` を追加済み。`npm run check:bundle-budget` で `entry` bundle の 520 kB budget を fail-fast できる。
+|release 前に LCP / INP / CLS と bundle size を確認する。必要なら CI artifact と Lighthouse / CWV の実測 threshold も追加する。
 |===
 
 == 具体的な観察メモ
@@ -108,67 +152,107 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 === 1. Layout / HTML
 
 * `app/views/layouts/application.html.slim`
-** `html` に `lang` が無い。
-** ヘッダ先頭から `main` までの移動を短縮する skip link が無い。
-** theme bootstrap が inline script 2 本で入っている。
+** `lang="ja"` 付与済み。
+** skip link と `main#main-content` 追加済み。
+** theme bootstrap inline script は削除済み。
+** account theme preference から初期 `data-kb-theme` / `data-kb-theme-base` / `data-kb-skin` と `color-scheme` を server-rendered 化済み。
 * `app/views/layouts/diagram_viewer.html.slim`
-** `lang` 無し。
-** theme bootstrap inline script あり。
+** `lang="ja"` 付与済み。
+** theme bootstrap inline script は削除済み。
+** account theme preference から初期 `data-kb-theme` / `data-kb-theme-base` / `data-kb-skin` と `color-scheme` を server-rendered 化済み。
 * `app/views/layouts/svg_editor.html.slim`
-** `lang` 無し。
+** `lang="ja"` 付与済み。
 
 === 2. Dialog / Menu
 
 * `app/views/memos/_tsuzura_picker.html.slim`
-** 見出し `h2` はあるが、dialog 自身との `aria-labelledby` 接続が無い。
+** `aria-labelledby` / `aria-describedby` 接続済み。
 * `app/javascript/controllers/user_menu_controller.js`
 ** 排他 open/close はできている。
-** 一方で、open 後の focus 遷移、close 時の focus return、Arrow key navigation は未整備。
+** open 後の focus 遷移、Escape 時の focus return、Arrow/Home/End navigation を追加済み。
 * `app/javascript/controllers/memo_directory_dialog_controller.js`
 ** native `showModal()` を使っている点は良い。
-** `bodyTarget.innerHTML = await res.text()` は server-rendered fragment 前提なので、信頼境界を docs で固定しておきたい。
+** `replaceWithServerRenderedForm` に隔離済み。server-rendered fragment 前提の信頼境界はコードコメントで明示。
+* `app/javascript/controllers/memo_sidebar_controller.js` / `memo_ai_sidebar_controller.js`
+** resizer は `aria-valuetext` で現在幅を読み上げられるようにし、drag / keyboard resize のどちらでも値を同期する。
+* メモ編集フォーム / ディレクトリサイドバーの hint `<details>`
+** icon-only `summary` は `aria-label` と `aria-describedby` で説明本文へ接続済み。
+** ドラッグ専用ハンドルは `aria-hidden` にし、keyboard user には編集フォームの保存先フォルダ欄を移動手段として案内する。
 
 === 3. Security sink
 
 * `app/javascript/controllers/memo_ai_panel_controller.js`
-** `messagesTarget.innerHTML` は local render で escape 済み。
-** `errorTarget.innerHTML` は server message 混在経路なので、ここは改善優先度が高い。
+** message rendering と error 表示は DOM API ベースへ置換済み。
 * `app/javascript/controllers/code_block_tools_controller.js`
-** SVG 注入は sanitize 前提。契約が崩れると危険。
-* `app/javascript/controllers/memo_search_picker_controller.js`
-** こちらは `_escape` / `_escapeAttr` を入れており、比較的丁寧。
+** copy / check icon は DOM API ベースへ置換済み。
+** SVG 注入は `replaceWithSanitizedSvg` に隔離済み。`render_diagram` endpoint の response header / JSON flag / controller test で sanitize 契約を明示済み。
+* `packages/adoc-wysiwyg/webPasteDialog.js` / `imagePasteDialog.js` / `searchReplaceDialog.js`
+** 固定 dialog template は `innerHTML` を使わず DOM API で構築する。
+* `packages/adoc-wysiwyg/wysiwyg.js`
+** 空段落 placeholder の固定 HTML は DOM API で構築する。
+* `app/javascript/controllers/memo_search_picker_controller.js` / `board_add_memo_controller.js` / `tsuzura_picker_controller.js`
+** picker の検索結果・album/photo list は DOM API / `textContent` / `dataset` ベースで描画する。
+
+=== 3.5. Forms / Accessibility
+
+* Rails model form
+** `kb_field_error_aria` / `kb_field_error_id` / `kb_field_error_message` を追加済み。
+** memo / memo directory / board / notebook / tag / profile の主要 field は server validation error 時に field 単位で error text を参照する。
+** Rodauth form は既に field error を `aria-invalid` / `aria-describedby` へ接続済み。
+* Client-side validation
+** `:user-invalid` が match した field へ `aria-invalid="true"` を同期する。
+** bridge が付けた `aria-invalid` だけを解除し、server validation 由来の state は保持する。
+* Small tool forms
+** テーマスタジオのカスタムスキン名 / CSS、ボードの新規カード title / 既存メモ検索、AI パネル prompt textarea、メモサイドバー検索、タグ追加入力、ダイアグラム新規作成は `sr-only` label または visible label と description を持つ。
+** 非個人情報・ツール内コマンド入力は `autocomplete="off"` を明示する。
+* Memo body editor tabs
+** 編集モード切替は `role="tab"` / `aria-selected` / `aria-controls` と `role="tabpanel"` / `aria-labelledby` を接続済み。
+** Arrow / Home / End で tab を切り替え、active tab のみ `tabindex="0"` にする roving tabindex を使う。
+* Diagram editor / viewer
+** 新規作成フォームの filename help は `aria-describedby` で入力欄へ接続済み。
+** 編集画面の CodeMirror content は label / description を持ち、preview loading は `aria-live="polite"`、error は `role="alert"` を使う。
+** SVG / asset viewer のズーム操作ボタンは、記号表示に頼らず `aria-label` を持つ。
 
 === 4. Performance
 
-* Vite build は成功するが、chunk size warning が継続している。
-* `packages/adoc-codemirror/index.js` は dynamic import 対象なのに static import もされており、分割効果が出ていない。
-* editor 系の JS は memo 閲覧専用画面まで引き込まない構成へ寄せたい。
+* Vite build は成功するが、CodeMirror と SVGEdit 本体の async chunk size warning は継続している。
+* `application` 初期 chunk は約 491.99 kB まで縮小済み。
+* `svg_editor` entry は約 2.12 kB まで縮小済み。SVGEdit 本体は `Editor` async chunk として、`memo-svg-editor` 接続後に読み込む。
+* `adoc-kbmemo` async chunk は package root import を避けることで約 344.96 kB まで縮小済み。
+* `packages/adoc-codemirror/index.js` の package root を本文閲覧 highlight から外したため、閲覧ページの syntax highlight は `codeHighlight` chunk のみを遅延取得する。
+* editor 系の JS は `memo-body-editor` controller が存在する画面でのみ読み込む構成へ寄せた。
 
 == 推奨実施順
 
 === Phase 1
 
-* CSP を有効化する
-* theme bootstrap の inline script を外部化する
-* `memo_ai_panel_controller.js` の `innerHTML` を除去する
+* DONE: CSP を report-only で有効化する
+* DONE: theme bootstrap の inline script を外部化する
+* DONE: `memo_ai_panel_controller.js` の error / message `innerHTML` を除去する
+* DONE: memo search / board add picker の検索結果 `innerHTML` を除去する
+* DONE: Tsuzura picker の album / photo list `innerHTML` を除去する
 
 === Phase 2
 
-* `lang="ja"` を全 layout に付与する
-* skip link を追加する
-* dialog の `aria-labelledby` / `aria-describedby` を揃える
-* resizer のアクセシビリティ方針を決める
+* DONE: `lang="ja"` を全 layout に付与する
+* DONE: skip link を追加する
+* DONE: dialog の accessible name / description を揃える（Tsuzura は `aria-labelledby` / `aria-describedby`、ディレクトリ dialog は `aria-labelledby` 済み）
+* DONE: resizer のアクセシビリティ方針を決め、keyboard resize を実装する
 
 === Phase 3
 
-* bundle 分割を見直す
-* ineffective dynamic import を解消する
-* route 単位で editor / viewer / studio の entry をさらに分ける
+* DONE: bundle 分割を見直す（Stimulus controller lazy 登録、本文 highlight の単体 dynamic import）
+* DONE: ineffective dynamic import を解消する
+* DONE: SVG editor entry と SVGEdit 本体を分離する
+* DONE: editor / preview 系の package root import を direct import へ寄せる
+* DONE: CodeMirror / Asciidoctor async chunk の測定と追加分割可否を検討する
 
 === Phase 4
 
-* `utility-compat.css` を縮小運用へ切り替える
-* Lighthouse / CWV / bundle size の確認手順を docs に追加する
+* DONE: Rails model form の validation error を field 単位で `aria-invalid` / `aria-describedby` に接続する
+* DONE: `utility-compat.css` を縮小運用へ切り替える
+* DONE: Lighthouse / CWV / bundle size の確認手順を docs に追加する
+* DONE: Vite bundle size report script を追加する
 
 == 補足
 

@@ -1,5 +1,7 @@
-import { refreshPreview } from '@kbmemo/adoc-codemirror'
-import { ensureTsuzuraUrlsInCache, ensureWikiLinkLabelsInCache } from '@kbmemo/adoc-kbmemo'
+import { refreshPreview } from '../adoc-codemirror/src/parseSession.js'
+import { ensureDiagramSvgsInCache } from '../adoc-kbmemo/src/diagram_substitute.js'
+import { ensureTsuzuraUrlsInCache } from '../adoc-kbmemo/src/tsuzura_substitute.js'
+import { ensureWikiLinkLabelsInCache } from '../adoc-kbmemo/src/wiki_link_substitute.js'
 import { renderPreviewHtml } from './preview.js'
 
 const PREVIEW_DEBOUNCE_MS = 300
@@ -31,6 +33,8 @@ export function createLivePreview({
   const wikiLabelCache = new Map()
   /** @type {{ urls: Map<string, string>, albums: Map<string, string[]> }} */
   const tsuzuraCache = { urls: new Map(), albums: new Map() }
+  /** @type {Map<string, boolean>} */
+  const diagramAvailabilityCache = new Map()
 
   async function renderPreview() {
     const source = getSource()
@@ -51,8 +55,14 @@ export function createLivePreview({
       if (seq !== renderSeq) return
     }
 
+    if (memoId) {
+      await ensureDiagramSvgsInCache(diagramAvailabilityCache, memoId, source)
+      if (seq !== renderSeq) return
+    }
+
     const { html } = refreshPreview(source, {
       memoId,
+      diagramAvailability: memoId ? diagramAvailabilityCache : undefined,
       wikiLabels: wikiLabelCache,
       tsuzuraCache,
     })

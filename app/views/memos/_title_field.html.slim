@@ -1,9 +1,12 @@
-div[id="memo_title_field" class="flex items-center gap-3"]
+div[id="memo_title_field" class="flex items-start gap-3"]
   .flex.items-center.gap-1
     = label_tag "memo_title", "タイトル", class: "text-sm font-medium kb-text-primary whitespace-nowrap"
     details.relative
-      summary class=kb_hint_trigger
-        i[data-lucide="circle-help" class="h-4 w-4"]
-      div class="#{kb_hint_popover} left-0 top-6"
+      summary class=kb_hint_trigger aria-label="タイトル同期の説明" aria-describedby="memo-title-hint"
+        i[data-lucide="circle-help" class="h-4 w-4" aria-hidden="true"]
+      div#memo-title-hint class="#{kb_hint_popover} left-0 top-6"
         | 本文1行目がタイトルに同期されます（先頭の「=」は除外）。タイトルを手動変更すると同期が止まり、空にすると再同期します。
-  = text_field_tag "memo[title]", memo_title_input_value(memo), id: "memo_title", autocomplete: "off", class: memo_form_underline_input, data: { memo_draft_target: "title", action: "input->memo-draft#titleInput compositionend->memo-draft#titleInput blur->memo-draft#titleBlur" }
+  .min-w-0.flex-1
+    = text_field_tag "memo[title]", memo_title_input_value(memo), id: "memo_title", autocomplete: "off", class: memo_form_underline_input, data: { memo_draft_target: "title", action: "input->memo-draft#titleInput compositionend->memo-draft#titleInput blur->memo-draft#titleBlur" }, aria: kb_field_error_aria(memo, :title)
+    - if kb_field_error?(memo, :title)
+      p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(memo, :title) = kb_field_error_message(memo, :title)

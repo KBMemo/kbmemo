@@ -2,6 +2,7 @@ import "../styles/application.css"
 
 import "@hotwired/turbo-rails"
 import "../../javascript/controllers"
+import { initUserInvalidAriaSync } from "../../javascript/forms/user_invalid_aria.js"
 import { highlightMemoBodies } from "../../javascript/memo_body_highlight.js"
 import { applyStoredThemeWithSync, bootstrapAccountTheme, initThemeSync } from "../../javascript/theme/theme_bootstrap.js"
 import { applyStoredSkin } from "../../javascript/theme/memo_skins.js"
@@ -11,6 +12,18 @@ import {
   syncOpenDirectoryIdsFromPanel
 } from "../../javascript/memo_directory_nav_open.js"
 import { createIcons, ArrowLeft, BookOpen, CircleHelp, Copy, Eye, GripVertical, Kanban, Link2, PanelLeftOpen, Pencil, Plus, Trash2 } from "lucide"
+
+function accountThemeFromJsonScript() {
+  const el = document.getElementById("kbmemo-account-theme-json")
+  if (!el?.textContent?.trim()) return null
+
+  try {
+    const parsed = JSON.parse(el.textContent)
+    return parsed && typeof parsed === "object" ? parsed : null
+  } catch {
+    return null
+  }
+}
 
 const renderLucideIcons = () => {
   createIcons({
@@ -68,9 +81,9 @@ document.addEventListener("turbo:render", () => {
   applyStoredThemeWithSync().finally(() => applyStoredSkin())
 })
 
-if (typeof window.__KBMEMO_ACCOUNT_THEME__ === "object" && window.__KBMEMO_ACCOUNT_THEME__ !== null) {
-  bootstrapAccountTheme(window.__KBMEMO_ACCOUNT_THEME__)
-}
+const accountTheme = accountThemeFromJsonScript()
+if (accountTheme) bootstrapAccountTheme(accountTheme)
+initUserInvalidAriaSync()
 
 // Turbo Stream 置換では turbo:render が来ない。before-stream-render で render を包み、
 // DOM 更新後に Lucide を掛け直す（renderStreamMessage は getter のみで上書き不可）。

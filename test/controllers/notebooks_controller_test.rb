@@ -28,6 +28,22 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert notebook.notes?
   end
 
+  test "create notebook renders accessible field errors" do
+    assert_no_difference("Notebook.count") do
+      post notebooks_url, params: {
+        notebook: {
+          title: "",
+          slug: "invalid-title",
+          publication_kind: "notes"
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_select "input#notebook_title[aria-invalid='true'][aria-describedby='notebook_title_error']"
+    assert_select "#notebook_title_error"
+  end
+
   test "show lists notebook memos for owner" do
     get notebook_url(notebooks(:one))
     assert_response :success

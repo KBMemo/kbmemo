@@ -8,4 +8,7 @@
     directory_options: memo_directories_for_select,
     placeholder_text: "保存先フォルダを選んでください",
     hidden_field_data: { memo_draft_target: "directory", action: "change->memo-draft#directoryChange" },
+    hidden_field_aria: kb_field_error_aria(memo, :memo_directory),
     sidebar_open_memo: memo
+  - if kb_field_error?(memo, :memo_directory)
+    p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(memo, :memo_directory) = kb_field_error_message(memo, :memo_directory)

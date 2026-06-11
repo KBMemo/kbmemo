@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "google/apis/calendar_v3"
 
 class GoogleCalendar::EventMapperTest < ActiveSupport::TestCase
   test "maps event to memo fields" do

@@ -1259,7 +1259,12 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
   function appendEmptyParagraphPreview(wrapper) {
     const empty = document.createElement('div')
     empty.className = 'paragraph wysiwyg-empty-paragraph'
-    empty.innerHTML = '<p><br class="wysiwyg-empty-paragraph-marker" aria-hidden="true" /></p>'
+    const paragraph = document.createElement('p')
+    const marker = document.createElement('br')
+    marker.className = 'wysiwyg-empty-paragraph-marker'
+    marker.setAttribute('aria-hidden', 'true')
+    paragraph.append(marker)
+    empty.append(paragraph)
     wrapper.append(empty)
   }
 

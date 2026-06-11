@@ -14,12 +14,14 @@
         type="button"
         data-action="diagram-svg-viewer#zoomOut"
         title="縮小"
+        aria-label="縮小"
       ]
         | −
       button.kb-action-btn.kb-action-btn-sm.kb-hover-row[
         type="button"
         data-action="diagram-svg-viewer#resetZoom"
         title="100%"
+        aria-label="ズームを100%に戻す"
         data-diagram-svg-viewer-target="scaleLabel"
       ]
         | 100%
@@ -27,12 +29,14 @@
         type="button"
         data-action="diagram-svg-viewer#zoomIn"
         title="拡大"
+        aria-label="拡大"
       ]
         | ＋
       button.kb-action-btn.kb-action-btn-sm.kb-hover-row[
         type="button"
         data-action="diagram-svg-viewer#fitToWindow"
         title="画面に合わせる"
+        aria-label="画面に合わせる"
       ]
         | 画面に合わせる
       = link_to "ソース", source_memo_diagram_path(@memo, params[:diagram_key]), class: "kb-action-btn kb-action-btn-sm kb-hover-row", target: "_blank", rel: "noopener"

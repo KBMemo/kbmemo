@@ -1,0 +1,71 @@
+= Web performance release checklist
+:toc:
+
+このチェックリストは、release 前に Web 実装の性能退行を見つけるための最小手順。
+Modern Web Guidance の方針に合わせ、LCP / INP / CLS と JavaScript bundle size を確認する。
+
+== 前提
+
+* 本番相当の asset build を使う。
+* 計測対象は代表的な導線に絞る。
+** メモ一覧 / 閲覧
+** メモ編集
+** SVG 編集
+** Theme Studio
+* 数値は単発ではなく、同一環境で前回値と比較する。
+
+== Bundle size
+
+Vite build 後に bundle report を出す。
+
+[source,sh]
+----
+bundle exec vite build --force
+npm run report:bundles
+----
+
+既定では `public/vite-dev/.vite/manifest.json` を読む。
+別 manifest を確認するときは `--manifest`、警告しきい値を変えるときは `--limit-kb` を渡す。
+
+[source,sh]
+----
+npm run report:bundles -- --manifest public/vite-dev/.vite/manifest.json --limit-kb 500
+----
+
+特定種別だけ確認するときは `--kind` を使う。`entry` だけを CI 予算にする場合は、既存の CodeMirror / SVGEdit などの heavy dynamic chunk を失敗対象から外せる。
+
+[source,sh]
+----
+npm run report:bundles -- --kind entry --limit-kb 520 --fail-on-warning
+npm run check:bundle-budget
+----
+
+確認観点:
+
+* `entry` の `application` が 500 kB 前後を大きく超えないこと。
+* route 固有機能が `dynamic` chunk に分離されていること。
+* 500 kB 超の chunk は、CodeMirror / SVGEdit のような明確な heavy editor 本体に限定されていること。
+* package root import の巻き込みで、使っていない editor / preview / media 機能が同じ chunk に混ざっていないこと。
+
+== Lighthouse / CWV
+
+Chrome DevTools の Lighthouse または同等の CI 計測で、代表ページを確認する。
+
+最低限の確認項目:
+
+* LCP: 初期表示で大きい本文 / 画像 / editor shell が遅延していないか。
+* INP: メモ編集開始、WYSIWYG 切替、SVG editor 起動、Theme Studio 操作で長い main thread task が目立たないか。
+* CLS: lazy chunk 読み込み中の placeholder が高さを確保しているか。
+
+目安:
+
+* 閲覧ページは editor 系 dynamic chunk を読まない。
+* 編集ページは CodeMirror 初期化まで loading state が破綻しない。
+* SVG 編集ページは shell 表示後に SVGEdit 本体を読み込む。初期 HTML / entry bundle に SVGEdit 本体を戻さない。
+
+== 退行時の対応
+
+* まず `npm run report:bundles` で増えた chunk と source を特定する。
+* `application` entry が増えた場合は Stimulus controller の static import 追加を疑う。
+* editor / preview chunk が増えた場合は package root import と umbrella export の巻き込みを疑う。
+* heavy editor 本体をさらに分割する場合は、操作開始 latency と cache 効果を測ってから判断する。

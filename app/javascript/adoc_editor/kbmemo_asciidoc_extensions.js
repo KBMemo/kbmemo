@@ -20,6 +20,6 @@ const wikiLinkHighlight = ViewPlugin.fromClass(
 
 /** Asciidoctor AST ハイライト + KBMemo 固有の wiki リンク装飾（初回 connect 時に別チャンク読み込み） */
 export async function loadAsciidocExtensions() {
-  const { asciidocHighlight } = await import('@kbmemo/adoc-codemirror')
+  const { asciidocHighlight } = await import('../../../packages/adoc-codemirror/src/codemirror.js')
   return [...asciidocHighlight, wikiLinkHighlight]
 }

@@ -313,6 +313,14 @@ html[data-kb-theme-base="minimal"] {
   color: var(--kb-text-primary);
 }
 
+.kb-input:user-invalid,
+.kb-input[data-kb-client-invalid],
+.kb-field-input:user-invalid,
+.kb-field-input[data-kb-client-invalid] {
+  border-color: var(--red-7);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--red-7) 55%, transparent);
+}
+
 .kb-menu-panel {
   border: 1px solid var(--kb-border);
   background-color: var(--kb-bg-surface);
@@ -1378,8 +1386,14 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   transition: background-color 0.15s;
 }
 
-.kb-resizer:hover {
+.kb-resizer:hover,
+.kb-resizer:focus-visible {
   background: var(--kb-border-strong);
+}
+
+.kb-resizer:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--kb-border-strong) 90%, transparent);
+  outline-offset: -2px;
 }
 
 .kb-resizer:active {

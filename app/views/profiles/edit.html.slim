@@ -22,8 +22,10 @@ section.mt-10
 
   div
     = f.label :nickname, "ニックネーム", class: kb_label
-    = f.text_field :nickname, class: "#{kb_field_input_classes} max-w-md", autocomplete: "nickname", maxlength: 40, placeholder: "例: けんせい"
-    p.mt-1.text-xs.kb-text-muted 最大40文字
+    = f.text_field :nickname, class: "#{kb_field_input_classes} max-w-md", autocomplete: "nickname", maxlength: 40, placeholder: "例: けんせい", aria: kb_field_error_aria(@account, :nickname, describedby: "account-nickname-help")
+    - if kb_field_error?(@account, :nickname)
+      p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(@account, :nickname) = kb_field_error_message(@account, :nickname)
+    p#account-nickname-help.mt-1.text-xs.kb-text-muted 最大40文字
 
   div
     = f.label :openai_api_key, "OpenAI API キー", class: kb_label
@@ -31,11 +33,13 @@ section.mt-10
       p.mt-1.text-xs.kb-status-success 設定済み（再入力すると上書きします）
     - else
       p.mt-1.text-xs.kb-status-warning 未設定 — AI パネルは利用できません
-    = f.password_field :openai_api_key, class: "#{kb_field_input_classes} max-w-md font-mono", autocomplete: "off", placeholder: "sk-…"
+    = f.password_field :openai_api_key, class: "#{kb_field_input_classes} max-w-md font-mono", autocomplete: "off", placeholder: "sk-…", aria: kb_field_error_aria(@account, :openai_api_key, describedby: "account-openai-api-key-help")
+    - if kb_field_error?(@account, :openai_api_key)
+      p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(@account, :openai_api_key) = kb_field_error_message(@account, :openai_api_key)
     .mt-2.flex.items-center.gap-2
       = f.check_box :clear_openai_api_key, class: "rounded kb-border"
       = f.label :clear_openai_api_key, "保存済みのキーを削除する", class: "text-sm kb-text-secondary"
-    p.mt-1.text-xs.kb-text-muted
+    p#account-openai-api-key-help.mt-1.text-xs.kb-text-muted
       | API キーは
       = link_to "platform.openai.com", "https://platform.openai.com/api-keys", class: "kb-chrome-link underline", target: "_blank", rel: "noopener"
       |  で発行できます（ChatGPT Plus とは別課金）。
@@ -97,7 +101,7 @@ section.mt-10
       code.kb-code-inline config/credentials/google_calendar.example.yml
       |  参照）。設定後はアプリを再起動。
 
-section.mt-10#clip-api-token
+section.mt-10#clip-api-token data-controller=(@revealed_clip_api_token.present? ? "scroll-into-view" : nil) tabindex=(@revealed_clip_api_token.present? ? "-1" : nil)
   h2 class=kb_section_title クリップ API トークン
   p.mt-1.text-sm.kb-text-secondary
     | Chrome 拡張やブックマークレットからメモを保存する際に使います。Bearer トークンとして
@@ -119,8 +123,6 @@ section.mt-10#clip-api-token
     .mt-4.kb-alert.kb-alert-warning role="status"
       p.text-sm.font-medium 発行したトークン（再表示できません）
       code.mt-2.block.overflow-x-auto.rounded.kb-chrome-panel.px-3.py-2.text-xs.kb-text-primary = @revealed_clip_api_token
-    script
-      | document.getElementById("clip-api-token")?.scrollIntoView({ block: "start" });
 
   .mt-4.flex.flex-wrap.gap-3
     = button_to "トークンを発行", clip_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
@@ -129,7 +131,7 @@ section.mt-10#clip-api-token
 
   = render "profiles/clip_bookmarklet_setup", base_url: request.base_url, revealed_token: @revealed_clip_api_token, token_configured: @account.clip_api_token_configured?
 
-section.mt-10#tsuzura-cli-token
+section.mt-10#tsuzura-cli-token data-controller=(@revealed_tsuzura_api_token.present? ? "scroll-into-view" : nil) tabindex=(@revealed_tsuzura_api_token.present? ? "-1" : nil)
   h2 class=kb_section_title Tsuzura CLI トークン
   p.mt-1.text-sm.kb-text-secondary
     | Tsuzura（
@@ -155,8 +157,6 @@ section.mt-10#tsuzura-cli-token
     .mt-4.kb-alert.kb-alert-warning role="status"
       p.text-sm.font-medium 発行したトークン（再表示できません）
       code.mt-2.block.overflow-x-auto.rounded.kb-chrome-panel.px-3.py-2.text-xs.kb-text-primary = @revealed_tsuzura_api_token
-    script
-      | document.getElementById("tsuzura-cli-token")?.scrollIntoView({ block: "start" });
 
   .mt-4.flex.flex-wrap.gap-3
     = button_to "トークンを発行", tsuzura_api_token_profile_path, method: :post, class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }

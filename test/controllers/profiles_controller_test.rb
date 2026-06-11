@@ -25,6 +25,8 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_includes response.body, "too long"
+    assert_select "input#account_nickname[aria-invalid='true'][aria-describedby='account-nickname-help account_nickname_error']"
+    assert_select "#account_nickname_error", text: /too long/
   end
 
   test "signed-in user can save and clear openai api key" do
@@ -60,6 +62,8 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "kbmemo に保存"
     assert_includes response.body, "javascript:"
     assert_not_includes response.body, 'id="clip-bookmarklet-api-token"'
+    assert_select "section#clip-api-token[data-controller~='scroll-into-view'][tabindex='-1']"
+    assert_no_match(/scrollIntoView/, response.body)
 
     delete clip_api_token_profile_url
     assert_redirected_to edit_profile_path
@@ -74,5 +78,7 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert account.reload.tsuzura_api_token_configured?
     assert_match(/tsuzura_/, response.body)
+    assert_select "section#tsuzura-cli-token[data-controller~='scroll-into-view'][tabindex='-1']"
+    assert_no_match(/scrollIntoView/, response.body)
   end
 end

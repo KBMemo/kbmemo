@@ -36,7 +36,7 @@ export default class extends Controller {
     this._selectedMediaIds.clear()
     this._currentAlbumId = null
     this._setStatus("読み込み中…")
-    this.detailTarget.innerHTML = ""
+    this.detailTarget.replaceChildren()
     this.insertAlbumTarget.disabled = true
     this.insertImagesTarget.disabled = true
     this.dialogTarget.showModal()
@@ -63,7 +63,7 @@ export default class extends Controller {
           data.error ||
           `アルバム一覧を取得できませんでした（${res.status}）。Tsuzura（:3008）の起動と環境変数を確認してください。`
         this._setStatus(message)
-        this.listTarget.innerHTML = `<p class="px-3 py-2 text-sm kb-text-danger">${this._escape(message)}</p>`
+        this.listTarget.replaceChildren(this._messageNode(message, "kb-text-danger"))
         return
       }
       this._renderAlbums(data.albums || [])
@@ -81,19 +81,31 @@ export default class extends Controller {
 
   _renderAlbums(albums) {
     if (!albums.length) {
-      this.listTarget.innerHTML = '<p class="px-3 py-2 text-sm kb-text-muted">アルバムがありません</p>'
+      this.listTarget.replaceChildren(this._messageNode("アルバムがありません", "kb-text-muted"))
       return
     }
 
-    this.listTarget.innerHTML = albums
-      .map((album) => {
-        const count = album.media_item_count ?? "?"
-        return `<button type="button" class="block w-full border-b kb-border px-3 py-2 text-left text-sm kb-hover-row" data-action="tsuzura-picker#selectAlbum" data-album-id="${this._escape(album.id)}">
-          <span class="font-medium kb-text-primary">${this._escape(album.title)}</span>
-          <span class="kb-text-muted text-xs"> · ${count} 枚</span>
-        </button>`
-      })
-      .join("")
+    this.listTarget.replaceChildren(...albums.map((album) => this._albumButtonNode(album)))
+  }
+
+  _albumButtonNode(album) {
+    const button = document.createElement("button")
+    button.type = "button"
+    button.className = "block w-full border-b kb-border px-3 py-2 text-left text-sm kb-hover-row"
+    button.setAttribute("data-action", "tsuzura-picker#selectAlbum")
+    button.dataset.albumId = String(album.id || "")
+
+    const title = document.createElement("span")
+    title.className = "font-medium kb-text-primary"
+    title.textContent = String(album.title || "")
+    button.append(title)
+
+    const count = document.createElement("span")
+    count.className = "kb-text-muted text-xs"
+    count.textContent = ` · ${album.media_item_count ?? "?"} 枚`
+    button.append(count)
+
+    return button
   }
 
   async selectAlbum(event) {
@@ -128,7 +140,7 @@ export default class extends Controller {
   async _renderAlbumDetail(album) {
     const ids = (album.media_item_ids || []).map((id) => String(id).toUpperCase())
     if (!ids.length) {
-      this.detailTarget.innerHTML = '<p class="px-3 py-2 text-sm kb-text-muted">写真がありません</p>'
+      this.detailTarget.replaceChildren(this._messageNode("写真がありません", "kb-text-muted"))
       return
     }
 
@@ -144,38 +156,85 @@ export default class extends Controller {
       urlById = urls
     }
 
+    this.detailTarget.replaceChildren(...this._albumDetailNodes(album, ids, urlById))
+  }
+
+  _albumDetailNodes(album, ids, urlById) {
+    const title = document.createElement("p")
+    title.className = "px-3 py-2 text-sm font-medium kb-text-primary"
+    title.textContent = String(album.title || "")
+
+    const nodes = [title]
+    if (!this.canSignThumbnails()) {
+      nodes.push(this._messageNode("保存後のメモでサムネを表示できます。", "kb-text-muted", "py-1 text-xs"))
+    }
+
+    const list = document.createElement("ul")
+    list.className = "max-h-56 overflow-y-auto"
+    list.append(...ids.map((id) => this._mediaItemNode(id, urlById.get(id))))
+    nodes.push(list)
+
     const overflow = ids.length > PICKER_THUMB_LIMIT ? ids.length - PICKER_THUMB_LIMIT : 0
-    const gridItems = ids
-      .map((id) => {
-        const signed = urlById.get(id)
-        const thumb = signed
-          ? `<img src="${this._escape(signed)}" alt="" class="h-14 w-14 shrink-0 rounded object-cover border kb-border" loading="lazy" decoding="async">`
-          : `<span class="kb-tsuzura-thumb-placeholder flex h-14 w-14 shrink-0 items-center justify-center rounded border kb-border kb-text-muted">—</span>`
-        return `<li class="border-b kb-border px-2 py-1.5">
-            <label class="flex cursor-pointer items-center gap-2 text-sm">
-              <input type="checkbox" value="${this._escape(id)}" data-action="change->tsuzura-picker#toggleMedia">
-              ${thumb}
-              <code class="min-w-0 truncate text-xs">${this._escape(id)}</code>
-            </label>
-          </li>`
-      })
-      .join("")
+    if (overflow > 0) {
+      nodes.push(
+        this._messageNode(
+          `他 ${overflow} 件（サムネは先頭 ${PICKER_THUMB_LIMIT} 件）`,
+          "kb-text-muted",
+          "py-1 text-xs"
+        )
+      )
+    }
 
-    const overflowNote =
-      overflow > 0
-        ? `<p class="px-3 py-1 text-xs kb-text-muted">他 ${overflow} 件（サムネは先頭 ${PICKER_THUMB_LIMIT} 件）</p>`
-        : ""
-    const thumbHint = this.canSignThumbnails()
-      ? ""
-      : '<p class="px-3 py-1 text-xs kb-text-muted">保存後のメモでサムネを表示できます。</p>'
+    return nodes
+  }
 
-    this.detailTarget.innerHTML = `
-      <p class="px-3 py-2 text-sm font-medium kb-text-primary">${this._escape(album.title || "")}</p>
-      ${thumbHint}
-      <ul class="max-h-56 overflow-y-auto">
-        ${gridItems}
-      </ul>
-      ${overflowNote}`
+  _mediaItemNode(id, signedUrl) {
+    const item = document.createElement("li")
+    item.className = "border-b kb-border px-2 py-1.5"
+
+    const label = document.createElement("label")
+    label.className = "flex cursor-pointer items-center gap-2 text-sm"
+
+    const input = document.createElement("input")
+    input.type = "checkbox"
+    input.value = id
+    input.setAttribute("data-action", "change->tsuzura-picker#toggleMedia")
+    label.append(input)
+
+    label.append(this._thumbnailNode(signedUrl))
+
+    const code = document.createElement("code")
+    code.className = "min-w-0 truncate text-xs"
+    code.textContent = id
+    label.append(code)
+
+    item.append(label)
+    return item
+  }
+
+  _thumbnailNode(signedUrl) {
+    if (signedUrl) {
+      const image = document.createElement("img")
+      image.src = signedUrl
+      image.alt = ""
+      image.className = "h-14 w-14 shrink-0 rounded object-cover border kb-border"
+      image.loading = "lazy"
+      image.decoding = "async"
+      return image
+    }
+
+    const placeholder = document.createElement("span")
+    placeholder.className =
+      "kb-tsuzura-thumb-placeholder flex h-14 w-14 shrink-0 items-center justify-center rounded border kb-border kb-text-muted"
+    placeholder.textContent = "—"
+    return placeholder
+  }
+
+  _messageNode(message, toneClass, sizeClass = "py-2 text-sm") {
+    const node = document.createElement("p")
+    node.className = `px-3 ${sizeClass} ${toneClass}`
+    node.textContent = message
+    return node
   }
 
   canSignThumbnails() {
@@ -241,11 +300,4 @@ export default class extends Controller {
     }
   }
 
-  _escape(text) {
-    return String(text)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-  }
 }

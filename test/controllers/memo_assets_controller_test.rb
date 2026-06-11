@@ -71,6 +71,10 @@ class MemoAssetsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "/memos/#{@memo.id}/assets/viewer.png"
     assert_includes response.body, "画面に合わせる"
     assert_includes response.body, "diagram-svg-viewer#zoomIn"
+    assert_select "button[aria-label='縮小']"
+    assert_select "button[aria-label='ズームを100%に戻す']"
+    assert_select "button[aria-label='拡大']"
+    assert_select "button[aria-label='画面に合わせる']"
   end
 
   test "view returns not found for missing file" do

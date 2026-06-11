@@ -1,24 +1,39 @@
 import { Controller } from "@hotwired/stimulus"
-import "@kbmemo/adoc-wysiwyg/contextMenu.css"
-import { initEditorContextMenus } from "@kbmemo/adoc-wysiwyg"
-import {
-  createWebPasteHandler,
-  insertTextIntoEditorView,
-  promptImageFilename,
-} from "@kbmemo/adoc-wysiwyg"
-import { loadAsciidocExtensions } from "../adoc_editor/kbmemo_asciidoc_extensions"
-import {
-  configureKbmemoHost,
-  getCsrfToken,
-  listContinuationExtension,
-  resetHostConfig,
-  wikiAutocompletion,
-} from "@kbmemo/adoc-kbmemo"
 
 const ACCEPTED_IMAGE_TYPE = /^image\/(png|jpeg|gif|webp|svg\+xml)$/i
 const ACCEPTED_IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i
 const LIVE_PREVIEW_PREF_KEY = "kbmemo_memo_editor_live_preview"
 const EDIT_MODE_PREF_KEY = "kbmemo_memo_editor_edit_mode"
+let editorChromePromise = null
+let kbmemoEditorPromise = null
+
+function loadEditorChrome() {
+  editorChromePromise ??= Promise.all([
+    import("@kbmemo/adoc-wysiwyg/contextMenu.css"),
+    import("@kbmemo/adoc-wysiwyg"),
+  ]).then(([, mod]) => mod)
+  return editorChromePromise
+}
+
+function loadKbmemoEditorExtensions() {
+  kbmemoEditorPromise ??= Promise.all([
+    import("../adoc_editor/kbmemo_asciidoc_extensions"),
+    import("../../../packages/adoc-kbmemo/kbmemo_host.js"),
+    import("../../../packages/adoc-kbmemo/src/list_continuation.js"),
+    import("../../../packages/adoc-kbmemo/src/wiki_completion.js"),
+  ]).then(([adocExtensions, host, listContinuation, wikiCompletion]) => ({
+    loadAsciidocExtensions: adocExtensions.loadAsciidocExtensions,
+    configureKbmemoHost: host.configureKbmemoHost,
+    listContinuationExtension: listContinuation.listContinuationExtension,
+    resetHostConfig: host.resetHostConfig,
+    wikiAutocompletion: wikiCompletion.wikiAutocompletion,
+  }))
+  return kbmemoEditorPromise
+}
+
+function getCsrfToken() {
+  return document.querySelector('meta[name="csrf-token"]')?.content
+}
 
 function readLivePreviewPreference() {
   return localStorage.getItem(LIVE_PREVIEW_PREF_KEY) === "1"
@@ -198,7 +213,14 @@ export default class extends Controller {
   async connect() {
     if (!this.hasHostTarget || !this.hasFieldTarget) return
 
-    configureKbmemoHost()
+    const editorChromePromise = loadEditorChrome()
+    const kbmemoEditor = await loadKbmemoEditorExtensions()
+    this._resetHostConfig = kbmemoEditor.resetHostConfig
+    kbmemoEditor.configureKbmemoHost()
+
+    const editorChrome = await editorChromePromise
+    this._insertTextIntoEditorView = editorChrome.insertTextIntoEditorView
+    this._promptImageFilename = editorChrome.promptImageFilename
 
     const [{ EditorView, basicSetup }, { EditorState }] = await Promise.all([
       import("codemirror"),
@@ -307,8 +329,8 @@ export default class extends Controller {
     if (isNewMemo) textarea.value = ""
     const startDoc = isNewMemo ? "" : textarea.value
     const editorHost = this
-    const asciidocExts = await loadAsciidocExtensions()
-    this._webPasteHandler = createWebPasteHandler({
+    const asciidocExts = await kbmemoEditor.loadAsciidocExtensions()
+    this._webPasteHandler = editorChrome.createWebPasteHandler({
       insertText: (text) => this.insertTextAtSelection(text),
     })
 
@@ -318,8 +340,8 @@ export default class extends Controller {
         basicSetup,
         EditorView.lineWrapping,
         ...asciidocExts,
-        listContinuationExtension(),
-        ...wikiAutocompletion(getWikiConfig),
+        kbmemoEditor.listContinuationExtension(),
+        ...kbmemoEditor.wikiAutocompletion(getWikiConfig),
         updateListener,
         a11y,
         theme,
@@ -357,7 +379,7 @@ export default class extends Controller {
         getView: () => this.view
       }
     }
-    initEditorContextMenus(contextMenuTargets)
+    editorChrome.initEditorContextMenus(contextMenuTargets)
 
     textarea.addEventListener("change", this._onTextareaExternalChange)
 
@@ -464,6 +486,33 @@ export default class extends Controller {
     void this.switchEditMode(mode)
   }
 
+  editModeTabKeydown(event) {
+    const keys = ["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown", "Home", "End"]
+    if (!keys.includes(event.key)) return
+
+    const tabs = this.editModeTabTargets
+    const currentIndex = tabs.indexOf(event.target)
+    if (currentIndex < 0) return
+
+    event.preventDefault()
+    let nextIndex = currentIndex
+    if (event.key === "Home") {
+      nextIndex = 0
+    } else if (event.key === "End") {
+      nextIndex = tabs.length - 1
+    } else {
+      const step = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1
+      nextIndex = (currentIndex + step + tabs.length) % tabs.length
+    }
+
+    const nextTab = tabs[nextIndex]
+    nextTab?.focus()
+    const mode = nextTab?.dataset?.editMode
+    if (mode === "source" || mode === "wysiwyg") {
+      void this.switchEditMode(mode)
+    }
+  }
+
   async switchEditMode(mode) {
     if (this._editMode === mode) return
 
@@ -549,7 +598,8 @@ export default class extends Controller {
     for (const tab of this.editModeTabTargets) {
       const active = tab.dataset.editMode === this._editMode
       tab.classList.toggle("is-active", active)
-      tab.setAttribute("aria-pressed", active ? "true" : "false")
+      tab.setAttribute("aria-selected", active ? "true" : "false")
+      tab.tabIndex = active ? 0 : -1
     }
   }
 
@@ -585,7 +635,7 @@ export default class extends Controller {
     this._unbindInsertEvent()
     this._unbindDragDrop()
     this._unbindPaste()
-    resetHostConfig()
+    this._resetHostConfig?.()
     this._wysiwygEditor?.flush()
     this._wysiwygEditor = null
     this._livePreview?.destroy()
@@ -749,8 +799,13 @@ export default class extends Controller {
   }
 
   async uploadPastedImages(files) {
+    if (!this._promptImageFilename) {
+      const editorChrome = await loadEditorChrome()
+      this._promptImageFilename = editorChrome.promptImageFilename
+    }
+
     for (const file of files) {
-      const { action, filename } = await promptImageFilename(suggestedPasteFilename(file))
+      const { action, filename } = await this._promptImageFilename(suggestedPasteFilename(file))
       if (action !== "upload" || !filename) continue
 
       await this.uploadFiles([fileWithFilename(file, filename)])
@@ -868,7 +923,16 @@ export default class extends Controller {
 
     if (!this.view) return
 
-    insertTextIntoEditorView(this.view, text)
+    if (this._insertTextIntoEditorView) {
+      this._insertTextIntoEditorView(this.view, text)
+    } else {
+      const { state } = this.view
+      const { from, to } = state.selection.main
+      this.view.dispatch({
+        changes: { from, to, insert: text },
+        selection: { anchor: from + text.length, head: from + text.length },
+      })
+    }
 
     const textarea = this.fieldTarget
     const next = this.view.state.doc.toString()

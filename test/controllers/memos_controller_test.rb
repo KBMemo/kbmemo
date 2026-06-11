@@ -31,6 +31,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, m.title
     assert_includes response.body, "検索結果"
+    assert_select "label.sr-only[for='q']", text: "タイトル・本文を検索"
   end
 
   test "index redirects legacy q param to search tab" do
@@ -76,14 +77,14 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select "#memos_list_panel ul.divide-y > li", count: 3
-    assert_select "#memos_list_panel ul.divide-y > li:nth-child(1) a" do |links|
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li", count: 3
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li:nth-child(1) a" do |links|
       assert_includes links.first.text, one.title
     end
-    assert_select "#memos_list_panel ul.divide-y > li:nth-child(2) a" do |links|
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li:nth-child(2) a" do |links|
       assert_includes links.first.text, three.title
     end
-    assert_select "#memos_list_panel ul.divide-y > li:nth-child(3) a" do |links|
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li:nth-child(3) a" do |links|
       assert_includes links.first.text, two.title
     end
     assert_select "#sidebar_row_memo_#{one.id}"
@@ -127,10 +128,10 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{memo_c.id},#{memo_a.id},#{memo_b.id},#{memo_d.id}']"
-    assert_select "#memos_list_panel ul.divide-y > li:nth-child(1)#sidebar_row_memo_#{memo_c.id}"
-    assert_select "#memos_list_panel ul.divide-y > li:nth-child(2)#sidebar_row_memo_#{memo_a.id}"
-    assert_select "#memos_list_panel ul.divide-y > li:nth-child(3)#sidebar_row_memo_#{memo_b.id}"
-    assert_select "#memos_list_panel ul.divide-y > li:nth-child(4)#sidebar_row_memo_#{memo_d.id}"
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li:nth-child(1)#sidebar_row_memo_#{memo_c.id}"
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li:nth-child(2)#sidebar_row_memo_#{memo_a.id}"
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li:nth-child(3)#sidebar_row_memo_#{memo_b.id}"
+    assert_select "#memos_list_panel #memo_sidebar_memo_list > li:nth-child(4)#sidebar_row_memo_#{memo_d.id}"
   end
 
   test "show records memo view history" do
@@ -199,7 +200,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{memo_c.id},#{memo_a.id},#{memo_b.id},#{memo_d.id}']"
-    assert_select "#memo_sidebar_memo_list_container ul.divide-y > li:nth-child(2)#sidebar_row_memo_#{memo_a.id}"
+    assert_select "#memo_sidebar_memo_list_container #memo_sidebar_memo_list > li:nth-child(2)#sidebar_row_memo_#{memo_a.id}"
   end
 
   test "sidebar_memo_list moves the open memo to the top for an already-viewed memo" do
@@ -229,7 +230,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :success
     assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{two.id},#{three.id},#{one.id}']"
-    assert_select "#memo_sidebar_memo_list_container ul.divide-y > li:nth-child(1)#sidebar_row_memo_#{two.id}"
+    assert_select "#memo_sidebar_memo_list_container #memo_sidebar_memo_list > li:nth-child(1)#sidebar_row_memo_#{two.id}"
   end
 
   test "sidebar_memo_list records a newly opened memo into history" do
@@ -253,7 +254,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :success
     assert_select "#memo_sidebar_memo_list[data-history-memo-ids='#{fresh.id},#{one.id}']"
-    assert_select "#memo_sidebar_memo_list_container ul.divide-y > li:nth-child(1)#sidebar_row_memo_#{fresh.id}"
+    assert_select "#memo_sidebar_memo_list_container #memo_sidebar_memo_list > li:nth-child(1)#sidebar_row_memo_#{fresh.id}"
   end
 
   test "sidebar_memo_list does not record a prefetch refresh" do
@@ -477,6 +478,11 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "ライブプレビュー"
     assert_select '[data-controller*="memo-body-editor"] [data-memo-body-editor-target="host"]'
     assert_select '[data-controller*="memo-body-editor"] [data-memo-body-editor-target="field"]'
+    assert_select "[role='tablist'][aria-label='編集モード'][data-action*='editModeTabKeydown']"
+    assert_select "button#memo_body_editor_tab_source[role='tab'][aria-selected='true'][aria-controls='memo_body_editor_panel_source'][tabindex='0']"
+    assert_select "button#memo_body_editor_tab_wysiwyg[role='tab'][aria-selected='false'][aria-controls='memo_body_editor_panel_wysiwyg'][tabindex='-1']"
+    assert_select "#memo_body_editor_panel_source[role='tabpanel'][aria-labelledby='memo_body_editor_tab_source']"
+    assert_select "#memo_body_editor_panel_wysiwyg[role='tabpanel'][aria-labelledby='memo_body_editor_tab_wysiwyg']"
   end
 
   test "should create memo and redirect" do
@@ -870,6 +876,23 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select ".memo-draft-shell[data-controller~='memo-draft']"
     assert_select ".memo-draft-shell [data-memo-draft-target='formActionsChrome']"
     assert_select "form#new_memo_form [data-memo-draft-target='formActionsChrome']", count: 0
+    assert_select "summary[aria-label='タイトル同期の説明'][aria-describedby='memo-title-hint']"
+    assert_select "#memo-title-hint", text: /本文1行目/
+    assert_select "summary[aria-label='スラッグ同期の説明'][aria-describedby='memo-slug-hint']"
+    assert_select "#memo-slug-hint", text: /タイトルと同期/
+    assert_select "summary[aria-label='公開範囲の説明'][aria-describedby='memo-visibility-hint']"
+    assert_select "#memo-visibility-hint", text: /共有グループ/
+  end
+
+  test "directory sidebar hint has an accessible description" do
+    get memos_url(memo_directory_id: memo_directories(:work).id)
+    assert_response :success
+    assert_select "summary[aria-label='メモ移動方法の説明'][aria-describedby='memo-directory-move-hint']"
+    assert_select "#memo-directory-move-hint", text: /ドラッグ/
+    assert_select "#memo-directory-move-hint", text: /キーボード操作/
+    assert_select "[data-memo-directory-dnd-handle][aria-hidden='true'][draggable='true']"
+    assert_select "[data-memo-directory-dnd-handle][role]", count: 0
+    assert_select "[data-memo-directory-dnd-handle][tabindex]", count: 0
   end
 
   test "edit uncommitted memo shows delete and commit actions" do
@@ -1304,6 +1327,10 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
         as: :json
     end
     assert_response :success
+    assert_equal "nosniff", response.headers["X-Content-Type-Options"]
+    assert_equal "MemoSvgSanitizer", response.headers["X-Kbmemo-Svg-Sanitized"]
+    assert_equal "no-store", response.headers["Cache-Control"]
+    assert_equal true, response.parsed_body["sanitized"]
     assert_equal svg, response.parsed_body["svg"]
   end
 
@@ -1320,6 +1347,10 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
       params: { engine: "svg", source: source },
       as: :json
     assert_response :success
+    assert_equal "nosniff", response.headers["X-Content-Type-Options"]
+    assert_equal "MemoSvgSanitizer", response.headers["X-Kbmemo-Svg-Sanitized"]
+    assert_equal "no-store", response.headers["Cache-Control"]
+    assert_equal true, response.parsed_body["sanitized"]
     body = response.parsed_body["svg"]
     assert_includes body, "<circle"
     assert_not_includes body, "script"

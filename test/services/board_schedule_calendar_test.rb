@@ -132,7 +132,7 @@ class BoardScheduleCalendarTest < ActiveSupport::TestCase
     assert calendar.day_view?
   end
 
-  test "recurring google calendar memo appears on each occurrence in week view" do
+  test "recurring google calendar memo appears on each occurrence in month view" do
     gcal_memo = Memo.create!(
       account: @account,
       memo_directory: memo_directories(:work),
@@ -157,7 +157,7 @@ class BoardScheduleCalendarTest < ActiveSupport::TestCase
       memos_scope: Memo.where(account_id: @account.id),
       month: Date.new(2026, 5, 1),
       selected_day: Date.new(2026, 5, 7),
-      view: "week"
+      view: "month"
     )
 
     wednesdays = calendar.list_groups.select { |group| group[:date].wednesday? }.flat_map { |group| group[:memos] }

@@ -14,7 +14,14 @@ class Tsuzura::AuthorizerTest < ActiveSupport::TestCase
   end
 
   test "denies private memo for other account" do
-    memo = memos(:two)
+    memo = Memo.create!(
+      title: "Other private memo",
+      body: "private",
+      memo_directory: memo_directories(:work),
+      account: accounts(:two),
+      visibility: :owner_read_write,
+      file_committed_at: Time.current
+    )
     viewer = accounts(:one)
     authorizer = Tsuzura::Authorizer.new(memo: memo, viewer: viewer)
 

@@ -51,8 +51,9 @@ class ClipImageImporterTest < ActiveSupport::TestCase
     adoc = PandocHtmlToAsciidoc.convert(localized)
 
     assert_includes fetched_urls.first, "qiita-image-store.s3.amazonaws.com"
-    assert_includes localized, 'src="3d.png"'
     assert_not_includes localized, "<a "
+    assert_not_includes localized, "<img"
+    assert_not_includes localized, "<p><p>"
     assert_includes localized, "image::3d.png"
     assert_includes localized, "link=https://qiita-image-store.s3.amazonaws.com"
     assert_includes adoc, "3d.png"

@@ -7,8 +7,10 @@
 
   div
     = f.label :name, "タグ名", class: "#{kb_label} mb-1"
-    = f.text_field :name, autocomplete: "off", class: memo_form_underline_input
-    p.mt-1.text-xs.kb-text-muted 表示名が変わります。同一の表記（大文字小文字・前後空白の違いなど）は内部キーでまとまります。
+    = f.text_field :name, autocomplete: "off", class: memo_form_underline_input, aria: kb_field_error_aria(@tag, :name, describedby: "tag-name-help")
+    - if kb_field_error?(@tag, :name)
+      p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(@tag, :name) = kb_field_error_message(@tag, :name)
+    p#tag-name-help.mt-1.text-xs.kb-text-muted 表示名が変わります。同一の表記（大文字小文字・前後空白の違いなど）は内部キーでまとまります。
 
   .flex.gap-3.pt-2
     = f.submit "更新", class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
