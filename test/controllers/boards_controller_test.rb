@@ -15,6 +15,8 @@ class BoardsControllerTest < ActionDispatch::IntegrationTest
     get board_url(boards(:one))
     assert_response :success
     assert_includes response.body, board_columns(:one_todo).name
+    assert_select "dialog#board_add_memo_panel[aria-labelledby='board-add-memo-title']"
+    assert_select "#board-add-memo-title", text: "既存メモを追加"
     assert_select "search label.sr-only[for='q']", text: "追加する既存メモを検索"
     assert_select "search input[type='search'][data-board-add-memo-target='query']"
   end

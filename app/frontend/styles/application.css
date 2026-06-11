@@ -81,6 +81,17 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   background: rgb(0 0 0 / 0.55);
 }
 
+.board-add-memo-dialog {
+  max-width: 36rem;
+  width: calc(100% - 2rem);
+  margin: auto;
+  border: 0;
+}
+
+.board-add-memo-dialog::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+
 /* MemoWikiLinks が Asciidoctor 経由で出力（views に文字列が無いため @apply で明示定義） */
 .memo-body .memo-wiki-broken {
   color: var(--kb-status-danger-strong);

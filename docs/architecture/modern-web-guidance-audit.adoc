@@ -67,6 +67,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * メモサイドバー検索とボードの既存メモ検索を `<search>` 要素で囲み、検索 UI を native landmark として表現する。
 * メモ本文 HTML の画像後処理で、既存の `loading` 指定を尊重しつつ `decoding="async"` 未指定の画像へ補完するようにした。
 * ディレクトリツリーの `<summary>` 内にリンク / ボタンを入れず、`summary` は子ディレクトリ開閉専用、行の選択・編集操作は隣接 row 側の interactive element に分離した。
+* ボードの「既存メモを追加」パネルを `div` ベースの疑似モーダルから native `<dialog>` に変更し、`aria-labelledby` / backdrop click / focus return を controller 側で扱うようにした。
 
 == 現状の良い点
 
@@ -145,7 +146,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 |P2
 |HTML / Accessibility
 |現在も semantic HTML は比較的良いが、custom popup / picker の増加で native 機能との差が広がりやすい。メモ編集フォームとディレクトリサイドバーの `<details>` ヒントは accessible name / description を接続済み。メモ一覧のドラッグ専用ハンドルは focusable な偽ボタンにせず、キーボード操作の代替として編集フォームの保存先フォルダ欄を案内している。
-|Baseline を明示した上で、可能な箇所は `dialog` / `details` に寄せ、将来的には `popover` も検討する。popover 化する場合は fallback / polyfill 方針も合わせて決める。
+|ボードの既存メモ追加 panel は native `<dialog>` へ変更済み。Baseline を明示した上で、可能な箇所は `dialog` / `details` に寄せ、将来的には `popover` も検討する。popover 化する場合は fallback / polyfill 方針も合わせて決める。
 
 |P2
 |Performance
@@ -188,6 +189,9 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** ドラッグ専用ハンドルは `aria-hidden` にし、keyboard user には編集フォームの保存先フォルダ欄を移動手段として案内する。
 * ディレクトリツリーの `<details>`
 ** `summary` は開閉専用の caret と accessible name のみにし、リンク / ボタンを入れ子にしない。
+* ボードの既存メモ追加 dialog
+** `dialog.showModal()` を使い、見出しを `aria-labelledby` で dialog name にする。
+** close button / backdrop click / Esc close を扱い、明示 close 後は起動元 button に focus を戻す。
 * `expandable-hint`
 ** Wiki リンク説明 / プロパティ全文の icon-only toggle は `aria-label` を持ち、開閉時にも label を同期する。
 
