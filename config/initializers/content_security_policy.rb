@@ -14,8 +14,14 @@ Rails.application.configure do
     policy.img_src :self, :https, :data, :blob
     policy.object_src :none
     policy.report_uri "/csp_reports"
+    policy.require_trusted_types_for :script
     policy.script_src :self
     policy.style_src :self
+    policy.trusted_types(
+      "kbmemo-adoc-preview-html",
+      "kbmemo-sanitized-svg",
+      "kbmemo-server-rendered-fragment"
+    )
 
     if Rails.env.development?
       vite_origin = "http://#{ViteRuby.config.host_with_port}"

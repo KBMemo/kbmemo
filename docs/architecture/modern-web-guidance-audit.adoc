@@ -72,6 +72,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * ディレクトリ tree picker の `role=listbox` に `aria-controls` / roving tabindex / Arrow・Home・End・Escape keyboard 操作を追加し、選択中または最初の可視 option へ focus できるようにした。
 * 実行時に残る信頼済み HTML sink は Trusted Types の named policy 経由にし、`kbmemo-server-rendered-fragment` / `kbmemo-sanitized-svg` / `kbmemo-adoc-preview-html` の用途境界をコード上で分離した。
 * `@kbmemo/adoc-wysiwyg` の search-replace dialog も `div hidden` から native `<dialog>` へ変更し、`aria-labelledby` / `aria-describedby` / platform cancel close に対応した。
+* CSP report-only に `require-trusted-types-for 'script'` と `trusted-types` allowlist を追加し、Trusted Types 違反を `/csp_reports` で観測できるようにした。
 
 == 現状の良い点
 
@@ -89,8 +90,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P0
 |Security
-|CSP は report-only で有効化済み。`application.html.slim` / `diagram_viewer.html.slim` のテーマ初期化 inline script と、プロフィールのトークン発行後スクロール inline script は削除済み。`X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` は default headers で明示済み。`/csp_reports` で report-only 違反を受けられる。
-|report-only 違反を確認し、必要な fetch / style / asset origin を整理してから CSP enforcement へ移行する。ログ集計が必要になったら専用 storage / dashboard へ移す。
+|CSP は report-only で有効化済み。`application.html.slim` / `diagram_viewer.html.slim` のテーマ初期化 inline script と、プロフィールのトークン発行後スクロール inline script は削除済み。`X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` は default headers で明示済み。`/csp_reports` で report-only 違反を受けられる。Trusted Types も `require-trusted-types-for 'script'` を report-only に追加済み。
+|report-only 違反を確認し、必要な fetch / style / asset origin と Trusted Types sink を整理してから CSP enforcement へ移行する。ログ集計が必要になったら専用 storage / dashboard へ移す。
 
 |P0
 |Security
@@ -100,7 +101,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 |P0
 |Security
 |`code_block_tools_controller.js` の SVG 注入は `replaceWithSanitizedSvg` に隔離済み。loading / error 表示は DOM API ベースへ変更済み。`render_diagram` は sanitize 済みヘッダー / JSON flag を返し、controller test で固定済み。
-|SVG 注入は `kbmemo-sanitized-svg` policy 経由に変更済み。将来 `require-trusted-types-for 'script'` を report-only で試す場合は、同じ policy 名を violation の切り分け単位にする。
+|SVG 注入は `kbmemo-sanitized-svg` policy 経由に変更済み。Trusted Types report-only では同じ policy 名を violation の切り分け単位にする。
 
 |P1
 |Accessibility / HTML
@@ -167,6 +168,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** skip link と `main#main-content` 追加済み。
 ** theme bootstrap inline script は削除済み。
 ** account theme preference から初期 `data-kb-theme` / `data-kb-theme-base` / `data-kb-skin` と `color-scheme` を server-rendered 化済み。
+** CSP report-only は Trusted Types も観測し、許可済み policy 名を `trusted-types` directive に列挙する。
 * `app/views/layouts/diagram_viewer.html.slim`
 ** `lang="ja"` 付与済み。
 ** theme bootstrap inline script は削除済み。
