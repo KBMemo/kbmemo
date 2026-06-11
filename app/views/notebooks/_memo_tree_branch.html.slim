@@ -22,7 +22,7 @@ ruby:
 li *row_attrs
   - if has_children
     = tag.details(open: open, class: "group") do
-      summary.flex.min-w-0.list-none.items-center.gap-0.5.rounded-md.kb-hover-row.memo-directory-nav-summary
+      summary.flex.min-w-0.list-none.items-center.gap-0.5.rounded-md.kb-hover-row.kb-notebook-tree-summary
         span aria-hidden="true" class="kb-tree-caret cursor-pointer" ▶
         = render "notebooks/memo_tree_row", entry: entry, can_manage: can_manage, row_drop: row_drop
       ul.kb-tree-children.space-y-0.5 data-tree-children="" data-action=(can_manage ? "dragover->notebook-memo-tree#allowDrop drop->notebook-memo-tree#dropOnChildren" : nil)

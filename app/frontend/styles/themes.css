@@ -953,6 +953,19 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   color: var(--kb-text-primary);
 }
 
+.kb-notebook-tree-summary {
+  cursor: pointer;
+  width: 100%;
+}
+
+.kb-notebook-tree-summary::-webkit-details-marker {
+  display: none;
+}
+
+.kb-notebook-tree-summary::marker {
+  content: "";
+}
+
 .kb-directory-picker-option {
   width: 100%;
   min-width: 0;
