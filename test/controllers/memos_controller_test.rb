@@ -1095,10 +1095,11 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     # 編集可能な所有者はディレクトリ picker が表示される（選択中ディレクトリを反映）。
     assert_select "input#memo_show_directory_id_#{memo.id}[value=?]", memo.memo_directory_id.to_s
     assert_select "#memo_show_directory_id_#{memo.id}_directory_picker_panel[data-memo-directory-parent-picker-target='panel']" do
-      assert_select ".kb-directory-picker-row", text: "/Home"
-      assert_select ".kb-directory-picker-row", text: "/Share"
-      assert_select ".kb-directory-picker-row", text: "/Public"
-      assert_select ".kb-directory-picker-row", text: "/System"
+      assert_select ".kb-directory-picker-fixed-branch > .kb-directory-picker-caret-spacer + span", text: "/Home"
+      assert_select ".kb-directory-picker-fixed-branch > .kb-directory-picker-caret-spacer + span", text: "/Share"
+      assert_select ".kb-directory-picker-fixed-branch > .kb-directory-picker-caret-spacer + span", text: "/Public"
+      assert_select ".kb-directory-picker-fixed-branch > .kb-directory-picker-caret-spacer + span", text: "/System"
+      assert_select ".kb-directory-picker-fixed-branch > .kb-directory-picker-caret", count: 0
     end
   end
 
