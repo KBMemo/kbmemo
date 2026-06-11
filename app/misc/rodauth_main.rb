@@ -117,6 +117,9 @@ class RodauthMain < Rodauth::Rails::Auth
     # ==> Remember Feature
     # Remember all logged in users.
     after_login { remember_login }
+    after_logout do
+      set_response_header("Clear-Site-Data", '"cookies", "storage", "cache"')
+    end
 
     # Or only remember users that have ticked a "Remember Me" checkbox on login.
     # after_login { remember_login if param_or_nil("remember") }

@@ -74,13 +74,14 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `@kbmemo/adoc-wysiwyg` の search-replace dialog も `div hidden` から native `<dialog>` へ変更し、`aria-labelledby` / `aria-describedby` / platform cancel close に対応した。
 * CSP report-only に `require-trusted-types-for 'script'` と `trusted-types` allowlist を追加し、Trusted Types 違反を `/csp_reports` で観測できるようにした。
 * `config.action_dispatch.default_headers` に `Cross-Origin-Opener-Policy: same-origin-allow-popups` / `Cross-Origin-Resource-Policy: same-origin` を追加し、低リスクな isolation companion policy を固定した。
+* Rodauth logout response に `Clear-Site-Data: "cookies", "storage", "cache"` を追加し、ログアウト時に browser 側の site data も破棄するようにした。
 
 == 現状の良い点
 
 * semantic な `button` / `details` / `dialog` をすでに多用している。
 * flash 通知に `aria-live="polite"` が入っている。
 * avatar と本文画像系には `loading` / `decoding="async"` が使われている。avatar は `width` / `height` 属性も持ち、above-the-fold の単体 avatar は eager + low priority にしている。
-* production では `force_ssl = true`、host 制限、cookie store を使っている。
+* production では `force_ssl = true`、host 制限、cookie store を使っている。logout response は `Clear-Site-Data` で client-side site data を破棄する。
 * `X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` / `Cross-Origin-Opener-Policy` / `Cross-Origin-Resource-Policy` を default headers で明示している。
 * Tailwind 依存を外し、テーマ設計を `themes.css` と Open Props に寄せている。
 

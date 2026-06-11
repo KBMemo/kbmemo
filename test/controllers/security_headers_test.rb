@@ -33,4 +33,11 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
 
     assert_response :no_content
   end
+
+  test "logout response clears browser site data" do
+    post "/logout"
+
+    assert_response :redirect
+    assert_equal '"cookies", "storage", "cache"', response.headers["Clear-Site-Data"]
+  end
 end
