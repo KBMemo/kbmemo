@@ -51,6 +51,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `config.action_dispatch.default_headers` に `X-Content-Type-Options: nosniff` / `Referrer-Policy: strict-origin-when-cross-origin` / `Permissions-Policy: camera=(), geolocation=(), microphone=()` を明示し、低リスクな browser security companion policy を固定した。
 * CSP report-only の収集導線として `POST /csp_reports` を追加し、`report-uri /csp_reports` と `Reporting-Endpoints: csp="/csp_reports"` を設定した。受信 payload は認証なしで `204` を返し、ログは query / fragment を落とした最小フィールドに限定する。
 * `scripts/report-vite-bundles.mjs` に `--kind` filter を追加し、`npm run check:bundle-budget` で `entry` bundle を 520 kB 以内に固定する CI 向け budget check を追加した。
+* メモ編集フォームとディレクトリサイドバーの `<details>` ヒントは、アイコンだけの `summary` に `aria-label` / `aria-describedby` を付け、説明本文へ接続した。
 
 == 現状の良い点
 
@@ -128,8 +129,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P2
 |HTML / Accessibility
-|現在も semantic HTML は比較的良いが、custom popup / picker の増加で native 機能との差が広がりやすい。
-|Baseline を明示した上で、可能な箇所は `dialog` / `details` に寄せ、将来的には `popover` も検討する。Modern Web Guidance でも native overlays と focus management が中心テーマになっている。
+|現在も semantic HTML は比較的良いが、custom popup / picker の増加で native 機能との差が広がりやすい。メモ編集フォームとディレクトリサイドバーの `<details>` ヒントは accessible name / description を接続済み。
+|Baseline を明示した上で、可能な箇所は `dialog` / `details` に寄せ、将来的には `popover` も検討する。popover 化する場合は fallback / polyfill 方針も合わせて決める。
 
 |P2
 |Performance
@@ -163,6 +164,8 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * `app/javascript/controllers/memo_directory_dialog_controller.js`
 ** native `showModal()` を使っている点は良い。
 ** `replaceWithServerRenderedForm` に隔離済み。server-rendered fragment 前提の信頼境界はコードコメントで明示。
+* メモ編集フォーム / ディレクトリサイドバーの hint `<details>`
+** icon-only `summary` は `aria-label` と `aria-describedby` で説明本文へ接続済み。
 
 === 3. Security sink
 

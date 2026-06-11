@@ -4,9 +4,9 @@ div.min-w-0
       .flex.items-center.gap-1.shrink-0
         = f.label :visibility, "公開範囲", class: "text-sm font-medium kb-text-primary whitespace-nowrap"
         details.relative
-          summary class=kb_hint_trigger
-            i[data-lucide="circle-help" class="h-4 w-4"]
-          div class="absolute left-0 top-6 z-20 w-80 #{kb_hint_popover}"
+          summary class=kb_hint_trigger aria-label="公開範囲の説明" aria-describedby="memo-visibility-hint"
+            i[data-lucide="circle-help" class="h-4 w-4" aria-hidden="true"]
+          div#memo-visibility-hint class="absolute left-0 top-6 z-20 w-80 #{kb_hint_popover}"
             | 「グループ」系は共有グループの指定が必要です。一覧・編集は権限のあるメモのみ表示されます。
       = f.select :visibility, memo_visibility_options_for_select, {}, class: memo_form_underline_input("font-sans min-w-0 flex-1"), aria: kb_field_error_aria(memo, :visibility)
     .flex.min-w-0.flex-1.items-center.gap-2

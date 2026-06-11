@@ -3,9 +3,9 @@ div id="memo_slug_field" class="flex items-start gap-3"
   .flex.items-center.gap-1
     = label_tag "memo_slug", "スラッグ", class: "text-sm font-medium kb-text-primary whitespace-nowrap"
     details.relative
-      summary class=kb_hint_trigger
-        i[data-lucide="circle-help" class="h-4 w-4"]
-      div class="absolute left-0 top-6 z-20 w-80 #{kb_hint_popover}"
+      summary class=kb_hint_trigger aria-label="スラッグ同期の説明" aria-describedby="memo-slug-hint"
+        i[data-lucide="circle-help" class="h-4 w-4" aria-hidden="true"]
+      div#memo-slug-hint class="absolute left-0 top-6 z-20 w-80 #{kb_hint_popover}"
         - if memo.file_committed_at.present?
           | ファイル保存後は手動変更のみです。
         - else

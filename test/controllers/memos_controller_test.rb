@@ -870,6 +870,19 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select ".memo-draft-shell[data-controller~='memo-draft']"
     assert_select ".memo-draft-shell [data-memo-draft-target='formActionsChrome']"
     assert_select "form#new_memo_form [data-memo-draft-target='formActionsChrome']", count: 0
+    assert_select "summary[aria-label='タイトル同期の説明'][aria-describedby='memo-title-hint']"
+    assert_select "#memo-title-hint", text: /本文1行目/
+    assert_select "summary[aria-label='スラッグ同期の説明'][aria-describedby='memo-slug-hint']"
+    assert_select "#memo-slug-hint", text: /タイトルと同期/
+    assert_select "summary[aria-label='公開範囲の説明'][aria-describedby='memo-visibility-hint']"
+    assert_select "#memo-visibility-hint", text: /共有グループ/
+  end
+
+  test "directory sidebar hint has an accessible description" do
+    get memos_url
+    assert_response :success
+    assert_select "summary[aria-label='メモ移動方法の説明'][aria-describedby='memo-directory-move-hint']"
+    assert_select "#memo-directory-move-hint", text: /ドラッグ/
   end
 
   test "edit uncommitted memo shows delete and commit actions" do
