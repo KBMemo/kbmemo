@@ -70,6 +70,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * ボードの「既存メモを追加」パネルを `div` ベースの疑似モーダルから native `<dialog>` に変更し、`aria-labelledby` / backdrop click / focus return を controller 側で扱うようにした。
 * `@kbmemo/adoc-wysiwyg` の Web paste / image paste dialog を `div hidden` ベースから native `<dialog>` に変更し、`showModal()` / `closedby="any"` / `aria-labelledby` / `aria-describedby` / backdrop click fallback で扱うようにした。
 * ディレクトリ tree picker の `role=listbox` に `aria-controls` / roving tabindex / Arrow・Home・End・Escape keyboard 操作を追加し、選択中または最初の可視 option へ focus できるようにした。
+* 実行時に残る信頼済み HTML sink は Trusted Types の named policy 経由にし、`kbmemo-server-rendered-fragment` / `kbmemo-sanitized-svg` / `kbmemo-adoc-preview-html` の用途境界をコード上で分離した。
 
 == 現状の良い点
 
@@ -93,12 +94,12 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 |P0
 |Security
 |`memo_ai_panel_controller.js` は error 表示と message rendering を DOM API ベースへ置換済み。`memo_search_picker_controller.js` / `board_add_memo_controller.js` / `tsuzura_picker_controller.js` の picker 描画も DOM API ベースへ置換済み。`code_block_tools_controller.js` の copy / check icon も DOM API ベースへ置換済み。
-|`@kbmemo/adoc-wysiwyg` の固定 dialog template / 空段落 placeholder も DOM API ベースへ置換済み。残る `innerHTML` は sanitize 済み SVG / server-rendered fragment / Asciidoctor preview HTML / syntax highlight HTML など、用途ごとに境界を明示しながら縮小する。
+|`@kbmemo/adoc-wysiwyg` の固定 dialog template / 空段落 placeholder も DOM API ベースへ置換済み。実行時に残る `innerHTML` は sanitize 済み SVG / server-rendered fragment / Asciidoctor preview HTML に限定し、Trusted Types named policy 経由で用途境界を明示済み。syntax highlight HTML は highlight.js が返す既存 contract として扱い、CSP enforcement 前に違反 report を確認する。
 
 |P0
 |Security
 |`code_block_tools_controller.js` の SVG 注入は `replaceWithSanitizedSvg` に隔離済み。loading / error 表示は DOM API ベースへ変更済み。`render_diagram` は sanitize 済みヘッダー / JSON flag を返し、controller test で固定済み。
-|今後 Trusted Types を検討する場合は、この sink を named policy 化する候補にする。
+|SVG 注入は `kbmemo-sanitized-svg` policy 経由に変更済み。将来 `require-trusted-types-for 'script'` を report-only で試す場合は、同じ policy 名を violation の切り分け単位にする。
 
 |P1
 |Accessibility / HTML
@@ -203,7 +204,11 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** message rendering と error 表示は DOM API ベースへ置換済み。
 * `app/javascript/controllers/code_block_tools_controller.js`
 ** copy / check icon は DOM API ベースへ置換済み。
-** SVG 注入は `replaceWithSanitizedSvg` に隔離済み。`render_diagram` endpoint の response header / JSON flag / controller test で sanitize 契約を明示済み。
+** SVG 注入は `replaceWithSanitizedSvg` に隔離し、`kbmemo-sanitized-svg` policy 経由にしている。`render_diagram` endpoint の response header / JSON flag / controller test で sanitize 契約を明示済み。
+* `app/javascript/controllers/memo_directory_dialog_controller.js`
+** dialog form fragment は same-origin server-rendered HTML だけを読み込み、`kbmemo-server-rendered-fragment` policy 経由で挿入する。
+* `packages/adoc-preview/preview.js`
+** Asciidoctor preview HTML は `kbmemo-adoc-preview-html` policy 経由で挿入し、その後の画像解決・syntax highlight・math rendering に渡す。
 * `packages/adoc-wysiwyg/webPasteDialog.js` / `imagePasteDialog.js` / `searchReplaceDialog.js`
 ** 固定 dialog template は `innerHTML` を使わず DOM API で構築する。
 ** Web paste / image paste は native `<dialog>` で表示し、Esc / close button / backdrop click で cancel 解決する。

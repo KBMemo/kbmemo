@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { setTrustedHTML } from "../trusted_html.js"
 
 // メモ表示のコードブロック（.listingblock）にツールバーを付与する。
 // - すべての source ブロックに言語バッジ + コピーボタン
@@ -284,7 +285,7 @@ export default class extends Controller {
 
   replaceWithSanitizedSvg(figure, sanitizedSvg) {
     // render_diagram must mark successful responses as MemoSvgSanitizer-cleaned.
-    figure.innerHTML = sanitizedSvg
+    setTrustedHTML(figure, "kbmemo-sanitized-svg", sanitizedSvg)
   }
 
   hasSanitizedSvgHeader(response) {
