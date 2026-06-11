@@ -54,6 +54,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 * メモ編集フォームとディレクトリサイドバーの `<details>` ヒントは、アイコンだけの `summary` に `aria-label` / `aria-describedby` を付け、説明本文へ接続した。
 * `@kbmemo/adoc-wysiwyg` の web paste / image paste / search-replace dialog の固定 HTML template と、空段落 placeholder の固定 HTML を `createElement` / `textContent` / `append` ベースへ変更した。
 * メモ一覧 / AI パネルのサイドバー resizer に `aria-valuetext` を追加し、keyboard resize だけでなく drag resize 中も `aria-valuenow` / `aria-valuetext` を同期するようにした。
+* テーマスタジオのカスタムスキン入力、ボードへの新規カード追加 / 既存メモ検索、AI パネル prompt textarea に `label.sr-only` と必要な `autocomplete` を追加し、placeholder を accessible name として使わない構成へ寄せた。
 
 == 現状の良い点
 
@@ -111,7 +112,7 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 
 |P1
 |Forms / Accessibility
-|Rails model form の主要 field は、server validation error 時に `aria-invalid="true"` と field error message の `aria-describedby` を付与済み。既存の error summary は残している。
+|Rails model form の主要 field は、server validation error 時に `aria-invalid="true"` と field error message の `aria-describedby` を付与済み。テーマスタジオ / ボード追加 / AI パネルなどの小さな non-model form controls も placeholder だけに頼らず label を持つ。
 |今後追加する form も `kb_field_error_aria` / `kb_field_error_id` を使う。client-side validation を増やす場合は `:user-invalid` と ARIA 状態の同期を別途検討する。
 
 |P1
@@ -191,6 +192,9 @@ XSS/CSP/cookies などを中心に、モダンな Web 実装へ寄せるため�
 ** `kb_field_error_aria` / `kb_field_error_id` / `kb_field_error_message` を追加済み。
 ** memo / memo directory / board / notebook / tag / profile の主要 field は server validation error 時に field 単位で error text を参照する。
 ** Rodauth form は既に field error を `aria-invalid` / `aria-describedby` へ接続済み。
+* Small tool forms
+** テーマスタジオのカスタムスキン名 / CSS、ボードの新規カード title / 既存メモ検索、AI パネル prompt textarea は `sr-only` label を持つ。
+** 非個人情報・ツール内コマンド入力は `autocomplete="off"` を明示する。
 
 === 4. Performance
 
