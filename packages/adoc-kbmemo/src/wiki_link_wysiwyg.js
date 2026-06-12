@@ -1,6 +1,7 @@
 import { RangeSet, RangeSetBuilder, StateEffect, StateField } from "@codemirror/state"
-import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view"
+import { Decoration, EditorView, ViewPlugin } from "@codemirror/view"
 import { getViewportLineRange, shouldDecorateEditorLine } from "./viewport_lazy"
+import { KbmemoWidgetType } from "./widget_type_compat"
 import { wikiMemoLinkPath } from "../hostConfig.js"
 
 const WIKI_LINK = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g
@@ -98,7 +99,7 @@ export function linkExclusionRanges(text, lineFrom) {
   return ranges
 }
 
-class LinkLabelWidget extends WidgetType {
+class LinkLabelWidget extends KbmemoWidgetType {
   constructor(label, { broken = false, memoRef = null, href = null, external = false } = {}) {
     super()
     this.label = label
