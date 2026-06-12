@@ -1,6 +1,8 @@
-import { EditorView, ViewPlugin, Decoration } from '@codemirror/view'
+import * as CodeMirrorView from '@codemirror/view'
 import { RangeSetBuilder, StateField } from '@codemirror/state'
 import { refreshHighlights } from './parseSession.js'
+
+const { EditorView, ViewPlugin, Decoration } = CodeMirrorView
 
 /** @typedef {{ from: number, to: number, className: string }} HighlightSpan */
 
