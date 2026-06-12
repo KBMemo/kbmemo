@@ -45,18 +45,18 @@ html[data-kb-theme="default"] {
   --kb-sidebar-bg: var(--kb-bg-surface);
   --kb-editor-bg: var(--kb-bg-surface);
   --kb-kanban-column-bg: color-mix(in srgb, var(--kb-bg-muted) 80%, transparent);
-  --kb-status-danger-bg: var(--red-0);
-  --kb-status-danger-border: var(--red-2);
-  --kb-status-danger-text: var(--red-9);
-  --kb-status-danger-strong: var(--red-7);
-  --kb-status-warning-bg: var(--amber-0);
-  --kb-status-warning-border: var(--amber-2);
-  --kb-status-warning-text: var(--amber-9);
-  --kb-status-warning-strong: var(--amber-7);
-  --kb-status-success-bg: var(--green-0);
-  --kb-status-success-border: var(--green-2);
-  --kb-status-success-text: var(--green-9);
-  --kb-status-success-strong: var(--green-7);
+  --kb-status-danger-bg: #fff1f2;
+  --kb-status-danger-border: #fecdd3;
+  --kb-status-danger-text: #881337;
+  --kb-status-danger-strong: #be123c;
+  --kb-status-warning-bg: #fffbeb;
+  --kb-status-warning-border: #fde68a;
+  --kb-status-warning-text: #78350f;
+  --kb-status-warning-strong: #b45309;
+  --kb-status-success-bg: #f0fdf4;
+  --kb-status-success-border: #bbf7d0;
+  --kb-status-success-text: #14532d;
+  --kb-status-success-strong: #15803d;
   --kb-kanban-card-bg: var(--kb-bg-surface);
 }
 
@@ -83,18 +83,18 @@ html[data-kb-theme-base="dark"] {
   --kb-sidebar-bg: #161b22;
   --kb-editor-bg: #161b22;
   --kb-kanban-column-bg: color-mix(in srgb, var(--kb-bg-muted) 80%, transparent);
-  --kb-status-danger-bg: color-mix(in srgb, var(--red-9) 28%, var(--kb-bg-surface));
-  --kb-status-danger-border: color-mix(in srgb, var(--red-6) 55%, var(--kb-border));
-  --kb-status-danger-text: var(--red-2);
-  --kb-status-danger-strong: var(--red-3);
-  --kb-status-warning-bg: color-mix(in srgb, var(--amber-9) 26%, var(--kb-bg-surface));
-  --kb-status-warning-border: color-mix(in srgb, var(--amber-6) 55%, var(--kb-border));
-  --kb-status-warning-text: var(--amber-2);
-  --kb-status-warning-strong: var(--amber-3);
-  --kb-status-success-bg: color-mix(in srgb, var(--green-9) 24%, var(--kb-bg-surface));
-  --kb-status-success-border: color-mix(in srgb, var(--green-6) 55%, var(--kb-border));
-  --kb-status-success-text: var(--green-2);
-  --kb-status-success-strong: var(--green-3);
+  --kb-status-danger-bg: color-mix(in srgb, #9f1239 28%, var(--kb-bg-surface));
+  --kb-status-danger-border: color-mix(in srgb, #e11d48 55%, var(--kb-border));
+  --kb-status-danger-text: #fecdd3;
+  --kb-status-danger-strong: #fda4af;
+  --kb-status-warning-bg: color-mix(in srgb, #92400e 26%, var(--kb-bg-surface));
+  --kb-status-warning-border: color-mix(in srgb, #d97706 55%, var(--kb-border));
+  --kb-status-warning-text: #fde68a;
+  --kb-status-warning-strong: #fcd34d;
+  --kb-status-success-bg: color-mix(in srgb, #166534 24%, var(--kb-bg-surface));
+  --kb-status-success-border: color-mix(in srgb, #16a34a 55%, var(--kb-border));
+  --kb-status-success-text: #bbf7d0;
+  --kb-status-success-strong: #86efac;
   --kb-kanban-card-bg: #161b22;
 }
 
@@ -332,8 +332,8 @@ html[data-kb-theme-base="minimal"] {
 .kb-input[data-kb-client-invalid],
 .kb-field-input:user-invalid,
 .kb-field-input[data-kb-client-invalid] {
-  border-color: var(--red-7);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--red-7) 55%, transparent);
+  border-color: var(--kb-status-danger-strong);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--kb-status-danger-strong) 55%, transparent);
 }
 
 .kb-menu-panel {
