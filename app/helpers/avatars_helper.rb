@@ -31,7 +31,6 @@ module AvatarsHelper
       class: ["kb-avatar", extra_class].compact.join(" "),
       width: size,
       height: size,
-      style: "width:#{size}px;height:#{size}px",
       loading: loading,
       decoding: "async"
     }

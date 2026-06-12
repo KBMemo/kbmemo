@@ -1,5 +1,4 @@
 import { StateEffect, StateField } from "@codemirror/state"
-import { EditorView, ViewPlugin } from "@codemirror/view"
 
 /** ビューポート上下に装飾を先行生成する行数 */
 export const WYSIWYG_VIEWPORT_BUFFER_LINES = 48
@@ -38,7 +37,7 @@ function schedulePublishViewportRange(view) {
 /**
  * ビューポート変更時に可視行範囲を StateField へ反映（表 StateField 等が参照）。
  */
-export function viewportLineRangeSyncExtension() {
+export function viewportLineRangeSyncExtension({ EditorView, ViewPlugin } = {}) {
   return [
     viewportLineRangeField,
     EditorView.updateListener.of((update) => {

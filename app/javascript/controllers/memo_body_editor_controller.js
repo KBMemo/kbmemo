@@ -346,7 +346,7 @@ export default class extends Controller {
         EditorView.lineWrapping,
         ...asciidocExts,
         kbmemoEditor.listContinuationExtension(),
-        ...kbmemoEditor.wikiAutocompletion(getWikiConfig),
+        ...kbmemoEditor.wikiAutocompletion(getWikiConfig, { EditorView }),
         updateListener,
         a11y,
         theme,

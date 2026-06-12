@@ -8,22 +8,23 @@ import { wikiLinkWysiwygExtension } from './src/wiki_link_wysiwyg.js'
 /**
  * KBMemo 向け WYSIWYG ユニット内ソース CodeMirror 拡張。
  *
- * @param {{ getWikiConfig?: () => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null }, getMemoId?: () => string | null | undefined, rawSourceMode?: boolean }} [options]
+ * @param {{ getWikiConfig?: () => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null }, getMemoId?: () => string | null | undefined, rawSourceMode?: boolean, codeMirrorView?: { Decoration: object, EditorView: object, ViewPlugin: object } }} [options]
  */
 export function createKbmemoWysiwygSourceExtensions({
   getWikiConfig,
   getMemoId,
   rawSourceMode = true,
+  codeMirrorView,
 } = {}) {
   const extensions = [
-    ...viewportLineRangeSyncExtension(),
+    ...viewportLineRangeSyncExtension(codeMirrorView),
     listContinuationExtension(),
   ]
 
   if (!rawSourceMode) {
     extensions.push(
-      diagramWysiwygExtension(getMemoId ?? (() => null)),
-      ...mathWysiwygExtension(),
+      diagramWysiwygExtension(getMemoId ?? (() => null), codeMirrorView),
+      ...mathWysiwygExtension(codeMirrorView),
     )
   }
 
@@ -38,10 +39,10 @@ export function createKbmemoWysiwygSourceExtensions({
     return { url: labelsUrl, memoId: memoId ?? null }
   }
 
-  extensions.push(...wikiAutocompletion(getCompletionsConfig))
+  extensions.push(...wikiAutocompletion(getCompletionsConfig, codeMirrorView))
 
   if (!rawSourceMode) {
-    extensions.push(...wikiLinkWysiwygExtension(getLabelsConfig))
+    extensions.push(...wikiLinkWysiwygExtension(getLabelsConfig, codeMirrorView))
   }
 
   return extensions

@@ -23,7 +23,7 @@ class AvatarsHelperTest < ActionView::TestCase
 
     assert_includes html, 'width="28"'
     assert_includes html, 'height="28"'
-    assert_includes html, 'style="width:28px;height:28px"'
+    assert_not_includes html, "style="
     assert_includes html, 'loading="lazy"'
     assert_includes html, 'decoding="async"'
   end
