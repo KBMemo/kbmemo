@@ -1,4 +1,3 @@
-import { Decoration, EditorView } from '@codemirror/view'
 import { RangeSetBuilder, StateField } from '@codemirror/state'
 import { refreshHighlights } from './parseSession.js'
 
@@ -23,8 +22,9 @@ export const highlightStateField = StateField.define({
 /**
  * @param {HighlightSpan[]} spans
  * @param {number} docLength
+ * @param {typeof import('@codemirror/view').Decoration} Decoration
  */
-function buildDecorations(spans, docLength) {
+function buildDecorations(spans, docLength, Decoration) {
   if (spans.length === 0) {
     return Decoration.none
   }
@@ -43,30 +43,37 @@ function buildDecorations(spans, docLength) {
   return builder.finish()
 }
 
-const highlightDecorationsField = StateField.define({
-  create(state) {
-    const { spans } = state.field(highlightStateField)
-    return buildDecorations(spans, state.doc.length)
-  },
-  update(value, tr) {
-    const currentHighlightState = tr.state.field(highlightStateField)
+/**
+ * @param {{
+ *   EditorView: typeof import('@codemirror/view').EditorView,
+ *   Decoration: typeof import('@codemirror/view').Decoration,
+ * }} viewModules
+ */
+export function createAsciidocHighlight({ EditorView, Decoration }) {
+  const highlightDecorationsField = StateField.define({
+    create(state) {
+      const { spans } = state.field(highlightStateField)
+      return buildDecorations(spans, state.doc.length, Decoration)
+    },
+    update(value, tr) {
+      const currentHighlightState = tr.state.field(highlightStateField)
 
-    if (
-      tr.docChanged
-      || currentHighlightState !== tr.startState.field(highlightStateField)
-    ) {
-      return buildDecorations(currentHighlightState.spans, tr.state.doc.length)
-    }
+      if (
+        tr.docChanged
+        || currentHighlightState !== tr.startState.field(highlightStateField)
+      ) {
+        return buildDecorations(currentHighlightState.spans, tr.state.doc.length, Decoration)
+      }
 
-    return value.map(tr.changes)
-  },
-  provide: (field) => EditorView.decorations.from(field),
-})
+      return value.map(tr.changes)
+    },
+    provide: (field) => EditorView.decorations.from(field),
+  })
 
-export const asciidocHighlight = [
-  highlightStateField,
-  highlightDecorationsField,
-  EditorView.baseTheme({
+  return [
+    highlightStateField,
+    highlightDecorationsField,
+    EditorView.baseTheme({
     '.adoc-heading': { fontWeight: 'bold', color: '#0550ae' },
     '.adoc-h0': { fontSize: '1.05em' },
     '.adoc-h1': { color: '#0969da' },
@@ -125,5 +132,6 @@ export const asciidocHighlight = [
     '.cm-hljs-regexp': { color: '#032f62' },
     '.cm-hljs-tag': { color: '#22863a' },
     '.cm-hljs-attr': { color: '#005cc5' },
-  }),
-]
+    }),
+  ]
+}

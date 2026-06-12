@@ -59,16 +59,18 @@ writeFileSync(
 writeFileSync(
   join(workDir, 'smoke.mjs'),
   `import {
-  asciidocHighlight,
+  createAsciidocHighlight,
   refreshHighlights,
   configureVanillaHost,
   parseEditUnitsFromSource,
 } from '@kbmemo/adoc-editor'
+import { Decoration, EditorView } from '@codemirror/view'
 
 configureVanillaHost({ memoBase: '/memos' })
 
+const asciidocHighlight = createAsciidocHighlight({ Decoration, EditorView })
 if (!Array.isArray(asciidocHighlight)) {
-  throw new Error('asciidocHighlight export missing')
+  throw new Error('createAsciidocHighlight returned no extensions')
 }
 
 const source = '= Hello\\n\\n* list item'

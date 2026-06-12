@@ -12,7 +12,7 @@ export function createLivePreview(options) {
 }
 
 export {
-  asciidocHighlight,
+  createAsciidocHighlight,
 } from '../../../packages/adoc-codemirror/src/codemirror.js'
 export {
   refreshHighlights,

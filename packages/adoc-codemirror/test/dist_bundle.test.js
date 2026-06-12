@@ -6,6 +6,6 @@ describe('@kbmemo/adoc-codemirror dist bundle', () => {
 
     expect(typeof mod.refreshHighlights).toBe('function')
     expect(typeof mod.parseEditUnitsFromSource).toBe('function')
-    expect(Array.isArray(mod.asciidocHighlight)).toBe(true)
+    expect(typeof mod.createAsciidocHighlight).toBe('function')
   })
 })
