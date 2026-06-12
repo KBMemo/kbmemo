@@ -1,5 +1,5 @@
 import { RangeSet, StateField } from "@codemirror/state"
-import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view"
+import { Decoration, EditorView, ViewPlugin } from "@codemirror/view"
 import katex from "katex"
 import { codeBlockByLine, scanCodeBlocks } from "./code_block_syntax"
 import {
@@ -21,6 +21,7 @@ import {
   setViewportLineRange,
   shouldDecorateEditorLine
 } from "./viewport_lazy"
+import { KbmemoWidgetType } from "./widget_type_compat"
 
 export { setStemActiveBlock, activateStemBlock } from "./math_wysiwyg_effects"
 
@@ -44,7 +45,7 @@ function skipLinesForMath(state) {
   return (n) => codeByLine.has(n) || tableByLine.has(n)
 }
 
-class MathPreviewWidget extends WidgetType {
+class MathPreviewWidget extends KbmemoWidgetType {
   constructor({ latex, displayMode, blockStartLine = null, editLineNo = null, title = null }) {
     super()
     this.latex = latex

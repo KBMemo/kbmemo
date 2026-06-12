@@ -1,5 +1,5 @@
 import { RangeSet } from '@codemirror/state'
-import { Decoration, EditorView, ViewPlugin, WidgetType } from '@codemirror/view'
+import { Decoration, EditorView, ViewPlugin } from '@codemirror/view'
 import { codeBlockByLine, scanCodeBlocks } from './code_block_syntax'
 import {
   diagramEditUrl,
@@ -12,6 +12,7 @@ import {
 import { memoAssetSrc } from './image_syntax'
 import { scanTableBlocks, tableBlockByLine } from './table_syntax'
 import { getViewportLineRange, shouldDecorateEditorLine } from './viewport_lazy'
+import { KbmemoWidgetType } from './widget_type_compat'
 
 function selectionTouches(state, from, to) {
   return state.selection.ranges.some((range) => {
@@ -109,7 +110,7 @@ function appendDiagramAction(actions, { href, label }) {
   actions.appendChild(link)
 }
 
-class DiagramPreviewWidget extends WidgetType {
+class DiagramPreviewWidget extends KbmemoWidgetType {
   constructor({ src, label, editUrl, sourceUrl, viewUrl, block, from, to }) {
     super()
     this.src = src
