@@ -14,7 +14,8 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_equal 'csp="/csp_reports"', response.headers["Reporting-Endpoints"]
     assert_includes response.headers["Content-Security-Policy-Report-Only"], "frame-ancestors 'self'"
     assert_includes response.headers["Content-Security-Policy-Report-Only"], "require-trusted-types-for 'script'"
-    assert_includes response.headers["Content-Security-Policy-Report-Only"], "trusted-types kbmemo-adoc-preview-html kbmemo-code-highlight-html kbmemo-sanitized-svg kbmemo-server-rendered-fragment"
+    assert_match(/style-src 'self' 'nonce-[^']+'/, response.headers["Content-Security-Policy-Report-Only"])
+    assert_includes response.headers["Content-Security-Policy-Report-Only"], "trusted-types default kbmemo-adoc-preview-html kbmemo-code-highlight-html kbmemo-sanitized-svg kbmemo-server-rendered-fragment"
     assert_includes response.headers["Content-Security-Policy-Report-Only"], "report-to csp"
     assert_includes response.headers["Content-Security-Policy-Report-Only"], "report-uri /csp_reports"
   end

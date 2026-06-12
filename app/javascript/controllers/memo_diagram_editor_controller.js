@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { diagramLanguageExtensions } from "../memo_diagram_editor/language_extensions"
 import { renderSvgInPreviewPanel } from "../memo_diagram_editor/preview_panel"
+import { codeMirrorCspNonceExtension } from "../security/csp_nonce"
 
 const PREVIEW_DEBOUNCE_MS = 500
 
@@ -100,7 +101,8 @@ export default class extends Controller {
         ...languageExtensions,
         updateListener,
         a11y,
-        theme
+        theme,
+        codeMirrorCspNonceExtension(EditorView)
       ]
     })
 

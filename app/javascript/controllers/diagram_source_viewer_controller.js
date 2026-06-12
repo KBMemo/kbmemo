@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { diagramLanguageExtensions } from "../memo_diagram_editor/language_extensions"
+import { codeMirrorCspNonceExtension } from "../security/csp_nonce"
 
 export default class extends Controller {
   static targets = ["field", "host"]
@@ -48,7 +49,8 @@ export default class extends Controller {
         EditorState.readOnly.of(true),
         EditorView.editable.of(false),
         a11y,
-        theme
+        theme,
+        codeMirrorCspNonceExtension(EditorView)
       ]
     })
 
