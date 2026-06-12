@@ -20,6 +20,7 @@ Rails.application.configure do
     policy.script_src :self
     policy.style_src :self
     policy.trusted_types(
+      "default",
       "kbmemo-adoc-preview-html",
       "kbmemo-code-highlight-html",
       "kbmemo-sanitized-svg",
