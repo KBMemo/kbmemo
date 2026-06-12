@@ -1,7 +1,7 @@
 import { EditorState } from '@codemirror/state'
 import { Decoration, EditorView, ViewPlugin } from '@codemirror/view'
 import { search } from '@codemirror/search'
-import { createAsciidocHighlight } from '@kbmemo/adoc-codemirror'
+import * as adocCodeMirror from '@kbmemo/adoc-codemirror'
 import { createModFKeymap } from './searchKeybindings.js'
 import { isModRedo, isModZ } from './wysiwygHistory.js'
 
@@ -38,7 +38,7 @@ export function createWysiwygSourceEditor(source, { extensions = [], onChange, o
       extensions: [
         onModF ? createModFKeymap(onModF) : [],
         search(),
-        createAsciidocHighlight({ Decoration, EditorView }),
+        createWysiwygAsciidocHighlight(),
         EditorView.lineWrapping,
         wysiwygAutoHeightExtension(),
         ...extensions,
@@ -85,6 +85,17 @@ export function createWysiwygSourceEditor(source, { extensions = [], onChange, o
   viewByHost.set(host, view)
   scheduleWysiwygSourceEditorResize(view)
   return host
+}
+
+function createWysiwygAsciidocHighlight() {
+  if (typeof adocCodeMirror.createAsciidocHighlight === 'function') {
+    return adocCodeMirror.createAsciidocHighlight({ Decoration, EditorView })
+  }
+
+  const legacyHighlight = Reflect.get(adocCodeMirror, 'asciidocHighlight')
+  return Array.isArray(legacyHighlight)
+    ? legacyHighlight
+    : []
 }
 
 function wysiwygAutoHeightExtension() {

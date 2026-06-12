@@ -1,5 +1,6 @@
 import "../styles/application.css"
 
+import "../../javascript/trusted_types_default_policy.js"
 import "@hotwired/turbo-rails"
 import "../../javascript/controllers"
 import { initUserInvalidAriaSync } from "../../javascript/forms/user_invalid_aria.js"
