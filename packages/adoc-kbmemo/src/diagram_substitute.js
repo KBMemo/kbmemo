@@ -24,7 +24,7 @@ function replaceDiagramMacroWithAvailability(macroPath, availability) {
   if (availability && availability.get(svgRel) !== true) {
     return `[.memo-diagram-missing]#${escapeAsciidocUnquoted(svgRel)}#`
   }
-  return `image::${svgRel}[opts=interactive]`
+  return `image::${svgRel}[]`
 }
 
 /**

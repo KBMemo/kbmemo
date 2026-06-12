@@ -48,8 +48,7 @@ class MemoDiagramMacro
     svg_abs = @repo.absolute_asset_path_for(@memo, svg_rel)
 
     if svg_abs.file?
-      # Mermaid ラベルは foreignObject 内 HTML。img では描画されないため object で表示する。
-      "image::#{svg_rel}[opts=interactive]"
+      "image::#{svg_rel}[]"
     else
       missing_diagram_markup(source_rel)
     end

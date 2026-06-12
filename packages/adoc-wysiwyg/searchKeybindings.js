@@ -1,5 +1,4 @@
 import { Prec } from '@codemirror/state'
-import { keymap } from '@codemirror/view'
 
 /**
  * @param {KeyboardEvent} event
@@ -16,7 +15,7 @@ export function isModF(event) {
 /**
  * @param {(view: import('@codemirror/view').EditorView) => void} onSearch
  */
-export function createModFKeymap(onSearch) {
+export function createModFKeymap(onSearch, keymap) {
   return Prec.high(
     keymap.of([
       {

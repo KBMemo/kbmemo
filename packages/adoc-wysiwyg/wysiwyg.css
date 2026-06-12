@@ -191,14 +191,14 @@ html[data-kb-theme-base="minimal"] .wysiwyg-source-editor .cm-dropCursor {
   cursor: pointer;
 }
 
-.memo-body-editor .cm-wysiwyg-diagram-object {
+.memo-body-editor .cm-wysiwyg-diagram-image {
   display: block;
   max-width: 100%;
   max-height: 20rem;
   pointer-events: none;
 }
 
-.memo-body-editor .cm-wysiwyg-diagram--inline .cm-wysiwyg-diagram-object {
+.memo-body-editor .cm-wysiwyg-diagram--inline .cm-wysiwyg-diagram-image {
   max-height: 8rem;
 }
 

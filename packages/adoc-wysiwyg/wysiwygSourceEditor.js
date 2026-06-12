@@ -1,5 +1,4 @@
 import { EditorState } from '@codemirror/state'
-import { Decoration, EditorView, ViewPlugin } from '@codemirror/view'
 import { search } from '@codemirror/search'
 import * as adocCodeMirror from '@kbmemo/adoc-codemirror'
 import { createModFKeymap } from './searchKeybindings.js'
@@ -26,9 +25,10 @@ export function isWysiwygSourceComposing(host) {
 
 /**
  * @param {string} source
- * @param {{ extensions?: import('@codemirror/state').Extension[], onChange?: (view: EditorView) => void, onKeyDown?: (event: KeyboardEvent, view: EditorView) => boolean | void, onPaste?: (event: ClipboardEvent, view: EditorView) => boolean | void, onContextMenu?: (event: MouseEvent, view: EditorView) => void, onModF?: (view: EditorView) => void, onUndo?: () => boolean, onRedo?: () => boolean }} [handlers]
+ * @param {{ codeMirrorView?: { Decoration: object, EditorView: object, ViewPlugin: object, keymap: object }, extensions?: import('@codemirror/state').Extension[], onChange?: (view: EditorView) => void, onKeyDown?: (event: KeyboardEvent, view: EditorView) => boolean | void, onPaste?: (event: ClipboardEvent, view: EditorView) => boolean | void, onContextMenu?: (event: MouseEvent, view: EditorView) => void, onModF?: (view: EditorView) => void, onUndo?: () => boolean, onRedo?: () => boolean }} [handlers]
  */
-export function createWysiwygSourceEditor(source, { extensions = [], onChange, onKeyDown, onPaste, onContextMenu, onModF, onUndo, onRedo } = {}) {
+export function createWysiwygSourceEditor(source, { codeMirrorView = {}, extensions = [], onChange, onKeyDown, onPaste, onContextMenu, onModF, onUndo, onRedo } = {}) {
+  const { Decoration, EditorView, ViewPlugin, keymap } = codeMirrorView
   const host = document.createElement('div')
   host.className = 'wysiwyg-source-editor'
 
@@ -36,11 +36,11 @@ export function createWysiwygSourceEditor(source, { extensions = [], onChange, o
     state: EditorState.create({
       doc: source,
       extensions: [
-        onModF ? createModFKeymap(onModF) : [],
+        onModF ? createModFKeymap(onModF, keymap) : [],
         search(),
-        createWysiwygAsciidocHighlight(),
+        createWysiwygAsciidocHighlight({ Decoration, EditorView }),
         EditorView.lineWrapping,
-        wysiwygAutoHeightExtension(),
+        wysiwygAutoHeightExtension(ViewPlugin),
         ...extensions,
         EditorView.updateListener.of((update) => {
           if (update.docChanged && !composingByHost.get(host)) {
@@ -72,7 +72,7 @@ export function createWysiwygSourceEditor(source, { extensions = [], onChange, o
             return true
           },
         }),
-        wysiwygSourceTheme,
+        wysiwygSourceTheme(EditorView),
       ],
     }),
     parent: host,
@@ -87,7 +87,7 @@ export function createWysiwygSourceEditor(source, { extensions = [], onChange, o
   return host
 }
 
-function createWysiwygAsciidocHighlight() {
+function createWysiwygAsciidocHighlight({ Decoration, EditorView }) {
   if (typeof adocCodeMirror.createAsciidocHighlight === 'function') {
     return adocCodeMirror.createAsciidocHighlight({ Decoration, EditorView })
   }
@@ -98,7 +98,7 @@ function createWysiwygAsciidocHighlight() {
     : []
 }
 
-function wysiwygAutoHeightExtension() {
+function wysiwygAutoHeightExtension(ViewPlugin) {
   return ViewPlugin.fromClass(
     class {
       /** @param {EditorView} view */
@@ -144,26 +144,28 @@ function cancelWysiwygSourceEditorResize(view) {
   resizeFrameByView.delete(view)
 }
 
-const wysiwygSourceTheme = EditorView.theme({
-  '&': {
-    fontSize: '0.875rem',
-  },
-  '&.cm-focused': {
-    outline: 'none',
-  },
-  '.cm-scroller': {
-    fontFamily: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace",
-    lineHeight: '1.6',
-    overflow: 'visible',
-  },
-  '.cm-content': {
-    padding: '0.75rem 1rem',
-    minHeight: '2.5rem',
-  },
-  '.cm-gutters': {
-    display: 'none',
-  },
-})
+function wysiwygSourceTheme(EditorView) {
+  return EditorView.theme({
+    '&': {
+      fontSize: '0.875rem',
+    },
+    '&.cm-focused': {
+      outline: 'none',
+    },
+    '.cm-scroller': {
+      fontFamily: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace",
+      lineHeight: '1.6',
+      overflow: 'visible',
+    },
+    '.cm-content': {
+      padding: '0.75rem 1rem',
+      minHeight: '2.5rem',
+    },
+    '.cm-gutters': {
+      display: 'none',
+    },
+  })
+}
 
 /**
  * @param {EditorView} view

@@ -355,7 +355,7 @@ module MemosHelper
     end
 
     # safe モード: SVG は既定で <img src="...">（インライン SVG は jail で無効）。
-    # image::x.svg[opts=interactive] は <object> になるため、アップロード時サニタイズに依存する。
+    # object-src 'none' を維持するため、diagram 変換も object 出力になる属性を使わない。
     html = Asciidoctor.convert(
       processed,
       safe: :safe,
@@ -445,7 +445,7 @@ module MemosHelper
     fragment.to_html.html_safe
   end
 
-  # 表示画面: ビューポート外の画像読み込みを遅延（<object> 図は対象外）
+  # 表示画面: ビューポート外の画像読み込みを遅延
   def memo_html_lazy_load_images(html)
     fragment = Nokogiri::HTML.fragment(html.to_s)
     fragment.css("img:not([loading])").each do |img|
@@ -626,6 +626,8 @@ module MemosHelper
 
     relative = memo_asset_relative_from_url(img["src"], memo: memo)
     return [] unless relative
+
+    return memo_show_diagram_action_links(memo, relative) if memo_diagram_svg_relative?(relative)
 
     viewer_link_for_asset(memo, relative)
   end

@@ -588,7 +588,7 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   overflow: auto;
 }
 
-.memo-diagram-editor-preview-object {
+.memo-diagram-editor-preview-image {
   display: block;
   max-width: 100%;
 }
