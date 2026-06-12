@@ -4,6 +4,7 @@ import '@kbmemo/adoc-wysiwyg/contextMenu.css'
 import { Decoration, EditorView, keymap, MatchDecorator, ViewPlugin } from '@codemirror/view'
 import { createWysiwygEditor } from '@kbmemo/adoc-wysiwyg'
 import { createKbmemoWysiwygSourceExtensions } from '@kbmemo/adoc-kbmemo'
+import { getCspNonce } from '../security/csp_nonce'
 
 const LEGACY_ASCIIDOCTOR_LINK_ID = 'kbmemo-adoc-preview-base'
 const codeMirrorView = { Decoration, EditorView, keymap, MatchDecorator, ViewPlugin }
@@ -30,6 +31,7 @@ export function createMemoWysiwygEditor({ editorEl, paneEl, getMemoId, getWikiCo
     getMemoId,
     getWikiConfig,
     codeMirrorView,
+    cspNonce: getCspNonce(),
     sourceExtensions: createKbmemoWysiwygSourceExtensions({
       getWikiConfig,
       getMemoId,

@@ -14,6 +14,10 @@ import {
 } from "../../javascript/memo_directory_nav_open.js"
 import { createIcons, ArrowLeft, BookOpen, CircleHelp, Copy, Eye, GripVertical, Kanban, Link2, PanelLeftOpen, Pencil, Plus, Trash2 } from "lucide"
 
+if (window.Turbo?.config?.drive) {
+  window.Turbo.config.drive.progressBarDelay = Number.MAX_SAFE_INTEGER
+}
+
 function accountThemeFromJsonScript() {
   const el = document.getElementById("kbmemo-account-theme-json")
   if (!el?.textContent?.trim()) return null

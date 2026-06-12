@@ -25,9 +25,9 @@ export function isWysiwygSourceComposing(host) {
 
 /**
  * @param {string} source
- * @param {{ codeMirrorView?: { Decoration: object, EditorView: object, ViewPlugin: object, keymap: object }, extensions?: import('@codemirror/state').Extension[], onChange?: (view: EditorView) => void, onKeyDown?: (event: KeyboardEvent, view: EditorView) => boolean | void, onPaste?: (event: ClipboardEvent, view: EditorView) => boolean | void, onContextMenu?: (event: MouseEvent, view: EditorView) => void, onModF?: (view: EditorView) => void, onUndo?: () => boolean, onRedo?: () => boolean }} [handlers]
+ * @param {{ codeMirrorView?: { Decoration: object, EditorView: object, ViewPlugin: object, keymap: object }, cspNonce?: string, extensions?: import('@codemirror/state').Extension[], onChange?: (view: EditorView) => void, onKeyDown?: (event: KeyboardEvent, view: EditorView) => boolean | void, onPaste?: (event: ClipboardEvent, view: EditorView) => boolean | void, onContextMenu?: (event: MouseEvent, view: EditorView) => void, onModF?: (view: EditorView) => void, onUndo?: () => boolean, onRedo?: () => boolean }} [handlers]
  */
-export function createWysiwygSourceEditor(source, { codeMirrorView = {}, extensions = [], onChange, onKeyDown, onPaste, onContextMenu, onModF, onUndo, onRedo } = {}) {
+export function createWysiwygSourceEditor(source, { codeMirrorView = {}, cspNonce = "", extensions = [], onChange, onKeyDown, onPaste, onContextMenu, onModF, onUndo, onRedo } = {}) {
   const { Decoration, EditorView, ViewPlugin, keymap } = codeMirrorView
   const host = document.createElement('div')
   host.className = 'wysiwyg-source-editor'
@@ -41,6 +41,7 @@ export function createWysiwygSourceEditor(source, { codeMirrorView = {}, extensi
         createWysiwygAsciidocHighlight({ Decoration, EditorView }),
         EditorView.lineWrapping,
         wysiwygAutoHeightExtension(ViewPlugin),
+        cspNonce ? EditorView.cspNonce.of(cspNonce) : [],
         ...extensions,
         EditorView.updateListener.of((update) => {
           if (update.docChanged && !composingByHost.get(host)) {

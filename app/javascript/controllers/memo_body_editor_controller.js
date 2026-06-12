@@ -4,6 +4,7 @@ import {
   applySnippetToEditorView,
   filterMemoSourceSnippets,
 } from "../adoc_editor/snippet_support"
+import { codeMirrorCspNonceExtension } from "../security/csp_nonce"
 
 const ACCEPTED_IMAGE_TYPE = /^image\/(png|jpeg|gif|webp|svg\+xml)$/i
 const ACCEPTED_IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i
@@ -350,6 +351,7 @@ export default class extends Controller {
         updateListener,
         a11y,
         theme,
+        codeMirrorCspNonceExtension(EditorView),
         EditorView.domEventHandlers({
           blur: () => this.notifyBodyBlur(),
           keydown(event) {

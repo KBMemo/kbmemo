@@ -65,9 +65,9 @@ const SYNC_DEBOUNCE_MS = 400
 
 /**
  * @param {HTMLElement} editorEl
- * @param {{ onSourceChange: (source: string) => void, paneEl?: HTMLElement | null, getMemoId?: () => string | null | undefined, getWikiConfig?: () => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null }, codeMirrorView?: object, sourceExtensions?: import('@codemirror/state').Extension[], onImagePaste?: (event: ClipboardEvent) => boolean | void }} options
+ * @param {{ onSourceChange: (source: string) => void, paneEl?: HTMLElement | null, getMemoId?: () => string | null | undefined, getWikiConfig?: () => { completionsUrl?: string, labelsUrl?: string, memoId?: string | null }, codeMirrorView?: object, cspNonce?: string, sourceExtensions?: import('@codemirror/state').Extension[], onImagePaste?: (event: ClipboardEvent) => boolean | void }} options
  */
-export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoId, getWikiConfig, codeMirrorView, sourceExtensions = [], onImagePaste }) {
+export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoId, getWikiConfig, codeMirrorView, cspNonce, sourceExtensions = [], onImagePaste }) {
   let syncTimer
   let splitTimer
   let isRendering = false
@@ -1341,6 +1341,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
 function createSourceEditorHost(source, { onChange, onKeyDown, onPaste, onContextMenu, onModF, onUndo, onRedo }, extensions) {
   return createWysiwygSourceEditor(source, {
     codeMirrorView,
+    cspNonce,
     extensions,
     onChange: () => onChange(),
     onKeyDown,
