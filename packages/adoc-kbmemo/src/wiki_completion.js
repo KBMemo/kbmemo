@@ -1,5 +1,4 @@
 import { autocompletion, startCompletion } from "@codemirror/autocomplete"
-import { EditorView } from "@codemirror/view"
 import { getCsrfToken } from '../hostConfig.js'
 
 /** [[ と ]]（または | より前）に挟まれたスラッグ文字列全体 */
@@ -127,7 +126,7 @@ export function wikiCompletionSource(getConfig) {
 }
 
 /** 削除やカーソル移動で [[|]] になったときも候補を開く */
-export function wikiCompletionActivationListener() {
+export function wikiCompletionActivationListener({ EditorView } = {}) {
   return EditorView.updateListener.of((update) => {
     if (!update.docChanged && !update.selectionSet) return
     const main = update.state.selection.main
@@ -137,7 +136,7 @@ export function wikiCompletionActivationListener() {
   })
 }
 
-export function wikiAutocompletion(getConfig) {
+export function wikiAutocompletion(getConfig, codeMirrorView) {
   return [
     autocompletion({
       override: [wikiCompletionSource(getConfig)],
@@ -145,6 +144,6 @@ export function wikiAutocompletion(getConfig) {
       maxRenderedOptions: 12,
       icons: false
     }),
-    wikiCompletionActivationListener()
+    wikiCompletionActivationListener(codeMirrorView)
   ]
 }

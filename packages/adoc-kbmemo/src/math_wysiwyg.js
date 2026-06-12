@@ -1,5 +1,4 @@
 import { RangeSet, StateField } from "@codemirror/state"
-import { Decoration, EditorView, ViewPlugin } from "@codemirror/view"
 import katex from "katex"
 import { codeBlockByLine, scanCodeBlocks } from "./code_block_syntax"
 import {
@@ -127,7 +126,7 @@ class MathPreviewWidget extends KbmemoWidgetType {
 }
 
 /** block replace は StateField のみ可。active 中のブロックは raw 表示 */
-export function buildBlockMathDecorations(state, activeStemStartLine = null) {
+export function buildBlockMathDecorations(state, activeStemStartLine = null, Decoration) {
   const decoRanges = []
   const skipLine = skipLinesForMath(state)
   const stemBlocks = scanStemBlocks(state.doc, skipLine)
@@ -165,14 +164,14 @@ export function buildBlockMathDecorations(state, activeStemStartLine = null) {
   return decoRanges.length > 0 ? Decoration.set(decoRanges, true) : Decoration.none
 }
 
-function blockMathFieldValue(state, active) {
+function blockMathFieldValue(state, active, Decoration) {
   return {
-    decorations: buildBlockMathDecorations(state, active),
+    decorations: buildBlockMathDecorations(state, active, Decoration),
     active
   }
 }
 
-function buildInlineMathDecorations(view) {
+function buildInlineMathDecorations(view, mathBlockPreviewField, Decoration) {
   const specs = []
   const atomicRanges = []
   const { state } = view
@@ -240,66 +239,70 @@ function buildInlineMathDecorations(view) {
   return { decorations, atomicRanges: atomic }
 }
 
-const mathBlockPreviewField = StateField.define({
-  create(state) {
-    return blockMathFieldValue(state, null)
-  },
-  update(value, tr) {
-    let active = value.active
-    const explicit = tr.effects.find((e) => e.is(setStemActiveBlock))
+function createMathBlockPreviewField({ Decoration, EditorView }) {
+  return StateField.define({
+    create(state) {
+      return blockMathFieldValue(state, null, Decoration)
+    },
+    update(value, tr) {
+      let active = value.active
+      const explicit = tr.effects.find((e) => e.is(setStemActiveBlock))
 
-    if (explicit !== undefined) {
-      active = explicit.value
-    } else if (tr.selectionSet && active != null) {
-      const skipLine = skipLinesForMath(tr.state)
-      const block = scanStemBlocks(tr.state.doc, skipLine).find((b) => b.startLine === active)
-      if (!block || !selectionHeadInStemBlock(tr.state, block)) {
-        active = null
+      if (explicit !== undefined) {
+        active = explicit.value
+      } else if (tr.selectionSet && active != null) {
+        const skipLine = skipLinesForMath(tr.state)
+        const block = scanStemBlocks(tr.state.doc, skipLine).find((b) => b.startLine === active)
+        if (!block || !selectionHeadInStemBlock(tr.state, block)) {
+          active = null
+        }
       }
-    }
 
-    const viewportChanged = tr.effects.some((e) => e.is(setViewportLineRange))
-    if (tr.docChanged || tr.selectionSet || active !== value.active || viewportChanged) {
-      return blockMathFieldValue(tr.state, active)
-    }
+      const viewportChanged = tr.effects.some((e) => e.is(setViewportLineRange))
+      if (tr.docChanged || tr.selectionSet || active !== value.active || viewportChanged) {
+        return blockMathFieldValue(tr.state, active, Decoration)
+      }
 
-    return {
-      decorations: value.decorations.map(tr.changes),
-      active
-    }
-  },
-  provide: (field) => EditorView.decorations.from(field, (v) => v.decorations)
-})
+      return {
+        decorations: value.decorations.map(tr.changes),
+        active
+      }
+    },
+    provide: (field) => EditorView.decorations.from(field, (v) => v.decorations)
+  })
+}
 
-const inlineMathPlugin = ViewPlugin.fromClass(
-  class {
-    constructor(view) {
-      const built = buildInlineMathDecorations(view)
-      this.decorations = built.decorations
-      this.atomicRanges = built.atomicRanges
-    }
-
-    update(update) {
-      if (
-        update.docChanged ||
-        update.selectionSet ||
-        update.viewportChanged ||
-        update.focusChanged ||
-        update.startState.field(mathBlockPreviewField).active !==
-          update.state.field(mathBlockPreviewField).active
-      ) {
-        const built = buildInlineMathDecorations(update.view)
+function createInlineMathPlugin({ Decoration, EditorView, ViewPlugin }, mathBlockPreviewField) {
+  return ViewPlugin.fromClass(
+    class {
+      constructor(view) {
+        const built = buildInlineMathDecorations(view, mathBlockPreviewField, Decoration)
         this.decorations = built.decorations
         this.atomicRanges = built.atomicRanges
       }
+
+      update(update) {
+        if (
+          update.docChanged ||
+          update.selectionSet ||
+          update.viewportChanged ||
+          update.focusChanged ||
+          update.startState.field(mathBlockPreviewField).active !==
+            update.state.field(mathBlockPreviewField).active
+        ) {
+          const built = buildInlineMathDecorations(update.view, mathBlockPreviewField, Decoration)
+          this.decorations = built.decorations
+          this.atomicRanges = built.atomicRanges
+        }
+      }
+    },
+    {
+      decorations: (v) => v.decorations,
+      provide: (plugin) =>
+        EditorView.atomicRanges.of((view) => view.plugin(plugin)?.atomicRanges ?? RangeSet.empty)
     }
-  },
-  {
-    decorations: (v) => v.decorations,
-    provide: (plugin) =>
-      EditorView.atomicRanges.of((view) => view.plugin(plugin)?.atomicRanges ?? RangeSet.empty)
-  }
-)
+  )
+}
 
 function tryActivateStemAtClick(event, view) {
   const skipLine = skipLinesForMath(view.state)
@@ -311,7 +314,7 @@ function tryActivateStemAtClick(event, view) {
   return true
 }
 
-function stemClickToEditHandler() {
+function stemClickToEditHandler(EditorView) {
   return EditorView.domEventHandlers({
     mousedown(event, view) {
       if (event.button !== 0) return false
@@ -321,7 +324,7 @@ function stemClickToEditHandler() {
   })
 }
 
-function stemKeyboardEnterHandler() {
+function stemKeyboardEnterHandler(EditorView, mathBlockPreviewField) {
   return EditorView.domEventHandlers({
     keydown(event, view) {
       if (view.state.field(mathBlockPreviewField, false)?.active != null) return false
@@ -336,7 +339,7 @@ function stemKeyboardEnterHandler() {
   })
 }
 
-function stemBlurHandler() {
+function stemBlurHandler(EditorView, mathBlockPreviewField) {
   return EditorView.domEventHandlers({
     blur(_event, view) {
       if (view.state.field(mathBlockPreviewField, false)?.active == null) return false
@@ -346,7 +349,7 @@ function stemBlurHandler() {
   })
 }
 
-function stemSelectionSyncListener() {
+function stemSelectionSyncListener(EditorView, mathBlockPreviewField) {
   return EditorView.updateListener.of((update) => {
     if (!update.selectionSet) return
 
@@ -372,13 +375,17 @@ function stemSelectionSyncListener() {
 /**
  * Phase 5g CM: `stem:` / `latexmath:` / `[stem]` ブロックの KaTeX プレビュー。
  */
-export function mathWysiwygExtension() {
+export function mathWysiwygExtension(codeMirrorView = {}) {
+  const mathBlockPreviewField = createMathBlockPreviewField(codeMirrorView)
+  const inlineMathPlugin = createInlineMathPlugin(codeMirrorView, mathBlockPreviewField)
+  const { EditorView } = codeMirrorView
+
   return [
     mathBlockPreviewField,
     inlineMathPlugin,
-    stemClickToEditHandler(),
-    stemKeyboardEnterHandler(),
-    stemSelectionSyncListener(),
-    stemBlurHandler()
+    stemClickToEditHandler(EditorView),
+    stemKeyboardEnterHandler(EditorView, mathBlockPreviewField),
+    stemSelectionSyncListener(EditorView, mathBlockPreviewField),
+    stemBlurHandler(EditorView, mathBlockPreviewField)
   ]
 }
