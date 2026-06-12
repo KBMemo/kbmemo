@@ -477,10 +477,10 @@ Phase 5 は **各サブフェーズの第1段**を揃えた状態で完了とす
 [source,javascript]
 ----
 import { EditorState } from '@codemirror/state'
-import { EditorView } from '@codemirror/view'
+import { Decoration, EditorView } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
 import {
-  asciidocHighlight,
+  createAsciidocHighlight,
   configureVanillaHost,
   createLivePreview,
   createWysiwygEditor,
@@ -491,6 +491,7 @@ import '@kbmemo/adoc-preview/preview_hljs.css'
 import '@kbmemo/adoc-wysiwyg/wysiwyg.css'
 
 configureVanillaHost({ memoBase: '/memos' })
+const asciidocHighlight = createAsciidocHighlight({ Decoration, EditorView })
 ----
 
 * KBMemo 本体向け拡張は `@kbmemo/adoc-kbmemo` の `configureKbmemoHost` / `createKbmemoWysiwygSourceExtensions`

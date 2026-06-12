@@ -1,4 +1,4 @@
-export { asciidocHighlight } from './src/codemirror.js'
+export { createAsciidocHighlight } from './src/codemirror.js'
 export { refreshHighlights, refreshPreview, clearParseCache } from './src/parseSession.js'
 export { asciidocBlockToHtml } from './src/blockConvert.js'
 export {

@@ -334,7 +334,7 @@ export default class extends Controller {
     if (isNewMemo) textarea.value = ""
     const startDoc = isNewMemo ? "" : textarea.value
     const editorHost = this
-    const asciidocExts = await kbmemoEditor.loadAsciidocExtensions()
+    const asciidocExts = await kbmemoEditor.loadAsciidocExtensions({ EditorView })
     this._webPasteHandler = editorChrome.createWebPasteHandler({
       insertText: (text) => this.insertTextAtSelection(text),
     })

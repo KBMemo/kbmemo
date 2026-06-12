@@ -9,7 +9,7 @@
  * - katex/dist/katex.min.css (preview / math WYSIWYG 使用時)
  */
 export {
-  asciidocHighlight,
+  createAsciidocHighlight,
   refreshHighlights,
   refreshPreview,
   clearParseCache,

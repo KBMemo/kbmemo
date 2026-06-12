@@ -1,8 +1,8 @@
 import { EditorState } from '@codemirror/state'
-import { EditorView } from '@codemirror/view'
+import { Decoration, EditorView } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
 import {
-  asciidocHighlight,
+  createAsciidocHighlight,
   configureVanillaHost,
   createLivePreview,
 } from '@kbmemo/adoc-editor'
@@ -10,6 +10,7 @@ import 'highlight.js/styles/github.min.css'
 import '@kbmemo/adoc-preview/preview_hljs.css'
 
 configureVanillaHost({ memoBase: '/memos' })
+const asciidocHighlight = createAsciidocHighlight({ Decoration, EditorView })
 
 const initialSource = `= Demo memo
 

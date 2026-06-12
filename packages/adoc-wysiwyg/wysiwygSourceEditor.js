@@ -1,7 +1,7 @@
 import { EditorState } from '@codemirror/state'
-import { EditorView, ViewPlugin } from '@codemirror/view'
+import { Decoration, EditorView, ViewPlugin } from '@codemirror/view'
 import { search } from '@codemirror/search'
-import { asciidocHighlight } from '@kbmemo/adoc-codemirror'
+import { createAsciidocHighlight } from '@kbmemo/adoc-codemirror'
 import { createModFKeymap } from './searchKeybindings.js'
 import { isModRedo, isModZ } from './wysiwygHistory.js'
 
@@ -38,7 +38,7 @@ export function createWysiwygSourceEditor(source, { extensions = [], onChange, o
       extensions: [
         onModF ? createModFKeymap(onModF) : [],
         search(),
-        asciidocHighlight,
+        createAsciidocHighlight({ Decoration, EditorView }),
         EditorView.lineWrapping,
         wysiwygAutoHeightExtension(),
         ...extensions,
