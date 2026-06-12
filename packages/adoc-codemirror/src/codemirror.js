@@ -1,8 +1,6 @@
-import * as CodeMirrorView from '@codemirror/view'
+import { Decoration, EditorView } from '@codemirror/view'
 import { RangeSetBuilder, StateField } from '@codemirror/state'
 import { refreshHighlights } from './parseSession.js'
-
-const { EditorView, ViewPlugin, Decoration } = CodeMirrorView
 
 /** @typedef {{ from: number, to: number, className: string }} HighlightSpan */
 
@@ -45,37 +43,29 @@ function buildDecorations(spans, docLength) {
   return builder.finish()
 }
 
-const asciidocHighlighter = ViewPlugin.fromClass(
-  class {
-    decorations
-
-    constructor(view) {
-      this.decorations = this.build(view)
-    }
-
-    update(update) {
-      if (
-        update.docChanged
-        || update.viewportChanged
-        || update.state.field(highlightStateField) !== update.startState.field(highlightStateField)
-      ) {
-        this.decorations = this.build(update.view)
-      }
-    }
-
-    build(view) {
-      const { spans } = view.state.field(highlightStateField)
-      return buildDecorations(spans, view.state.doc.length)
-    }
+const highlightDecorationsField = StateField.define({
+  create(state) {
+    const { spans } = state.field(highlightStateField)
+    return buildDecorations(spans, state.doc.length)
   },
-  {
-    decorations: (plugin) => plugin.decorations,
+  update(value, tr) {
+    const currentHighlightState = tr.state.field(highlightStateField)
+
+    if (
+      tr.docChanged
+      || currentHighlightState !== tr.startState.field(highlightStateField)
+    ) {
+      return buildDecorations(currentHighlightState.spans, tr.state.doc.length)
+    }
+
+    return value.map(tr.changes)
   },
-)
+  provide: (field) => EditorView.decorations.from(field),
+})
 
 export const asciidocHighlight = [
   highlightStateField,
-  asciidocHighlighter,
+  highlightDecorationsField,
   EditorView.baseTheme({
     '.adoc-heading': { fontWeight: 'bold', color: '#0550ae' },
     '.adoc-h0': { fontSize: '1.05em' },
