@@ -147,8 +147,9 @@ class MemosHelperTest < ActionView::TestCase
     repo.write_asset!(memo, filename: "diagrams/flow.svg", io: StringIO.new('<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>'))
 
     html = memo_html("diagram::flow.mmd[]", source_memo: memo)
-    assert_includes html, %(data="/memos/#{memo.id}/assets/diagrams/flow.svg")
-    assert_includes html, "<object"
+    assert_includes html, %(src="/memos/#{memo.id}/assets/diagrams/flow.svg")
+    assert_includes html, "<img"
+    assert_not_includes html, "<object"
     assert_includes html, "memo-show-asset-actions"
     assert_includes html, "ビューアで開く"
     assert_includes html, %(href="/memos/#{memo.id}/diagrams/flow.mmd/view")

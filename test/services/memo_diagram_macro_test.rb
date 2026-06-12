@@ -16,7 +16,7 @@ class MemoDiagramMacroTest < ActiveSupport::TestCase
     assert svg_path.file?, "expected #{svg_path}"
 
     out = MemoDiagramMacro.new(memo: @memo, repo: @repo).substitute("diagram::flow.mmd[]\n")
-    assert_equal "image::diagrams/flow.svg[opts=interactive]\n", out
+    assert_equal "image::diagrams/flow.svg[]\n", out
   end
 
   test "missing svg becomes admonition-like marker" do

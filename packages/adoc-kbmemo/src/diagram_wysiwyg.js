@@ -33,70 +33,31 @@ function pushSpec(specs, from, to, deco) {
 const DIAGRAM_MAX_HEIGHT_BLOCK = 320
 const DIAGRAM_MAX_HEIGHT_INLINE = 128
 
-function parseSvgLength(value) {
-  if (!value) return null
-  const n = parseFloat(String(value).trim())
-  return Number.isFinite(n) && n > 0 ? n : null
-}
-
-function svgIntrinsicSize(svg) {
-  const widthAttr = svg.getAttribute('width') ?? ''
-  const heightAttr = svg.getAttribute('height') ?? ''
-  let width = widthAttr && !widthAttr.includes('%') ? parseSvgLength(widthAttr) : null
-  let height = heightAttr && !heightAttr.includes('%') ? parseSvgLength(heightAttr) : null
-
-  if (width && height) return { width, height }
-
-  const vb = svg.viewBox?.baseVal
-  if (vb && vb.width > 0 && vb.height > 0) {
-    return { width: vb.width, height: vb.height }
-  }
-
-  try {
-    const box = svg.getBBox()
-    if (box.width > 0 && box.height > 0) {
-      return { width: box.width, height: box.height }
-    }
-  } catch {
-    /* ignore */
-  }
-
-  return null
-}
-
-/** object 内 SVG の viewBox / width・height から表示サイズを決める（アスペクト比維持） */
-function sizeDiagramObject(obj, { block }) {
+function sizeDiagramImage(img, { block }) {
   const apply = () => {
-    try {
-      const svg = obj.contentDocument?.documentElement
-      if (!svg || svg.localName !== 'svg') return
+    if (!img.naturalWidth || !img.naturalHeight) return
 
-      const intrinsic = svgIntrinsicSize(svg)
-      if (!intrinsic) return
+    const editor = img.closest('.cm-editor')
+    const maxWidth = Math.min(720, (editor?.clientWidth ?? 640) * 0.95)
+    const maxHeight = block ? DIAGRAM_MAX_HEIGHT_BLOCK : DIAGRAM_MAX_HEIGHT_INLINE
 
-      const editor = obj.closest('.cm-editor')
-      const maxWidth = Math.min(720, (editor?.clientWidth ?? 640) * 0.95)
-      const maxHeight = block ? DIAGRAM_MAX_HEIGHT_BLOCK : DIAGRAM_MAX_HEIGHT_INLINE
-
-      let { width, height } = intrinsic
-      if (width > maxWidth) {
-        height = (height * maxWidth) / width
-        width = maxWidth
-      }
-      if (height > maxHeight) {
-        width = (width * maxHeight) / height
-        height = maxHeight
-      }
-
-      obj.style.width = `${Math.round(width)}px`
-      obj.style.height = `${Math.round(height)}px`
-    } catch {
-      /* same-origin 想定。読めない場合は CSS の max-* に任せる */
+    let width = img.naturalWidth
+    let height = img.naturalHeight
+    if (width > maxWidth) {
+      height = (height * maxWidth) / width
+      width = maxWidth
     }
+    if (height > maxHeight) {
+      width = (width * maxHeight) / height
+      height = maxHeight
+    }
+
+    img.style.width = `${Math.round(width)}px`
+    img.style.height = `${Math.round(height)}px`
   }
 
-  obj.addEventListener('load', apply)
-  if (obj.contentDocument?.documentElement) apply()
+  img.addEventListener('load', apply)
+  if (img.complete) apply()
 }
 
 function appendDiagramAction(actions, { href, label }) {
@@ -151,13 +112,13 @@ class DiagramPreviewWidget extends KbmemoWidgetType {
     })
 
     if (this.src) {
-      const obj = document.createElement('object')
-      obj.data = this.src
-      obj.type = 'image/svg+xml'
-      obj.className = 'cm-wysiwyg-diagram-object'
-      obj.setAttribute('aria-label', this.label)
-      sizeDiagramObject(obj, { block: this.block })
-      fig.appendChild(obj)
+      const img = document.createElement('img')
+      img.src = this.src
+      img.className = 'cm-wysiwyg-diagram-image'
+      img.alt = this.label
+      img.decoding = 'async'
+      sizeDiagramImage(img, { block: this.block })
+      fig.appendChild(img)
     } else {
       const missing = document.createElement('span')
       missing.className = 'cm-wysiwyg-diagram-missing'

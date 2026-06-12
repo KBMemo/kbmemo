@@ -22,17 +22,17 @@ describe('substituteDiagramsForPreview', () => {
     )
   })
 
-  it('renders interactive svg image when the diagram svg is available', () => {
+  it('renders svg image when the diagram svg is available', () => {
     const availability = new Map([['diagrams/flow.svg', true]])
 
     expect(substituteDiagramsForPreview('diagram::flow.mmd[]', availability)).toBe(
-      'image::diagrams/flow.svg[opts=interactive]',
+      'image::diagrams/flow.svg[]',
     )
   })
 
   it('keeps legacy optimistic rendering when availability is omitted', () => {
     expect(substituteDiagramsForPreview('diagram::flow.mmd[]')).toBe(
-      'image::diagrams/flow.svg[opts=interactive]',
+      'image::diagrams/flow.svg[]',
     )
   })
 })
