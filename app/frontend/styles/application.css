@@ -343,6 +343,10 @@ html.memo-directory-dnd-dragging a[data-drop-directory] {
   min-height: 0;
 }
 
+.memo-body-editor__host {
+  min-height: inherit;
+}
+
 .memo-body-editor__preview {
   display: none;
   flex-direction: column;
