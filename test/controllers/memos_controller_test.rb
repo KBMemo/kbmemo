@@ -409,7 +409,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
     list_panel = response.body[/target="memos_list_panel"><template>(.*)<\/template>/m, 1]
     assert list_panel, "expected memos_list_panel turbo stream"
-    assert_includes list_panel, %(href="/memos?memo_directory_id=#{work.id}"><span class="truncate">仕事</span></a>)
+    assert_includes list_panel, %(href="/memos?memo_directory_id=#{work.id}"><span class="min-w-0">仕事</span></a>)
     assert_includes list_panel, "is-active"
     assert_not_includes list_panel, %(href="/memos?memo_directory_id=#{share_u1.id}" class="kb-sidebar-nav block rounded-md px-2 py-1.5 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kb-border-strong)] focus-visible:ring-offset-2 is-active)
   end
@@ -1144,7 +1144,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "#memos_list_panel a[href=?]", edit_memo_path(memo, memo_directory_id: dir.id),
       text: dir.labeled_path_from_root
-    assert_includes response.body, %(href="/memos?memo_directory_id=#{dir.id}"><span class="truncate">仕事</span></a>)
+    assert_includes response.body, %(href="/memos?memo_directory_id=#{dir.id}"><span class="min-w-0">仕事</span></a>)
   end
 
   test "sidebar shows open memo directory path on search tab without syncing directory nav" do
