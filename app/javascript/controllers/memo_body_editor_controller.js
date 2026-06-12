@@ -1,4 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
+import {
+  MEMO_SOURCE_SNIPPETS,
+  applySnippetToEditorView,
+  filterMemoSourceSnippets,
+} from "../adoc_editor/snippet_support"
 
 const ACCEPTED_IMAGE_TYPE = /^image\/(png|jpeg|gif|webp|svg\+xml)$/i
 const ACCEPTED_IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i
@@ -347,6 +352,9 @@ export default class extends Controller {
         theme,
         EditorView.domEventHandlers({
           blur: () => this.notifyBodyBlur(),
+          keydown(event) {
+            return editorHost.handleSourceKeydown(event)
+          },
           dragover(event) {
             return editorHost.handleImageDragOver(event)
           },
@@ -635,6 +643,7 @@ export default class extends Controller {
     this._unbindInsertEvent()
     this._unbindDragDrop()
     this._unbindPaste()
+    this.destroySnippetDialog()
     this._resetHostConfig?.()
     this._wysiwygEditor?.flush()
     this._wysiwygEditor = null
@@ -745,6 +754,251 @@ export default class extends Controller {
     void this.handleImageDrop(event)
   }
 
+  handleSourceKeydown(event) {
+    if (!this.isSnippetShortcut(event)) return false
+    event.preventDefault()
+    event.stopPropagation()
+    this.openSnippetDialog()
+    return true
+  }
+
+  isSnippetShortcut(event) {
+    return (
+      this._editMode === "source" &&
+      event.key?.toLowerCase() === "k" &&
+      event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      !event.shiftKey
+    )
+  }
+
+  openSnippetDialog() {
+    if (!this.view) return
+    this.ensureSnippetDialog()
+    this._snippetMatches = MEMO_SOURCE_SNIPPETS
+    this._snippetActiveIndex = 0
+    this.renderSnippetOptions()
+
+    this._snippetSearch.value = ""
+    if (typeof this._snippetDialog.showModal === "function") {
+      if (!this._snippetDialog.open) this._snippetDialog.showModal()
+    } else {
+      this._snippetDialog.setAttribute("open", "")
+    }
+
+    requestAnimationFrame(() => {
+      this._snippetSearch.focus()
+    })
+  }
+
+  ensureSnippetDialog() {
+    if (this._snippetDialog) return
+
+    const dialog = document.createElement("dialog")
+    dialog.className = "memo-source-snippet-dialog"
+    dialog.setAttribute("closedby", "any")
+    dialog.setAttribute("aria-labelledby", "memo-source-snippet-dialog-title")
+    dialog.append(this.buildSnippetDialogContent())
+    document.body.append(dialog)
+
+    dialog.addEventListener("cancel", (event) => {
+      event.preventDefault()
+      this.closeSnippetDialog()
+    })
+    dialog.addEventListener("close", () => {
+      if (this._snippetDialogClosing) return
+      this.closeSnippetDialog()
+    })
+    dialog.addEventListener("click", (event) => {
+      const target = event.target
+      if (target === dialog && this.isSnippetBackdropClick(event)) {
+        event.preventDefault()
+        this.closeSnippetDialog()
+      }
+    })
+
+    this._snippetDialog = dialog
+  }
+
+  buildSnippetDialogContent() {
+    const panel = document.createElement("div")
+    panel.className = "memo-source-snippet-panel"
+
+    const header = document.createElement("div")
+    header.className = "memo-source-snippet-header"
+
+    const title = document.createElement("strong")
+    title.id = "memo-source-snippet-dialog-title"
+    title.textContent = "スニペットを挿入"
+
+    const closeButton = document.createElement("button")
+    closeButton.type = "button"
+    closeButton.className = "memo-source-snippet-close"
+    closeButton.setAttribute("aria-label", "閉じる")
+    closeButton.textContent = "×"
+    closeButton.addEventListener("click", () => this.closeSnippetDialog())
+    header.append(title, closeButton)
+
+    const label = document.createElement("label")
+    label.className = "memo-source-snippet-search-label"
+    label.textContent = "検索"
+
+    const search = document.createElement("input")
+    search.type = "search"
+    search.className = "memo-source-snippet-search"
+    search.autocomplete = "off"
+    search.spellcheck = false
+    search.setAttribute("aria-controls", "memo-source-snippet-list")
+    search.addEventListener("input", () => this.updateSnippetFilter())
+    search.addEventListener("keydown", (event) => this.handleSnippetSearchKeydown(event))
+    label.append(search)
+
+    const list = document.createElement("div")
+    list.id = "memo-source-snippet-list"
+    list.className = "memo-source-snippet-list"
+    list.setAttribute("role", "listbox")
+    list.setAttribute("aria-label", "挿入するスニペット")
+
+    this._snippetSearch = search
+    this._snippetList = list
+
+    panel.append(header, label, list)
+    return panel
+  }
+
+  updateSnippetFilter() {
+    this._snippetMatches = filterMemoSourceSnippets(this._snippetSearch?.value ?? "")
+    this._snippetActiveIndex = 0
+    this.renderSnippetOptions()
+  }
+
+  renderSnippetOptions() {
+    if (!this._snippetList) return
+    this._snippetList.replaceChildren()
+
+    if (!this._snippetMatches?.length) {
+      const empty = document.createElement("p")
+      empty.className = "memo-source-snippet-empty"
+      empty.textContent = "一致するスニペットがありません"
+      this._snippetList.append(empty)
+      this._snippetSearch?.removeAttribute("aria-activedescendant")
+      return
+    }
+
+    this._snippetMatches.forEach((snippet, index) => {
+      const option = document.createElement("button")
+      option.type = "button"
+      option.id = `memo-source-snippet-option-${snippet.id}`
+      option.className = "memo-source-snippet-option"
+      option.setAttribute("role", "option")
+      option.tabIndex = -1
+      option.setAttribute("aria-selected", index === this._snippetActiveIndex ? "true" : "false")
+      option.dataset.snippetIndex = String(index)
+
+      const label = document.createElement("span")
+      label.className = "memo-source-snippet-option-label"
+      label.textContent = snippet.label
+      const detail = document.createElement("code")
+      detail.className = "memo-source-snippet-option-detail"
+      detail.textContent = snippet.detail
+      option.append(label, detail)
+
+      option.addEventListener("mouseenter", () => this.setActiveSnippetIndex(index))
+      option.addEventListener("click", () => this.chooseSnippet(index))
+      this._snippetList.append(option)
+    })
+
+    this.syncSnippetActiveOption()
+  }
+
+  handleSnippetSearchKeydown(event) {
+    if (event.key === "Escape") {
+      event.preventDefault()
+      this.closeSnippetDialog()
+      return
+    }
+
+    if (!this._snippetMatches?.length) return
+
+    if (event.key === "Enter") {
+      event.preventDefault()
+      this.chooseSnippet(this._snippetActiveIndex)
+      return
+    }
+
+    const lastIndex = this._snippetMatches.length - 1
+    let nextIndex = this._snippetActiveIndex
+    if (event.key === "ArrowDown") nextIndex = Math.min(lastIndex, nextIndex + 1)
+    else if (event.key === "ArrowUp") nextIndex = Math.max(0, nextIndex - 1)
+    else if (event.key === "Home") nextIndex = 0
+    else if (event.key === "End") nextIndex = lastIndex
+    else return
+
+    event.preventDefault()
+    this.setActiveSnippetIndex(nextIndex)
+  }
+
+  setActiveSnippetIndex(index) {
+    if (!this._snippetMatches?.length) return
+    this._snippetActiveIndex = Math.max(0, Math.min(index, this._snippetMatches.length - 1))
+    this.syncSnippetActiveOption()
+  }
+
+  syncSnippetActiveOption() {
+    if (!this._snippetList || !this._snippetSearch) return
+    const options = Array.from(this._snippetList.querySelectorAll(".memo-source-snippet-option"))
+    for (const [index, option] of options.entries()) {
+      const active = index === this._snippetActiveIndex
+      option.setAttribute("aria-selected", active ? "true" : "false")
+      if (active) {
+        this._snippetSearch.setAttribute("aria-activedescendant", option.id)
+        option.scrollIntoView({ block: "nearest" })
+      }
+    }
+  }
+
+  chooseSnippet(index) {
+    const snippet = this._snippetMatches?.[index]
+    if (!snippet || !this.view) return
+    this.closeSnippetDialog({ restoreFocus: false })
+    applySnippetToEditorView(this.view, snippet)
+    this.syncTextareaFromView()
+    this._livePreview?.scheduleRender()
+  }
+
+  closeSnippetDialog({ restoreFocus = true } = {}) {
+    if (!this._snippetDialog) return
+
+    this._snippetDialogClosing = true
+    if (this._snippetDialog.open && typeof this._snippetDialog.close === "function") {
+      this._snippetDialog.close("close")
+    } else {
+      this._snippetDialog.removeAttribute("open")
+    }
+    this._snippetDialogClosing = false
+    if (restoreFocus) this.view?.focus()
+  }
+
+  destroySnippetDialog() {
+    this.closeSnippetDialog({ restoreFocus: false })
+    this._snippetDialog?.remove()
+    this._snippetDialog = null
+    this._snippetSearch = null
+    this._snippetList = null
+    this._snippetMatches = null
+  }
+
+  isSnippetBackdropClick(event) {
+    const rect = this._snippetDialog.getBoundingClientRect()
+    return (
+      event.clientY < rect.top ||
+      event.clientY > rect.bottom ||
+      event.clientX < rect.left ||
+      event.clientX > rect.right
+    )
+  }
+
   _onDocumentPaste = (event) => {
     if (!this.isEditorPasteTarget(event)) return
     this.handleImagePaste(event)
@@ -832,6 +1086,16 @@ export default class extends Controller {
       }
     }
     ta.dispatchEvent(new FocusEvent("blur", { bubbles: true }))
+  }
+
+  syncTextareaFromView() {
+    if (!this.view) return
+    const textarea = this.fieldTarget
+    const next = this.view.state.doc.toString()
+    if (textarea.value !== next) {
+      textarea.value = next
+      textarea.dispatchEvent(new Event("input", { bubbles: true }))
+    }
   }
 
   async uploadImage(event) {
