@@ -2,6 +2,8 @@
 
 module Api
   class ClipsController < BaseController
+    skip_before_action :authenticate_clip_api_token!, only: :options
+
     def create
       unless clip_payload_present?
         render json: { errors: ["html または plain が必要です。"] }, status: :unprocessable_entity

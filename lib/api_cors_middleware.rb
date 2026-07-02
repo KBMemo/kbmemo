@@ -5,7 +5,7 @@
 # Rack 層で常に付与する。
 class ApiCorsMiddleware
   ALLOW_ORIGIN = "*"
-  ALLOW_METHODS = "POST, OPTIONS"
+  ALLOW_METHODS = "GET, POST, PATCH, PUT, DELETE, OPTIONS"
   ALLOW_HEADERS = "Authorization, Content-Type, Accept"
   MAX_AGE = "86400"
 
