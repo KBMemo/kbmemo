@@ -66,9 +66,28 @@ class Memo < ApplicationRecord
     q = query.to_s.strip
     next all if q.blank?
 
-    pattern = "%#{sanitize_sql_like(q)}%"
-    where("LOWER(title) LIKE LOWER(?) OR LOWER(body) LIKE LOWER(?)", pattern, pattern)
+    if pgroonga_search?
+      where("(title || E'\\n' || body) &@~ ?", q)
+        .order(Arel.sql("pgroonga_score(tableoid, ctid) DESC"))
+    else
+      pattern = "%#{sanitize_sql_like(q)}%"
+      where("LOWER(title) LIKE LOWER(?) OR LOWER(body) LIKE LOWER(?)", pattern, pattern)
+    end
   }
+
+  def self.pgroonga_search?
+    return @pgroonga_search if defined?(@pgroonga_search)
+
+    @pgroonga_search = connection.select_value(
+      "SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'pgroonga')"
+    )
+  rescue StandardError
+    @pgroonga_search = false
+  end
+
+  def self.reset_pgroonga_search_cache!
+    remove_instance_variable(:@pgroonga_search) if defined?(@pgroonga_search)
+  end
 
   # 0: 全体（未ログイン含む閲覧可） 1: グループ閲覧のみ 3: グループ内読み書き 4: 自分のみ読み書き
   # （旧「自分のみ閲覧」はオーナー更新と重複するため廃止。DB の 2 はマイグレーションで 4 に寄せた）

@@ -103,6 +103,19 @@ class MemoTest < ActiveSupport::TestCase
     assert_not_includes ids, m1.id
   end
 
+  test "search_text uses pgroonga when extension is enabled" do
+    skip "PGroonga is not enabled in this database" unless Memo.pgroonga_search?
+
+    m1 = memos(:one)
+    m1.update_columns(title: "京都旅行", body: "清水寺と伏見稲荷")
+    m2 = memos(:two)
+    m2.update_columns(title: "Ruby メモ", body: "each の使い方")
+
+    ids = Memo.search_text("清水寺").pluck(:id)
+    assert_includes ids, m1.id
+    assert_not_includes ids, m2.id
+  end
+
   test "rejects memo_directory at top level bucket" do
     m = memos(:one)
     m.memo_directory = memo_directories(:home)
