@@ -1256,10 +1256,33 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "guest gets not found for non-public memo" do
-    post "/logout"
-    memos(:one).update_columns(visibility: Memo.visibilities[:owner_read_write])
-    get memo_url(memos(:one))
+  test "guest is redirected to login for existing non-public memo" do
+    sign_out
+    memo = memos(:one)
+    memo.update_columns(visibility: Memo.visibilities[:owner_read_write])
+    get memo_url(memo)
+    assert_response :redirect
+    assert_match %r{/login}, @response.redirect_url
+  end
+
+  test "guest returns to memo after login" do
+    sign_out
+    memo = memos(:one)
+    memo.update_columns(visibility: Memo.visibilities[:owner_read_write])
+    get memo_url(memo)
+    assert_response :redirect
+
+    post "/login", params: { email: accounts(:one).email, password: "password" }
+    assert_redirected_to memo_url(memo)
+
+    follow_redirect!
+    assert_response :success
+    assert_includes response.body, memo.title
+  end
+
+  test "guest gets not found for missing memo" do
+    sign_out
+    get memo_url(id: 9_999_999)
     assert_response :not_found
   end
 

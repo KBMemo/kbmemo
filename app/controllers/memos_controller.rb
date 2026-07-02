@@ -620,12 +620,36 @@ class MemosController < ApplicationController
   def set_memo
     base = policy_scope(Memo).includes(:tags, :memo_directory, :account, :memo_group, :board)
     key = params[:id].to_s
-    @memo =
-      if key.upcase.match?(Memo::UID_FORMAT)
-        base.find_by!(uid: key.upcase)
-      else
-        base.find(key)
-      end
+    @memo = find_memo_in_scope(base, key)
+  rescue ActiveRecord::RecordNotFound
+    redirect_guest_to_login_for_existing_memo!(key)
+    raise
+  end
+
+  def find_memo_in_scope(scope, key)
+    if key.upcase.match?(Memo::UID_FORMAT)
+      scope.find_by!(uid: key.upcase)
+    else
+      scope.find(key)
+    end
+  end
+
+  # 未ログインで policy_scope 外のメモ URL を開いたとき、存在するなら 404 ではなくログインへ。
+  # ログイン後は Rodauth の login_return_to_requested_location? で元 URL に戻る。
+  def redirect_guest_to_login_for_existing_memo!(key)
+    return unless action_name == "show"
+    return if rodauth.rails_account.present?
+    return unless memo_exists_unscoped?(key)
+
+    rodauth.require_account
+  end
+
+  def memo_exists_unscoped?(key)
+    if key.upcase.match?(Memo::UID_FORMAT)
+      Memo.exists?(uid: key.upcase)
+    else
+      Memo.exists?(id: key)
+    end
   end
 
   def memo_params
