@@ -130,6 +130,16 @@ Rails.application.routes.draw do
   namespace :api do
     match "clips", to: "clips#options", via: :options
     resources :clips, only: :create
+
+    namespace :v1 do
+      resource :me, only: :show, controller: "me"
+      resources :memos, only: %i[index show create update destroy], param: :memo_ref do
+        collection do
+          get :export, to: "memos/export#index"
+          get "export/deletions", to: "memos/export#deletions"
+        end
+      end
+    end
   end
 
   namespace :internal do

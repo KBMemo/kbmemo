@@ -5,7 +5,7 @@ module Api
     include Pundit::Authorization
     include Rails.application.routes.url_helpers
 
-    before_action :authenticate_clip_api_token!, except: :options
+    before_action :authenticate_clip_api_token!
 
     rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
