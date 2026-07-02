@@ -68,6 +68,48 @@ class Api::V1::MemosControllerTest < ActionDispatch::IntegrationTest
     assert_equal false, body["draft"]
   end
 
+  test "create memo converts markdown body to asciidoc" do
+    converted = "== Section\n\nHello from Markdown."
+
+    with_markdown_converter(converted) do
+      assert_difference -> { @account.memos.count }, 1 do
+        post api_v1_memos_path,
+          params: {
+            title: "Markdown memo",
+            body: "## Section\n\nHello from Markdown.",
+            body_format: "markdown"
+          },
+          headers: auth_headers,
+          as: :json
+      end
+    end
+
+    assert_response :created
+    body = JSON.parse(response.body)
+    memo = Memo.find(body.fetch("id"))
+    assert_equal converted, memo.body
+    assert_equal "asciidoc", body["body_format"]
+  end
+
+  test "patch memo converts markdown append_body" do
+    converted = "== Added\n\nMore text."
+    updated_at = @memo.updated_at.utc.iso8601
+
+    with_markdown_converter(converted) do
+      patch api_v1_memo_path(@memo.uid),
+        params: {
+          updated_at: updated_at,
+          append_body: "## Added\n\nMore text.",
+          body_format: "markdown"
+        },
+        headers: auth_headers,
+        as: :json
+    end
+
+    assert_response :success
+    assert_includes JSON.parse(response.body)["body"], "== Added"
+  end
+
   test "create memo without body returns validation error" do
     post api_v1_memos_path, params: { title: "No body" }, headers: auth_headers, as: :json
 
@@ -124,5 +166,14 @@ class Api::V1::MemosControllerTest < ActionDispatch::IntegrationTest
       "Accept" => "application/json",
       "Content-Type" => "application/json"
     }
+  end
+
+  def with_markdown_converter(result)
+    singleton = PandocMarkdownToAsciidoc.singleton_class
+    original = PandocMarkdownToAsciidoc.method(:convert)
+    singleton.define_method(:convert) { |_markdown| result }
+    yield
+  ensure
+    singleton.define_method(:convert, original)
   end
 end

@@ -17,6 +17,7 @@ module Api
       end
 
       def create!(attributes)
+        attributes = MemoBodyConverter.normalize!(attributes)
         memo = Memo.new(account: @account)
         apply_attributes!(memo, attributes)
         memo.apply_title_from_body_rules!
@@ -28,6 +29,7 @@ module Api
       end
 
       def update!(memo, attributes:, expected_updated_at:, replace: false)
+        attributes = MemoBodyConverter.normalize!(attributes)
         check_stale!(memo, expected_updated_at)
 
         if replace

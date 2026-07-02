@@ -44,6 +44,8 @@ module Api
         render_validation_errors(e.record)
       rescue ArgumentError => e
         render_api_error(code: "validation_error", message: e.message, status: :unprocessable_entity)
+      rescue Api::V1::MemoBodyConverter::UnsupportedFormat, Api::V1::MemoBodyConverter::Error => e
+        render_api_error(code: "validation_error", message: e.message, status: :unprocessable_entity)
       end
 
       def update
@@ -62,6 +64,8 @@ module Api
       rescue ActiveRecord::RecordInvalid => e
         render_validation_errors(e.record)
       rescue ArgumentError => e
+        render_api_error(code: "validation_error", message: e.message, status: :unprocessable_entity)
+      rescue Api::V1::MemoBodyConverter::UnsupportedFormat, Api::V1::MemoBodyConverter::Error => e
         render_api_error(code: "validation_error", message: e.message, status: :unprocessable_entity)
       end
 
@@ -92,13 +96,13 @@ module Api
       end
 
       def create_params
-        permitted = params.permit(:title, :body, :visibility, :commit, tags: [], properties: {})
+        permitted = params.permit(:title, :body, :body_format, :visibility, :commit, tags: [], properties: {})
         permitted[:commit] = ActiveModel::Type::Boolean.new.cast(permitted[:commit]) unless permitted[:commit].nil?
         permitted.to_unsafe_h.symbolize_keys
       end
 
       def update_params
-        permitted = params.permit(:title, :body, :append_body, :visibility, :commit, tags: [], properties: {})
+        permitted = params.permit(:title, :body, :append_body, :body_format, :visibility, :commit, tags: [], properties: {})
         permitted[:commit] = ActiveModel::Type::Boolean.new.cast(permitted[:commit]) unless permitted[:commit].nil?
         permitted.to_unsafe_h.symbolize_keys
       end
