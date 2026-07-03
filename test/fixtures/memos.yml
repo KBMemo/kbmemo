@@ -25,13 +25,14 @@
 #
 # Indexes
 #
-#  index_memos_on_account_id         (account_id)
-#  index_memos_on_board_id           (board_id)
-#  index_memos_on_kanban_column_id   (kanban_column_id)
-#  index_memos_on_memo_directory_id  (memo_directory_id)
-#  index_memos_on_memo_group_id      (memo_group_id)
-#  index_memos_on_slug               (slug) UNIQUE
-#  index_memos_on_uid                (uid) UNIQUE
+#  index_memos_on_account_id           (account_id)
+#  index_memos_on_board_id             (board_id)
+#  index_memos_on_kanban_column_id     (kanban_column_id)
+#  index_memos_on_memo_directory_id    (memo_directory_id)
+#  index_memos_on_memo_group_id        (memo_group_id)
+#  index_memos_on_slug                 (slug) UNIQUE
+#  index_memos_on_title_body_pgroonga  (((((title)::text || '\n'::text) || body))) USING pgroonga
+#  index_memos_on_uid                  (uid) UNIQUE
 #
 # Foreign Keys
 #

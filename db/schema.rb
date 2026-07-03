@@ -10,9 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_01_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_03_101000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "pgroonga"
 
   create_table "account_login_change_keys", force: :cascade do |t|
     t.datetime "deadline", null: false
@@ -183,6 +184,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_01_140000) do
     t.string "uid", null: false
     t.datetime "updated_at", null: false
     t.integer "visibility", default: 4, null: false
+    t.index "((((title)::text || '\n'::text) || body))", name: "index_memos_on_title_body_pgroonga", using: :pgroonga
     t.index ["account_id"], name: "index_memos_on_account_id"
     t.index ["board_id"], name: "index_memos_on_board_id"
     t.index ["kanban_column_id"], name: "index_memos_on_kanban_column_id"
@@ -256,14 +258,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_01_140000) do
     t.datetime "captured_at"
     t.string "checksum"
     t.datetime "created_at", null: false
+    t.jsonb "edit_stack", default: {}, null: false
     t.jsonb "exif", default: {}, null: false
+    t.datetime "exif_captured_at"
+    t.datetime "file_mtime"
     t.integer "height"
     t.string "kind", default: "image", null: false
+    t.decimal "latitude", precision: 10, scale: 7
+    t.decimal "longitude", precision: 10, scale: 7
     t.string "original_filename"
     t.bigint "owner_account_id", null: false
     t.datetime "updated_at", null: false
     t.integer "width"
     t.index ["checksum"], name: "index_tsuzura_media_items_on_checksum"
+    t.index ["owner_account_id", "checksum"], name: "index_tsuzura_media_items_on_owner_account_id_and_checksum"
     t.index ["owner_account_id"], name: "index_tsuzura_media_items_on_owner_account_id"
   end
 
