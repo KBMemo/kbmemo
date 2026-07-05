@@ -9,25 +9,15 @@ class MemosControllerShowMetadataTest < ActionDispatch::IntegrationTest
     @other_dir = memo_directories(:share_u_one)
   end
 
-  test "update_directory changes memo directory and returns turbo stream" do
-    assert_not_equal @other_dir.id, @memo.memo_directory_id
+  test "update_directory is disabled" do
+    original = @memo.memo_directory_id
 
     patch update_directory_memo_path(@memo),
       params: { memo_directory_id: @other_dir.id },
-      headers: { Accept: "text/vnd.turbo-stream.html" },
-      as: :json
-
-    assert_response :success
-    assert_includes response.media_type, "turbo-stream"
-    assert_equal @other_dir.id, @memo.reload.memo_directory_id
-  end
-
-  test "update_directory rejects top level bucket" do
-    patch update_directory_memo_path(@memo),
-      params: { memo_directory_id: memo_directories(:home).id },
       as: :json
 
     assert_response :unprocessable_entity
+    assert_equal original, @memo.reload.memo_directory_id
   end
 
   test "update_tags adds and removes tags via turbo stream" do

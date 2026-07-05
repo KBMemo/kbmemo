@@ -111,6 +111,7 @@ class Memo < ApplicationRecord
   validates :memo_group_id, presence: true, if: -> { group_read? || group_read_write? }
   validate :memo_group_must_include_owner, if: -> { group_read? || group_read_write? }
   validate :memo_directory_must_be_assignable_location
+  validate :memo_directory_immutable_after_create, on: :update
   validate :kanban_placement_consistency
 
   before_validation :assign_uid
@@ -310,12 +311,19 @@ class Memo < ApplicationRecord
 
   def assign_default_memo_directory
     if memo_directory_id.blank? && account_id.present?
-      self.memo_directory = MemoDirectory::UserSpace.default_home_directory(account_id)
+      self.memo_directory = MemoDirectory::UserSpace.date_directory(account_id, created_at.presence || Time.current)
     elsif memo_directory_id.blank?
       self.memo_directory = MemoDirectory.root
     end
   rescue ActiveRecord::RecordNotFound
     self.memo_directory = MemoDirectory.root if memo_directory_id.blank?
+  end
+
+  def memo_directory_immutable_after_create
+    return unless will_save_change_to_memo_directory_id?
+    return if docs_sync_managed?
+
+    errors.add(:memo_directory, "は変更できません")
   end
 
   def normalize_unfilled_title_marker

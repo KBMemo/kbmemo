@@ -1,4 +1,4 @@
-- unless dir.directory_list_readonly?
+- if policy(dir).update? && !dir.date_directory? && !dir.directory_list_readonly?
   .flex.shrink-0.items-center.gap-0.5
     button type="button" class=kb_icon_btn("inline-flex h-6 w-6") title="子ディレクトリを追加" aria-label="子ディレクトリを追加" data-action="click->memo-directory-dialog#openNew:stop" data-memo-directory-dialog-parent-id-param=dir.id
       i class="h-3.5 w-3.5" data-lucide="plus" aria-hidden="true"

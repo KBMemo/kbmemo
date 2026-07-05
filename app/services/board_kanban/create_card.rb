@@ -23,7 +23,6 @@ module BoardKanban
         title: @title,
         body: "",
         account: @account,
-        memo_directory_id: @board.default_memo_directory_for(@account).id,
         board: @board,
         kanban_column: target_column,
         kanban_position: position

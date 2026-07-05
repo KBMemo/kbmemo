@@ -1,22 +1,19 @@
 ruby:
   list_panel_root = { class: "flex flex-col" }
-  show_memo_dnd = @sidebar_view == "directory"
   list_panel_controllers = ["memo-directory-nav-open"]
-  list_panel_controllers << "memo-directory-dnd" if show_memo_dnd
-  list_panel_controllers << "memo-directory-dialog"
   list_panel_root[:data] = { controller: list_panel_controllers.join(" ") }
 #memos_list_panel *list_panel_root
   .flex-shrink-0.border-b.kb-border.px-3.py-3
     .kb-sidebar-tab-bar.mb-2.flex.rounded-lg.p-0.5
-      = link_to "ディレクトリ", memos_sidebar_directory_tab_path, class: memo_sidebar_view_tab_classes("directory"), draggable: "false"
+      = link_to "履歴", memos_sidebar_history_tab_path, class: memo_sidebar_view_tab_classes("history"), draggable: "false"
       = link_to "タグ", memos_sidebar_tag_tab_path, class: memo_sidebar_view_tab_classes("tag"), draggable: "false"
       = link_to "検索", memos_sidebar_search_tab_path, class: memo_sidebar_view_tab_classes("search"), draggable: "false"
-      = link_to "履歴", memos_sidebar_history_tab_path, class: memo_sidebar_view_tab_classes("history"), draggable: "false"
-    - if (open_memo = memo_sidebar_open_memo) && (dir = open_memo.memo_directory) && !dir.root?
+      = link_to "ディレクトリ", memos_sidebar_directory_tab_path, class: memo_sidebar_view_tab_classes("directory"), draggable: "false"
+    - if @sidebar_view == "directory" && (open_memo = memo_sidebar_open_memo) && (dir = open_memo.memo_directory) && !dir.root?
       .mb-2.min-w-0.text-sm.kb-text-secondary
         span.sr-only 保存先
         = link_to memo_directory_path_from_root_label(dir),
-          memo_sidebar_open_memo_path(open_memo, memo_directory_id: dir.id),
+          memo_sidebar_open_memo_path(open_memo, sidebar_view: "directory", memo_directory_id: dir.id),
           class: "block truncate kb-inline-link",
           title: "サイドバーでこのディレクトリを表示"
     - if @sidebar_view == "directory"
@@ -57,16 +54,8 @@ ruby:
         p.truncate.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted メモ一覧
       - if @sidebar_view == "directory"
         .flex.shrink-0.items-center.gap-1
-          = link_to "管理", manage_memos_path(memo_directory_id: (@current_memo_directory&.root? ? nil : @current_memo_directory&.id)), class: "text-xs kb-text-secondary kb-inline-link", title: "ディレクトリ・メモ管理画面を開く", data: { turbo: false }
-          details.relative.shrink-0
-            summary class=kb_hint_trigger aria-label="メモ移動方法の説明" aria-describedby="memo-directory-move-hint"
-              i[data-lucide="circle-help" class="h-4 w-4" aria-hidden="true"]
-              span.sr-only メモを別ディレクトリへ移動する方法
-            div#memo-directory-move-hint class="absolute right-0 top-6 z-30 w-72 #{kb_hint_popover}"
-              | 左の縞アイコンをドラッグして、上のフォルダ名に置くと移動します。キーボード操作ではメモを開き、保存先フォルダ欄で移動先を選んでください。
-    = link_to new_memo_path_with_current_directory, class: memo_sidebar_link_classes(:new), data: { turbo: false } do
+          = link_to "管理", manage_memos_path(memo_directory_id: (@current_memo_directory&.root? ? nil : @current_memo_directory&.id)), class: "text-xs kb-text-secondary kb-inline-link", title: "メモ管理画面を開く", data: { turbo: false }
+    = link_to new_memo_path, class: memo_sidebar_link_classes(:new), data: { turbo: false } do
       span.mr-1.kb-text-muted +
       span 新規メモ
   = render "memos/sidebar_memo_list_container"
-  dialog.memo-directory-dialog.kb-modal-panel.kb-scroll-dialog.rounded-lg.p-0 aria-labelledby="memo-directory-dialog-title" data-memo-directory-dialog-target="dialog" data-action="click->memo-directory-dialog#backdropClick"
-    #memo_directory_dialog_body.p-6 data-memo-directory-dialog-target="body"

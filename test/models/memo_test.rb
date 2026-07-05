@@ -117,6 +117,24 @@ class MemoTest < ActiveSupport::TestCase
     assert_not_includes ids, m2.id
   end
 
+  test "rejects memo_directory change after create" do
+    m = memos(:one)
+    other = MemoDirectory::UserSpace.date_directory(m.account_id, Time.zone.parse("2020-01-01"))
+    m.memo_directory = other
+    assert_not m.valid?
+    assert_includes m.errors[:memo_directory].join, "変更できません"
+  end
+
+  test "assign_default_memo_directory uses created_at date directory" do
+    m = Memo.new(
+      body: "x",
+      account: accounts(:one)
+    )
+    m.created_at = Time.zone.parse("2025-07-05 12:00:00")
+    m.valid?
+    assert_equal "home/u-1/2025-07-05", m.memo_directory.full_path
+  end
+
   test "rejects memo_directory at top level bucket" do
     m = memos(:one)
     m.memo_directory = memo_directories(:home)

@@ -1,31 +1,19 @@
-div data-controller="memo-directory-dialog" data-memo-directory-dialog-new-query-value="board_picker=1"
-  = form_with model: board, class: "space-y-4 max-w-xl" do |f|
-    - if board.errors.any?
-      .kb-alert.kb-alert-danger
-        ul.list-disc.pl-5
-          - board.errors.full_messages.each do |message|
-            li = message
+= form_with model: board, class: "space-y-4 max-w-xl" do |f|
+  - if board.errors.any?
+    .kb-alert.kb-alert-danger
+      ul.list-disc.pl-5
+        - board.errors.full_messages.each do |message|
+          li = message
 
-    div
-      = f.label :title, "ボード名", class: "#{kb_label} mb-1"
-      = f.text_field :title, required: true, class: kb_field_input_classes, aria: kb_field_error_aria(board, :title)
-      - if kb_field_error?(board, :title)
-        p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(board, :title) = kb_field_error_message(board, :title)
+  div
+    = f.label :title, "ボード名", class: "#{kb_label} mb-1"
+    = f.text_field :title, required: true, class: kb_field_input_classes, aria: kb_field_error_aria(board, :title)
+    - if kb_field_error?(board, :title)
+      p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(board, :title) = kb_field_error_message(board, :title)
 
-    div
-      #board_directory_picker
-        = render "boards/directory_picker_field", selected_directory: (board.memo_directory&.root? ? nil : board.memo_directory)
-      .mt-1.flex.flex-wrap.items-center.gap-x-3.gap-y-1
-        button type="button" class=kb_icon_btn("inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5") data-action="click->memo-directory-dialog#openNew:stop" data-memo-directory-dialog-parent-id-param=@new_directory_parent_id title="新規ディレクトリを作成"
-          i class="h-3.5 w-3.5" aria-hidden="true" data-lucide="plus"
-          span 新規ディレクトリ
-        p.text-xs.kb-text-muted ボード上から新規メモを作るときの Git 配置先です。
-
-    .flex.flex-wrap.items-center.gap-3
-      = f.submit submit_label, class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
-      - if board.persisted?
-        = link_to "キャンセル", board_path(board), class: "kb-chrome-link text-sm"
-      - else
-        = link_to "キャンセル", boards_path, class: "kb-chrome-link text-sm"
-
-  = render "boards/directory_dialog"
+  .flex.flex-wrap.items-center.gap-3
+    = f.submit submit_label, class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
+    - if board.persisted?
+      = link_to "キャンセル", board_path(board), class: "kb-chrome-link text-sm"
+    - else
+      = link_to "キャンセル", boards_path, class: "kb-chrome-link text-sm"

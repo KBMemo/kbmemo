@@ -24,12 +24,6 @@ ruby:
         = button_tag "追加", type: "submit", class: "kb-chrome-btn-secondary kb-btn-sm shrink-0", data: { memo_bulk_manage_target: "submitButton" }
         = button_tag "削除", type: "submit", formaction: bulk_remove_tags_memos_path, class: "kb-chrome-btn-secondary kb-btn-sm shrink-0", data: { memo_bulk_manage_target: "submitButton" }
 
-    = form_with url: bulk_move_directory_memos_path, method: :patch, data: { memo_bulk_manage_target: "form", action: "submit->memo-bulk-manage#injectSelection" } do
-      = hidden_field_tag :memo_directory_id, filter_dir_id
-      .flex.flex-wrap.items-center.gap-2
-        = render "shared/directory_tree_picker", label_text: "移動先", field_name: "target_directory_id", field_id: "bulk_move_target", selected_directory: nil, directory_options: (@memo_directories_for_nav || []), placeholder_text: "ディレクトリを選択", hidden_field_data: {}
-        = button_tag "移動", type: "submit", class: "kb-chrome-btn-secondary kb-btn-sm shrink-0", data: { memo_bulk_manage_target: "submitButton" }
-
     - if notebooks.any?
       = form_with url: bulk_add_to_notebook_memos_path, method: :post, data: { memo_bulk_manage_target: "form", action: "submit->memo-bulk-manage#injectSelection" } do
         = hidden_field_tag :memo_directory_id, filter_dir_id

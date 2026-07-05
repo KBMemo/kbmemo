@@ -4,9 +4,10 @@
 
 == 目的
 
-* 単一のフラットな「ルート直下ディレクトリ」だけでは、**誰の名前空間か**がパス上で分かりにくい。
+* **気軽にメモ** — 作成時に保存先フォルダを選ばない。`created_at`（Asia/Tokyo）の日付で自動配置する。
+* **公開範囲はメモ単位** — `visibility` / `memo_group_id` で制御。ディレクトリは整理用のみ。
 * Linux の ``/home`` に近いイメージで、**ユーザーごとの作業領域**を用意する。
-* **共有（share）** と **外向き整理（public）** を、ディレクトリの第一階層で役割分けする。
+* **共有（share）** は連携・同期用（Google Calendar、docs sync 等）。通常メモは `home` のみ。
 
 == ルート直下のバケット
 
@@ -17,19 +18,45 @@
 |バケット |役割
 
 |`home`
-|個人用。アカウント作成時に `home/u-{account_id}` を自動生成し、新規メモのデフォルト置き場にする。
+|個人用。`home/u-{account_id}/YYYY-MM-DD` にメモを自動保存する。
 
 |`share`
-|グループ作業などの共有用。**主語はユーザー**（`share/u-{account_id}`）。その下に `groups/g-alpha` のような枝をユーザーが切る想定。
+|連携用（`calendar`、`dev-docs` 等）。通常の手動メモ配置には使わない。
 
 |`public`
-|ユーザー外公開メモの整理用。**主語はユーザー**（`public/u-{account_id}`）。実際に誰でも読めるかはメモの `visibility` などのポリシーで決める。
+|将来の整理用。ポリシー互換のため `public/u-{id}` ルートは維持。通常メモは `home` に統一。
 
 |`system`
-|アプリ共通の開発 doc・ヘルプ用。直下に `system/docs`（開発・運用）と `system/help`（エンドユーザー向け）を固定配置。編集は admin のみ、閲覧は `MemoDirectoryPolicy::Scope` と `MemoPolicy` で制御。
+|アプリ共通の開発 doc・ヘルプ用。直下に `system/docs` と `system/help` を固定配置。
 |===
 
 `home` / `share` / `public` / `system` および ``home/u-{id}`` / ``share/u-{id}`` / ``public/u-{id}`` の行は **削除不可**（システム領域）とする。`system/docs` / `system/help` も構造変更不可。
+
+== 日付ディレクトリ `home/u-{id}/YYYY-MM-DD`
+
+* 新規メモは `MemoDirectory::UserSpace.date_directory` で `home/u-{account_id}/{created_at の日付}` を確保して割り当てる。
+* 日付は **Asia/Tokyo** 固定（`MemoDirectory::UserSpace::DEFAULT_TIME_ZONE`）。基準は `memo.created_at`。
+* 作成後の **手動移動は不可**（`memo_directory_immutable_after_create`）。例外: `docs_sync` 管理メモは同期処理がパスを更新できる。
+* 日付ディレクトリ行は **削除・構造変更不可**（`date_directory?`）。
+
+== 例外パス（日付自動配置の対象外）
+
+[cols="2,3"]
+|===
+|パス例 |理由
+
+|`system/docs` / `system/help`
+|開発 doc・ヘルプ
+
+|`share/u-{id}/dev-docs/...`
+|`properties.docs_sync` 管理（KbmemoDocs sync）
+
+|`home/u-{id}/clippings`
+|Clip API（`ClipCreator`）
+
+|`share/u-{id}/calendar`
+|Google Calendar 同期
+|===
 
 == ユーザー識別子 `u-{account_id}`
 
@@ -38,8 +65,8 @@
 
 == 論理パス `full_path`
 
-* `memo_directories` は `parent_id` でツリーを表し、**正規化された論理パス**を `full_path` に保持する（例: `home/u-42/projects`）。
-* Git 上の相対パスは ``{full_path}/{slug}-{memo_id}.adoc``（ルート直下メモのみファイル名のみ）とする。
+* `memo_directories` は `parent_id` でツリーを表し、**正規化された論理パス**を `full_path` に保持する（例: `home/u-42/2025-07-05`）。
+* Git 上の相対パスは ``{full_path}/{slug}.adoc``（ルート直下メモのみファイル名のみ）とする。
 * `full_path` は **一意**（グローバルユニーク）とし、`path_segment` の一意性は **同一親の子どうし**に限定する。
 
 == アカウント作成時
@@ -47,19 +74,23 @@
 * `Account` 作成後に `MemoDirectory::UserSpace.ensure_for_account!` を実行し、
   `home/u-{id}` / `share/u-{id}` / `public/u-{id}` の3行を **存在しなければ作成**する（冪等）。
 
-== 既存データの移行（開発・単一ユーザー想定）
+== 既存データの移行
 
-* ルート直下に残っていた従来のフラットディレクトリ（例: `work`）は、**先頭のアカウント**の `home/u-{id}` 配下へ移す（`full_path` は `home/u-1/work` のようになる）。
+* `bin/rails kbmemo:memos:relocate_by_created_at_preview` — dry-run
+* `bin/rails kbmemo:memos:relocate_by_created_at` — 適用（`GIT_RELOCATE=0` で DB のみ）
+* 対象外メモを除き `created_at` の日付ディレクトリへ移動し、空になった旧ユーザー作成フォルダを削除する。
 
-== 一覧・フォームでのスコープ
+== 一覧・サイドバー
 
-* ログインユーザーは、原則として **自分の ``home|share|public`` 配下の ``u-{自分のid}`` 以下**と、ナビ用に **ルートおよび `home` / `share` / `public` / `system` バケット行**、および **`system/docs` / `system/help` 以下**（読み取り専用）を `MemoDirectoryPolicy::Scope` で参照する。
-* `admin` アカウントは全ディレクトリを参照できる。
+* ディレクトリタブは **日付フォルダツリー**で絞り込み。タグ・検索・履歴タブは従来どおり。
+* ユーザーによるフォルダ作成・メモの DnD 移動・保存先ピッカーは **廃止**。
+* `admin` アカウントは全ディレクトリを参照できる（`MemoDirectoryPolicy::Scope`）。
 
 == 関連コード
 
-* `app/models/memo_directory.rb` — 親子、`full_path` 算出、`repo_dirname`
-* `app/models/memo_directory/user_space.rb` — バケット作成・ユーザー領域の確保
-* `app/models/memo_directory/system_space.rb` — `system` バケットと `system/docs` / `system/help` の確保
+* `app/models/memo_directory.rb` — 親子、`full_path` 算出、`date_directory?`
+* `app/models/memo_directory/user_space.rb` — バケット作成・日付ディレクトリ・例外判定
+* `app/models/memo_directory/system_space.rb` — `system` バケット
+* `app/services/memo_directory/relocate_by_created_at.rb` — 一括再配置
 * `app/services/memo_repository.rb` — 相対パス（`full_path` ベース）
-* `db/migrate/*_memo_directory_parent_full_path_and_buckets.rb` — スキーマとデータ移行
+* `lib/tasks/kbmemo_memos.rake` — 移行タスク

@@ -53,6 +53,12 @@ class MemoDirectoryTest < ActiveSupport::TestCase
     assert_includes work.errors[:parent_id].join, "Home"
   end
 
+  test "allows u-{id} user space root under home share public buckets" do
+    home = memo_directories(:home)
+    d = MemoDirectory.new(parent: home, path_segment: "u-99", label: "User 99")
+    assert d.valid?, d.errors.full_messages.join(", ")
+  end
+
   test "rejects parent that is descendant of self" do
     work = memo_directories(:work)
     nested = MemoDirectory.create!(parent: work, path_segment: "nest", label: "Nest")
@@ -91,6 +97,14 @@ class MemoDirectoryTest < ActiveSupport::TestCase
 
     assert_not empty.deletable?
     assert empty.boards_in_subtree?
+  end
+
+  test "deletable is false when a notebook references the directory" do
+    empty = MemoDirectory.create!(parent: memo_directories(:home_u_one), path_segment: "notebook-dir", label: "Notebook dir")
+    Notebook.create!(account: accounts(:one), title: "Linked notebook", slug: "linked-notebook", memo_directory: empty)
+
+    assert_not empty.deletable?
+    assert empty.notebooks_in_subtree?
   end
 
   test "deletable is false when child directories remain" do

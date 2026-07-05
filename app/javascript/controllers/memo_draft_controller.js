@@ -33,7 +33,6 @@ export default class extends Controller {
     "tagPills",
     "tagSuggestionsJson",
     "propertiesYaml",
-    "directory",
     "discardDraftButton",
     "showMemoLink",
     "formActionsChrome",
@@ -554,18 +553,6 @@ export default class extends Controller {
       memoGroup.value = initial.memo_group_id ?? ""
     }
 
-    if (this.hasDirectoryTarget) {
-      const directoryId = initial.memo_directory_id ?? ""
-      this.directoryTarget.value = directoryId
-      const picker = this.directoryTarget.closest('[data-controller*="memo-directory-parent-picker"]')
-      const pathLabel = picker?.querySelector(
-        '[data-memo-directory-parent-picker-target="pathLabel"]'
-      )
-      if (pathLabel && initial.memo_directory_path_label != null) {
-        pathLabel.textContent = initial.memo_directory_path_label
-      }
-    }
-
     if (this.hasTagPillsTarget) this.tagPillsTarget.replaceChildren()
   }
 
@@ -619,11 +606,7 @@ export default class extends Controller {
   }
 
   async directoryChange() {
-    if (!this.hasDirectoryTarget) return
-    const id = this.directoryTarget.value
-    // ディレクトリ変更は明示操作（本文タイピング中ではない）なので、
-    // turbo_stream でパスラベル・サイドバーまで更新する。
-    await this.persistDraftMerged({ memo_directory_id: id }, { stream: true })
+    // 保存先はサーバー側で作成日から自動決定（クライアントから変更不可）
   }
 
   discardDraft(event) {
@@ -698,7 +681,6 @@ export default class extends Controller {
       memo.properties_yaml = this.propertiesYamlTarget.value
     }
     if (this.hasTagListTarget) memo.tag_list = this.tagListTarget.value
-    if (this.hasDirectoryTarget) memo.memo_directory_id = this.directoryTarget.value
     return { ...memo, ...overrides }
   }
 

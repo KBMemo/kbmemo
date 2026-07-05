@@ -22,7 +22,6 @@ class BoardsController < ApplicationController
   def new
     @board = Board.new(account: rodauth.rails_account)
     authorize @board
-    prepare_directory_options
   end
 
   def create
@@ -31,14 +30,12 @@ class BoardsController < ApplicationController
     if @board.save
       redirect_to @board, notice: "ボードを作成しました。"
     else
-      prepare_directory_options
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
     authorize @board
-    prepare_directory_options
     @board_columns = @board.board_columns.order(:position)
   end
 
@@ -47,7 +44,6 @@ class BoardsController < ApplicationController
     if @board.update(board_params)
       redirect_to @board, notice: "ボードを更新しました。"
     else
-      prepare_directory_options
       @board_columns = @board.board_columns.order(:position)
       render :edit, status: :unprocessable_entity
     end
@@ -114,16 +110,7 @@ class BoardsController < ApplicationController
     @visible_memo_ids = visible_ids.to_set
   end
 
-  def prepare_directory_options
-    @new_directory_parent_id = MemoDirectory::UserSpace.default_home_directory(rodauth.rails_account.id).id
-  end
-
   def board_params
-    raw = params.require(:board).permit(:title, :memo_directory_id)
-    if raw[:memo_directory_id].present?
-      dir = policy_scope(MemoDirectory).find_by(id: raw[:memo_directory_id])
-      raw[:memo_directory_id] = dir&.id
-    end
-    raw
+    params.require(:board).permit(:title)
   end
 end

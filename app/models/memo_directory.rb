@@ -27,6 +27,7 @@ class MemoDirectory < ApplicationRecord
     dependent: :restrict_with_exception
   has_many :memos, inverse_of: :memo_directory, dependent: :restrict_with_exception
   has_many :boards, inverse_of: :memo_directory, dependent: :restrict_with_exception
+  has_many :notebooks, inverse_of: :memo_directory, dependent: :restrict_with_exception
 
   validates :label, presence: true, allow_blank: true
   validates :full_path, uniqueness: true
@@ -91,10 +92,16 @@ class MemoDirectory < ApplicationRecord
     label.presence || path_segment
   end
 
+  def date_directory?
+    path_segment.match?(MemoDirectory::UserSpace::DATE_PATH_SEGMENT)
+  end
+
   def deletable?
+    return false if date_directory?
     return false if protected_from_structure_changes?
     return false if memos_in_subtree?
     return false if boards_in_subtree?
+    return false if notebooks_in_subtree?
     return false if children.exists?
 
     true
@@ -106,6 +113,10 @@ class MemoDirectory < ApplicationRecord
 
   def boards_in_subtree?
     Board.exists?(memo_directory_id: subtree_directory_ids)
+  end
+
+  def notebooks_in_subtree?
+    Notebook.exists?(memo_directory_id: subtree_directory_ids)
   end
 
   # 削除後にサイドバーで表示を移す先（兄 → 弟 → 親の順）
@@ -179,6 +190,7 @@ class MemoDirectory < ApplicationRecord
 
   def protected_from_structure_changes?
     return true if root?
+    return true if date_directory?
     return true if PROTECTED_BUCKET_PATHS.include?(full_path)
     return true if SYSTEM_PROTECTED_PATHS.include?(full_path)
     return true if full_path.match?(user_space_root_regex)
@@ -208,8 +220,13 @@ class MemoDirectory < ApplicationRecord
     return if parent.blank?
     return unless parent.top_level_bucket?
     return if parent.full_path == "system" && SYSTEM_FIXED_CHILD_SEGMENTS.include?(path_segment)
+    return if user_space_bucket?(parent.full_path) && path_segment.match?(/\Au-\d+\z/)
 
     errors.add(:parent_id, "Home / Share / Public / System の直下には移せません")
+  end
+
+  def user_space_bucket?(full_path)
+    %w[home share public].include?(full_path)
   end
 
   def user_space_root_regex

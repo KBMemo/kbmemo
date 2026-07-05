@@ -22,8 +22,9 @@ module MemoSidebar
       h[:tag_id] = tid if tid
     elsif @sidebar_view == "history"
       h[:sidebar_view] = "history"
-    elsif @current_memo_directory && !@current_memo_directory.root?
-      h[:memo_directory_id] = @current_memo_directory.id
+    elsif @sidebar_view == "directory"
+      h[:sidebar_view] = "directory"
+      h[:memo_directory_id] = @current_memo_directory.id if @current_memo_directory && !@current_memo_directory.root?
     end
     h
   end
@@ -43,10 +44,6 @@ module MemoSidebar
     @current_memo_directory =
       if params[:memo_directory_id].present?
         policy_scope(MemoDirectory).find_by(id: params[:memo_directory_id]) || MemoDirectory.root
-      elsif %w[new create].include?(action_name) && instance_variable_defined?(:@memo) && @memo&.memo_directory && !@memo.memo_directory.root?
-        @memo.memo_directory
-      elsif memo_show_or_edit_action? && @sidebar_view == "directory" && instance_variable_defined?(:@memo) && @memo&.memo_directory && !@memo.memo_directory.root?
-        @memo.memo_directory
       else
         MemoDirectory.root
       end
@@ -105,7 +102,9 @@ module MemoSidebar
     when "tag" then "tag"
     when "search" then "search"
     when "history" then "history"
-    else "directory"
+    when "directory" then "directory"
+    else
+      params[:memo_directory_id].present? ? "directory" : "history"
     end
   end
 end

@@ -31,25 +31,12 @@ ruby:
                   class: "min-w-0 truncate kb-inline-link",
                   title: "ノートブックを開く"
             - dir = memo.memo_directory
-            - if metadata_editable
-              span.kb-text-subtle aria-hidden="true" ·
-              span.inline-block.min-w-0.max-w-full
-                - selected_dir = dir&.root? ? nil : dir
-                = render "shared/directory_tree_picker",
-                  label_text: "ディレクトリ",
-                  field_name: "memo_show_directory_id",
-                  field_id: "memo_show_directory_id_#{memo.id}",
-                  selected_directory: selected_dir,
-                  directory_options: memo_directories_for_select,
-                  placeholder_text: "保存先フォルダを選んでください",
-                  hidden_field_data: { memo_show_metadata_target: "directoryInput", action: "change->memo-show-metadata#directoryChange" },
-                  sidebar_open_path: memo_path(memo)
-            - elsif dir && !dir.root?
+            - if dir && !dir.root?
               span.kb-text-subtle aria-hidden="true" ·
               = link_to memo_directory_path_from_root_label(dir),
-                memo_path(memo, memo_directory_id: dir.id),
+                memo_path(memo, sidebar_view: "directory", memo_directory_id: dir.id),
                 class: "kb-inline-link",
-                title: "サイドバーでこのディレクトリを表示"
+                title: "サイドバーでこの日付フォルダを表示"
             - if memo.slug.present?
               span.kb-text-subtle aria-hidden="true" ·
               span.font-mono.text-xs.kb-text-secondary = memo.slug

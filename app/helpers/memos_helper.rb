@@ -84,17 +84,21 @@ module MemosHelper
 
   def memos_sidebar_directory_tab_path
     if (memo = memo_sidebar_open_memo)
-      q = {}
-      if defined?(@current_memo_directory) && @current_memo_directory && !@current_memo_directory.root?
-        q[:memo_directory_id] = @current_memo_directory.id
-      end
+      q = { sidebar_view: "directory" }
+      dir = if defined?(@current_memo_directory) && @current_memo_directory && !@current_memo_directory.root?
+              @current_memo_directory
+            elsif memo.memo_directory && !memo.memo_directory.root?
+              memo.memo_directory
+            end
+      q[:memo_directory_id] = dir.id if dir
       return memo_sidebar_open_memo_path(memo, q)
     end
 
-    return memos_path unless defined?(@current_memo_directory) && @current_memo_directory
-    return memos_path if @current_memo_directory.root?
-
-    memos_path(memo_directory_id: @current_memo_directory.id)
+    q = { sidebar_view: "directory" }
+    if defined?(@current_memo_directory) && @current_memo_directory && !@current_memo_directory.root?
+      q[:memo_directory_id] = @current_memo_directory.id
+    end
+    memos_path(q)
   end
 
   def memos_sidebar_tag_tab_path
@@ -369,15 +373,10 @@ module MemosHelper
   end
 
   def memo_wiki_create_directory_id(memo)
-    dir = memo.memo_directory
     account_id = pundit_user&.id
-    return MemoDirectory::UserSpace.default_home_directory(account_id).id unless account_id
+    return unless account_id
 
-    if dir && !dir.root? && !dir.top_level_bucket?
-      dir.id
-    else
-      MemoDirectory::UserSpace.default_home_directory(account_id).id
-    end
+    MemoDirectory::UserSpace.date_directory(account_id).id
   end
 
   def memo_wiki_create_enabled?(source_memo)

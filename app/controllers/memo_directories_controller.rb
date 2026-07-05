@@ -246,6 +246,8 @@ class MemoDirectoriesController < ApplicationController
       "メモが残っているディレクトリは削除できません。"
     elsif directory.boards_in_subtree?
       "ボードの保存先に指定されているディレクトリは削除できません。"
+    elsif directory.notebooks_in_subtree?
+      "ノートブックの保存先に指定されているディレクトリは削除できません。"
     elsif directory.children.exists?
       "子ディレクトリが残っているため削除できません。"
     else

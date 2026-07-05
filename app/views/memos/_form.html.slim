@@ -13,8 +13,6 @@ ruby:
   form_data[:memo_draft_tag_catalog_value] = memo_tag_catalog_for_pills.to_json
   memo_edit_form_id = memo.persisted? ? dom_id(memo, :edit_form) : "new_memo_form"
   unless memo.persisted?
-    selected_dir = memo.memo_directory&.root? ? nil : memo.memo_directory
-    unselected = selected_dir.nil? || selected_dir.root?
     form_data[:memo_draft_initial_form_value] = {
       title: "",
       slug: "",
@@ -23,8 +21,6 @@ ruby:
       tag_list: "",
       visibility: memo.visibility,
       memo_group_id: memo.memo_group_id.to_s,
-      memo_directory_id: unselected ? "" : selected_dir.id.to_s,
-      memo_directory_path_label: unselected ? "保存先フォルダを選んでください" : memo_directory_path_from_root_label(selected_dir),
       title_manual: "0",
       slug_manual: "0"
     }.to_json
@@ -59,25 +55,7 @@ ruby:
   
     div
       = render "slug_field", memo: memo
-  
-    - if memo.persisted?
-      div
-        = render "directory_field", memo: memo
-    - else
-      div
-        - selected_dir = memo.memo_directory&.root? ? nil : memo.memo_directory
-        = render "shared/directory_tree_picker",
-          label_text: "ディレクトリ",
-          form_builder: f,
-          field_method: :memo_directory_id,
-          selected_directory: selected_dir,
-          directory_options: memo_directories_for_select,
-          placeholder_text: "保存先フォルダを選んでください",
-          hidden_field_data: { memo_draft_target: "directory", action: "change->memo-draft#directoryChange" },
-          hidden_field_aria: kb_field_error_aria(memo, :memo_directory)
-        - if kb_field_error?(memo, :memo_directory)
-          p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(memo, :memo_directory) = kb_field_error_message(memo, :memo_directory)
-  
+
     div
       = render "visibility_field", memo: memo, f: f
   

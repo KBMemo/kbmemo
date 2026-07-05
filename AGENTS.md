@@ -2,6 +2,11 @@
 
 このリポジトリでエージェント／コントリビュータが参照する方針の入口です。
 
+## メモディレクトリ
+
+- **通常メモは `home/u-{id}/YYYY-MM-DD` に自動保存**（`created_at`・Asia/Tokyo）。手動の保存先選択・移動は不可。公開範囲はメモの `visibility`。
+- 詳細: `docs/architecture/memo-directory-layout.adoc`
+
 ## メモ本文
 
 - **正は DB の AsciiDoc プレーン文字列／CM は見せ方のみ。** サーバー側の変換・表示は Asciidoctor（`MemoWikiLinks` 等）。

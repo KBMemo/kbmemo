@@ -107,35 +107,11 @@ class BoardsControllerTest < ActionDispatch::IntegrationTest
     assert_nil memo.reload.board_id
   end
 
-  test "new board form renders directory tree picker and new-directory button" do
+  test "new board form has no directory picker" do
     get new_board_url
     assert_response :success
-    assert_select "div##{'board_directory_picker'} [data-controller~=?]", "memo-directory-parent-picker"
-    assert_select "input[type=hidden][name=?]", "board[memo_directory_id]"
-    assert_select "[data-memo-directory-parent-picker-target='toggleButton'][aria-controls]"
-    assert_select "[data-memo-directory-parent-picker-target='panel'][role='listbox'][id]"
-    assert_select "button.memo-directory-nav-summary a", count: 0
-    assert_select "[data-controller~=?]", "memo-directory-dialog"
-    assert_select "button[data-action*=?]", "memo-directory-dialog#openNew"
-  end
-
-  test "create directory from board picker returns picker turbo stream" do
-    parent = memo_directories(:home_u_one)
-    assert_difference("MemoDirectory.count", 1) do
-      post memo_directories_url,
-        params: {
-          dialog: "1",
-          board_picker: "1",
-          memo_directory: { path_segment: "boardseg", label: "Board Seg", parent_id: parent.id }
-        },
-        headers: { Accept: "text/vnd.turbo-stream.html" }
-    end
-    assert_response :success
-    assert_includes response.body, "board_directory_picker"
-    assert_includes response.body, "board[memo_directory_id]"
-    created = MemoDirectory.find_by(full_path: "#{parent.full_path}/boardseg")
-    assert_not_nil created
-    assert_includes response.body, created.id.to_s
+    assert_select "div##{'board_directory_picker'}", count: 0
+    assert_select "input[type=hidden][name=?]", "board[memo_directory_id]", count: 0
   end
 
   test "cannot access other users board" do

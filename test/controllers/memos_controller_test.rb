@@ -292,13 +292,13 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "a", text: "ディレクトリ" do |links|
       href = links.first["href"]
       assert_match %r{/memos/#{m.id}/edit}, href
-      assert_not_includes href, "memo_directory_id=#{dir.id}"
+      assert_includes href, "sidebar_view=directory"
       assert_not_includes href, "sidebar_view=search"
     end
 
-    get edit_memo_url(m, memo_directory_id: dir.id)
+    get edit_memo_url(m, sidebar_view: "directory", memo_directory_id: dir.id)
     assert_response :success
-    assert_select "a[href=?]", edit_memo_path(m, memo_directory_id: dir.id)
+    assert_select "a[href=?]", edit_memo_path(m, sidebar_view: "directory", memo_directory_id: dir.id)
     assert_includes response.body, "kb-sidebar-nav"
     assert_includes response.body, "is-active"
     assert_includes response.body, m.title
@@ -384,42 +384,13 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, edit_memo_path(committed)
   end
 
-  test "draft can change memo directory" do
+  test "draft ignores memo_directory_id changes" do
     m = memos(:one)
+    original = m.memo_directory_id
     work = memo_directories(:work)
     patch draft_memo_url(m), params: { memo: { memo_directory_id: work.id } }, as: :json
     assert_response :success
-    assert_equal work.id, m.reload.memo_directory_id
-  end
-
-  test "draft directory change does not refresh sidebar directory selection" do
-    m = memos(:one)
-    work = m.memo_directory
-    share_u1 = MemoDirectory.find_by!(full_path: "share/u-1")
-
-    get edit_memo_url(m, memo_directory_id: work.id)
-    assert_response :success
-
-    patch draft_memo_url(m, memo_directory_id: work.id),
-      params: { memo: { memo_directory_id: share_u1.id } },
-      headers: { "Accept" => "text/vnd.turbo-stream.html" }
-    assert_response :success
-    assert_includes response.media_type, "turbo-stream"
-    assert_equal share_u1.id, m.reload.memo_directory_id
-
-    list_panel = response.body[/target="memos_list_panel"><template>(.*)<\/template>/m, 1]
-    assert list_panel, "expected memos_list_panel turbo stream"
-    assert_includes list_panel, %(href="/memos?memo_directory_id=#{work.id}"><span class="min-w-0">仕事</span></a>)
-    assert_includes list_panel, "is-active"
-    assert_not_includes list_panel, %(href="/memos?memo_directory_id=#{share_u1.id}" class="kb-sidebar-nav block rounded-md px-2 py-1.5 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kb-border-strong)] focus-visible:ring-offset-2 is-active)
-  end
-
-  test "draft rejects top level bucket as memo directory" do
-    m = memos(:one)
-    home = memo_directories(:home)
-    patch draft_memo_url(m), params: { memo: { memo_directory_id: home.id } }, as: :json
-    assert_response :unprocessable_entity
-    assert_not_equal home.id, m.reload.memo_directory_id
+    assert_equal original, m.reload.memo_directory_id
   end
 
   test "wiki_completions returns link targets as json" do
@@ -854,13 +825,11 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "new memo form uses sidebar directory from query param" do
-    work = memo_directories(:work)
-    get new_memo_url(memo_directory_id: work.id)
+  test "new memo form has no directory picker" do
+    get new_memo_url
     assert_response :success
-    assert_includes response.body, "仕事"
-    assert_select "input[name='memo[memo_directory_id]'][value='#{work.id}']"
-    assert_includes response.body, 'data-memo-draft-target="directory"'
+    assert_select "input[name='memo[memo_directory_id]']", count: 0
+    assert_not_includes response.body, 'data-memo-draft-target="directory"'
     assert_select "button[disabled][title*='コミット']", text: "画像を挿入"
     assert_select "input[data-memo-body-editor-target='imageInput']", count: 0
     assert_select "#memo_form_actions button", text: "削除", count: 0
@@ -895,15 +864,11 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "button[aria-label='Wiki リンクの説明を表示'][aria-controls='memo-wiki-link-hint'][aria-expanded='false']"
   end
 
-  test "directory sidebar hint has an accessible description" do
+  test "directory sidebar no longer shows drag hint" do
     get memos_url(memo_directory_id: memo_directories(:work).id)
     assert_response :success
-    assert_select "summary[aria-label='メモ移動方法の説明'][aria-describedby='memo-directory-move-hint']"
-    assert_select "#memo-directory-move-hint", text: /ドラッグ/
-    assert_select "#memo-directory-move-hint", text: /キーボード操作/
-    assert_select "[data-memo-directory-dnd-handle][aria-hidden='true'][draggable='true']"
-    assert_select "[data-memo-directory-dnd-handle][role]", count: 0
-    assert_select "[data-memo-directory-dnd-handle][tabindex]", count: 0
+    assert_not_includes response.body, "memo-directory-move-hint"
+    assert_not_includes response.body, "memo-directory-dnd"
   end
 
   test "directory sidebar shows disclosure controls on top-level buckets" do
@@ -982,9 +947,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, assets_memo_path(memo)
   end
 
-  test "create via json saves memo_directory_id from form body" do
+  test "create via json assigns date directory regardless of memo_directory_id param" do
     work = memo_directories(:work)
-    home_u_one = memo_directories(:home_u_one)
     assert_difference("Memo.count", 1) do
       post memos_url,
         params: {
@@ -1001,8 +965,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :created
     m = Memo.order(:id).last
-    assert_equal work.id, m.memo_directory_id
-    assert_not_equal home_u_one.id, m.memo_directory_id
+    expected = MemoDirectory::UserSpace.date_directory(m.account_id, m.created_at)
+    assert_equal expected.id, m.memo_directory_id
+    assert_not_equal work.id, m.memo_directory_id
   end
 
   test "create via json returns edit path for autosave bootstrap" do
@@ -1109,14 +1074,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, memo.slug
     assert_select "img.kb-avatar[loading='eager'][fetchpriority='low'][width='36'][height='36']"
     assert_select "button[aria-label='プロパティ全文を表示'][aria-controls='memo-properties-panel'][aria-expanded='false']"
-    # 編集可能な所有者はディレクトリ picker が表示される（選択中ディレクトリを反映）。
-    assert_select "input#memo_show_directory_id_#{memo.id}[value=?]", memo.memo_directory_id.to_s
-    assert_select "#memo_show_directory_id_#{memo.id}_directory_picker_panel[data-memo-directory-parent-picker-target='panel']" do
-      %w[Home Share Public System].each do |label|
-        assert_select ".kb-directory-picker-branch > .kb-directory-picker-caret[aria-label='#{label} の子ディレクトリを開閉']"
-        assert_select ".kb-directory-picker-branch > .kb-directory-picker-row", text: label
-      end
-    end
+    assert_select "input#memo_show_directory_id_#{memo.id}", count: 0
+    assert_select "a.kb-inline-link[href=?]", memo_path(memo, sidebar_view: "directory", memo_directory_id: memo.memo_directory_id)
   end
 
   test "show shows directory path link for a viewer who cannot edit" do
@@ -1132,18 +1091,34 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(:two)
     get memo_url(memo)
     assert_response :success
-    assert_select "a[href=?]", memo_path(memo, memo_directory_id: memo.memo_directory_id),
+    assert_select "a[href=?]", memo_path(memo, sidebar_view: "directory", memo_directory_id: memo.memo_directory_id),
       text: memo.memo_directory.labeled_path_from_root
   end
 
-  test "sidebar shows open memo directory path and syncs directory tab without query param" do
+  test "memos index defaults to history sidebar" do
+    get memos_url
+    assert_response :success
+    assert_includes response.body, "表示履歴"
+    assert_select "a.kb-sidebar-tab.is-active", text: "履歴"
+  end
+
+  test "edit memo defaults to history sidebar without directory breadcrumb" do
     memo = memos(:one)
     dir = memo.memo_directory
 
     get edit_memo_url(memo)
     assert_response :success
-    assert_select "#memos_list_panel a[href=?]", edit_memo_path(memo, memo_directory_id: dir.id),
-      text: dir.labeled_path_from_root
+    assert_select "a.kb-sidebar-tab.is-active", text: "履歴"
+    assert_select "#memos_list_panel a[href=?]", edit_memo_path(memo, memo_directory_id: dir.id), count: 0
+  end
+
+  test "sidebar shows directory nav when directory tab is selected" do
+    memo = memos(:one)
+    dir = memo.memo_directory
+
+    get edit_memo_url(memo, sidebar_view: "directory", memo_directory_id: dir.id)
+    assert_response :success
+    assert_select "a.kb-sidebar-tab.is-active", text: "ディレクトリ"
     assert_includes response.body, %(href="/memos?memo_directory_id=#{dir.id}"><span class="min-w-0">仕事</span></a>)
   end
 
@@ -1154,11 +1129,11 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
     get edit_memo_url(memo, sidebar_view: "search", q: "SidebarDirDisplay")
     assert_response :success
-    assert_select "#memos_list_panel a[href=?]", edit_memo_path(memo, memo_directory_id: dir.id),
-      text: dir.labeled_path_from_root
+    assert_select "#memos_list_panel a[href=?]", edit_memo_path(memo, memo_directory_id: dir.id), count: 0
     assert_select "a", text: "ディレクトリ" do |links|
       href = links.first["href"]
       assert_match %r{/memos/#{memo.id}/edit}, href
+      assert_includes href, "sidebar_view=directory"
       assert_not_includes href, "memo_directory_id=#{dir.id}"
     end
   end
@@ -1327,7 +1302,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_equal %w[keep], memo.reload.tags.pluck(:name)
   end
 
-  test "bulk_move_directory moves the selected memos" do
+  test "bulk_move_directory is disabled" do
     memo = Memo.create!(title: "Bulk move memo", body: "x", memo_directory: memo_directories(:work), account_id: accounts(:one).id)
     target = memo_directories(:home_u_one)
     patch bulk_move_directory_memos_url, params: {
@@ -1335,17 +1310,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
       target_directory_id: target.id
     }
     assert_response :redirect
-    assert_equal target.id, memo.reload.memo_directory_id
-  end
-
-  test "bulk_move_directory rejects top-level buckets" do
-    memo = Memo.create!(title: "Bulk reject memo", body: "x", memo_directory: memo_directories(:work), account_id: accounts(:one).id)
-    patch bulk_move_directory_memos_url, params: {
-      memo_ids: [ memo.id ],
-      target_directory_id: memo_directories(:home).id
-    }
-    assert_response :redirect
     assert_equal memo_directories(:work).id, memo.reload.memo_directory_id
+    assert_match(/自動/, flash[:alert])
   end
 
   test "bulk_add_to_notebook adds the selected memos to the notebook" do

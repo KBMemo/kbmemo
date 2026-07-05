@@ -83,21 +83,7 @@ class MemosController < ApplicationController
 
   def bulk_move_directory
     authorize Memo, :index?
-    dir = policy_scope(MemoDirectory).find_by(id: params[:target_directory_id])
-    return redirect_back_to_manage(alert: "移動先ディレクトリを選んでください。") if dir.nil?
-    if dir.root? || dir.top_level_bucket?
-      return redirect_back_to_manage(alert: "Home / Share / Public の直下には保存できません。")
-    end
-
-    count = each_authorized_memo(:update?) do |memo|
-      next false if memo.memo_directory_id == dir.id
-
-      apply_directory_change!(memo, dir)
-      true
-    end
-    redirect_back_to_manage(notice: "#{count} 件のメモを移動しました。")
-  rescue MemoRepository::Error => e
-    redirect_back_to_manage(alert: e.message)
+    redirect_back_to_manage(alert: "メモのディレクトリ移動はできません。保存先は作成日で自動決まります。")
   end
 
   def bulk_add_to_notebook
@@ -160,7 +146,7 @@ class MemosController < ApplicationController
   end
 
   def new
-    @memo = Memo.new(memo_directory_id: memo_directory_id_for_new, account: rodauth.rails_account)
+    @memo = Memo.new(account: rodauth.rails_account)
     authorize @memo
   end
 
@@ -174,7 +160,7 @@ class MemosController < ApplicationController
   end
 
   def create
-    @memo = Memo.new(memo_directory_id: memo_directory_id_for_new, account: rodauth.rails_account)
+    @memo = Memo.new(account: rodauth.rails_account)
     authorize @memo
     unless assign_memo_fields(@memo)
       respond_to do |format|
@@ -276,18 +262,7 @@ class MemosController < ApplicationController
 
   def update_directory
     authorize @memo, :update?
-    dir = policy_scope(MemoDirectory).find(params.require(:memo_directory_id))
-    if dir.root? || dir.top_level_bucket?
-      render json: { error: "Home / Share / Public の直下には保存できません" }, status: :unprocessable_entity
-      return
-    end
-
-    apply_directory_change!(@memo, dir)
-    render_show_content_turbo_stream
-  rescue ActiveRecord::RecordNotFound
-    render json: { error: "ディレクトリが見つかりません" }, status: :not_found
-  rescue MemoRepository::Error => e
-    render json: { error: e.message }, status: :unprocessable_entity
+    render json: { error: "メモの保存先は作成日で自動決まります" }, status: :unprocessable_entity
   end
 
   def update_tags
@@ -341,11 +316,6 @@ class MemosController < ApplicationController
             turbo_stream.replace(
               "memo_slug_field",
               partial: "memos/slug_field",
-              locals: { memo: @memo }
-            ),
-            turbo_stream.replace(
-              "memo_directory_field",
-              partial: "memos/directory_field",
               locals: { memo: @memo }
             ),
             turbo_stream.replace("memos_list_panel", partial: "memos/list_panel")
@@ -534,22 +504,6 @@ class MemosController < ApplicationController
     render turbo_stream: turbo_stream.replace(helpers.dom_id(@memo), html: html)
   end
 
-  def apply_directory_change!(memo, dir)
-    repo = MemoRepository.new
-    old_rel = repo.relative_path_for(memo)
-    old_abs = repo.absolute_path_for(memo)
-
-    memo.memo_directory = dir
-    memo.apply_storage_slug!
-
-    new_rel = repo.relative_path_for(memo)
-    if old_abs.exist? && old_rel.to_s != new_rel.to_s
-      repo.relocate_file!(from_relative: old_rel, to_relative: new_rel)
-    end
-
-    memo.save(validate: false)
-  end
-
   def parse_tag_labels(raw)
     raw.to_s.split(/[,，]/).map(&:strip).reject(&:blank?).uniq
   end
@@ -606,17 +560,6 @@ class MemosController < ApplicationController
     @memo_groups_for_form = MemoGroup.for_account(rodauth.rails_account.id).order(:name)
   end
 
-  def memo_directory_id_for_new
-    dir_id = params.dig(:memo, :memo_directory_id).presence || params[:memo_directory_id].presence
-    if dir_id.present?
-      policy_scope(MemoDirectory).find_by(id: dir_id)&.id
-    else
-      MemoDirectory::UserSpace.default_home_directory(rodauth.rails_account.id).id
-    end
-  rescue ActiveRecord::RecordNotFound
-    MemoDirectory::UserSpace.default_home_directory(rodauth.rails_account.id).id
-  end
-
   def set_memo
     base = policy_scope(Memo).includes(:tags, :memo_directory, :account, :memo_group, :board)
     key = params[:id].to_s
@@ -655,12 +598,12 @@ class MemosController < ApplicationController
   def memo_params
     params.require(:memo).permit(
       :title, :body, :slug, :title_manual, :slug_manual, :properties_yaml,
-      :memo_directory_id, :visibility, :memo_group_id
+      :visibility, :memo_group_id
     )
   end
 
   def draft_params
-    params.require(:memo).permit(:body, :title, :title_manual, :slug, :slug_manual, :tag_list, :properties_yaml, :memo_directory_id)
+    params.require(:memo).permit(:body, :title, :title_manual, :slug, :slug_manual, :tag_list, :properties_yaml)
   end
 
   # raw_params は通常の request.params か、draft 用に構築した Parameters（キー :memo）
@@ -668,20 +611,12 @@ class MemosController < ApplicationController
     raw_params ||= params
     src = raw_params.require(:memo).permit(
       :title, :body, :slug, :title_manual, :slug_manual, :tag_list, :properties_yaml,
-      :memo_directory_id, :visibility, :memo_group_id
+      :visibility, :memo_group_id
     )
     memo.assign_attributes(
-      src.slice(:title, :body, :slug, :title_manual, :slug_manual, :memo_directory_id, :visibility, :memo_group_id)
+      src.slice(:title, :body, :slug, :title_manual, :slug_manual, :visibility, :memo_group_id)
     )
     memo.assign_tags_from_list(src[:tag_list]) if src.key?(:tag_list)
-
-    if src.key?(:memo_directory_id)
-      dir = memo.memo_directory
-      if dir.nil? || dir.root? || dir.top_level_bucket?
-        memo.errors.add(:memo_directory, "Home / Share / Public の直下には保存できません")
-        return false
-      end
-    end
 
     if src.key?(:properties_yaml)
       memo.properties = parse_properties_yaml(src[:properties_yaml])

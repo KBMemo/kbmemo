@@ -8,14 +8,14 @@ ruby:
 
 .mb-4.flex.flex-wrap.items-start.justify-between.gap-3
   .min-w-0
-    h1.text-xl.font-semibold.kb-text-primary ディレクトリ・メモ管理
+    h1.text-xl.font-semibold.kb-text-primary 日付フォルダ・メモ管理
     p.mt-1.text-sm.kb-text-secondary
-      | 左でフォルダを選び、右の一覧でメモにチェックを入れて一括操作します。
+      | 左で日付フォルダを選び、右の一覧でメモにチェックを入れて一括操作します。
   = link_to "メモ一覧へ戻る", memos_path(memo_directory_id: filter_dir_id), class: "kb-chrome-btn-secondary kb-btn-sm shrink-0", data: { turbo: false }
 
 .flex.flex-col.gap-4 class="md:flex-row md:items-start"
   aside class="kb-card w-full shrink-0 p-3 md:w-72 md:sticky md:top-4"
-    p.mb-2.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted ディレクトリ
+    p.mb-2.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted 日付フォルダ
     ul.space-y-0.5
       - roots.each do |dir|
         = render "memos/manage_directory_branch", dir: dir, by_parent: by_parent, current_directory: current_dir
@@ -23,7 +23,7 @@ ruby:
   section.min-w-0.flex-1 data-controller="memo-bulk-manage"
     - if current_dir.nil? || current_dir.root?
       .kb-card.p-8.text-center.text-sm.kb-text-muted
-        p 左のディレクトリを選ぶと、その中のメモを管理できます。
+        p 左の日付フォルダを選ぶと、その中のメモを管理できます。
     - else
       = render "memos/manage_bulk_bar", filter_dir_id: filter_dir_id, notebooks: @notebooks
       = render "memos/manage_memo_list", memos: @memos

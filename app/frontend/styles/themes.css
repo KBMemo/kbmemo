@@ -328,9 +328,10 @@ html[data-kb-theme-base="minimal"] {
   color: var(--kb-text-primary);
 }
 
-.kb-input:user-invalid,
+/* 入力中（:focus）は :user-invalid を出さない。email 等で1文字ごとに枠が赤く点滅するのを防ぐ。 */
+.kb-input:user-invalid:not(:focus),
 .kb-input[data-kb-client-invalid],
-.kb-field-input:user-invalid,
+.kb-field-input:user-invalid:not(:focus),
 .kb-field-input[data-kb-client-invalid] {
   border-color: var(--kb-status-danger-strong);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--kb-status-danger-strong) 55%, transparent);
