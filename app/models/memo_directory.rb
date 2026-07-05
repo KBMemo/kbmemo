@@ -27,7 +27,6 @@ class MemoDirectory < ApplicationRecord
     dependent: :restrict_with_exception
   has_many :memos, inverse_of: :memo_directory, dependent: :restrict_with_exception
   has_many :boards, inverse_of: :memo_directory, dependent: :restrict_with_exception
-  has_many :notebooks, inverse_of: :memo_directory, dependent: :restrict_with_exception
 
   validates :label, presence: true, allow_blank: true
   validates :full_path, uniqueness: true
@@ -101,7 +100,6 @@ class MemoDirectory < ApplicationRecord
     return false if protected_from_structure_changes?
     return false if memos_in_subtree?
     return false if boards_in_subtree?
-    return false if notebooks_in_subtree?
     return false if children.exists?
 
     true
@@ -113,10 +111,6 @@ class MemoDirectory < ApplicationRecord
 
   def boards_in_subtree?
     Board.exists?(memo_directory_id: subtree_directory_ids)
-  end
-
-  def notebooks_in_subtree?
-    Notebook.exists?(memo_directory_id: subtree_directory_ids)
   end
 
   # 削除後にサイドバーで表示を移す先（兄 → 弟 → 親の順）

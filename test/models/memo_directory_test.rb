@@ -99,14 +99,6 @@ class MemoDirectoryTest < ActiveSupport::TestCase
     assert empty.boards_in_subtree?
   end
 
-  test "deletable is false when a notebook references the directory" do
-    empty = MemoDirectory.create!(parent: memo_directories(:home_u_one), path_segment: "notebook-dir", label: "Notebook dir")
-    Notebook.create!(account: accounts(:one), title: "Linked notebook", slug: "linked-notebook", memo_directory: empty)
-
-    assert_not empty.deletable?
-    assert empty.notebooks_in_subtree?
-  end
-
   test "deletable is false when child directories remain" do
     empty = MemoDirectory.create!(parent: memo_directories(:home_u_one), path_segment: "parent", label: "Parent")
     MemoDirectory.create!(parent: empty, path_segment: "nest", label: "Nest")

@@ -96,6 +96,39 @@ class MemoRepository
 
   alias relocate_file! relocate_path!
 
+  # メモの .adoc と隣接 .assets を、現在の memo_directory / slug に合わせて移動する。
+  def relocate_memo_paths!(memo, from_relative:, from_assets_relative:)
+    relocate_path_if_present!(from_relative, relative_path_for(memo))
+    relocate_path_if_present!(from_assets_relative, assets_dir_relative_for(memo))
+  end
+
+  # 期待パスに .assets が無いとき、作業ツリー上の孤立コピーを探す（日付ディレクトリ移行の修復用）。
+  def find_orphaned_assets_relative_for(memo)
+    expected = assets_dir_relative_for(memo).to_s
+    return nil if root.join(expected).directory?
+
+    basename = assets_dir_basename(memo)
+    candidates = assets_dir_candidates(basename, excluding: expected)
+
+    if candidates.empty?
+      uid_suffix = Memo.slug_suffix_for(memo.uid)
+      candidates = assets_dir_candidates("*-#{uid_suffix}.assets", excluding: expected)
+    end
+
+    return candidates.first if candidates.one?
+    return nil if candidates.empty?
+
+    candidates.max_by { |rel| count_files_under(rel) }
+  end
+
+  def repair_orphaned_assets_for!(memo)
+    orphan = find_orphaned_assets_relative_for(memo)
+    return false unless orphan
+
+    relocate_path!(from_relative: orphan, to_relative: assets_dir_relative_for(memo))
+    true
+  end
+
   # Git HEAD に記録されている .adoc の相対パス（*-{uid} またはレガシー *-{id}）。
   def committed_relative_path_for(memo)
     ensure_repo!
@@ -183,6 +216,33 @@ class MemoRepository
   end
 
   private
+
+  def relocate_path_if_present!(from_relative, to_relative)
+    from_s = from_relative.to_s
+    to_s = to_relative.to_s
+    return if from_s.blank? || from_s == to_s
+    return unless root.join(from_s).exist?
+
+    relocate_path!(from_relative: from_s, to_relative: to_s)
+  end
+
+  def assets_dir_candidates(glob_pattern, excluding:)
+    root.glob("**/#{glob_pattern}").filter_map do |path|
+      next unless path.directory?
+
+      rel = path.relative_path_from(root).to_s
+      next if rel == excluding
+
+      rel
+    end
+  end
+
+  def count_files_under(relative)
+    dir = root.join(relative.to_s)
+    return 0 unless dir.directory?
+
+    dir.find.count(&:file?)
+  end
 
   def git_head_paths
     out, err, st = Open3.capture3("git", "ls-tree", "-r", "--name-only", "HEAD", chdir: @root.to_s)

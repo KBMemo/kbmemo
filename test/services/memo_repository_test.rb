@@ -90,6 +90,37 @@ class MemoRepositoryTest < ActiveSupport::TestCase
     assert_includes tracked, "fig.png"
   end
 
+  test "relocate_memo_paths moves adoc and assets together" do
+    @memo.memo_directory = memo_directories(:work)
+    @repo.write_and_commit!(@memo)
+    @repo.write_asset!(@memo, filename: "diagrams/flow.svg", io: StringIO.new("<svg/>"))
+    old_rel = @repo.relative_path_for(@memo)
+    old_assets = @repo.assets_dir_relative_for(@memo)
+
+    @memo.memo_directory = memo_directories(:home_u_one)
+    @repo.relocate_memo_paths!(@memo, from_relative: old_rel, from_assets_relative: old_assets)
+
+    assert_not @repo.root.join(old_rel).exist?
+    assert_not @repo.root.join(old_assets).exist?
+    assert @repo.root.join(@repo.relative_path_for(@memo)).exist?
+    assert @repo.root.join(@repo.assets_dir_relative_for(@memo), "diagrams/flow.svg").exist?
+  end
+
+  test "repair_orphaned_assets_for finds assets left at old directory" do
+    @memo.memo_directory = memo_directories(:work)
+    @repo.write_and_commit!(@memo)
+    @repo.write_asset!(@memo, filename: "diagrams/flow.svg", io: StringIO.new("<svg/>"))
+    old_assets = @repo.assets_dir_relative_for(@memo).to_s
+    old_adoc = @repo.relative_path_for(@memo).to_s
+
+    @memo.memo_directory = memo_directories(:home_u_one)
+    @repo.relocate_path!(from_relative: old_adoc, to_relative: @repo.relative_path_for(@memo))
+
+    assert @repo.repair_orphaned_assets_for!(@memo)
+    assert @repo.root.join(@repo.assets_dir_relative_for(@memo), "diagrams/flow.svg").exist?
+    assert_not @repo.root.join(old_assets).exist?
+  end
+
   test "write_and_commit! is idempotent when content unchanged" do
     @repo.write_and_commit!(@memo)
     root = @repo.root

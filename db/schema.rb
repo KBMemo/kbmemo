@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_03_101000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_05_093000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgroonga"
@@ -213,7 +213,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_03_101000) do
     t.integer "account_id", null: false
     t.datetime "created_at", null: false
     t.text "description", default: "", null: false
-    t.integer "memo_directory_id"
     t.integer "publication_kind", default: 2, null: false
     t.datetime "published_at"
     t.string "slug", null: false
@@ -222,7 +221,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_03_101000) do
     t.index ["account_id", "publication_kind"], name: "index_notebooks_on_account_id_and_publication_kind"
     t.index ["account_id", "slug"], name: "index_notebooks_on_account_id_and_slug", unique: true
     t.index ["account_id"], name: "index_notebooks_on_account_id"
-    t.index ["memo_directory_id"], name: "index_notebooks_on_memo_directory_id"
   end
 
   create_table "tags", force: :cascade do |t|
@@ -302,7 +300,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_03_101000) do
   add_foreign_key "notebook_memos", "notebook_memos", column: "parent_id"
   add_foreign_key "notebook_memos", "notebooks"
   add_foreign_key "notebooks", "accounts"
-  add_foreign_key "notebooks", "memo_directories"
   add_foreign_key "tsuzura_album_items", "tsuzura_albums", column: "album_id"
   add_foreign_key "tsuzura_album_items", "tsuzura_media_items", column: "media_item_id"
 end

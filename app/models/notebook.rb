@@ -4,34 +4,30 @@
 #
 # Table name: notebooks
 #
-#  id                :bigint           not null, primary key
-#  description       :text             default(""), not null
-#  publication_kind  :integer          default("notes"), not null
-#  published_at      :datetime
-#  slug              :string           not null
-#  title             :string           not null
-#  created_at        :datetime         not null
-#  updated_at        :datetime         not null
-#  account_id        :integer          not null
-#  memo_directory_id :integer
+#  id               :bigint           not null, primary key
+#  description      :text             default(""), not null
+#  publication_kind :integer          default("notes"), not null
+#  published_at     :datetime
+#  slug             :string           not null
+#  title            :string           not null
+#  created_at       :datetime         not null
+#  updated_at       :datetime         not null
+#  account_id       :integer          not null
 #
 # Indexes
 #
 #  index_notebooks_on_account_id                       (account_id)
 #  index_notebooks_on_account_id_and_publication_kind  (account_id,publication_kind)
 #  index_notebooks_on_account_id_and_slug              (account_id,slug) UNIQUE
-#  index_notebooks_on_memo_directory_id                (memo_directory_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (account_id => accounts.id)
-#  fk_rails_...  (memo_directory_id => memo_directories.id)
 #
 class Notebook < ApplicationRecord
   GUEST_KINDS = %w[blog manual].freeze
 
   belongs_to :account
-  belongs_to :memo_directory, optional: true
 
   has_many :notebook_memos, -> { order(:position, :id) }, dependent: :destroy, inverse_of: :notebook
   has_many :root_notebook_memos, -> { where(parent_id: nil).order(:position, :id) },
@@ -42,7 +38,6 @@ class Notebook < ApplicationRecord
 
   validates :title, presence: true
   validates :slug, presence: true, uniqueness: { scope: :account_id }
-  validate :memo_directory_must_be_assignable, if: -> { memo_directory_id.present? }
 
   before_validation :normalize_slug
 
@@ -71,12 +66,5 @@ class Notebook < ApplicationRecord
   def normalize_slug
     raw = slug.presence || title.to_s
     self.slug = Memo.normalize_slug_fragment(raw) || "notebook"
-  end
-
-  def memo_directory_must_be_assignable
-    return if memo_directory.nil?
-    return if memo_directory.directory_picker_selectable?(admin: account&.admin?)
-
-    errors.add(:memo_directory, "はメモの保存先として選べません")
   end
 end

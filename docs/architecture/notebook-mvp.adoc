@@ -105,10 +105,6 @@ enum 値: `blog=0`, `manual=1`, `notes=2`（デフォルト `notes`）。
 |datetime, NULL 可
 |NULL = 下書き。Blog / Manual の公開日時
 
-|`memo_directory_id`
-|integer FK, NULL 可
-|任意。将来の新規メモ作成デフォルト先（MVP では主にメタデータ）
-
 |`created_at` / `updated_at`
 |datetime
 |
@@ -162,7 +158,6 @@ enum 値: `blog=0`, `manual=1`, `notes=2`（デフォルト `notes`）。
 ----
 Account 1--* Notebook
 Account 1--* Memo
-MemoDirectory 0..1-- Notebook   （memo_directory_id、任意）
 MemoDirectory 1--* Memo         （既存、本文・Git 配置の正）
 
 Notebook 1--* NotebookMemo
@@ -193,7 +188,6 @@ entity notebooks {
   * id : INTEGER <<PK>>
   --
   account_id : INTEGER <<FK>>
-  memo_directory_id : INTEGER <<FK>>
   title : VARCHAR
   slug : VARCHAR
   publication_kind : INTEGER
@@ -223,7 +217,6 @@ entity memos {
 
 accounts ||--o{ notebooks
 accounts ||--o{ memos
-memo_directories ||--o{ notebooks
 memo_directories ||--o{ memos
 notebooks ||--o{ notebook_memos
 memos ||--o| notebook_memos
@@ -347,7 +340,7 @@ end
 
 === ノートブック編集（`/notebooks/:id/edit`）
 
-* タイトル、スラッグ、種別、説明、任意の `memo_directory_id`。
+* タイトル、スラッグ、種別、説明。
 * 含まれるメモのフラット一覧と「外す」操作（ツリー編集は show 左ペインで実施）。
 
 == 操作詳細
@@ -365,7 +358,7 @@ end
 |一覧・2 ペイン show
 
 |Update
-|title, slug, publication_kind, description, memo_directory_id
+|title, slug, publication_kind, description
 
 |Delete
 |配下 `NotebookMemo` を cascade 削除。**メモ本体は削除しない**
@@ -432,7 +425,7 @@ end
 |Policy どおり。ゲスト向け show でもメモ単位でフィルタ
 
 |MemoDirectory
-|メモの Git 配置先。ノートブックの `memo_directory_id` はメタデータ（将来のデフォルト先）
+|メモの Git 配置先。ノートブックは `notebook_memos` 経由でメモへのリンクのみ保持
 
 |Git sync
 |ノートブック配置変更では Git コミットを発生させない

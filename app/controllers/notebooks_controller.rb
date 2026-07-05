@@ -21,7 +21,6 @@ class NotebooksController < ApplicationController
   def new
     @notebook = Notebook.new(account: rodauth.rails_account, publication_kind: :notes)
     authorize @notebook
-    prepare_directory_options
   end
 
   def create
@@ -30,14 +29,12 @@ class NotebooksController < ApplicationController
     if @notebook.save
       redirect_to @notebook, notice: "ノートブックを作成しました。"
     else
-      prepare_directory_options
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
     authorize @notebook
-    prepare_directory_options
     load_notebook_memo_tree
   end
 
@@ -46,7 +43,6 @@ class NotebooksController < ApplicationController
     if @notebook.update(notebook_params)
       redirect_to @notebook, notice: "ノートブックを更新しました。"
     else
-      prepare_directory_options
       load_notebook_memo_tree
       render :edit, status: :unprocessable_entity
     end
@@ -134,16 +130,7 @@ class NotebooksController < ApplicationController
     @notebook = policy_scope(Notebook).find(params[:id])
   end
 
-  def prepare_directory_options
-    @memo_directory_options = policy_scope(MemoDirectory).nav_ordered.select { |d| d.directory_picker_selectable?(admin: rodauth.rails_account.admin?) }
-  end
-
   def notebook_params
-    raw = params.require(:notebook).permit(:title, :slug, :publication_kind, :description, :memo_directory_id)
-    if raw[:memo_directory_id].present?
-      dir = policy_scope(MemoDirectory).find_by(id: raw[:memo_directory_id])
-      raw[:memo_directory_id] = dir&.id
-    end
-    raw
+    params.require(:notebook).permit(:title, :slug, :publication_kind, :description)
   end
 end

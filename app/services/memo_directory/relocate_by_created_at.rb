@@ -3,7 +3,7 @@
 class MemoDirectory
   # 既存メモを created_at の日付ディレクトリへ再配置し、空の旧フォルダを削除する。
   class RelocateByCreatedAt
-    Result = Struct.new(:moved, :skipped, :git_errors, :deleted_directories, :errors, keyword_init: true)
+    Result = Struct.new(:moved, :skipped, :git_errors, :deleted_directories, :repaired_assets, :errors, keyword_init: true)
 
     def self.call(dry_run: true, git_relocate: true, repo: nil)
       new(dry_run: dry_run, git_relocate: git_relocate, repo: repo).call
@@ -16,7 +16,7 @@ class MemoDirectory
     end
 
     def call
-      result = Result.new(moved: 0, skipped: 0, git_errors: [], deleted_directories: 0, errors: [])
+      result = Result.new(moved: 0, skipped: 0, git_errors: [], deleted_directories: 0, repaired_assets: 0, errors: [])
 
       Account.find_each { |account| UserSpace.ensure_for_account!(account) }
 
@@ -25,6 +25,8 @@ class MemoDirectory
       rescue StandardError => e
         result.errors << "memo##{memo.id}: #{e.message}"
       end
+
+      repair_orphaned_assets!(result) if !@dry_run && @git_relocate
 
       cleanup_empty_legacy_directories!(result) unless @dry_run
 
@@ -37,7 +39,8 @@ class MemoDirectory
         "[kbmemo:memos:relocate_by_created_at] #{mode}",
         "  moved: #{result.moved}",
         "  skipped: #{result.skipped}",
-        "  deleted_directories: #{result.deleted_directories}"
+        "  deleted_directories: #{result.deleted_directories}",
+        "  repaired_assets: #{result.repaired_assets}"
       ]
       result.git_errors.each { |msg| lines << "  git: #{msg}" }
       result.errors.each { |msg| lines << "  error: #{msg}" }
@@ -64,17 +67,14 @@ class MemoDirectory
       end
 
       old_rel = @repo.relative_path_for(memo)
-      old_abs = @repo.absolute_path_for(memo)
+      old_assets_rel = @repo.assets_dir_relative_for(memo)
 
       memo.memo_directory = target
       memo.apply_storage_slug!
-      new_rel = @repo.relative_path_for(memo)
 
       if @git_relocate && memo.file_committed_at.present?
         begin
-          if old_abs.exist? && old_rel.to_s != new_rel.to_s
-            @repo.relocate_file!(from_relative: old_rel, to_relative: new_rel)
-          end
+          @repo.relocate_memo_paths!(memo, from_relative: old_rel, from_assets_relative: old_assets_rel)
         rescue MemoRepository::Error => e
           result.git_errors << "memo##{memo.id}: #{e.message}"
         end
@@ -82,6 +82,16 @@ class MemoDirectory
 
       memo.save!(validate: false)
       result.moved += 1
+    end
+
+    def repair_orphaned_assets!(result)
+      Memo.where.not(file_committed_at: nil).find_each do |memo|
+        next unless @repo.repair_orphaned_assets_for!(memo)
+
+        result.repaired_assets += 1
+      rescue MemoRepository::Error => e
+        result.git_errors << "memo##{memo.id} assets: #{e.message}"
+      end
     end
 
     def cleanup_empty_legacy_directories!(result)
@@ -95,7 +105,6 @@ class MemoDirectory
         next if dir.memos.exists?
         next if dir.children.exists?
         next if dir.boards.exists?
-        next if dir.notebooks.exists?
 
         dir.destroy!
         result.deleted_directories += 1
