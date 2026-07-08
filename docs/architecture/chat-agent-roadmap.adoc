@@ -1,0 +1,235 @@
+= Chat エージェント仕様変更ロードマップ（ローカルマルチモデル / intent ルーティング）
+
+`tmp/dev_note_tmp.md`「ローカルAIチャット／AIエージェント構成仕様案」を実装へ落とすための計画。
+現状の最小 BYOK OpenAI チャットを、**軽量モデルで前処理し必要時だけ高性能モデルへ昇格する
+マルチモデル・intent ルーティング型エージェント**へ拡張する。
+
+NOTE: 方針は <<open,§10 確定事項>> で合意済み（2026-07）。実装は Phase 0 から順に進める。
+
+== 1. 現状（as-is）
+
+現状の「Chat agent」はメモ編集画面サイドパネルの、ユーザー個人の OpenAI API キー（BYOK）を使う
+最小構成チャット。intent 判定・ツール・RAG・会話永続化はいずれも未実装。
+
+[cols="1,3"]
+|===
+|要素 |現状
+
+|エンドポイント
+|`app/controllers/memo_ai_chats_controller.rb`（`POST /memos/:id/ai_chat`）
+
+|オーケストレータ
+|`app/services/memo_ai_chat.rb`（メモ本文をコンテキスト化・履歴 12 件トリム）
+
+|LLM クライアント
+|`app/services/openai_chat_completion.rb`（`https://api.openai.com/v1` ハードコード・`gpt-4o-mini` 固定・`Net::HTTP`）
+
+|UI
+|`app/views/memos/_ai_panel.html.slim` + `app/javascript/controllers/memo_ai_panel_controller.js`（履歴はクライアントメモリのみ）
+
+|キー管理
+|`Account#openai_api_key`（Active Record Encryption で暗号化・BYOK）
+
+|検索基盤
+|pgroonga 全文検索（`Memo.search_text` / `db/migrate/20260703101000_enable_pgroonga_on_memos.rb`）※ AI とは未接続
+
+|intent / ツール / RAG / Web / Vision / 画像生成 / 会話永続化
+|**すべて未実装**
+|===
+
+== 2. 目標（to-be）
+
+`tmp/dev_note_tmp.md` の要点:
+
+* **モデル階層**: LFM2.5 1.2B（intent / 要約 / 整形）、Gemma 4 E4B（高速チャット）、Gemma 4 12B（メイン・RAG・コード・設計）、Qwen2.5-VL（Vision）、sd.cpp（画像生成）。
+* **接続**: llama-server（OpenAI 互換）＋ sd.cpp。ポート例 LFM2.5=10031 / E4B=10032 / 12B=10010 / VL=10033 / sd.cpp=11234。
+* **ルーティング**: LFM2.5 で intent 判定 → intent 別にモデル / ツールへ振り分け → 条件を満たせば 12B へ**エスカレーション**。
+* **ツール**: URL fetch（readability 抽出＋チャンク要約）、Web 検索（SearXNG）、RAG（pgvector / Groonga）、画像解析、画像生成。
+* **初期構成（§9）**: まず LFM2.5 / E4B / 12B の 3 モデルで開始。Vision・画像生成は後追い。
+
+== 3. ギャップと再利用資産
+
+[cols="1,2,2"]
+|===
+|領域 |現状 |目標に向けた方針
+
+|LLM 接続
+|OpenAI 固定・base_url 切替不可
+|`provider` + `base_url` を持つ**プロバイダ抽象**を導入し、llama-server（OpenAI 互換）を第一級に
+
+|モデル選択
+|`gpt-4o-mini` 固定
+|**モデルレジストリ**（role→endpoint/model/temperature）＋ intent ルーター
+
+|intent / ツール
+|なし
+|LFM2.5 分類器 + ルーター + ツールディスパッチを新設
+
+|RAG
+|pgroonga（未接続）
+|pgroonga を retriever として転用（**Phase で先行**）、pgvector は後続で追加
+
+|Web / URL / Vision / 画像生成
+|なし
+|ツールとして順次追加（`ClipImageImporter` / `Net::HTTP` の HTTP fetch 前例を流用）
+
+|会話永続化
+|クライアントメモリのみ
+|`chat_conversations` / `chat_messages` テーブルを新設（Phase 8）
+
+|BYOK キー
+|`Account#openai_api_key`（暗号化）
+|プロバイダ抽象の一プロバイダとして温存（ローカル既定・OpenAI 任意）
+|===
+
+== 4. 設計方針
+
+=== 4.1 プロバイダ抽象と OpenAI 互換クライアント
+
+`OpenaiChatCompletion` を汎用化し、`base_url` を注入可能にする（llama-server は OpenAI 互換 API を話す）。
+
+* `LlmClient`（仮）: `provider`（`:llama_cpp` / `:openai` / `:sd_cpp`）、`base_url`、`model`、`api_key`（任意）、`temperature` を受け取り、`/v1/chat/completions` を叩く薄いクライアント。
+* 既存 `OpenaiChatCompletion` はこの上の薄いラッパ（後方互換）か、`LlmClient` へ寄せて段階的に置換。
+* JSON 強制タスク（intent / query 生成 / sd プロンプト）向けに、`response_format`（対応時）または後段パースを備える。
+
+=== 4.2 モデルレジストリ（設定）
+
+dev note §7 の YAML を Rails 設定へ移す。**接続先・シークレットは Rails credentials、非機密の役割マッピングは `config/`** に置く方針（`AGENTS.md` の credentials 方針に整合）。
+
+* 役割キー: `intent` / `fast_chat` / `main` / `vision` / `image_generation`。
+* 各役割: `provider` / `base_url` / `model` / `temperature`。
+* development 既定は `http://localhost:100xx`（Tsuzura と同様に development では本番 URL を使わない）。
+* アクセサ（例 `ChatModels.for(:intent)`）に集約し、`base_url` 等を散在させない。
+
+=== 4.3 intent 分類とルーター
+
+* `IntentClassifier`: LFM2.5 に dev note §3.1 の system prompt で JSON（`intent` / `confidence` / `needs_tool` / `reason`）を返させる。低温度。
+* `ChatRouter`: intent → (モデル役割, ツール) のマッピング（dev note §2）。
+* エスカレーション（dev note §5）: `confidence < 0.7` / 「不明」多発 / コード修正 / 複数資料比較 / 長文 / ユーザーが「詳しく・設計・仕様・実装」を要求 → **`main`(12B) へ昇格**。
+
+=== 4.4 ツール層
+
+intent とルーターから呼ぶツールを疎結合に定義（`Chat::Tools::*`）:
+
+* `fetch_url`: `Net::HTTP` 取得 → 本文抽出（readability 相当）→ チャンク分割 → LFM2.5 一次要約 → E4B/12B 統合。
+* `web_search`: SearXNG（`base_url` は credentials）。
+* `rag_search`: **pgroonga**（`Memo.search_text`）を retriever に、LFM2.5 で query 生成（§3.3）→ 12B で最終回答（§3.6）。pgvector は後続。
+* `image_analysis`: Qwen2.5-VL（§3.8）。
+* `image_generation`: LFM/12B で sd プロンプト生成（§3.9）→ sd.cpp 実行。
+* `memo_search` / `memo_add`: 既存メモ機能へのブリッジ。
+
+=== 4.5 会話永続化（Phase 8）
+
+現状のクライアントメモリを DB へ。最小テーブル案:
+
+* `chat_conversations`（`account_id`、任意の `memo_id`、`title`、タイムスタンプ）。
+* `chat_messages`（`conversation_id`、`role`、`content`、`intent`、`model_role`、`tool_calls`(JSON)、`created_at`）。
+
+== 5. パイプライン（処理フロー）
+
+dev note §4 を実装単位に落とす。
+
+[source,text]
+----
+User 入力
+  -> IntentClassifier (LFM2.5, 低温度, JSON)
+  -> ChatRouter: intent -> {model_role, tools}
+  -> [tool があれば] Chat::Tools::* を実行しコンテキスト付与
+  -> 一次応答モデル (E4B or 役割別)
+  -> エスカレーション条件を満たせば main(12B) で再生成
+  -> 応答（+ 会話永続化）
+----
+
+== 6. フェーズ分割（実装順）
+
+[cols="1,3,2"]
+|===
+|Phase |内容 |主な成果物
+
+|0 ✅
+|プロバイダ抽象化・モデルレジストリ。既存 BYOK 挙動を壊さず llama-server へ接続可能にする（**2026-07 完了**）
+|`Chat::LlmClient` / `Chat::ModelRegistry` / `config/chat_models.yml` / credentials テンプレート・テスト
+
+|1
+|intent 判定 + ルーター + エスカレーション（LFM2.5/E4B/12B の 3 モデル初期構成）
+|`IntentClassifier` / `ChatRouter` / パイプライン
+
+|2
+|モデル別 system prompt・temperature 反映（§3・§8）
+|プロンプト定義の集約
+
+|3
+|URL 要約ツール（fetch → 抽出 → チャンク → 一次/統合要約）
+|`Chat::Tools::FetchUrl`
+
+|4
+|Web 検索ツール（SearXNG）
+|`Chat::Tools::WebSearch`
+
+|5
+|RAG（pgroonga retriever → query 生成 → 12B 回答）。pgvector は将来オプション
+|`Chat::Tools::RagSearch`
+
+|6
+|Vision（Qwen2.5-VL）
+|`Chat::Tools::ImageAnalysis`
+
+|7
+|画像生成（sd プロンプト → sd.cpp）
+|`Chat::Tools::ImageGeneration`
+
+|8
+|会話永続化（DB テーブル・UI 履歴復元）
+|migration / モデル / パネル UI 更新
+|===
+
+初期リリースは **Phase 0–2**（ローカル 3 モデルで intent ルーティングが動く状態）を目標にし、
+Phase 3 以降はツール単位で追加する。
+
+=== Phase 0 実装メモ（完了）
+
+* `Chat::LlmClient`（`app/services/chat/llm_client.rb`）— OpenAI 互換クライアント。`base_url` 注入可・`temperature`・`response_format`（JSON 強制）対応。ローカル llama-server は `api_key` 不要。
+* `Chat::ModelRegistry`（`app/services/chat/model_registry.rb`）— 役割→接続情報。`ModelRegistry.for(:main).build_client` でクライアント生成。development/test は `base_url` 未設定時に localhost 既定ポート（§6）へフォールバック、production は credentials 必須。
+* 役割マッピング `config/chat_models.yml`（非機密）、接続先/機密 `config/credentials/chat_models.example.yml`。
+* 既存 `OpenaiChatCompletion`（BYOK）は無改変で温存（後方互換）。次フェーズで `Chat::LlmClient` へ寄せる。
+
+== 7. 設定例（Rails への写し替え）
+
+非機密の役割マッピング（`config/` 側イメージ）:
+
+[source,yaml]
+----
+chat_models:
+  intent:           { provider: llama_cpp, model: lfm2.5-1.2b,  temperature: 0.1 }
+  fast_chat:        { provider: llama_cpp, model: gemma-4-e4b,  temperature: 0.4 }
+  main:             { provider: llama_cpp, model: gemma-4-12b,  temperature: 0.5 }
+  vision:           { provider: llama_cpp, model: qwen2.5-vl,   temperature: 0.2 }
+  image_generation: { provider: sd_cpp }
+----
+
+接続先（`base_url`）・SearXNG URL・（使うなら）OpenAI キーは **Rails credentials** に置く。
+development 既定 `base_url` は `http://localhost:10031`（intent）等。
+
+== 8. テスト方針
+
+* `LlmClient` / `ChatModels` はスタブ HTTP（WebMock 相当）で単体テスト。
+* `IntentClassifier` は固定 JSON 応答で分類マッピングを検証。
+* ルーター / エスカレーションは LLM 呼び出しをスタブし分岐のみ検証。
+* 既存 `openai_chat_completion_test.rb` / `memo_ai_chat_test.rb` を回帰として維持。
+* Rails test が sandbox の DB 接続で失敗する場合は `require_escalated` で再実行（`AGENTS.md`）。
+
+== 9. リスク・留意点
+
+* **ローカルサーバ依存**: llama-server / sd.cpp 未起動時のフォールバック（明示エラー・任意で BYOK 経由）を用意。
+* **多段呼び出しのレイテンシ**: intent→ツール→統合で往復増。ストリーミングやタイムアウト設計が必要。
+* **JSON 逸脱**: 小型モデルの JSON 崩れに備えパーサを堅牢化（§8 dev note）。
+* **UI の位置づけ**: 現状はメモ編集サイドパネル。汎用エージェント機能（Web 調査・画像生成）は memo コンテキストと相性が薄く、UI 再設計が要る場合がある（<<open,§10>>）。
+
+[[open]]
+== 10. 確定事項（2026-07 合意）
+
+. **BYOK OpenAI は温存。** プロバイダ抽象の一プロバイダとして残し、**既定をローカル**にする（後方互換）。
+. **UI は段階的。** まず現状のメモ編集サイドパネルを拡張し、汎用機能（Web 調査・画像生成）は後で独立したチャット / エージェント画面へ移す。
+. **初期マイルストーンは Phase 0–2**（ローカル 3 モデル・intent ルーティング。dev note §9 準拠）。
+. **会話永続化は Phase 8**（後回し）。
+. **RAG は pgroonga 転用を先行**し、必要時に pgvector を追加。

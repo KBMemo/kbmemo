@@ -1,0 +1,34 @@
+# Chat エージェントのモデル役割マッピング（非機密）。
+# 接続先 base_url・SearXNG URL・OpenAI キー等の機密は Rails credentials（chat_models）に置く。
+# テンプレート: config/credentials/chat_models.example.yml
+#
+# 役割キー: intent / fast_chat / main / vision / image_generation
+# 各役割: provider（llama_cpp | openai | sd_cpp）/ model / temperature
+default: &default
+  intent:
+    provider: llama_cpp
+    model: lfm2.5-1.2b
+    temperature: 0.1
+  fast_chat:
+    provider: llama_cpp
+    model: gemma-4-e4b
+    temperature: 0.4
+  main:
+    provider: llama_cpp
+    model: gemma-4-12b
+    temperature: 0.5
+  vision:
+    provider: llama_cpp
+    model: qwen2.5-vl
+    temperature: 0.2
+  image_generation:
+    provider: sd_cpp
+
+development:
+  <<: *default
+
+test:
+  <<: *default
+
+production:
+  <<: *default
