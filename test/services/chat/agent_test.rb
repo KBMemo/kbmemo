@@ -114,6 +114,58 @@ module Chat
       assert_equal [ :main ], factory.calls
     end
 
+    # 役割ごとに渡された messages を記録するファクトリ。
+    class RecordingFactory
+      attr_reader :seen
+
+      def initialize
+        @seen = {}
+      end
+
+      def call(role)
+        seen = @seen
+        client = Object.new
+        client.define_singleton_method(:chat) do |messages, **_opts|
+          seen[role] = messages
+          "reply(#{role})"
+        end
+        client
+      end
+    end
+
+    def system_content(messages)
+      first = messages.first
+      first && first[:role] == "system" ? first[:content] : nil
+    end
+
+    test "injects fast_chat default prompt for conversation" do
+      factory = RecordingFactory.new
+      a = Chat::Agent.new(classifier: StubClassifier.new(intent("conversation")), client_factory: factory)
+      a.call(messages: [ { role: "user", content: "やあ" } ])
+
+      assert_equal Chat::Prompts::FAST_CHAT, system_content(factory.seen[:fast_chat])
+    end
+
+    test "injects CODING prompt for code intent" do
+      factory = RecordingFactory.new
+      a = Chat::Agent.new(classifier: StubClassifier.new(intent("code")), client_factory: factory)
+      a.call(messages: [ { role: "user", content: "直して" } ])
+
+      assert_equal Chat::Prompts::CODING, system_content(factory.seen[:main])
+    end
+
+    test "escalation uses main prompt while primary uses fast_chat prompt" do
+      factory = RecordingFactory.new
+      a = Chat::Agent.new(
+        classifier: StubClassifier.new(intent("conversation", confidence: 0.4)),
+        client_factory: factory
+      )
+      a.call(messages: [ { role: "user", content: "?" } ])
+
+      assert_equal Chat::Prompts::FAST_CHAT, system_content(factory.seen[:fast_chat])
+      assert_equal Chat::Prompts::MAIN, system_content(factory.seen[:main])
+    end
+
     test "prepends system prompt when given" do
       captured = nil
       factory = Object.new

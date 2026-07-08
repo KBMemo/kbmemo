@@ -38,7 +38,7 @@ module Chat
       return build_result(reply: nil, classification: classification, decision: decision, model_role: nil, escalated: false) if user_text.blank?
 
       primary_role = chat_role(decision.model_role)
-      reply = generate(primary_role, system_prompt, history)
+      reply = generate(primary_role, system_prompt, classification.intent, history)
 
       escalated = Chat::Escalation.escalate?(
         intent: classification, user_text: user_text, model_role: primary_role, reply: reply
@@ -46,7 +46,7 @@ module Chat
       final_role = primary_role
       if escalated
         final_role = Chat::Escalation::TOP_ROLE
-        reply = generate(final_role, system_prompt, history)
+        reply = generate(final_role, system_prompt, classification.intent, history)
       end
 
       build_result(
@@ -69,9 +69,11 @@ module Chat
       )
     end
 
-    def generate(role, system_prompt, history)
+    # 明示 system_prompt があれば最優先。無ければ intent/役割別の既定（Chat::Prompts）。
+    def generate(role, system_prompt, intent, history)
+      effective = system_prompt.presence || Chat::Prompts.system_for(role: role, intent: intent)
       messages = []
-      messages << { role: "system", content: system_prompt } if system_prompt.present?
+      messages << { role: "system", content: effective } if effective.present?
       messages.concat(history)
       @client_factory.call(role).chat(messages)
     end

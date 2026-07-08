@@ -12,44 +12,8 @@ module Chat
       settings_change unknown
     ].freeze
 
-    SYSTEM_PROMPT = <<~PROMPT
-      あなたはAIチャットアプリのIntent Classifierです。
-      ユーザー入力を読み、最も適切なintentを1つだけ選んでください。
-
-      返答はJSONのみです。説明文は不要です。
-
-      intent候補:
-      - conversation
-      - web_research
-      - url_analysis
-      - rag_lookup
-      - code
-      - summarization
-      - translation
-      - image_analysis
-      - image_generation
-      - memo_search
-      - memo_add
-      - settings_change
-      - unknown
-
-      出力形式:
-      {
-        "intent": "...",
-        "confidence": 0.0,
-        "needs_tool": true,
-        "reason": "短い理由"
-      }
-
-      判断基準:
-      - URLが含まれる場合は url_analysis
-      - 最新情報が必要なら web_research
-      - アプリ内メモやナレッジ検索が必要なら rag_lookup
-      - 画像生成依頼なら image_generation
-      - 画像・スクリーンショット解析なら image_analysis
-      - コード修正・実装相談なら code
-      - 単なる会話なら conversation
-    PROMPT
+    # system prompt は Chat::Prompts に集約（§3.1）。
+    SYSTEM_PROMPT = Chat::Prompts::INTENT_CLASSIFIER
 
     Result = Struct.new(:intent, :confidence, :needs_tool, :reason, keyword_init: true) do
       def unknown?
