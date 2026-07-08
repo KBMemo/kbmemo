@@ -1,30 +1,79 @@
 # frozen_string_literal: true
 
 # メモ編集 AI チャット（AsciiDoc 前提・メモ本文をコンテキストに含める）。
+#
+# バックエンドは既定でローカルモデル（Chat::ModelRegistry.for(:main)）。
+# ローカルへ接続できない場合のみ、登録済み OpenAI キー（BYOK）へフォールバックする。
 class MemoAiChat
   MAX_BODY_CHARS = 12_000
   MAX_HISTORY = 12
 
-  def initialize(account:, memo:, messages:, selection: nil)
+  OPENAI_BASE_URL = "https://api.openai.com"
+  OPENAI_MODEL = "gpt-4o-mini"
+
+  def initialize(account:, memo:, messages:, selection: nil, local_client: nil, byok_client: nil)
     @account = account
     @memo = memo
     @messages = Array(messages)
     @selection = selection.to_s.strip.presence
+    @local_client = local_client
+    @byok_client = byok_client
   end
 
-  # @return [Hash] { reply: String }
+  # @return [Hash] { reply: String, backend: Symbol }
   def call
-    key = @account.openai_api_key
-    raise OpenaiChatCompletion::Error, "OpenAI API キーが未設定です。" if key.blank?
-
-    client = OpenaiChatCompletion.new(api_key: key)
-    reply = client.call(build_openai_messages)
-    { reply: reply }
+    messages = build_messages
+    reply, backend = generate(messages)
+    { reply: reply, backend: backend }
   end
 
   private
 
-  def build_openai_messages
+  def generate(messages)
+    # ローカルクライアント構築（未設定なら KeyError）と応答（未起動なら ConnectionError）は
+    # どちらも「ローカル利用不可」として BYOK フォールバックへ回す。
+    begin
+      client = local_client
+    rescue KeyError => e
+      return fallback_or_raise(messages, e)
+    end
+
+    begin
+      [ client.chat(messages), :local ]
+    rescue Chat::LlmClient::ConnectionError => e
+      fallback_or_raise(messages, e)
+    end
+  end
+
+  def fallback_or_raise(messages, cause)
+    raise unavailable_error(cause) unless byok_available?
+
+    [ byok_client.chat(messages), :openai ]
+  end
+
+  def local_client
+    @local_client ||= Chat::ModelRegistry.for(:main).build_client
+  end
+
+  def byok_available?
+    @account.openai_api_key.present?
+  end
+
+  def byok_client
+    @byok_client ||= Chat::LlmClient.new(
+      base_url: OPENAI_BASE_URL,
+      model: OPENAI_MODEL,
+      api_key: @account.openai_api_key
+    )
+  end
+
+  def unavailable_error(cause)
+    Chat::LlmClient::ConnectionError.new(
+      "ローカル AI に接続できません。llama-server を起動するか、プロフィールで OpenAI API キーを登録してください。（#{cause.message}）"
+    )
+  end
+
+  def build_messages
     [ system_message ] + trimmed_history
   end
 

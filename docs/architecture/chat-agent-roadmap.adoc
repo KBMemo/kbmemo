@@ -191,7 +191,7 @@ Phase 3 以降はツール単位で追加する。
 * `Chat::LlmClient`（`app/services/chat/llm_client.rb`）— OpenAI 互換クライアント。`base_url` 注入可・`temperature`・`response_format`（JSON 強制）対応。ローカル llama-server は `api_key` 不要。
 * `Chat::ModelRegistry`（`app/services/chat/model_registry.rb`）— 役割→接続情報。`ModelRegistry.for(:main).build_client` でクライアント生成。development/test は `base_url` 未設定時に localhost 既定ポート（§6）へフォールバック、production は credentials 必須。
 * 役割マッピング `config/chat_models.yml`（非機密）、接続先/機密 `config/credentials/chat_models.example.yml`。
-* 既存 `OpenaiChatCompletion`（BYOK）は無改変で温存（後方互換）。次フェーズで `Chat::LlmClient` へ寄せる。
+* 既存 `OpenaiChatCompletion`（BYOK）は Phase 0 時点では温存。UI 統合で `Chat::LlmClient` へ統合し撤去済み（<<ui,UI 統合>>）。
 
 === Phase 1 実装メモ（完了）
 
@@ -209,6 +209,17 @@ Phase 3 以降はツール単位で追加する。
 * `Chat::IntentClassifier::SYSTEM_PROMPT` は `Chat::Prompts::INTENT_CLASSIFIER` を参照（定義の一本化）。
 * `Chat::Agent` は明示 `system_prompt` が無ければ役割/intent に応じた既定を自動注入。エスカレーション時は `main` の prompt（code は CODING）を使う。
 * temperature は Phase 0 の `ModelRegistry`（`config/chat_models.yml`）が役割ごとに保持し、`LlmClient` が送信（§8）。
+
+[[ui]]
+== 6.5. UI 統合（メモ編集パネル）— 2026-07 完了
+
+決定（§10.2）どおり、まずメモ編集サイドパネルをローカルモデル対応へ拡張した（汎用エージェント画面は後続）。
+
+* **バックエンド選択**: `MemoAiChat` は既定でローカル `main` モデル（`ModelRegistry.for(:main)`）を使い、`Chat::LlmClient::ConnectionError`（サーバ未起動・タイムアウト）時のみ登録済み OpenAI キー（BYOK）へフォールバック。BYOK も同じ `Chat::LlmClient` 経由に統一し、`OpenaiChatCompletion` は撤去。
+* **接続エラーの識別**: `Chat::LlmClient::ConnectionError < Error` を追加。API エラー（4xx/5xx）とネットワーク障害を区別し、フォールバック判定に使う。
+* **コントローラ**: `MemoAiChatsController` は OpenAI キー必須の事前チェックを廃止（ローカルはキー不要）。`Chat::LlmClient::Error` を 422＋`settings_url` で返す。
+* **UI**: `_ai_panel` は「既定でローカル AI、未起動時は OpenAI にフォールバック」を明記。`memo-ai-panel` Stimulus はキー未設定でも送信可能にし、応答ごとに使用バックエンド（`ローカル` / `OpenAI`）バッジを表示。応答 JSON に `backend` を追加。
+* メモパネルは執筆特化（AsciiDoc 出力）の system prompt を維持し、intent ルーティングは通さない（汎用 `Chat::Agent` は独立画面で活用予定）。
 
 == 7. 設定例（Rails への写し替え）
 

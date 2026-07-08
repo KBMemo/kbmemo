@@ -6,7 +6,7 @@ require "uri"
 
 module Chat
   # OpenAI 互換 Chat Completions クライアント（llama-server / OpenAI / その他互換 API 共通）。
-  # base_url を注入できる点が旧 OpenaiChatCompletion との違い。
+  # base_url を注入できるので、ローカル llama-server も BYOK OpenAI も同一 IF で扱える。
   class LlmClient
     DEFAULT_TIMEOUT = 120
     DEFAULT_OPEN_TIMEOUT = 15
@@ -20,6 +20,9 @@ module Chat
         @body = body
       end
     end
+
+    # 接続失敗（サーバ未起動・タイムアウト等）。API エラーと区別してフォールバック判定に使う。
+    class ConnectionError < Error; end
 
     # @param base_url [String] OpenAI 互換 API のルート（例 http://localhost:10010 もしくは .../v1）
     # @param model [String]
@@ -89,7 +92,7 @@ module Chat
     rescue JSON::ParserError
       raise Error, "LLM API の応答を解析できませんでした。"
     rescue Net::OpenTimeout, Net::ReadTimeout, Timeout::Error, SocketError, SystemCallError, IOError => e
-      raise Error, "LLM API へ接続できませんでした: #{e.message}"
+      raise ConnectionError, "LLM API へ接続できませんでした: #{e.message}"
     end
 
     def extract_error_message(body)

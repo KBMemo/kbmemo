@@ -3,12 +3,11 @@
 require "test_helper"
 
 class MemoAiChatsControllerTest < ActionDispatch::IntegrationTest
-  test "create returns reply when api key configured" do
-    accounts(:one).update!(openai_api_key: "sk-test")
+  test "create returns reply and backend" do
     memo = memos(:one)
 
     fake = Object.new
-    fake.define_singleton_method(:call) { { reply: "== AI section\n\nContent" } }
+    fake.define_singleton_method(:call) { { reply: "== AI section\n\nContent", backend: :local } }
 
     original_new = MemoAiChat.method(:new)
     begin
@@ -21,23 +20,33 @@ class MemoAiChatsControllerTest < ActionDispatch::IntegrationTest
       assert_response :success
       body = JSON.parse(response.body)
       assert_equal "== AI section\n\nContent", body["reply"]
+      assert_equal "local", body["backend"]
     ensure
       MemoAiChat.define_singleton_method(:new, original_new)
     end
   end
 
-  test "create returns error when api key missing" do
-    accounts(:one).update!(openai_api_key: nil)
+  test "create returns error when no backend is available" do
     memo = memos(:one)
 
-    post ai_chat_memo_url(memo),
-      params: { messages: [ { role: "user", content: "hi" } ] },
-      as: :json
+    fake = Object.new
+    fake.define_singleton_method(:call) { raise Chat::LlmClient::ConnectionError, "ローカル AI に接続できません。OpenAI API キーを登録してください。" }
 
-    assert_response :unprocessable_entity
-    body = JSON.parse(response.body)
-    assert_includes body["error"], "API キー"
-    assert body["settings_url"].present?
+    original_new = MemoAiChat.method(:new)
+    begin
+      MemoAiChat.define_singleton_method(:new) { |**_kwargs| fake }
+
+      post ai_chat_memo_url(memo),
+        params: { messages: [ { role: "user", content: "hi" } ] },
+        as: :json
+
+      assert_response :unprocessable_entity
+      body = JSON.parse(response.body)
+      assert_includes body["error"], "API キー"
+      assert body["settings_url"].present?
+    ensure
+      MemoAiChat.define_singleton_method(:new, original_new)
+    end
   end
 
   test "create forbidden for memo user cannot update" do

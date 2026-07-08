@@ -54,7 +54,7 @@ module Chat
       def fake_http.request(_) = raise(Errno::ECONNREFUSED)
 
       Net::HTTP.stub(:new, fake_http) do
-        err = assert_raises(Chat::LlmClient::Error) do
+        err = assert_raises(Chat::LlmClient::ConnectionError) do
           client.chat([ { role: "user", content: "hi" } ])
         end
         assert_match(/接続できませんでした/, err.message)

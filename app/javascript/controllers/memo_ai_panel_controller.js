@@ -23,11 +23,6 @@ export default class extends Controller {
     const text = this.inputTarget?.value?.trim()
     if (!text) return
 
-    if (!this.hasApiKeyValue) {
-      this.showError("OpenAI API キーをプロフィールで設定してください。")
-      return
-    }
-
     this.clearError()
     this.history.push({ role: "user", content: text })
     if (this.inputTarget) this.inputTarget.value = ""
@@ -71,7 +66,7 @@ export default class extends Controller {
         return
       }
 
-      this.history.push({ role: "assistant", content: reply })
+      this.history.push({ role: "assistant", content: reply, backend: data.backend })
       this.renderMessages()
     } catch {
       this.showError("AI との通信に失敗しました。")
@@ -125,7 +120,7 @@ export default class extends Controller {
     if (this.history.length === 0) {
       const empty = document.createElement("p")
       empty.className = "text-xs kb-text-muted"
-      empty.textContent = "メモの執筆・推敲を手伝います。送信すると本文の抜粋が OpenAI に送られます。"
+      empty.textContent = "メモの執筆・推敲を手伝います。既定でローカル AI を使います。"
       this.messagesTarget.append(empty)
       return
     }
@@ -144,6 +139,13 @@ export default class extends Controller {
     const label = document.createElement("p")
     label.className = "mb-0.5 kb-ai-message-label font-medium uppercase tracking-wide kb-text-muted"
     label.textContent = isUser ? "あなた" : "AI"
+
+    if (!isUser && entry.backend) {
+      const badge = document.createElement("span")
+      badge.className = "ml-1 normal-case kb-text-muted"
+      badge.textContent = entry.backend === "openai" ? "· OpenAI" : "· ローカル"
+      label.append(badge)
+    }
 
     const bubble = document.createElement("div")
     bubble.className = `rounded-md px-2 py-1.5 text-xs leading-relaxed ${
