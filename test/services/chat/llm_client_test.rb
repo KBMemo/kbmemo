@@ -44,5 +44,21 @@ module Chat
       client = Chat::LlmClient.new(base_url: "http://localhost:10010/v1/", model: "m")
       assert_equal "http://localhost:10010/v1/chat/completions", client.send(:endpoint).to_s
     end
+
+    test "wraps network errors in Error" do
+      client = Chat::LlmClient.new(base_url: "http://localhost:9", model: "m")
+      fake_http = Object.new
+      def fake_http.use_ssl=(_); end
+      def fake_http.open_timeout=(_); end
+      def fake_http.read_timeout=(_); end
+      def fake_http.request(_) = raise(Errno::ECONNREFUSED)
+
+      Net::HTTP.stub(:new, fake_http) do
+        err = assert_raises(Chat::LlmClient::Error) do
+          client.chat([ { role: "user", content: "hi" } ])
+        end
+        assert_match(/接続できませんでした/, err.message)
+      end
+    end
   end
 end

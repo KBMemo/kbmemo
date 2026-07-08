@@ -1,0 +1,135 @@
+# frozen_string_literal: true
+
+require "test_helper"
+
+module Chat
+  class AgentTest < ActiveSupport::TestCase
+    # 役割ごとに固定応答を返すスタブ。呼ばれた役割を記録する。
+    class StubFactory
+      attr_reader :calls
+
+      def initialize(replies)
+        @replies = replies
+        @calls = []
+      end
+
+      def call(role)
+        @calls << role
+        StubClient.new(@replies.fetch(role, "reply(#{role})"))
+      end
+    end
+
+    class StubClient
+      def initialize(reply)
+        @reply = reply
+      end
+
+      def chat(_messages, **_opts)
+        @reply
+      end
+    end
+
+    class StubClassifier
+      def initialize(result)
+        @result = result
+      end
+
+      def classify(_text)
+        @result
+      end
+    end
+
+    def intent(name, confidence: 0.9)
+      Chat::IntentClassifier::Result.new(
+        intent: name, confidence: confidence, needs_tool: false, reason: ""
+      )
+    end
+
+    def agent(intent_result, replies: {})
+      factory = StubFactory.new(replies)
+      [ Chat::Agent.new(classifier: StubClassifier.new(intent_result), client_factory: factory), factory ]
+    end
+
+    test "conversation stays on fast_chat" do
+      a, factory = agent(intent("conversation"), replies: { fast_chat: "hi" })
+      result = a.call(messages: [ { role: "user", content: "やあ" } ])
+
+      assert_equal "hi", result.reply
+      assert_equal :fast_chat, result.model_role
+      refute result.escalated
+      assert_equal [ :fast_chat ], factory.calls
+    end
+
+    test "intent is the name string and classification holds detail" do
+      a, = agent(intent("conversation", confidence: 0.95), replies: { fast_chat: "hi" })
+      result = a.call(messages: [ { role: "user", content: "やあ" } ])
+
+      assert_equal "conversation", result.intent
+      assert_in_delta 0.95, result.classification.confidence
+    end
+
+    test "empty history does not call the LLM" do
+      a, factory = agent(intent("conversation"), replies: { fast_chat: "hi" })
+      result = a.call(messages: [])
+
+      assert_nil result.reply
+      assert_nil result.model_role
+      refute result.escalated
+      assert_empty factory.calls
+    end
+
+    test "history without user turns does not call the LLM" do
+      a, factory = agent(intent("conversation"), replies: { fast_chat: "hi" })
+      result = a.call(messages: [ { role: "assistant", content: "先の返答" } ])
+
+      assert_nil result.reply
+      assert_empty factory.calls
+    end
+
+    test "code intent routes straight to main (no escalation needed)" do
+      a, factory = agent(intent("code"), replies: { main: "final" })
+      result = a.call(messages: [ { role: "user", content: "直して" } ])
+
+      assert_equal "final", result.reply
+      assert_equal :main, result.model_role
+      refute result.escalated
+      assert_equal [ :main ], factory.calls
+    end
+
+    test "low confidence conversation escalates to main" do
+      a, factory = agent(intent("conversation", confidence: 0.4), replies: { fast_chat: "d", main: "f" })
+      result = a.call(messages: [ { role: "user", content: "?" } ])
+
+      assert result.escalated
+      assert_equal [ :fast_chat, :main ], factory.calls
+    end
+
+    test "non-chat role (image_generation) falls back to main and reports pending tools" do
+      a, factory = agent(intent("image_generation"), replies: { main: "img-note" })
+      result = a.call(messages: [ { role: "user", content: "猫の絵を描いて" } ])
+
+      assert_equal :main, result.model_role
+      assert result.pending_tools
+      assert_includes result.tools, :image_generation
+      assert_equal [ :main ], factory.calls
+    end
+
+    test "prepends system prompt when given" do
+      captured = nil
+      factory = Object.new
+      factory.define_singleton_method(:call) do |_role|
+        client = Object.new
+        client.define_singleton_method(:chat) do |messages, **_opts|
+          captured = messages
+          "ok"
+        end
+        client
+      end
+      a = Chat::Agent.new(classifier: StubClassifier.new(intent("conversation")), client_factory: factory)
+      a.call(messages: [ { role: "user", content: "hi" } ], system_prompt: "SYS")
+
+      assert_equal "system", captured.first[:role]
+      assert_equal "SYS", captured.first[:content]
+    end
+  end
+end

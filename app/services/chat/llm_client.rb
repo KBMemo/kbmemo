@@ -88,6 +88,8 @@ module Chat
       JSON.parse(body)
     rescue JSON::ParserError
       raise Error, "LLM API の応答を解析できませんでした。"
+    rescue Net::OpenTimeout, Net::ReadTimeout, Timeout::Error, SocketError, SystemCallError, IOError => e
+      raise Error, "LLM API へ接続できませんでした: #{e.message}"
     end
 
     def extract_error_message(body)

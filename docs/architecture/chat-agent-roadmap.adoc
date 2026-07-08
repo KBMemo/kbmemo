@@ -150,9 +150,9 @@ User 入力
 |プロバイダ抽象化・モデルレジストリ。既存 BYOK 挙動を壊さず llama-server へ接続可能にする（**2026-07 完了**）
 |`Chat::LlmClient` / `Chat::ModelRegistry` / `config/chat_models.yml` / credentials テンプレート・テスト
 
-|1
-|intent 判定 + ルーター + エスカレーション（LFM2.5/E4B/12B の 3 モデル初期構成）
-|`IntentClassifier` / `ChatRouter` / パイプライン
+|1 ✅
+|intent 判定 + ルーター + エスカレーション（LFM2.5/E4B/12B の 3 モデル初期構成。**2026-07 完了**）
+|`Chat::IntentClassifier` / `Chat::Router` / `Chat::Escalation` / `Chat::Agent`
 
 |2
 |モデル別 system prompt・temperature 反映（§3・§8）
@@ -192,6 +192,15 @@ Phase 3 以降はツール単位で追加する。
 * `Chat::ModelRegistry`（`app/services/chat/model_registry.rb`）— 役割→接続情報。`ModelRegistry.for(:main).build_client` でクライアント生成。development/test は `base_url` 未設定時に localhost 既定ポート（§6）へフォールバック、production は credentials 必須。
 * 役割マッピング `config/chat_models.yml`（非機密）、接続先/機密 `config/credentials/chat_models.example.yml`。
 * 既存 `OpenaiChatCompletion`（BYOK）は無改変で温存（後方互換）。次フェーズで `Chat::LlmClient` へ寄せる。
+
+=== Phase 1 実装メモ（完了）
+
+* `Chat::IntentClassifier`（`app/services/chat/intent_classifier.rb`）— LFM2.5（`ModelRegistry.for(:intent)`）に §3.1 の system prompt で JSON 分類させる。`response_format: json_object` を指定。コードフェンス混入や JSON 崩れ・LLM エラー時は `unknown` / `confidence 0.0` にフォールバックし、intent は許可リスト（`INTENTS`）で検証。
+* `Chat::Router`（`app/services/chat/router.rb`）— §2 に基づき intent→`{model_role, tools}`。ツール名は Phase 3 以降の実装待ちで、ここでは返すのみ。
+* `Chat::Escalation`（`app/services/chat/escalation.rb`）— §5 の昇格判定。`confidence < 0.7` / `code` intent / ユーザーが「詳しく・設計・仕様・実装」等を要求 / 一次応答に「不明」系が多い → `main`(12B) へ。既に `main` の場合は昇格しない。
+* `Chat::Agent`（`app/services/chat/agent.rb`）— パイプライン本体。classify→route→一次応答→（条件を満たせば）main へ再生成。chat 応答不能な役割（vision / image_generation / nil）は当面 `main` にフォールバックしつつ `tools` / `pending_tools` を返し、ツール実装待ちを呼び出し側へ伝える。
+* いずれも LLM クライアントを DI 可能にし、テストは HTTP を叩かずスタブで検証（ローカルサーバ不要）。
+* **UI 未接続**: 本フェーズはコア services のみ。メモ編集パネルへの組み込みは Phase 2（モデル別 system prompt）と併せて行う。
 
 == 7. 設定例（Rails への写し替え）
 
