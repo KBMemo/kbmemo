@@ -1,0 +1,16 @@
+- content_for :title, "AI チャット"
+
+.agent-chat-page.mx-auto.flex.w-full.max-w-3xl.flex-col class="min-h-[calc(100dvh-10rem)]"
+  header.mb-4.shrink-0
+    h1.text-xl.font-semibold.kb-text-primary AI チャット
+    p.mt-1.text-sm.kb-text-muted
+      | intent 判定・RAG・ローカルモデルルーティングを使う汎用エージェントです。既定でローカル AI を使い、未起動時は登録済み OpenAI にフォールバックします。
+
+  .agent-chat-panel.kb-ai-panel.kb-chrome-panel.flex.min-h-0.flex-1.flex-col.overflow-hidden.rounded-lg.border.px-3.py-3 data-controller="agent-chat" data-agent-chat-chat-url-value=agent_chat_path(format: :json) data-agent-chat-profile-url-value=edit_profile_path aria-label="AI チャット"
+    .kb-ai-messages.min-h-0.flex-1.overflow-y-auto.rounded-md.p-2 data-agent-chat-target="messages"
+    p.hidden.shrink-0.text-xs.kb-status-danger data-agent-chat-target="error"
+    label.sr-only for="agent_chat_prompt" AI へのメッセージ
+    textarea#agent_chat_prompt.kb-input.w-full.shrink-0.resize-none.font-sans.leading-relaxed rows=4 autocomplete="off" placeholder="例: メモを検索して RAG の設定を教えて" data-agent-chat-target="input" data-action="keydown.enter->agent-chat#send:prevent"
+    .mt-2.flex.shrink-0.flex-wrap.gap-2
+      button.kb-chrome-btn-primary type="button" data-theme-slot="btn-primary" data-agent-chat-target="sendButton" data-action="agent-chat#send" 送信
+      button.kb-toolbar-btn type="button" data-action="agent-chat#clearChat" 履歴を消去

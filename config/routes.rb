@@ -22,6 +22,8 @@ Rails.application.routes.draw do
   get "help", to: "help#show", as: :help
   get "help/:memo_slug", to: "help#show", as: :help_memo
 
+  resource :agent_chat, only: %i[show create], controller: "agent_chats"
+
   resource :profile, only: %i[edit update] do
     post :clip_api_token, action: :create_clip_api_token
     delete :clip_api_token, action: :destroy_clip_api_token

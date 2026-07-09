@@ -31,6 +31,7 @@ html lang="ja" data-kb-theme=kb_initial_theme_id data-kb-theme-base=kb_initial_t
           span Kbmemo
         .flex.flex-wrap.items-center.gap-x-4.gap-y-2.text-sm
           = link_to "メモ", memos_path(sidebar_view: "history"), class: "kb-chrome-link"
+          = link_to "AI チャット", agent_chat_path, class: "kb-chrome-link"
           = render "layouts/nav_boards_menu"
           = render "layouts/nav_notebooks_menu"
           - if HelpNotebook.find

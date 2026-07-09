@@ -271,7 +271,7 @@ Phase 3 以降はツール単位で追加する。
 * `Chat::Tools::RagQueryGenerator`（`app/services/chat/tools/rag_query_generator.rb`）— LFM2.5（`ModelRegistry.for(:intent)`）に §3.3 `RAG_QUERY` で JSON 検索語を生成。失敗時はユーザー原文をそのままクエリにフォールバック。
 * `Chat::Tools::RagSearch`（`app/services/chat/tools/rag_search.rb`）— `MemoPolicy::Scope` で閲覧可能メモに限定し、既存 `Memo.search_text`（pgroonga / ILIKE フォールバック）で複数クエリを検索・マージ。ヒット本文は最大 2,000 文字の抜粋を `context_text` に整形。
 * `Chat::Agent` — `account:` 指定時に `rag_search` / `memo_search` ツールを実行し、検索結果がある場合は `RAG_ANSWER` + 資料抜粋を system に注入（Phase 2 で保留していた RAG プロンプト自動注入を有効化）。`Result#rag` に検索メタデータを返す。
-* **UI 未接続**: 汎用エージェント画面から `Chat::Agent` を呼ぶ際に `account:` を渡せば RAG が動作。メモ編集パネル（`MemoAiChat`）は引き続き執筆特化の単一 LLM 経路。
+* **UI 未接続**: ~~汎用エージェント画面から `Chat::Agent` を呼ぶ際に `account:` を渡せば RAG が動作。~~ → <<agent-ui,独立チャット画面>> で接続済み。メモ編集パネル（`MemoAiChat`）は引き続き執筆特化の単一 LLM 経路。
 
 === Phase 5b 実装メモ（完了）
 
@@ -282,6 +282,17 @@ Phase 3 以降はツール単位で追加する。
 * `Chat::Tools::MemoEmbeddingIndexer` + `MemoEmbeddingIndexJob` — メモ保存時（`title` / `body` 変更）に非同期インデックス。`bin/rails kbmemo:embeddings:backfill` で既存メモ一括。
 * `Chat::Tools::RagSearch` — pgroonga（lexical）と pgvector 近傍（semantic）を **RRF** で統合。Embedding サーバ未起動時は semantic をスキップし 5a 単独で動作。`Result#semantic_used` で semantic 寄与の有無を返す。
 * embedding 未導入環境（pgvector なし）ではチャンクテーブルのみ作成され、lexical RAG は従来どおり動作。
+
+[[agent-ui]]
+== 6.6. 独立チャット画面 — 2026-07 完了
+
+決定（§10.2）の後半。**汎用 `Chat::Agent`** を専用 UI から利用する。
+
+* **ルート**: `GET /agent_chat`（画面）・`POST /agent_chat`（JSON）。`resource :agent_chat`。
+* **コントローラ**: `AgentChatsController` — `Chat::Agent.new.call(messages:, account:)`。応答 JSON に `reply` / `intent` / `model_role` / `escalated` / `pending_tools` / `rag`（hit_count・semantic_used）を含む。
+* **認可**: `AgentChatPolicy`（ログイン済みのみ）。
+* **UI**: `app/views/agent_chats/show.html.slim` + Stimulus `agent-chat`。ヘッダーナビに「AI チャット」リンク。intent・model・RAG メタデータを assistant 応答下に表示。
+* **メモ編集パネルとの役割分担**: パネル（`MemoAiChat`）= 執筆特化・単一 LLM。独立画面 = intent ルーティング・RAG・エスカレーション。
 
 == 7. 設定例（Rails への写し替え）
 

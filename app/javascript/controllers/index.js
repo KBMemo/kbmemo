@@ -36,6 +36,7 @@ import UserMenuController from "./user_menu_controller"
 application.register("user-menu", UserMenuController)
 
 const lazyControllers = {
+  "agent-chat": () => import("./agent_chat_controller"),
   "board-add-memo": () => import("./board_add_memo_controller"),
   "board-kanban-dnd": () => import("./board_kanban_dnd_controller"),
   "code-block-tools": () => import("./code_block_tools_controller"),
