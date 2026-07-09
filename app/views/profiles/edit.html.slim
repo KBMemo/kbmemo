@@ -8,6 +8,13 @@ section.mt-8
     | ヘッダーやメモディレクトリの表示に使います。空にするとメールアドレスが表示されます。
 
 section.mt-10
+  h2 class=kb_section_title ローカル Chat サーバー
+  p.mt-1.text-sm.kb-text-secondary
+    | AI チャット・メモ AI パネルの llama-server 接続先 URL です。
+  .mt-3
+    = link_to "Chat サーバー設定", chat_server_path, class: "kb-chrome-btn-secondary kb-btn-md"
+
+section.mt-10
   h2 class=kb_section_title OpenAI API キー（BYOK）
   p.mt-1.text-sm.kb-text-secondary
     | メモ編集の AI サイドパネル用です。キーは暗号化して保存し、OpenAI API 呼び出し時のみサーバーから送信します。

@@ -91,17 +91,38 @@ module Chat
     end
 
     def parse_embedding(data)
-      vector = case data
+      vector = extract_embedding_vector(data)
+      values = flatten_embedding(vector)
+      raise Error, "埋め込みベクトルが空でした。" if values.empty?
+
+      values
+    end
+
+    def extract_embedding_vector(data)
+      case data
       when Array
         data.first&.dig("embedding")
       when Hash
         data.dig("data", 0, "embedding") || data["embedding"]
       end
+    end
 
-      values = Array(vector).map { |v| Float(v) }
-      raise Error, "埋め込みベクトルが空でした。" if values.empty?
-
-      values
+    # llama-server /embedding は [[float, ...]] の二重配列を返すことがある。
+    def flatten_embedding(vector)
+      case vector
+      when nil
+        []
+      when Array
+        if vector.empty?
+          []
+        elsif vector.all? { |v| v.is_a?(Numeric) }
+          vector.map(&:to_f)
+        else
+          flatten_embedding(vector.first)
+        end
+      else
+        []
+      end
     end
   end
 end

@@ -18,7 +18,7 @@ module Chat
         return MemoEmbeddingChunk.where(memo_id: memo.id).delete_all if texts.empty?
 
         chunks = texts.map do |text|
-          { content: text, embedding: client.embed(text, kind: :document) }
+          { content: text, embedding: embedding_client(account: memo.account).embed(text, kind: :document) }
         end
 
         MemoEmbeddingChunk.replace_for_memo!(memo.id, chunks)
@@ -30,8 +30,8 @@ module Chat
 
       private
 
-      def client
-        @embedding_client ||= Chat::ModelRegistry.for(:embedding).build_embedding_client
+      def embedding_client(account: nil)
+        @embedding_client || Chat::ModelRegistry.for(:embedding, account: account).build_embedding_client
       end
     end
   end

@@ -105,7 +105,9 @@ module Chat
 
     def parse_assistant_content(data)
       choice = data.fetch("choices", []).first
-      content = choice&.dig("message", "content").to_s.strip
+      message = choice&.fetch("message", {}) || {}
+      content = message["content"].to_s.strip
+      content = message["reasoning_content"].to_s.strip if content.blank?
       raise Error, "応答が空でした。" if content.blank?
 
       content

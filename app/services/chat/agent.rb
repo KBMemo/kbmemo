@@ -19,8 +19,8 @@ module Chat
     # @param client_factory [#call, nil] role(Symbol) -> Chat::LlmClient
     # @param rag_search [Chat::Tools::RagSearch, nil]
     def initialize(classifier: nil, client_factory: nil, rag_search: nil)
-      @classifier = classifier || Chat::IntentClassifier.new
-      @client_factory = client_factory || ->(role) { Chat::ModelRegistry.for(role).build_client }
+      @classifier = classifier
+      @custom_client_factory = client_factory
       @rag_search_factory = rag_search
     end
 
@@ -29,10 +29,11 @@ module Chat
     # @param account [Account, nil] RAG ツール実行時に必須
     # @return [Chat::Agent::Result]
     def call(messages:, system_prompt: nil, account: nil)
+      @account = account
       history = normalize_messages(messages)
       user_text = last_user_text(history)
 
-      classification = @classifier.classify(user_text)
+      classification = classifier.classify(user_text, account: account)
       decision = Chat::Router.decide(classification)
 
       return build_result(
@@ -96,7 +97,19 @@ module Chat
       messages = []
       messages << { role: "system", content: effective } if effective.present?
       messages.concat(history)
-      @client_factory.call(role).chat(messages)
+      client_for(role).chat(messages)
+    end
+
+    def classifier
+      @classifier ||= Chat::IntentClassifier.new
+    end
+
+    def client_for(role)
+      if @custom_client_factory
+        @custom_client_factory.call(role)
+      else
+        Chat::ModelRegistry.for(role, account: @account).build_client
+      end
     end
 
     def chat_role(role)

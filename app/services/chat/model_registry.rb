@@ -9,15 +9,8 @@ module Chat
   module ModelRegistry
     ROLES = %i[intent fast_chat main vision embedding image_generation].freeze
 
-    # development / test で base_url が未設定のときの既定（dev note §6）。
-    DEV_DEFAULT_BASE_URLS = {
-      intent: "http://localhost:10031",
-      fast_chat: "http://localhost:10032",
-      main: "http://localhost:10010",
-      vision: "http://localhost:10033",
-      embedding: "http://localhost:10034",
-      image_generation: "http://localhost:11234"
-    }.freeze
+    # development / test で base_url が未設定のときの既定（balvenie llama-server 構成）。
+    # 詳細: Chat::ServerEndpoints
 
     Config = Struct.new(:role, :provider, :base_url, :model, :temperature, :api_key, keyword_init: true) do
       def build_client(api_key: nil)
@@ -42,8 +35,9 @@ module Chat
 
     class << self
       # @param role [Symbol, String]
+      # @param account [Account, nil] アカウント別 chat_server_settings を優先
       # @return [Chat::ModelRegistry::Config]
-      def for(role)
+      def for(role, account: nil)
         key = role.to_sym
         entry = roles_config[key]
         raise KeyError, "未知の chat model role: #{role.inspect}" if entry.nil?
@@ -51,7 +45,7 @@ module Chat
         Config.new(
           role: key,
           provider: entry[:provider].to_s.to_sym,
-          base_url: resolve_base_url(key),
+          base_url: resolve_base_url(key, account: account),
           model: entry[:model],
           temperature: entry[:temperature],
           api_key: resolve_api_key(key)
@@ -73,11 +67,19 @@ module Chat
         @roles_config ||= Rails.application.config_for(:chat_models).to_h
       end
 
-      def resolve_base_url(role)
+      def resolve_base_url(role, account: nil)
+        if account
+          account_url = account.chat_server_base_url(role)
+          return normalize(account_url) if account_url.present?
+        end
+
         explicit = credentials&.dig(:base_urls, role).presence
         return normalize(explicit) if explicit
 
-        return normalize(DEV_DEFAULT_BASE_URLS[role]) if local_default? && DEV_DEFAULT_BASE_URLS[role]
+        if local_default?
+          default_url = Chat::ServerEndpoints.url_for(host: Chat::ServerEndpoints.default_host, role: role)
+          return normalize(default_url) if default_url.present?
+        end
 
         raise KeyError, "chat model role #{role.inspect} の base_url が未設定です（credentials chat_models.base_urls）。"
       end

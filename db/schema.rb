@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_09_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_10_040000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgroonga"
@@ -41,6 +41,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_09_180000) do
 
   create_table "accounts", force: :cascade do |t|
     t.boolean "admin", default: false, null: false
+    t.jsonb "chat_server_settings", default: {}, null: false
     t.datetime "clip_api_token_created_at"
     t.string "clip_api_token_digest"
     t.string "clip_api_token_prefix"

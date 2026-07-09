@@ -22,7 +22,11 @@ class AgentChatsController < ApplicationController
 
     render json: serialize_result(result)
   rescue Chat::LlmClient::Error => e
-    render json: { error: e.message, settings_url: edit_profile_path }, status: :unprocessable_entity
+    render json: { error: e.message, settings_url: chat_server_path }, status: :unprocessable_entity
+  rescue StandardError => e
+    Rails.logger.error("[AgentChatsController] #{e.class}: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
+    render json: { error: "AI 処理中にエラーが発生しました。（#{e.message}）", settings_url: chat_server_path },
+           status: :internal_server_error
   end
 
   private

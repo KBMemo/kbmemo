@@ -17,8 +17,18 @@ module Chat
     end
 
     test "for uses dev default base_url in test env when credentials absent" do
-      assert_equal "http://localhost:10010", Chat::ModelRegistry.for(:main).base_url
-      assert_equal "http://localhost:10031", Chat::ModelRegistry.for(:intent).base_url
+      assert_equal "http://balvenie:10012", Chat::ModelRegistry.for(:main).base_url
+      assert_equal "http://balvenie:10010", Chat::ModelRegistry.for(:intent).base_url
+    end
+
+    test "for prefers account chat_server_settings over defaults" do
+      account = accounts(:one)
+      account.update_chat_server_settings!(
+        "base_urls" => { "main" => "http://custom.test:9999" }
+      )
+
+      assert_equal "http://custom.test:9999", Chat::ModelRegistry.for(:main, account: account).base_url
+      assert_equal "http://balvenie:10010", Chat::ModelRegistry.for(:intent, account: account).base_url
     end
 
     test "for raises on unknown role" do
@@ -36,7 +46,7 @@ module Chat
 
     test "embedding role resolves to embedding client" do
       config = Chat::ModelRegistry.for(:embedding)
-      assert_equal "http://localhost:10034", config.base_url
+      assert_equal "http://balvenie:10020", config.base_url
       assert_instance_of Chat::EmbeddingClient, config.build_embedding_client
     end
   end

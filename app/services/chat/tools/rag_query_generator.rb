@@ -8,8 +8,9 @@ module Chat
     class RagQueryGenerator
       Result = Struct.new(:queries, :keywords, :requires_recent_info, keyword_init: true)
 
-      def initialize(client: nil)
+      def initialize(client: nil, account: nil)
         @client = client
+        @account = account
       end
 
       # @param user_text [String]
@@ -18,7 +19,7 @@ module Chat
         text = user_text.to_s.strip
         return fallback(text) if text.blank?
 
-        raw = client.chat(
+        raw = intent_client.chat(
           [
             { role: "system", content: Chat::Prompts::RAG_QUERY },
             { role: "user", content: text }
@@ -32,8 +33,8 @@ module Chat
 
       private
 
-      def client
-        @client ||= Chat::ModelRegistry.for(:intent).build_client
+      def intent_client
+        @client || Chat::ModelRegistry.for(:intent, account: @account).build_client
       end
 
       def parse_json(raw)

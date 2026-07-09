@@ -18,7 +18,7 @@ module Chat
       def initialize(account:, scope: nil, query_generator: nil, embedding_client: nil, semantic_enabled: true)
         @account = account
         @scope = scope
-        @query_generator = query_generator || RagQueryGenerator.new
+        @query_generator = query_generator || RagQueryGenerator.new(account: account)
         @embedding_client = embedding_client
         @semantic_enabled = semantic_enabled
       end
@@ -90,7 +90,8 @@ module Chat
             source: :semantic
           }
         end
-      rescue Chat::EmbeddingClient::ConnectionError, Chat::EmbeddingClient::Error
+      rescue Chat::EmbeddingClient::ConnectionError, Chat::EmbeddingClient::Error, TypeError, ArgumentError => e
+        Rails.logger.warn("[RagSearch] semantic retrieve skipped: #{e.class}: #{e.message}")
         []
       end
 
@@ -127,7 +128,7 @@ module Chat
       end
 
       def embedding_client
-        @embedding_client ||= Chat::ModelRegistry.for(:embedding).build_embedding_client
+        @embedding_client ||= Chat::ModelRegistry.for(:embedding, account: @account).build_embedding_client
       end
 
       def searchable_scope

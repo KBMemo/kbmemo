@@ -26,12 +26,13 @@ module Chat
     end
 
     # @param user_text [String]
+    # @param account [Account, nil]
     # @return [Chat::IntentClassifier::Result]
-    def classify(user_text)
+    def classify(user_text, account: nil)
       text = user_text.to_s.strip
       return fallback("入力が空です。") if text.blank?
 
-      raw = client.chat(
+      raw = client(account).chat(
         [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: text }
@@ -45,8 +46,8 @@ module Chat
 
     private
 
-    def client
-      @client ||= Chat::ModelRegistry.for(:intent).build_client
+    def client(account)
+      @client || Chat::ModelRegistry.for(:intent, account: account).build_client
     end
 
     # コードフェンスや前後の説明文が混じっても最初の JSON オブジェクトを取り出す。

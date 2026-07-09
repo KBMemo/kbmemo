@@ -4,6 +4,7 @@
 #
 #  id                            :bigint           not null, primary key
 #  admin                         :boolean          default(FALSE), not null
+#  chat_server_settings          :jsonb            not null
 #  clip_api_token_created_at     :datetime
 #  clip_api_token_digest         :string
 #  clip_api_token_prefix         :string
@@ -28,6 +29,7 @@
 class Account < ApplicationRecord
   include Rodauth::Rails.model
   include AccountThemePreference
+  include AccountChatServerSettings
   include AccountGoogleCalendar
   enum :status, { unverified: 1, verified: 2, closed: 3 }
 

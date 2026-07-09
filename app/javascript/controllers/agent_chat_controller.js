@@ -5,7 +5,7 @@ export default class extends Controller {
 
   static values = {
     chatUrl: String,
-    profileUrl: String
+    settingsUrl: String
   }
 
   connect() {
@@ -167,7 +167,7 @@ export default class extends Controller {
       const link = document.createElement("a")
       link.href = String(options.settingsUrl)
       link.className = "underline"
-      link.textContent = "プロフィール"
+      link.textContent = "設定を開く"
       this.errorTarget.append(link)
     }
 

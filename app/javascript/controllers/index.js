@@ -39,6 +39,7 @@ const lazyControllers = {
   "agent-chat": () => import("./agent_chat_controller"),
   "board-add-memo": () => import("./board_add_memo_controller"),
   "board-kanban-dnd": () => import("./board_kanban_dnd_controller"),
+  "chat-server": () => import("./chat_server_controller"),
   "code-block-tools": () => import("./code_block_tools_controller"),
   "diagram-source-viewer": () => import("./diagram_source_viewer_controller"),
   "diagram-svg-viewer": () => import("./diagram_svg_viewer_controller"),

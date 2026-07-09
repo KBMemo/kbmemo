@@ -12,6 +12,22 @@ module Chat
       assert_equal [ 0.1, 0.2, 0.3 ], client.embed("hello", kind: :query)
     end
 
+    test "embed parses llama-server nested array response" do
+      client = Chat::EmbeddingClient.new(base_url: "http://localhost:10034")
+      response = [ { "embedding" => [ [ 0.1, 0.2, 0.3 ] ] } ]
+      client.define_singleton_method(:http_post) { |_content| response }
+
+      assert_equal [ 0.1, 0.2, 0.3 ], client.embed("hello", kind: :query)
+    end
+
+    test "embed parses OpenAI-compatible hash response" do
+      client = Chat::EmbeddingClient.new(base_url: "http://localhost:10034")
+      response = { "data" => [ { "embedding" => [ 0.4, 0.5 ] } ] }
+      client.define_singleton_method(:http_post) { |_content| response }
+
+      assert_equal [ 0.4, 0.5 ], client.embed("hello")
+    end
+
     test "embed prefixes query and document differently" do
       client = Chat::EmbeddingClient.new(base_url: "http://localhost:10034")
       captured = nil

@@ -52,7 +52,7 @@ class MemoAiChat
   end
 
   def local_client
-    @local_client ||= Chat::ModelRegistry.for(:main).build_client
+    @local_client ||= Chat::ModelRegistry.for(:main, account: @account).build_client
   end
 
   def byok_available?
@@ -69,7 +69,7 @@ class MemoAiChat
 
   def unavailable_error(cause)
     Chat::LlmClient::ConnectionError.new(
-      "ローカル AI に接続できません。llama-server を起動するか、プロフィールで OpenAI API キーを登録してください。（#{cause.message}）"
+      "ローカル AI に接続できません。llama-server を起動するか、Chat サーバー設定を確認してください。OpenAI フォールバックにはプロフィールで API キーが必要です。（#{cause.message}）"
     )
   end
 

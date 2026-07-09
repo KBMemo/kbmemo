@@ -15,6 +15,8 @@ class MemoAiChatsController < ApplicationController
     ).call
 
     render json: result
+  rescue Chat::LlmClient::ConnectionError => e
+    render json: { error: e.message, settings_url: chat_server_path }, status: :unprocessable_entity
   rescue Chat::LlmClient::Error => e
     render json: { error: e.message, settings_url: edit_profile_path }, status: :unprocessable_entity
   end
