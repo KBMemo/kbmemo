@@ -7,7 +7,7 @@ module Chat
   # 役割マッピング: config/chat_models.yml（非機密）
   # 接続先・機密: Rails credentials（chat_models）
   module ModelRegistry
-    ROLES = %i[intent fast_chat main vision image_generation].freeze
+    ROLES = %i[intent fast_chat main vision embedding image_generation].freeze
 
     # development / test で base_url が未設定のときの既定（dev note §6）。
     DEV_DEFAULT_BASE_URLS = {
@@ -15,12 +15,11 @@ module Chat
       fast_chat: "http://localhost:10032",
       main: "http://localhost:10010",
       vision: "http://localhost:10033",
+      embedding: "http://localhost:10034",
       image_generation: "http://localhost:11234"
     }.freeze
 
     Config = Struct.new(:role, :provider, :base_url, :model, :temperature, :api_key, keyword_init: true) do
-      # OpenAI 互換 provider（llama_cpp / openai）向けのクライアントを組み立てる。
-      # @param api_key [String, nil] BYOK 等で呼び出し側から差し込む場合
       def build_client(api_key: nil)
         unless %i[llama_cpp openai].include?(provider)
           raise ArgumentError, "provider #{provider.inspect} は Chat::LlmClient 非対応です。"
@@ -32,6 +31,12 @@ module Chat
           api_key: api_key || self.api_key,
           temperature: temperature
         )
+      end
+
+      def build_embedding_client
+        raise ArgumentError, "provider #{provider.inspect} は Chat::EmbeddingClient 非対応です。" unless provider == :llama_cpp
+
+        Chat::EmbeddingClient.new(base_url: base_url, model: model)
       end
     end
 

@@ -33,5 +33,11 @@ module Chat
     test "build_client rejects non chat providers" do
       assert_raises(ArgumentError) { Chat::ModelRegistry.for(:image_generation).build_client }
     end
+
+    test "embedding role resolves to embedding client" do
+      config = Chat::ModelRegistry.for(:embedding)
+      assert_equal "http://localhost:10034", config.base_url
+      assert_instance_of Chat::EmbeddingClient, config.build_embedding_client
+    end
   end
 end

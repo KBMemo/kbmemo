@@ -2,7 +2,7 @@
 # 接続先 base_url・SearXNG URL・OpenAI キー等の機密は Rails credentials（chat_models）に置く。
 # テンプレート: config/credentials/chat_models.example.yml
 #
-# 役割キー: intent / fast_chat / main / vision / image_generation
+# 役割キー: intent / fast_chat / main / vision / embedding / image_generation
 # 各役割: provider（llama_cpp | openai | sd_cpp）/ model / temperature
 default: &default
   intent:
@@ -21,6 +21,9 @@ default: &default
     provider: llama_cpp
     model: qwen2.5-vl
     temperature: 0.2
+  embedding:
+    provider: llama_cpp
+    model: lfm2.5-embedding-350m
   image_generation:
     provider: sd_cpp
 

@@ -10,10 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_05_093000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_09_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgroonga"
+  # vector は pgvector 導入時に migration が条件付きで有効化（型が schema dump 非対応のためここでは宣言しない）
 
   create_table "account_login_change_keys", force: :cascade do |t|
     t.datetime "deadline", null: false
@@ -116,6 +117,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_05_093000) do
     t.datetime "updated_at", null: false
     t.index ["full_path"], name: "index_memo_directories_on_full_path", unique: true
     t.index ["parent_id"], name: "index_memo_directories_on_parent_id"
+  end
+
+  create_table "memo_embedding_chunks", force: :cascade do |t|
+    t.bigint "memo_id", null: false
+    t.integer "chunk_index", default: 0, null: false
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["memo_id", "chunk_index"], name: "index_memo_embedding_chunks_on_memo_id_and_chunk_index", unique: true
+    t.index ["memo_id"], name: "index_memo_embedding_chunks_on_memo_id"
   end
 
   create_table "memo_group_memberships", force: :cascade do |t|
@@ -283,6 +294,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_05_093000) do
   add_foreign_key "boards", "accounts"
   add_foreign_key "boards", "memo_directories"
   add_foreign_key "memo_directories", "memo_directories", column: "parent_id"
+  add_foreign_key "memo_embedding_chunks", "memos"
   add_foreign_key "memo_group_memberships", "accounts"
   add_foreign_key "memo_group_memberships", "memo_groups"
   add_foreign_key "memo_tags", "memos"

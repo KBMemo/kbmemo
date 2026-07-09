@@ -211,9 +211,9 @@ User 入力
 |RAG lexical（pgroonga retriever → query 生成 → 12B 回答。**2026-07 完了**）
 |`Chat::Tools::RagQueryGenerator` / `Chat::Tools::RagSearch` / `Chat::Agent` ツール接続
 
-|5b
-|RAG semantic 上乗せ（LFM2.5-Embedding-350M + pgvector、pgroonga とハイブリッド）
-|pgvector migration / `Chat::EmbeddingClient` / インデックスジョブ / `RagSearch` 拡張
+|5b ✅
+|RAG semantic 上乗せ（LFM2.5-Embedding-350M + pgvector、pgroonga とハイブリッド。**2026-07 完了**）
+|`MemoEmbeddingChunk` / `Chat::EmbeddingClient` / `MemoEmbeddingIndexer` / `RagSearch` RRF 拡張 / `MemoEmbeddingIndexJob`
 
 |6
 |Vision（Qwen2.5-VL）
@@ -272,6 +272,16 @@ Phase 3 以降はツール単位で追加する。
 * `Chat::Tools::RagSearch`（`app/services/chat/tools/rag_search.rb`）— `MemoPolicy::Scope` で閲覧可能メモに限定し、既存 `Memo.search_text`（pgroonga / ILIKE フォールバック）で複数クエリを検索・マージ。ヒット本文は最大 2,000 文字の抜粋を `context_text` に整形。
 * `Chat::Agent` — `account:` 指定時に `rag_search` / `memo_search` ツールを実行し、検索結果がある場合は `RAG_ANSWER` + 資料抜粋を system に注入（Phase 2 で保留していた RAG プロンプト自動注入を有効化）。`Result#rag` に検索メタデータを返す。
 * **UI 未接続**: 汎用エージェント画面から `Chat::Agent` を呼ぶ際に `account:` を渡せば RAG が動作。メモ編集パネル（`MemoAiChat`）は引き続き執筆特化の単一 LLM 経路。
+
+=== Phase 5b 実装メモ（完了）
+
+* **DB**: `memo_embedding_chunks` テーブル（`memo_id` / `chunk_index` / `content`）。`pgvector` は OS に拡張がある環境でのみ migration が `embedding vector(1024)` + HNSW インデックスを追加。`schema.rb` には vector 型を載せない（Rails schema dump 非対応）。`MemoEmbeddingChunk.pgvector_enabled?` で実行時判定。
+* `Chat::EmbeddingClient` — llama-server `/embedding`（`query:` / `passage:` prefix）。`ConnectionError` で接続失敗を識別。
+* `Chat::ModelRegistry` — `embedding` 役割（既定ポート `10034`）。`build_embedding_client`。
+* `Chat::MemoChunker` — タイトル + 本文を ~1,800 文字単位で分割（LFM2.5 short-context 向け）。
+* `Chat::Tools::MemoEmbeddingIndexer` + `MemoEmbeddingIndexJob` — メモ保存時（`title` / `body` 変更）に非同期インデックス。`bin/rails kbmemo:embeddings:backfill` で既存メモ一括。
+* `Chat::Tools::RagSearch` — pgroonga（lexical）と pgvector 近傍（semantic）を **RRF** で統合。Embedding サーバ未起動時は semantic をスキップし 5a 単独で動作。`Result#semantic_used` で semantic 寄与の有無を返す。
+* embedding 未導入環境（pgvector なし）ではチャンクテーブルのみ作成され、lexical RAG は従来どおり動作。
 
 == 7. 設定例（Rails への写し替え）
 

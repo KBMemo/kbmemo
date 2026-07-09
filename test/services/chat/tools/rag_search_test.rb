@@ -58,13 +58,45 @@ module Chat
 
         result = RagSearch.new(
           account: account,
-          query_generator: FixedQueryGenerator.new([ "AlphaKeyword", "BetaKeyword" ])
+          query_generator: FixedQueryGenerator.new([ "AlphaKeyword", "BetaKeyword" ]),
+          semantic_enabled: false
         ).call(user_text: "both")
 
         assert_equal 2, result.hits.size
         titles = result.hits.map(&:title)
         assert_includes titles, "First"
         assert_includes titles, "Second"
+      end
+
+      test "hybrid merge includes semantic hits when pgvector enabled" do
+        skip "pgvector not enabled" unless MemoEmbeddingChunk.pgvector_enabled?
+
+        account = accounts(:one)
+        memo_a = memos(:one)
+        memo_b = memos(:two)
+        memo_a.update_columns(title: "Alpha", body: "UniqueLexicalWord")
+        memo_b.update_columns(title: "Beta", body: "SemanticOnlyBody")
+
+        query_vec = Array.new(MemoEmbeddingChunk::EMBEDDING_DIMENSIONS, 1.0)
+        doc_vec = Array.new(MemoEmbeddingChunk::EMBEDDING_DIMENSIONS, 0.99)
+
+        client = Object.new
+        client.define_singleton_method(:embed) do |_text, kind:|
+          kind == :query ? query_vec : doc_vec
+        end
+
+        MemoEmbeddingChunk.replace_for_memo!(memo_b.id, [ { content: "semantic chunk", embedding: doc_vec } ])
+
+        result = RagSearch.new(
+          account: account,
+          query_generator: FixedQueryGenerator.new([ "UniqueLexicalWord" ]),
+          embedding_client: client
+        ).call(user_text: "semantic question")
+
+        assert result.semantic_used
+        ids = result.hits.map(&:memo_id)
+        assert_includes ids, memo_a.id
+        assert_includes ids, memo_b.id
       end
     end
   end

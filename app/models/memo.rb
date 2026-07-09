@@ -57,6 +57,7 @@ class Memo < ApplicationRecord
   has_many :outgoing_wiki_links, class_name: "MemoWikiLink", foreign_key: :source_memo_id, dependent: :delete_all, inverse_of: :source_memo
   has_many :incoming_wiki_links, class_name: "MemoWikiLink", foreign_key: :target_memo_id, dependent: :delete_all, inverse_of: :target_memo
   has_many :memo_view_histories, dependent: :delete_all
+  has_many :memo_embedding_chunks, dependent: :delete_all
   has_one :notebook_memo, dependent: :destroy
   has_one :notebook, through: :notebook_memo
 
@@ -124,6 +125,7 @@ class Memo < ApplicationRecord
   before_create :assign_uid
   after_commit :reindex_outgoing_wiki_links, on: %i[create update], if: :memo_wiki_links_need_outgoing_reindex?
   after_commit :reindex_inbound_wiki_links, on: :update, if: :memo_wiki_links_need_inbound_reindex?
+  after_commit :enqueue_memo_embedding_index, on: %i[create update], if: :memo_embedding_index_needed?
 
   # 保存時のスラッグ（パス用）。空は nil。MemoRepository のファイル名と揃える。
   def self.normalize_slug_fragment(value)
@@ -376,5 +378,13 @@ class Memo < ApplicationRecord
 
   def reindex_inbound_wiki_links
     MemoWikiLinkIndex.rebuild_inbound_for(self)
+  end
+
+  def memo_embedding_index_needed?
+    saved_change_to_title? || saved_change_to_body?
+  end
+
+  def enqueue_memo_embedding_index
+    MemoEmbeddingIndexJob.perform_later(id)
   end
 end
