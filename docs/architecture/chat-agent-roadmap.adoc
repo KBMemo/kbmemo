@@ -22,7 +22,7 @@ NOTE: 方針は <<open,§10 確定事項>> で合意済み（2026-07）。実装
 |`app/services/memo_ai_chat.rb`（メモ本文をコンテキスト化・履歴 12 件トリム）
 
 |LLM クライアント
-|`app/services/openai_chat_completion.rb`（`https://api.openai.com/v1` ハードコード・`gpt-4o-mini` 固定・`Net::HTTP`）
+|`Chat::LlmClient`（ローカル llama-server + BYOK OpenAI フォールバック）。旧 `OpenaiChatCompletion` は撤去済み
 
 |UI
 |`app/views/memos/_ai_panel.html.slim` + `app/javascript/controllers/memo_ai_panel_controller.js`（履歴はクライアントメモリのみ）
@@ -44,7 +44,7 @@ NOTE: 方針は <<open,§10 確定事項>> で合意済み（2026-07）。実装
 * **モデル階層**: LFM2.5 1.2B（intent / 要約 / 整形）、Gemma 4 E4B（高速チャット）、Gemma 4 12B（メイン・RAG・コード・設計）、Qwen2.5-VL（Vision）、sd.cpp（画像生成）。
 * **接続**: llama-server（OpenAI 互換）＋ sd.cpp。ポート例 LFM2.5=10031 / E4B=10032 / 12B=10010 / VL=10033 / sd.cpp=11234。
 * **ルーティング**: LFM2.5 で intent 判定 → intent 別にモデル / ツールへ振り分け → 条件を満たせば 12B へ**エスカレーション**。
-* **ツール**: URL fetch（readability 抽出＋チャンク要約）、Web 検索（SearXNG）、RAG（pgvector / Groonga）、画像解析、画像生成。
+* **ツール**: URL fetch（readability 抽出＋チャンク要約）、Web 検索（SearXNG）、RAG（**pgroonga 先行 → LFM2.5-Embedding-350M + pgvector でセマンティック上乗せ**）、画像解析、画像生成。
 * **初期構成（§9）**: まず LFM2.5 / E4B / 12B の 3 モデルで開始。Vision・画像生成は後追い。
 
 == 3. ギャップと再利用資産
@@ -67,7 +67,7 @@ NOTE: 方針は <<open,§10 確定事項>> で合意済み（2026-07）。実装
 
 |RAG
 |pgroonga（未接続）
-|pgroonga を retriever として転用（**Phase で先行**）、pgvector は後続で追加
+|**段階導入**: (1) 既存 pgroonga を retriever に転用（Phase 5a）→ (2) **LFM2.5-Embedding-350M**（llama-server `--embeddings`）+ **pgvector** でセマンティック検索を上乗せ（Phase 5b）。ハイブリッド（lexical + dense）で recall を上げる
 
 |Web / URL / Vision / 画像生成
 |なし
@@ -96,7 +96,7 @@ NOTE: 方針は <<open,§10 確定事項>> で合意済み（2026-07）。実装
 
 dev note §7 の YAML を Rails 設定へ移す。**接続先・シークレットは Rails credentials、非機密の役割マッピングは `config/`** に置く方針（`AGENTS.md` の credentials 方針に整合）。
 
-* 役割キー: `intent` / `fast_chat` / `main` / `vision` / `image_generation`。
+* 役割キー: `intent` / `fast_chat` / `main` / `vision` / `embedding`（Phase 5b）/ `image_generation`。
 * 各役割: `provider` / `base_url` / `model` / `temperature`。
 * development 既定は `http://localhost:100xx`（Tsuzura と同様に development では本番 URL を使わない）。
 * アクセサ（例 `ChatModels.for(:intent)`）に集約し、`base_url` 等を散在させない。
@@ -113,12 +113,53 @@ intent とルーターから呼ぶツールを疎結合に定義（`Chat::Tools:
 
 * `fetch_url`: `Net::HTTP` 取得 → 本文抽出（readability 相当）→ チャンク分割 → LFM2.5 一次要約 → E4B/12B 統合。
 * `web_search`: SearXNG（`base_url` は credentials）。
-* `rag_search`: **pgroonga**（`Memo.search_text`）を retriever に、LFM2.5 で query 生成（§3.3）→ 12B で最終回答（§3.6）。pgvector は後続。
+* `rag_search`: **Phase 5a** — 既存 **pgroonga**（`Memo.search_text`）を lexical retriever に。LFM2.5 で query 生成（§3.3）→ 12B で最終回答（§3.6）。**Phase 5b** — **LFM2.5-Embedding-350M**（Liquid AI、1024 次元 dense bi-encoder、GGUF + llama-server `--embeddings`）でメモ本文チャンクをベクトル化し **pgvector** に格納。pgroonga 結果と dense 近傍をマージ（RRF 等）してセマンティック recall を上乗せ。ColBERT（LFM2.5-ColBERT-350M）はリランク用途で後追い検討。
 * `image_analysis`: Qwen2.5-VL（§3.8）。
 * `image_generation`: LFM/12B で sd プロンプト生成（§3.9）→ sd.cpp 実行。
 * `memo_search` / `memo_add`: 既存メモ機能へのブリッジ。
 
-=== 4.5 会話永続化（Phase 8）
+=== 4.6 RAG 検索基盤（pgroonga 先行 → Embedding + pgvector）
+
+dev note の「pgvector / Groonga」を、kbmemo の既存資産と Liquid AI の埋め込みモデルに合わせて具体化する。
+
+==== Phase 5a: pgroonga（lexical、先行）
+
+* 既存 `Memo.search_text`（`&@~` + `pgroonga_score`）をそのまま retriever に使う。マイグレーション・インデックスは `db/migrate/20260703101000_enable_pgroonga_on_memos.rb` が一次情報。
+* 実装コストが低く、固有名詞・型番・エラー文・関数名など**キーワード一致**に強い。
+* LFM2.5（`ModelRegistry.for(:intent)`）で検索クエリ生成（§3.3）→ ヒットしたメモ抜粋をコンテキストに → Gemma 4 12B（§3.6 `RAG_ANSWER`）で回答。
+
+==== Phase 5b: LFM2.5-Embedding-350M + pgvector（semantic 上乗せ）
+
+Liquid AI が 2026-06 に公開した retrieval 向けモデル（link:https://www.liquid.ai/blog/lfm2-5-retrievers[LFM2.5 Retrievers ブログ]、link:https://huggingface.co/LiquidAI/LFM2.5-Embedding-350M[Hugging Face]）。
+
+[cols="1,2"]
+|===
+|項目 |内容
+
+|モデル
+|`LiquidAI/LFM2.5-Embedding-350M`（dense bi-encoder、~354M、1024 次元 CLS ベクトル、cosine）
+
+|想定用途
+|短コンテキスト検索（doc ~512 tokens）。メモ本文のチャンク単位インデックス向き
+
+|実行
+|GGUF + `llama-server --embeddings`（別ポート。例 `10034`）。`Chat::ModelRegistry` に `embedding` 役割を追加
+
+|DB
+|PostgreSQL **pgvector** 拡張。メモチャンクごとに `vector(1024)` を保持（`memo_id` / `chunk_index` / `content` / `embedding`）
+
+|検索
+|クエリを同モデルで embed → pgvector 近傍検索。pgroonga 結果と **RRF（Reciprocal Rank Fusion）** 等でマージし、lexical の弱点（言い換え・意味類似）を補う
+
+|採用しない（当面）
+|`LFM2.5-ColBERT-350M` — 精度は高いがトークン単位ベクトル + MaxSim で pgvector に素直に載らない。リランクが必要になった段階で検討
+|===
+
+* 埋め込みは **chat completions とは別プロセス**（`llama-server -hf LiquidAI/LFM2.5-Embedding-350M-GGUF --embeddings`）。`Chat::LlmClient` とは別アクセサ（例 `Chat::EmbeddingClient`）を検討。
+* インデックス更新: メモ保存時に非同期ジョブでチャンク分割 + embed + upsert（初回はバックフィル rake タスク）。
+* Phase 5b 完了後、`Chat::Prompts::RAG_ANSWER` の自動注入を有効化（検索結果がコンテキストに付与される前提が満たされる）。
+
+=== 4.7 会話永続化（Phase 8）
 
 現状のクライアントメモリを DB へ。最小テーブル案:
 
@@ -166,9 +207,13 @@ User 入力
 |Web 検索ツール（SearXNG）
 |`Chat::Tools::WebSearch`
 
-|5
-|RAG（pgroonga retriever → query 生成 → 12B 回答）。pgvector は将来オプション
-|`Chat::Tools::RagSearch`
+|5a ✅
+|RAG lexical（pgroonga retriever → query 生成 → 12B 回答。**2026-07 完了**）
+|`Chat::Tools::RagQueryGenerator` / `Chat::Tools::RagSearch` / `Chat::Agent` ツール接続
+
+|5b
+|RAG semantic 上乗せ（LFM2.5-Embedding-350M + pgvector、pgroonga とハイブリッド）
+|pgvector migration / `Chat::EmbeddingClient` / インデックスジョブ / `RagSearch` 拡張
 
 |6
 |Vision（Qwen2.5-VL）
@@ -205,7 +250,7 @@ Phase 3 以降はツール単位で追加する。
 === Phase 2 実装メモ（完了）
 
 * `Chat::Prompts`（`app/services/chat/prompts.rb`）— dev note §3.1–§3.9 の全 system prompt を集約する唯一の定義元。`INTENT_CLASSIFIER` / `URL_PRIMARY_SUMMARY` / `RAG_QUERY` / `FAST_CHAT` / `MAIN` / `RAG_ANSWER` / `CODING` / `VISION` / `SD_PROMPT`。
-* `Chat::Prompts.system_for(role:, intent:)` — 本応答の system prompt を決定。優先順位は **intent 固有 > 役割別（fast_chat/main/vision）**。intent 固有はツール不要で安全な `code`→CODING のみ自動注入し、外部コンテキスト前提の RAG_ANSWER / VISION は該当ツール実装（Phase 5 / 6）まで注入しない。
+* `Chat::Prompts.system_for(role:, intent:)` — 本応答の system prompt を決定。優先順位は **intent 固有 > 役割別（fast_chat/main/vision）**。intent 固有はツール不要で安全な `code`→CODING のみ自動注入し、外部コンテキスト前提の RAG_ANSWER / VISION は該当ツール実装（Phase 5a/5b / 6）まで注入しない。
 * `Chat::IntentClassifier::SYSTEM_PROMPT` は `Chat::Prompts::INTENT_CLASSIFIER` を参照（定義の一本化）。
 * `Chat::Agent` は明示 `system_prompt` が無ければ役割/intent に応じた既定を自動注入。エスカレーション時は `main` の prompt（code は CODING）を使う。
 * temperature は Phase 0 の `ModelRegistry`（`config/chat_models.yml`）が役割ごとに保持し、`LlmClient` が送信（§8）。
@@ -221,6 +266,13 @@ Phase 3 以降はツール単位で追加する。
 * **UI**: `_ai_panel` は「既定でローカル AI、未起動時は OpenAI にフォールバック」を明記。`memo-ai-panel` Stimulus はキー未設定でも送信可能にし、応答ごとに使用バックエンド（`ローカル` / `OpenAI`）バッジを表示。応答 JSON に `backend` を追加。
 * メモパネルは執筆特化（AsciiDoc 出力）の system prompt を維持し、intent ルーティングは通さない（汎用 `Chat::Agent` は独立画面で活用予定）。
 
+=== Phase 5a 実装メモ（完了）
+
+* `Chat::Tools::RagQueryGenerator`（`app/services/chat/tools/rag_query_generator.rb`）— LFM2.5（`ModelRegistry.for(:intent)`）に §3.3 `RAG_QUERY` で JSON 検索語を生成。失敗時はユーザー原文をそのままクエリにフォールバック。
+* `Chat::Tools::RagSearch`（`app/services/chat/tools/rag_search.rb`）— `MemoPolicy::Scope` で閲覧可能メモに限定し、既存 `Memo.search_text`（pgroonga / ILIKE フォールバック）で複数クエリを検索・マージ。ヒット本文は最大 2,000 文字の抜粋を `context_text` に整形。
+* `Chat::Agent` — `account:` 指定時に `rag_search` / `memo_search` ツールを実行し、検索結果がある場合は `RAG_ANSWER` + 資料抜粋を system に注入（Phase 2 で保留していた RAG プロンプト自動注入を有効化）。`Result#rag` に検索メタデータを返す。
+* **UI 未接続**: 汎用エージェント画面から `Chat::Agent` を呼ぶ際に `account:` を渡せば RAG が動作。メモ編集パネル（`MemoAiChat`）は引き続き執筆特化の単一 LLM 経路。
+
 == 7. 設定例（Rails への写し替え）
 
 非機密の役割マッピング（`config/` 側イメージ）:
@@ -232,18 +284,19 @@ chat_models:
   fast_chat:        { provider: llama_cpp, model: gemma-4-e4b,  temperature: 0.4 }
   main:             { provider: llama_cpp, model: gemma-4-12b,  temperature: 0.5 }
   vision:           { provider: llama_cpp, model: qwen2.5-vl,   temperature: 0.2 }
+  embedding:        { provider: llama_cpp, model: lfm2.5-embedding-350m }  # Phase 5b。llama-server --embeddings
   image_generation: { provider: sd_cpp }
 ----
 
 接続先（`base_url`）・SearXNG URL・（使うなら）OpenAI キーは **Rails credentials** に置く。
-development 既定 `base_url` は `http://localhost:10031`（intent）等。
+development 既定 `base_url` は `http://localhost:10031`（intent）等。`embedding` は例 `http://localhost:10034`。
 
 == 8. テスト方針
 
 * `LlmClient` / `ChatModels` はスタブ HTTP（WebMock 相当）で単体テスト。
 * `IntentClassifier` は固定 JSON 応答で分類マッピングを検証。
 * ルーター / エスカレーションは LLM 呼び出しをスタブし分岐のみ検証。
-* 既存 `openai_chat_completion_test.rb` / `memo_ai_chat_test.rb` を回帰として維持。
+* 既存 `memo_ai_chat_test.rb` を回帰として維持。RAG（Phase 5a/5b）は retriever / embed / マージをスタブで単体検証。
 * Rails test が sandbox の DB 接続で失敗する場合は `require_escalated` で再実行（`AGENTS.md`）。
 
 == 9. リスク・留意点
@@ -251,6 +304,9 @@ development 既定 `base_url` は `http://localhost:10031`（intent）等。
 * **ローカルサーバ依存**: llama-server / sd.cpp 未起動時のフォールバック（明示エラー・任意で BYOK 経由）を用意。
 * **多段呼び出しのレイテンシ**: intent→ツール→統合で往復増。ストリーミングやタイムアウト設計が必要。
 * **JSON 逸脱**: 小型モデルの JSON 崩れに備えパーサを堅牢化（§8 dev note）。
+* **RAG インデックス**: pgvector 追加で DB サイズ・再インデックスコストが増える。Embedding サーバ未起動時は pgroonga のみにフォールバック（Phase 5a 単独でも動作）。
+* **埋め込みモデルの制約**: LFM2.5-Embedding-350M は short-context（~512 tokens/doc）向け。長文メモはチャンク分割が必須。
+
 * **UI の位置づけ**: 現状はメモ編集サイドパネル。汎用エージェント機能（Web 調査・画像生成）は memo コンテキストと相性が薄く、UI 再設計が要る場合がある（<<open,§10>>）。
 
 [[open]]
@@ -260,4 +316,4 @@ development 既定 `base_url` は `http://localhost:10031`（intent）等。
 . **UI は段階的。** まず現状のメモ編集サイドパネルを拡張し、汎用機能（Web 調査・画像生成）は後で独立したチャット / エージェント画面へ移す。
 . **初期マイルストーンは Phase 0–2**（ローカル 3 モデル・intent ルーティング。dev note §9 準拠）。
 . **会話永続化は Phase 8**（後回し）。
-. **RAG は pgroonga 転用を先行**し、必要時に pgvector を追加。
+. **RAG は段階導入（2026-07 更新）。** まず既存 **pgroonga** を lexical retriever として接続（Phase 5a）。その後 **LFM2.5-Embedding-350M**（llama-server `--embeddings`、1024 次元）+ **pgvector** でセマンティック検索を上乗せし、pgroonga とハイブリッド（Phase 5b）。ColBERT は当面見送り。

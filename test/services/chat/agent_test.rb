@@ -166,6 +166,47 @@ module Chat
       assert_equal Chat::Prompts::MAIN, system_content(factory.seen[:main])
     end
 
+    test "rag_lookup with account runs rag and injects RAG_ANSWER" do
+      stub_rag = Object.new
+      stub_rag.define_singleton_method(:call) do |user_text:|
+        Chat::Tools::RagSearch::Result.new(
+          queries: [ "q" ],
+          hits: [
+            Chat::Tools::RagSearch::Hit.new(memo_id: 1, title: "T", excerpt: "body text")
+          ],
+          context_text: "### 資料 1: T\nmemo_id: 1\nbody text"
+        )
+      end
+
+      factory = RecordingFactory.new
+      a = Chat::Agent.new(
+        classifier: StubClassifier.new(intent("rag_lookup")),
+        client_factory: factory,
+        rag_search: stub_rag
+      )
+      result = a.call(
+        messages: [ { role: "user", content: "メモを探して" } ],
+        account: accounts(:one)
+      )
+
+      refute result.pending_tools
+      assert result.rag
+      system = system_content(factory.seen[:main])
+      assert_includes system, Chat::Prompts::RAG_ANSWER
+      assert_includes system, "body text"
+    end
+
+    test "rag_lookup without account does not inject search context" do
+      factory = RecordingFactory.new
+      a = Chat::Agent.new(
+        classifier: StubClassifier.new(intent("rag_lookup")),
+        client_factory: factory
+      )
+      a.call(messages: [ { role: "user", content: "メモを探して" } ])
+
+      assert_equal Chat::Prompts::MAIN, system_content(factory.seen[:main])
+    end
+
     test "prepends system prompt when given" do
       captured = nil
       factory = Object.new

@@ -192,7 +192,7 @@ module Chat
     # intent 固有の system prompt（役割別より優先）。
     # ツールや外部コンテキスト（検索結果・画像）を前提とするプロンプトは、
     # 該当ツールが実装される Phase まで自動注入しない:
-    #   - RAG_ANSWER … Phase 5（rag_search が検索結果を付与してから）
+    #   - RAG_ANSWER … Phase 5a（rag_search が検索結果を付与。Agent が注入）
     #   - VISION … Phase 6（vision ツールが画像を渡し :vision へ振ってから）
     INTENT_SYSTEM = {
       "code" => CODING
