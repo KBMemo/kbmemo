@@ -78,6 +78,14 @@ class AgentChatsController < ApplicationController
       }
     end
 
+    if result.mcp
+      payload[:mcp] = {
+        tools_run: result.mcp.tools_run.map(&:to_s),
+        tools_skipped: result.mcp.tools_skipped.map(&:to_s),
+        errors: result.mcp.errors
+      }
+    end
+
     payload
   end
 

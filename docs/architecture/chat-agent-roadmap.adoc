@@ -232,9 +232,9 @@ User 入力
 |会話永続化（DB テーブル・UI 履歴復元。**2026-07 完了**）
 |`AgentChatConversation` / `AgentChatMessage` / `AgentChat::ConversationStore` / `AgentChatsController` 永続化 + UI 復元
 
-|9（任意）
-|in-app Agent から Nyoy MCP を HTTP 呼び出し
-|`Chat::NyoyMcpClient`（後追い・優先度低）
+|9（任意）✅
+|in-app Agent から Nyoy MCP を HTTP 呼び出し（**2026-07 完了**）
+|`Chat::NyoyMcpClient` / `Chat::Tools::NyoyMcpRunner` / `Chat::Agent` 統合
 |===
 
 初期リリースは **Phase 0–2**（ローカル 3 モデルで intent ルーティングが動く状態）を目標にし、
@@ -298,6 +298,14 @@ Phase 3–7 の横断ツールは **Nyoy MCP へ委譲**し、徒然 in-app で�
 * `AgentChat::ConversationStore` — アカウント単位の会話取得・ターン追記・履歴消去。
 * `AgentChatsController` — `create` で user/assistant を永続化、`show` で直近会話を UI へ復元、`destroy` で履歴消去。
 * Stimulus `agent-chat` — `conversation_id` 付き POST、DELETE でサーバ側クリア。ページ再読込で履歴復元。
+
+=== Phase 9 実装メモ（完了）
+
+* `Chat::NyoyMcpConfig` — `credentials nyoy_mcp` または `NYOY_MCP_URL` / `NYOY_MCP_API_TOKEN`。
+* `Chat::NyoyMcpClient` — Nyoy MCP HTTP `tools/call`（stateless JSON）。
+* `Chat::Tools::NyoyMcpRunner` — Router の委譲ツール（`web_search` / `fetch_url` / `generate_image` 等）を実行し結果を system コンテキストへ注入。
+* `Chat::Agent` — 徒然内 RAG の後に MCP ツールを実行。`fetch_url` は URL 未検出時はスキップ（pending にしない）。`image_analysis` / `memo_add` は引き続き pending。
+* 未設定時は従来どおり `pending_tools: true`（MCP 未接続と同じ挙動）。
 
 [[agent-ui]]
 == 6.6. 独立チャット画面 — 2026-07 完了
@@ -382,6 +390,6 @@ link:https://gitea.artif.org/Artif.org/nyoy/blob/main/docs/architecture/nyoy-mcp
 
 === 11.3 `Chat::Agent` と MCP の関係
 
-* Router が `fetch_url` 等を返しても **徒然内では未実行**（`pending_tools: true` のまま）。
+* Router が `fetch_url` / `web_search` 等を返したとき、**Phase 9** で `Chat::NyoyMcpClient` 経由で Nyoy MCP を呼ぶ（credentials / ENV 設定時）。
+* MCP 未設定時は **徒然内では未実行**（`pending_tools: true`）。
 * Cursor 開発では `.cursor/mcp.json` で Nyoy に直接接続し、同等ツールを使う。
-* 将来、in-app から Nyoy MCP を呼ぶ場合は Phase 9（`Chat::NyoyMcpClient`）を検討。

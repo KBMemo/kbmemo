@@ -55,6 +55,9 @@ class AgentChatMessage < ApplicationRecord
       rag += " · semantic" if metadata.dig("rag", "semantic_used")
       parts << rag
     end
+    if metadata.dig("mcp", "tools_run")&.any?
+      parts << "MCP: #{metadata.dig("mcp", "tools_run").join(", ")}"
+    end
     parts << "tools: pending" if metadata["pending_tools"]
     parts.presence&.join(" · ")
   end

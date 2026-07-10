@@ -120,6 +120,9 @@ export default class extends Controller {
       if (data.rag.semantic_used) rag += " · semantic"
       parts.push(rag)
     }
+    if (data.mcp?.tools_run?.length) {
+      parts.push(`MCP: ${data.mcp.tools_run.join(", ")}`)
+    }
     if (data.pending_tools) parts.push("tools: pending")
     return parts.length > 0 ? parts.join(" · ") : null
   }

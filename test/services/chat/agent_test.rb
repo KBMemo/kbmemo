@@ -34,7 +34,7 @@ module Chat
         @result = result
       end
 
-      def classify(_text)
+      def classify(_text, account: nil)
         @result
       end
     end
@@ -112,6 +112,54 @@ module Chat
       assert result.pending_tools
       assert_includes result.tools, :image_generation
       assert_equal [ :main ], factory.calls
+    end
+
+    test "web_research delegates to nyoy mcp and clears pending tools" do
+      client = Object.new
+      client.define_singleton_method(:configured?) { true }
+      client.define_singleton_method(:call_tool) do |name:, arguments:|
+        { "results" => [{ "title" => "News" }] }
+      end
+      mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
+
+      factory = RecordingFactory.new
+      a = Chat::Agent.new(
+        classifier: StubClassifier.new(intent("web_research")),
+        client_factory: factory,
+        mcp_runner: mcp_runner
+      )
+      result = a.call(messages: [ { role: "user", content: "最新の llama.cpp" } ])
+
+      refute result.pending_tools
+      assert_equal [ :web_search ], result.mcp.tools_run
+      assert_equal [ :fetch_url ], result.mcp.tools_skipped
+      system = system_content(factory.seen[:main])
+      assert_includes system, "外部ツール結果（Nyoy MCP）"
+      assert_includes system, "web_search"
+    end
+
+    test "url_analysis with mcp fetch_url clears pending when url present" do
+      mcp_result = Chat::Tools::NyoyMcpRunner::Result.new(
+        tools_run: [ :fetch_url ],
+        tools_skipped: [],
+        context_text: "### Nyoy MCP: fetch_url\n{}",
+        errors: []
+      )
+      mcp_runner = Object.new
+      mcp_runner.define_singleton_method(:configured?) { true }
+      mcp_runner.define_singleton_method(:optional_skip?) { |tool, user_text:| tool == :fetch_url && user_text.include?("example.com") == false }
+      mcp_runner.define_singleton_method(:call) { |**| mcp_result }
+
+      factory = RecordingFactory.new
+      a = Chat::Agent.new(
+        classifier: StubClassifier.new(intent("url_analysis")),
+        client_factory: factory,
+        mcp_runner: mcp_runner
+      )
+      result = a.call(messages: [ { role: "user", content: "https://example.com を要約" } ])
+
+      refute result.pending_tools
+      assert_equal [ :fetch_url ], result.mcp.tools_run
     end
 
     # 役割ごとに渡された messages を記録するファクトリ。

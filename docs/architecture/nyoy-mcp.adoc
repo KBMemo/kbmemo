@@ -39,6 +39,11 @@
 
 運用詳細: 如意 `docs/mcp-server.md`
 
+== in-app Agent（Phase 9）
+
+`/agent_chat` は `Chat::NyoyMcpClient` で同一 MCP ツールを HTTP 呼び出しする。
+設定は `config/credentials/nyoy_mcp.example.yml` 参照（`NYOY_MCP_URL` / `NYOY_MCP_API_TOKEN` でも可）。
+
 == stdio（ローカル開発）
 
 如意を clone している場合:

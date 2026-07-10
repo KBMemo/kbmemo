@@ -71,6 +71,14 @@ module AgentChat
         }
       end
 
+      if result.mcp
+        metadata["mcp"] = {
+          "tools_run" => Array(result.mcp.tools_run).map(&:to_s),
+          "tools_skipped" => Array(result.mcp.tools_skipped).map(&:to_s),
+          "errors" => result.mcp.errors
+        }
+      end
+
       metadata
     end
   end
