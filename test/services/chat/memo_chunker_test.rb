@@ -11,6 +11,10 @@ class Chat::MemoChunkerTest < ActiveSupport::TestCase
     assert_includes chunks.first, "Title"
   end
 
+  test "default max chars stays within embedding server token budget" do
+    assert_operator Chat::MemoChunker::DEFAULT_MAX_CHARS, :<=, 900
+  end
+
   test "returns title and body when short" do
     chunks = Chat::MemoChunker.chunk(title: "T", body: "short body")
     assert_equal [ "T", "short body" ], chunks

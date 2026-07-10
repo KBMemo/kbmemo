@@ -3,7 +3,9 @@
 module Chat
   # メモ本文を埋め込み用チャンクに分割する（LFM2.5-Embedding の short-context 向け）。
   class MemoChunker
-    DEFAULT_MAX_CHARS = 1_800
+    # LFM2.5-Embedding の llama-server 既定 batch（512 tokens）に収める目安。
+    # 日本語混在本文はおおよそ 2 chars/token 想定で余裕を見る。
+    DEFAULT_MAX_CHARS = 900
 
     # @param title [String]
     # @param body [String]

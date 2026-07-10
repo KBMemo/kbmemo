@@ -29,6 +29,36 @@ module Chat
           assert_equal 0, count
         end
       end
+
+      test "index_memo splits oversize chunks and continues indexing" do
+        skip "pgvector not enabled" unless MemoEmbeddingChunk.pgvector_enabled?
+
+        calls = []
+        client = Object.new
+        client.define_singleton_method(:embed) do |text, kind: :document|
+          calls << text
+          raise Chat::EmbeddingClient::Error, "input is too large to process" if text.length > 400
+
+          Array.new(MemoEmbeddingChunk::EMBEDDING_DIMENSIONS) { 0.1 }
+        end
+
+        memo = memos(:one)
+        memo.update_columns(title: "T", body: "x" * 700)
+
+        count = MemoEmbeddingIndexer.new(embedding_client: client).index_memo(memo)
+
+        assert_operator count, :>, 1
+        assert calls.all? { |text| text.length <= 400 }
+      end
+
+      test "index_memo returns zero on embedding error without raising" do
+        skip "pgvector not enabled" unless MemoEmbeddingChunk.pgvector_enabled?
+
+        client = Object.new
+        client.define_singleton_method(:embed) { |*_args, **_kwargs| raise Chat::EmbeddingClient::Error, "down" }
+
+        assert_equal 0, MemoEmbeddingIndexer.new(embedding_client: client).index_memo(memos(:one))
+      end
     end
   end
 end
