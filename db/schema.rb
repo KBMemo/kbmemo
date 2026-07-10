@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_10_040000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_10_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgroonga"
@@ -87,6 +87,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_10_040000) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "agent_chat_conversations", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "memo_id"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "updated_at"], name: "index_agent_chat_conversations_on_account_id_and_updated_at"
+    t.index ["account_id"], name: "index_agent_chat_conversations_on_account_id"
+    t.index ["memo_id"], name: "index_agent_chat_conversations_on_memo_id"
+  end
+
+  create_table "agent_chat_messages", force: :cascade do |t|
+    t.bigint "agent_chat_conversation_id", null: false
+    t.text "content"
+    t.datetime "created_at", null: false
+    t.string "intent"
+    t.jsonb "metadata", default: {}, null: false
+    t.string "model_role"
+    t.string "role", null: false
+    t.datetime "updated_at", null: false
+    t.index ["agent_chat_conversation_id", "created_at"], name: "idx_on_agent_chat_conversation_id_created_at_4dd7eae64b"
+    t.index ["agent_chat_conversation_id"], name: "index_agent_chat_messages_on_agent_chat_conversation_id"
+    t.index ["role"], name: "index_agent_chat_messages_on_role"
   end
 
   create_table "board_columns", force: :cascade do |t|
@@ -291,6 +316,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_10_040000) do
   add_foreign_key "account_verification_keys", "accounts", column: "id"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "agent_chat_conversations", "accounts"
+  add_foreign_key "agent_chat_conversations", "memos"
+  add_foreign_key "agent_chat_messages", "agent_chat_conversations"
   add_foreign_key "board_columns", "boards"
   add_foreign_key "boards", "accounts"
   add_foreign_key "boards", "memo_directories"

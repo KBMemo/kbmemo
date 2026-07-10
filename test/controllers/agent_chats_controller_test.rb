@@ -16,6 +16,25 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "AI チャット"
   end
 
+  test "show restores persisted conversation messages" do
+    conversation = accounts(:one).agent_chat_conversations.create!(title: "履歴")
+    conversation.messages.create!(role: "user", content: "以前の質問", metadata: {})
+    conversation.messages.create!(
+      role: "assistant",
+      content: "以前の回答",
+      intent: "chat",
+      model_role: "fast_chat",
+      metadata: { "escalated" => false, "pending_tools" => false }
+    )
+
+    get agent_chat_url
+
+    assert_response :success
+    assert_includes response.body, "以前の質問"
+    assert_includes response.body, "以前の回答"
+    assert_includes response.body, "data-agent-chat-conversation-id-value=\"#{conversation.id}\""
+  end
+
   test "create returns agent reply json" do
     fake_result = Chat::Agent::Result.new(
       reply: "回答です",
@@ -48,6 +67,11 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
       assert_equal "main", body["model_role"]
       assert_equal false, body["escalated"]
       assert_equal 0, body.dig("rag", "hit_count")
+      assert_predicate body["conversation_id"], :present?
+
+      conversation = AgentChatConversation.find(body["conversation_id"])
+      assert_equal 2, conversation.messages.count
+      assert_equal "メモを探して", conversation.messages.ordered.first.content
     ensure
       Chat::Agent.define_singleton_method(:new, original_new)
     end
@@ -88,5 +112,16 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     ensure
       Chat::Agent.define_singleton_method(:new, original_new)
     end
+  end
+
+  test "destroy clears persisted conversation" do
+    conversation = accounts(:one).agent_chat_conversations.create!
+    conversation.messages.create!(role: "user", content: "残す", metadata: {})
+
+    assert_difference -> { AgentChatConversation.count }, -1 do
+      delete agent_chat_url, params: { conversation_id: conversation.id }
+    end
+
+    assert_response :no_content
   end
 end

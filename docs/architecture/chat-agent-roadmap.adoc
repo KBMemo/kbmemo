@@ -228,9 +228,9 @@ User 入力
 |Cursor 等から如意ツールを利用
 |徒然 `.cursor/mcp.json` + 如意 `docs/architecture/nyoy-mcp.adoc`（**2026-07 着手**）
 
-|8
-|会話永続化（DB テーブル・UI 履歴復元）
-|migration / モデル / パネル UI 更新
+|8 ✅
+|会話永続化（DB テーブル・UI 履歴復元。**2026-07 完了**）
+|`AgentChatConversation` / `AgentChatMessage` / `AgentChat::ConversationStore` / `AgentChatsController` 永続化 + UI 復元
 
 |9（任意）
 |in-app Agent から Nyoy MCP を HTTP 呼び出し
@@ -291,6 +291,13 @@ Phase 3–7 の横断ツールは **Nyoy MCP へ委譲**し、徒然 in-app で�
 * `Chat::Tools::MemoEmbeddingIndexer` + `MemoEmbeddingIndexJob` — メモ保存時（`title` / `body` 変更）に非同期インデックス。`bin/rails kbmemo:embeddings:backfill` で既存メモ一括。
 * `Chat::Tools::RagSearch` — pgroonga（lexical）と pgvector 近傍（semantic）を **RRF** で統合。Embedding サーバ未起動時は semantic をスキップし 5a 単独で動作。`Result#semantic_used` で semantic 寄与の有無を返す。
 * embedding 未導入環境（pgvector なし）ではチャンクテーブルのみ作成され、lexical RAG は従来どおり動作。
+
+=== Phase 8 実装メモ（完了）
+
+* **DB**: `agent_chat_conversations`（`account_id`、任意 `memo_id`、`title`）/ `agent_chat_messages`（`role`、`content`、`intent`、`model_role`、`metadata` jsonb）。
+* `AgentChat::ConversationStore` — アカウント単位の会話取得・ターン追記・履歴消去。
+* `AgentChatsController` — `create` で user/assistant を永続化、`show` で直近会話を UI へ復元、`destroy` で履歴消去。
+* Stimulus `agent-chat` — `conversation_id` 付き POST、DELETE でサーバ側クリア。ページ再読込で履歴復元。
 
 [[agent-ui]]
 == 6.6. 独立チャット画面 — 2026-07 完了

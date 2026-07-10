@@ -5,10 +5,26 @@ class AgentChatsController < ApplicationController
 
   def show
     authorize :agent_chat, :show?
+
+    store = conversation_store
+    @conversation = store.active_conversation
+    @initial_messages = store.ui_messages(@conversation)
+    @conversation_id = @conversation&.id
   end
 
   def create
     authorize :agent_chat, :create?
+
+    store = conversation_store
+    conversation = store.find_or_create_conversation!(conversation_id: params[:conversation_id])
+    user_text = last_user_text_from_params
+
+    if user_text.blank?
+      render json: { error: "メッセージが空です。" }, status: :unprocessable_entity
+      return
+    end
+
+    store.append_user_message!(conversation, content: user_text)
 
     result = Chat::Agent.new.call(
       messages: chat_messages_param,
@@ -20,7 +36,9 @@ class AgentChatsController < ApplicationController
       return
     end
 
-    render json: serialize_result(result)
+    store.append_assistant_message!(conversation, result: result)
+
+    render json: serialize_result(result, conversation: conversation)
   rescue Chat::LlmClient::Error => e
     render json: { error: e.message, settings_url: chat_server_path }, status: :unprocessable_entity
   rescue StandardError => e
@@ -29,15 +47,27 @@ class AgentChatsController < ApplicationController
            status: :internal_server_error
   end
 
+  def destroy
+    authorize :agent_chat, :destroy?
+
+    conversation_store.clear!(conversation_id: params[:conversation_id])
+    head :no_content
+  end
+
   private
 
-  def serialize_result(result)
+  def conversation_store
+    AgentChat::ConversationStore.new(account: rodauth.rails_account)
+  end
+
+  def serialize_result(result, conversation:)
     payload = {
       reply: result.reply,
       intent: result.intent,
       model_role: result.model_role,
       escalated: result.escalated,
-      pending_tools: result.pending_tools
+      pending_tools: result.pending_tools,
+      conversation_id: conversation.id
     }
 
     if result.rag
@@ -61,5 +91,16 @@ class AgentChatsController < ApplicationController
       h = entry.is_a?(ActionController::Parameters) ? entry : ActionController::Parameters.new(entry)
       h.permit(:role, :content).to_h.symbolize_keys.presence
     end
+  end
+
+  def last_user_text_from_params
+    chat_messages_param.reverse_each do |entry|
+      next unless entry[:role].to_s == "user"
+
+      text = entry[:content].to_s.strip
+      return text if text.present?
+    end
+
+    nil
   end
 end

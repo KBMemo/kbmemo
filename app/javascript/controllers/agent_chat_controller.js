@@ -5,11 +5,13 @@ export default class extends Controller {
 
   static values = {
     chatUrl: String,
-    settingsUrl: String
+    settingsUrl: String,
+    conversationId: String,
+    initialMessages: Array
   }
 
   connect() {
-    this.history = []
+    this.history = Array.isArray(this.initialMessagesValue) ? [...this.initialMessagesValue] : []
     this.sending = false
     this.renderMessages()
     this.updateSendState()
@@ -39,7 +41,10 @@ export default class extends Controller {
           "Content-Type": "application/json",
           ...(token ? { "X-CSRF-Token": token } : {})
         },
-        body: JSON.stringify({ messages: this.history })
+        body: JSON.stringify({
+          messages: this.history,
+          conversation_id: this.conversationIdValue || null
+        })
       })
 
       const data = await res.json().catch(() => ({}))
@@ -57,6 +62,10 @@ export default class extends Controller {
         return
       }
 
+      if (data.conversation_id) {
+        this.conversationIdValue = String(data.conversation_id)
+      }
+
       this.history.push({
         role: "assistant",
         content: reply,
@@ -71,9 +80,29 @@ export default class extends Controller {
     }
   }
 
-  clearChat(event) {
+  async clearChat(event) {
     event?.preventDefault()
+
+    if (this.conversationIdValue) {
+      try {
+        const token = document.querySelector('meta[name="csrf-token"]')?.content
+        const url = new URL(this.chatUrlValue, window.location.origin)
+        url.searchParams.set("conversation_id", this.conversationIdValue)
+        await fetch(url.toString(), {
+          method: "DELETE",
+          credentials: "same-origin",
+          headers: {
+            Accept: "application/json",
+            ...(token ? { "X-CSRF-Token": token } : {})
+          }
+        })
+      } catch {
+        // ローカル表示は消す。サーバ削除失敗時も UI はリセットする。
+      }
+    }
+
     this.history = []
+    this.conversationIdValue = ""
     this.renderMessages()
     this.clearError()
   }

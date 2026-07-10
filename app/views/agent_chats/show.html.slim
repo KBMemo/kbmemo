@@ -8,7 +8,7 @@
     p.mt-2.text-sm
       = link_to "Chat サーバー設定", chat_server_path, class: "kb-chrome-link underline"
 
-  .agent-chat-panel.kb-ai-panel.kb-chrome-panel.flex.min-h-0.flex-1.flex-col.overflow-hidden.rounded-lg.border.px-3.py-3 data-controller="agent-chat" data-agent-chat-chat-url-value=agent_chat_path(format: :json) data-agent-chat-settings-url-value=chat_server_path aria-label="AI チャット"
+  .agent-chat-panel.kb-ai-panel.kb-chrome-panel.flex.min-h-0.flex-1.flex-col.overflow-hidden.rounded-lg.border.px-3.py-3 data-controller="agent-chat" data-agent-chat-chat-url-value=agent_chat_path(format: :json) data-agent-chat-settings-url-value=chat_server_path data-agent-chat-conversation-id-value=(@conversation_id || "") data-agent-chat-initial-messages-value=(@initial_messages || []).to_json aria-label="AI チャット"
     .kb-ai-messages.min-h-0.flex-1.overflow-y-auto.rounded-md.p-2 data-agent-chat-target="messages"
     p.hidden.shrink-0.text-xs.kb-status-danger data-agent-chat-target="error"
     label.sr-only for="agent_chat_prompt" AI へのメッセージ

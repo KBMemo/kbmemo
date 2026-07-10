@@ -22,7 +22,7 @@ Rails.application.routes.draw do
   get "help", to: "help#show", as: :help
   get "help/:memo_slug", to: "help#show", as: :help_memo
 
-  resource :agent_chat, only: %i[show create], controller: "agent_chats"
+  resource :agent_chat, only: %i[show create destroy], controller: "agent_chats"
 
   resource :chat_server, only: %i[show update], controller: "chat_servers" do
     post :health_check

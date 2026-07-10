@@ -7,4 +7,5 @@ class AgentChatPolicy < ApplicationPolicy
   end
 
   alias create? show?
+  alias destroy? show?
 end

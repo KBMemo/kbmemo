@@ -42,6 +42,7 @@ class Account < ApplicationRecord
   has_many :memos, dependent: :restrict_with_exception
   has_many :memo_group_memberships, dependent: :destroy
   has_many :memo_groups, through: :memo_group_memberships
+  has_many :agent_chat_conversations, dependent: :destroy
 
   after_create_commit :provision_memo_directory_user_space
 
