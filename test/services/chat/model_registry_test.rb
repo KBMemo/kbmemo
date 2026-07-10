@@ -12,12 +12,12 @@ module Chat
 
       assert_equal :main, config.role
       assert_equal :llama_cpp, config.provider
-      assert_equal "gemma-4-12b", config.model
+      assert_equal "gemma-4-e4b", config.model
       assert_equal 0.5, config.temperature
     end
 
     test "for uses dev default base_url in test env when credentials absent" do
-      assert_equal "http://balvenie:10012", Chat::ModelRegistry.for(:main).base_url
+      assert_equal "http://balvenie:10011", Chat::ModelRegistry.for(:main).base_url
       assert_equal "http://balvenie:10010", Chat::ModelRegistry.for(:intent).base_url
     end
 

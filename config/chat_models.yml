@@ -15,7 +15,7 @@ default: &default
     temperature: 0.4
   main:
     provider: llama_cpp
-    model: gemma-4-12b
+    model: gemma-4-e4b
     temperature: 0.5
   vision:
     provider: llama_cpp

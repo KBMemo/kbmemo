@@ -56,7 +56,8 @@ module Chat
       )
 
       escalated = Chat::Escalation.escalate?(
-        intent: classification, user_text: user_text, model_role: primary_role, reply: reply
+        intent: classification, user_text: user_text, model_role: primary_role, reply: reply,
+        account: @account
       )
       final_role = primary_role
       if escalated

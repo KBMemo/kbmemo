@@ -6,11 +6,11 @@ module Chat
   module ServerEndpoints
     ROLES = %i[intent fast_chat main vision embedding].freeze
 
-    # chat-fast / chat-main / chat-reason / embedding / vlm のポート対応。
+    # chat-fast / chat-main（E4B）/ chat-reason（12B・任意）/ embedding / vlm のポート対応。
     DEFAULT_PORTS = {
       intent: 10_010,
       fast_chat: 10_011,
-      main: 10_012,
+      main: 10_011,
       vision: 10_021,
       embedding: 10_020,
       image_generation: 11_234
@@ -19,7 +19,7 @@ module Chat
     ROLE_LABELS = {
       intent: "Intent（LFM2.5 1.2B）",
       fast_chat: "Fast chat（Gemma 4 E4B）",
-      main: "Main（Gemma 4 12B）",
+      main: "Main（Gemma 4 E4B）",
       vision: "Vision（Qwen2.5-VL）",
       embedding: "Embedding（LFM2.5-Embedding-350M）",
       image_generation: "画像生成（sd.cpp）"

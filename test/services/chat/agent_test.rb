@@ -96,12 +96,12 @@ module Chat
       assert_equal [ :main ], factory.calls
     end
 
-    test "low confidence conversation escalates to main" do
+    test "low confidence conversation does not escalate when main matches fast_chat" do
       a, factory = agent(intent("conversation", confidence: 0.4), replies: { fast_chat: "d", main: "f" })
       result = a.call(messages: [ { role: "user", content: "?" } ])
 
-      assert result.escalated
-      assert_equal [ :fast_chat, :main ], factory.calls
+      refute result.escalated
+      assert_equal [ :fast_chat ], factory.calls
     end
 
     test "non-chat role (image_generation) falls back to main and reports pending tools" do
@@ -202,7 +202,24 @@ module Chat
       assert_equal Chat::Prompts::CODING, system_content(factory.seen[:main])
     end
 
-    test "escalation uses main prompt while primary uses fast_chat prompt" do
+    test "escalation uses main prompt when top role is heavier than fast_chat" do
+      original = Chat::ModelRegistry.method(:for)
+      main_cfg = Chat::ModelRegistry::Config.new(
+        role: :main, provider: :llama_cpp, base_url: "http://heavy:10012",
+        model: "gemma-4-12b", temperature: 0.5, api_key: nil
+      )
+      fast_cfg = Chat::ModelRegistry::Config.new(
+        role: :fast_chat, provider: :llama_cpp, base_url: "http://fast:10011",
+        model: "gemma-4-e4b", temperature: 0.4, api_key: nil
+      )
+      Chat::ModelRegistry.define_singleton_method(:for) do |role, account: nil|
+        case role.to_sym
+        when :main then main_cfg
+        when :fast_chat then fast_cfg
+        else original.call(role, account: account)
+        end
+      end
+
       factory = RecordingFactory.new
       a = Chat::Agent.new(
         classifier: StubClassifier.new(intent("conversation", confidence: 0.4)),
@@ -212,6 +229,9 @@ module Chat
 
       assert_equal Chat::Prompts::FAST_CHAT, system_content(factory.seen[:fast_chat])
       assert_equal Chat::Prompts::MAIN, system_content(factory.seen[:main])
+    ensure
+      Chat::ModelRegistry.define_singleton_method(:for, original)
+      Chat::ModelRegistry.reset!
     end
 
     test "rag_lookup with account runs rag and injects RAG_ANSWER" do
