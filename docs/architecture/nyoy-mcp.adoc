@@ -1,0 +1,38 @@
+= 如意（Nyoy）MCP 連携
+
+徒然（site）Workspace から如意の Chat ツール・画像生成を Cursor MCP 経由で使う設定。
+
+== セットアップ
+
+1. `cp .cursor/mcp.json.example .cursor/mcp.json`
+2. `YOUR_MCP_API_TOKEN` を本番 `MCP_API_TOKEN`（nyoy `.env.production` と同じ値）に置き換える
+3. Cursor で MCP サーバー `nyoy` を有効化
+
+`.cursor/mcp.json` は git 管理外（トークン含むため）。
+
+== 公開ツール（概要）
+
+* 徒然 API 連携: `search_memos`, `get_memo`, `create_memo`, `update_memo`, `recall_memos`
+* Web: `web_search`, `fetch_url`, `search_fetched_page`
+* 画像: `analyze_image`, `generate_image`, `refine_image`, `list_prompt_styles`
+
+詳細は如意リポジトリ `docs/mcp-server.md` を参照。
+
+== ローカル開発（stdio）
+
+如意リポジトリを clone している場合は stdio も利用可:
+
+[source,json]
+----
+{
+  "mcpServers": {
+    "nyoy": {
+      "command": "/path/to/nyoy/bin/mcp-stdio",
+      "env": {
+        "MCP_API_TOKEN": "YOUR_MCP_API_TOKEN",
+        "RAILS_ENV": "development"
+      }
+    }
+  }
+}
+----

@@ -45,3 +45,6 @@ examples/*/dist
 # https://vitejs.dev/guide/env-and-mode.html#env-files
 *.local
 /vendor/bundle
+
+# Cursor MCP（Bearer トークン含む）。雛形は .cursor/mcp.json.example
+/.cursor/mcp.json
