@@ -16,19 +16,26 @@ module Chat
       end
     end
 
-    def initialize
+    def initialize(broadcaster: nil)
+      @broadcaster = broadcaster
       @steps = []
       @started_at = monotonic_ms
       @open_step = nil
       @open_started_at = nil
     end
 
+    def current_step_key
+      @open_step&.key
+    end
+
     def run(key, label, model_role: nil)
       finish_open_step!
       @open_step = Step.new(key: key, label: label, status: :running, model_role: model_role)
       @open_started_at = monotonic_ms
+      @broadcaster&.trace_step(@open_step, phase: "started")
       result = yield
-      finish_open_step!(detail: nil)
+      finish_open_step!
+      @broadcaster&.trace_step(@steps.last, phase: "completed") if @steps.last
       result
     end
 
@@ -58,12 +65,14 @@ module Chat
       list
     end
 
-    def as_json(account: nil, intent: nil, model_role: nil, escalated: false)
-      {
+    def as_json(account: nil, intent: nil, model_role: nil, escalated: false, interactions: nil)
+      payload = {
         "total_elapsed_ms" => total_elapsed_ms,
         "steps" => steps.map(&:as_json),
         "stats" => build_stats(account: account, intent: intent, model_role: model_role, escalated: escalated)
       }
+      payload["interactions"] = interactions if interactions.present?
+      payload
     end
 
     private

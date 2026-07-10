@@ -24,7 +24,8 @@ module Chat
         @reply = reply
       end
 
-      def chat(_messages, **_opts)
+      def chat(_messages, stream: false, **_opts, &block)
+        block&.call({ content: @reply, thinking: "" })
         @reply
       end
     end
@@ -34,7 +35,8 @@ module Chat
         @result = result
       end
 
-      def classify(_text, account: nil)
+      def classify(_text, account: nil, stream: false, &block)
+        block&.call({ content: @result.intent, thinking: "" }) if stream
         @result
       end
     end

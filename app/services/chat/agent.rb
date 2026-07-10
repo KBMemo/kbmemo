@@ -6,6 +6,7 @@ module Chat
   class Agent
     CHAT_ROLES = %i[fast_chat main].freeze
     FALLBACK_ROLE = :main
+    MESSAGE_PREVIEW_LIMIT = 3_000
 
     # 徒然内で実行するツール。
     IMPLEMENTED_TOOLS = %i[rag_search memo_search].freeze
@@ -15,8 +16,14 @@ module Chat
 
     Result = Struct.new(
       :reply, :intent, :classification, :model_role, :escalated, :tools, :pending_tools,
-      :rag, :mcp, :trace, keyword_init: true
+      :rag, :mcp, :trace, :interactions, keyword_init: true
     )
+
+    TraceBroadcaster = Struct.new(:ui) do
+      def trace_step(step, phase:)
+        ui.trace_step(step, phase: phase.to_s)
+      end
+    end
 
     # @param classifier [Chat::IntentClassifier, nil]
     # @param client_factory [#call, nil] role(Symbol) -> Chat::LlmClient
@@ -32,15 +39,20 @@ module Chat
     # @param messages [Array<Hash>] { role:, content: }（user/assistant 履歴）
     # @param system_prompt [String, nil]
     # @param account [Account, nil] RAG ツール実行時に必須
+    # @param broadcaster [AgentChat::UiBroadcaster, nil]
     # @return [Chat::Agent::Result]
-    def call(messages:, system_prompt: nil, account: nil)
+    def call(messages:, system_prompt: nil, account: nil, broadcaster: nil)
       @account = account
-      trace = Chat::AgentTrace.new
+      @broadcaster = broadcaster
+      @interaction_log = Chat::AgentInteractionLog.new(broadcaster: broadcaster)
+      trace = Chat::AgentTrace.new(broadcaster: broadcaster && TraceBroadcaster.new(broadcaster))
+      broadcaster&.turn_started
+
       history = normalize_messages(messages)
       user_text = last_user_text(history)
 
       classification = trace.run(:intent, "Intent 分類") do
-        result = classifier.classify(user_text, account: account)
+        result = classify_intent(user_text, account: account, step_key: :intent)
         trace.finish_step_detail(intent_step_detail(result))
         result
       end
@@ -48,7 +60,8 @@ module Chat
 
       return build_result(
         reply: nil, classification: classification, decision: decision,
-        model_role: nil, escalated: false, rag: nil, mcp: nil, user_text: user_text, trace: trace
+        model_role: nil, escalated: false, rag: nil, mcp: nil, user_text: user_text,
+        trace: trace, interactions: @interaction_log
       ) if user_text.blank?
 
       rag_result = run_rag_tool(decision, user_text, account, trace: trace)
@@ -59,7 +72,7 @@ module Chat
         trace.finish_step_detail(model_label_for(primary_role))
         generate(
           primary_role, system_prompt, classification.intent, history,
-          rag_result: rag_result, mcp_result: mcp_result
+          rag_result: rag_result, mcp_result: mcp_result, step_key: trace.current_step_key
         )
       end
 
@@ -78,7 +91,7 @@ module Chat
           trace.finish_step_detail(model_label_for(final_role))
           generate(
             final_role, system_prompt, classification.intent, history,
-            rag_result: rag_result, mcp_result: mcp_result
+            rag_result: rag_result, mcp_result: mcp_result, step_key: trace.current_step_key
           )
         end
       end
@@ -86,13 +99,13 @@ module Chat
       build_result(
         reply: reply, classification: classification, decision: decision,
         model_role: final_role, escalated: escalated, rag: rag_result, mcp: mcp_result,
-        user_text: user_text, trace: trace
+        user_text: user_text, trace: trace, interactions: @interaction_log
       )
     end
 
     private
 
-    def build_result(reply:, classification:, decision:, model_role:, escalated:, rag:, mcp:, user_text:, trace:)
+    def build_result(reply:, classification:, decision:, model_role:, escalated:, rag:, mcp:, user_text:, trace:, interactions:)
       Result.new(
         reply: reply,
         intent: classification.intent,
@@ -103,8 +116,28 @@ module Chat
         pending_tools: pending_tools?(decision, mcp: mcp, user_text: user_text),
         rag: rag,
         mcp: mcp,
-        trace: trace
+        trace: trace,
+        interactions: interactions
       )
+    end
+
+    def classify_intent(user_text, account:, step_key:)
+      model = model_label_for(:intent)
+      @interaction_log.record(
+        step_key: step_key,
+        role: "request",
+        model: model,
+        text: messages_preview([
+          { role: "system", content: Chat::Prompts::INTENT_CLASSIFIER },
+          { role: "user", content: user_text }
+        ])
+      )
+
+      result = classifier.classify(user_text, account: account, stream: @broadcaster.present?) do |delta|
+        record_model_delta(step_key: step_key, model: model, delta: delta)
+      end
+
+      result
     end
 
     def pending_tools?(decision, mcp:, user_text:)
@@ -123,6 +156,11 @@ module Chat
 
       trace.run(:mcp_tools, "外部ツール（Nyoy MCP）") do
         result = mcp_runner.call(tools: tools, user_text: user_text)
+        @interaction_log.tool_context(
+          step_key: :mcp_tools,
+          label: "Nyoy MCP",
+          preview: result.context_text
+        )
         trace.finish_step_detail(mcp_step_detail(result))
         result
       end
@@ -135,6 +173,11 @@ module Chat
       trace.run(:rag_search, "メモ検索（RAG）") do
         factory = @rag_search_factory || Chat::Tools::RagSearch.new(account: account)
         result = factory.call(user_text: user_text)
+        @interaction_log.tool_context(
+          step_key: :rag_search,
+          label: "RAG コンテキスト",
+          preview: result.context_text
+        )
         trace.finish_step_detail(rag_step_detail(result))
         result
       end
@@ -167,7 +210,7 @@ module Chat
       role.to_s
     end
 
-    def generate(role, system_prompt, intent, history, rag_result:, mcp_result:)
+    def generate(role, system_prompt, intent, history, rag_result:, mcp_result:, step_key:)
       effective = system_prompt.presence || Chat::Prompts.system_for(role: role, intent: intent)
       if rag_result&.context_text.present?
         effective = [
@@ -187,7 +230,55 @@ module Chat
       messages = []
       messages << { role: "system", content: effective } if effective.present?
       messages.concat(history)
-      client_for(role).chat(messages)
+
+      model = model_label_for(role)
+      @interaction_log.record(
+        step_key: step_key,
+        role: "request",
+        model: model,
+        text: messages_preview(messages)
+      )
+
+      stream = @broadcaster.present?
+      client_for(role).chat(messages, stream: stream) do |delta|
+        record_model_delta(step_key: step_key, model: model, delta: delta)
+      end
+    end
+
+    def record_model_delta(step_key:, model:, delta:)
+      thinking = delta[:thinking].to_s
+      content = delta[:content].to_s
+
+      if thinking.present?
+        @interaction_log.record(
+          step_key: step_key,
+          role: "thinking",
+          model: model,
+          text: thinking,
+          append: true
+        )
+        @broadcaster&.assistant_delta(text: thinking, thinking: true)
+      end
+
+      return if content.blank?
+
+      @interaction_log.record(
+        step_key: step_key,
+        role: "response",
+        model: model,
+        text: content,
+        append: true
+      )
+      @broadcaster&.assistant_delta(text: content, thinking: false)
+    end
+
+    def messages_preview(messages)
+      messages.map do |message|
+        role = message[:role] || message["role"]
+        content = (message[:content] || message["content"]).to_s
+        content = "#{content[0, MESSAGE_PREVIEW_LIMIT]}…" if content.length > MESSAGE_PREVIEW_LIMIT
+        "[#{role}] #{content}"
+      end.join("\n\n")
     end
 
     def classifier

@@ -41,8 +41,9 @@ module Chat
     # @param messages [Array<Hash>] { role:, content: } の配列
     # @param temperature [Float, nil] 呼び出し単位の上書き
     # @param response_format [Hash, nil] 例 { "type" => "json_object" }
+    # @yield [Hash] { content:, thinking: } ストリーム chunk（stream: true 時）
     # @return [String] assistant の本文
-    def chat(messages, temperature: nil, response_format: nil)
+    def chat(messages, temperature: nil, response_format: nil, stream: false, &block)
       raise Error, "base_url が空です。" if @base_url.blank?
       raise Error, "model が空です。" if @model.blank?
 
@@ -50,8 +51,13 @@ module Chat
       temp = temperature || @temperature
       payload[:temperature] = temp unless temp.nil?
       payload[:response_format] = response_format if response_format
+      payload[:stream] = true if stream
 
-      parse_assistant_content(http_post(payload))
+      if stream
+        chat_stream(payload, &block)
+      else
+        parse_assistant_content(http_post(payload))
+      end
     end
 
     private
@@ -111,6 +117,85 @@ module Chat
       raise Error, "応答が空でした。" if content.blank?
 
       content
+    end
+
+    def chat_stream(payload, &block)
+      uri = endpoint
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = uri.scheme == "https"
+      http.open_timeout = @open_timeout
+      http.read_timeout = @timeout
+
+      request = Net::HTTP::Post.new(uri)
+      request["Authorization"] = "Bearer #{@api_key}" if @api_key.present?
+      request["Content-Type"] = "application/json"
+      request["Accept"] = "text/event-stream"
+      request.body = JSON.generate(payload)
+
+      assistant_content = +""
+      assistant_thinking = +""
+
+      handle_delta = lambda do |delta|
+        thinking = delta[:thinking].to_s
+        content = delta[:content].to_s
+        assistant_thinking << thinking if thinking.present?
+        assistant_content << content if content.present?
+        block&.call(delta) if thinking.present? || content.present?
+      end
+
+      http.request(request) do |response|
+        unless response.is_a?(Net::HTTPSuccess)
+          body = response.body.to_s
+          message = extract_error_message(body) || "LLM API エラー（#{response.code}）"
+          raise Error.new(message, status: response.code.to_i, body: body)
+        end
+
+        buffer = +""
+        response.read_body do |chunk|
+          buffer << chunk
+          while (line = buffer.slice!(/\A[^\n]*\n/m))
+            process_sse_line(line, &handle_delta)
+          end
+        end
+
+        buffer.each_line { |line| process_sse_line(line, &handle_delta) }
+      end
+
+      content = assistant_content.strip
+      content = assistant_thinking.strip if content.blank?
+      raise Error, "応答が空でした。" if content.blank?
+
+      content
+    rescue JSON::ParserError
+      raise Error, "LLM API の応答を解析できませんでした。"
+    rescue Net::OpenTimeout, Net::ReadTimeout, Timeout::Error, SocketError, SystemCallError, IOError => e
+      raise ConnectionError, "LLM API へ接続できませんでした: #{e.message}"
+    end
+
+    def process_sse_line(line, &block)
+      line = line.strip
+      return if line.empty?
+      return unless line.start_with?("data:")
+
+      data = line.delete_prefix("data:").strip
+      return if data == "[DONE]"
+
+      delta = parse_stream_delta(JSON.parse(data))
+      return unless delta
+
+      thinking = delta[:thinking].to_s
+      content = delta[:content].to_s
+      block.call(delta) if thinking.present? || content.present?
+    end
+
+    def parse_stream_delta(data)
+      choice = data.fetch("choices", []).first
+      delta = choice&.fetch("delta", {}) || {}
+      content = delta["content"]
+      thinking = delta["reasoning_content"]
+      return nil if content.blank? && thinking.blank?
+
+      { content: content.to_s, thinking: thinking.to_s }
     end
   end
 end

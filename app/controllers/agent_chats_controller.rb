@@ -18,31 +18,49 @@ class AgentChatsController < ApplicationController
     store = conversation_store
     conversation = store.find_or_create_conversation!(conversation_id: params[:conversation_id])
     user_text = last_user_text_from_params
+    turn_id = params[:turn_id].presence || SecureRandom.uuid
+    account = rodauth.rails_account
+    broadcaster = nil
 
     if user_text.blank?
       render json: { error: "メッセージが空です。" }, status: :unprocessable_entity
       return
     end
 
+    broadcaster = AgentChat::UiBroadcaster.new(
+      account: account,
+      conversation: conversation,
+      turn_id: turn_id
+    )
+
     store.append_user_message!(conversation, content: user_text)
 
     result = Chat::Agent.new.call(
       messages: chat_messages_param,
-      account: rodauth.rails_account
+      account: account,
+      broadcaster: broadcaster
     )
 
     if result.reply.blank?
+      broadcaster.turn_error(error: "応答を生成できませんでした。")
       render json: { error: "応答を生成できませんでした。" }, status: :unprocessable_entity
       return
     end
 
     store.append_assistant_message!(conversation, result: result)
 
-    render json: serialize_result(result, conversation: conversation)
+    payload = serialize_result(result, conversation: conversation)
+    broadcaster.turn_finalized(payload)
+    render json: payload.merge(turn_id: turn_id)
   rescue Chat::LlmClient::Error => e
+    broadcaster&.turn_error(error: e.message, settings_url: chat_server_path)
     render json: { error: e.message, settings_url: chat_server_path }, status: :unprocessable_entity
   rescue StandardError => e
     Rails.logger.error("[AgentChatsController] #{e.class}: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
+    broadcaster&.turn_error(
+      error: "AI 処理中にエラーが発生しました。（#{e.message}）",
+      settings_url: chat_server_path
+    )
     render json: { error: "AI 処理中にエラーが発生しました。（#{e.message}）", settings_url: chat_server_path },
            status: :internal_server_error
   end
@@ -91,7 +109,8 @@ class AgentChatsController < ApplicationController
         account: rodauth.rails_account,
         intent: result.intent,
         model_role: result.model_role,
-        escalated: result.escalated
+        escalated: result.escalated,
+        interactions: result.interactions&.as_json
       )
     end
 

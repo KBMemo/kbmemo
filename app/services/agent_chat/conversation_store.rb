@@ -84,7 +84,8 @@ module AgentChat
           account: @account,
           intent: result.intent,
           model_role: result.model_role,
-          escalated: result.escalated
+          escalated: result.escalated,
+          interactions: result.interactions&.as_json
         )
       end
 

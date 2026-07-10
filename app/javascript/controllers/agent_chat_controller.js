@@ -1,6 +1,10 @@
 import { Controller } from "@hotwired/stimulus"
+import { createConsumer } from "@rails/actioncable"
 import { appendChatMarkdown } from "../lib/chat_markdown"
-import { buildChatActivity, buildChatStats, buildChatSteps, ChatActivityTracker } from "../lib/chat_activity"
+import { buildChatStats, buildChatSteps } from "../lib/chat_activity"
+import { buildInteractionLog, ChatStreamPanel } from "../lib/chat_interactions"
+
+const cable = createConsumer()
 
 export default class extends Controller {
   static targets = ["messages", "input", "sendButton", "error"]
@@ -9,20 +13,73 @@ export default class extends Controller {
     chatUrl: String,
     settingsUrl: String,
     conversationId: String,
-    initialMessages: Array
+    initialMessages: Array,
+    cableUrl: { type: String, default: "/cable" }
   }
 
   connect() {
     this.history = Array.isArray(this.initialMessagesValue) ? [...this.initialMessagesValue] : []
     this.sending = false
     this.activityTracker = null
-    this.activityPanel = null
+    this.streamPanel = null
+    this.activeTurnId = null
+    this.lastSeq = 0
+    this.subscribeCable()
     this.renderMessages()
     this.updateSendState()
   }
 
   disconnect() {
     this.stopActivityTracker()
+    this.cableSubscription?.unsubscribe()
+  }
+
+  subscribeCable() {
+    this.cableSubscription = cable.subscriptions.create("AgentChatAccountChannel", {
+      received: (event) => this.receivedCable(event)
+    })
+  }
+
+  receivedCable(event) {
+    if (!this.activeTurnId || event.turn_id !== this.activeTurnId) return
+    if (event.seq != null && event.seq <= this.lastSeq) return
+    if (event.seq != null) this.lastSeq = event.seq
+
+    switch (event.type) {
+      case "turn_started":
+        if (event.conversation_id) {
+          this.conversationIdValue = String(event.conversation_id)
+        }
+        break
+      case "trace_step":
+        this.streamPanel?.upsertTraceStep(event.step, event.phase)
+        break
+      case "interaction":
+      case "tool_context":
+        this.streamPanel?.appendInteraction({
+          step_key: event.step_key,
+          role: event.type === "tool_context" ? "tool" : event.role,
+          model: event.type === "tool_context" ? event.label : event.model,
+          text: event.type === "tool_context" ? event.preview : event.text,
+          append: event.append
+        })
+        break
+      case "assistant_delta":
+        this.streamPanel?.appendAssistantDelta(event.text, { thinking: event.thinking })
+        this.scrollMessages()
+        break
+      case "turn_error":
+        this.stopActivityTracker()
+        this.renderMessages()
+        this.showError(event.error || "AI との通信に失敗しました。", {
+          settingsUrl: event.settings_url
+        })
+        this.sending = false
+        this.updateSendState()
+        break
+      default:
+        break
+    }
   }
 
   async send(event) {
@@ -40,6 +97,10 @@ export default class extends Controller {
     this.updateSendState()
     this.startActivityPanel()
 
+    const turnId = crypto.randomUUID()
+    this.activeTurnId = turnId
+    this.lastSeq = 0
+
     try {
       const token = document.querySelector('meta[name="csrf-token"]')?.content
       const res = await fetch(this.chatUrlValue, {
@@ -52,7 +113,8 @@ export default class extends Controller {
         },
         body: JSON.stringify({
           messages: this.history,
-          conversation_id: this.conversationIdValue || null
+          conversation_id: this.conversationIdValue || null,
+          turn_id: turnId
         })
       })
 
@@ -83,13 +145,14 @@ export default class extends Controller {
       this.history.push({
         role: "assistant",
         content: reply,
-        activity: data.trace || null,
-        meta: data.trace ? null : this.metaFromResponse(data)
+        activity: data.trace || null
       })
+      this.activeTurnId = null
       this.renderMessages()
     } catch {
       this.showError("AI との通信に失敗しました。")
       this.stopActivityTracker()
+      this.activeTurnId = null
       this.renderMessages()
     } finally {
       this.sending = false
@@ -101,22 +164,28 @@ export default class extends Controller {
     if (!this.hasMessagesTarget) return
 
     this.stopActivityTracker()
-    this.activityPanel = buildChatActivity({ running: true, elapsedMs: 0 })
+    this.streamPanel = new ChatStreamPanel()
+    this.activityPanel = this.streamPanel.element()
     this.messagesTarget.append(this.activityPanel)
-    this.messagesTarget.scrollTop = this.messagesTarget.scrollHeight
+    this.scrollMessages()
 
-    this.activityTracker = new ChatActivityTracker({
-      onTick: (elapsedMs) => {
-        const elapsed = this.activityPanel?.querySelector("[data-chat-activity-elapsed]")
-        if (elapsed) elapsed.textContent = `${(elapsedMs / 1000).toFixed(1)}秒`
-      }
-    })
-    this.activityTracker.start()
+    this.activityTracker = window.setInterval(() => {
+      if (!this.streamPanel) return
+      const elapsed = this.activityPanel?._startedAt
+        ? performance.now() - this.activityPanel._startedAt
+        : 0
+      this.streamPanel.setElapsed(elapsed)
+    }, 100)
+    this.activityPanel._startedAt = performance.now()
+    this.streamPanel.setElapsed(0)
   }
 
   stopActivityTracker() {
-    this.activityTracker?.stop()
-    this.activityTracker = null
+    if (this.activityTracker != null) {
+      window.clearInterval(this.activityTracker)
+      this.activityTracker = null
+    }
+    this.streamPanel = null
     this.activityPanel = null
   }
 
@@ -143,29 +212,10 @@ export default class extends Controller {
 
     this.history = []
     this.conversationIdValue = ""
+    this.activeTurnId = null
     this.stopActivityTracker()
     this.renderMessages()
     this.clearError()
-  }
-
-  metaFromResponse(data) {
-    const parts = []
-    if (data.intent) parts.push(`intent: ${data.intent}`)
-    if (data.model_role) {
-      let model = String(data.model_role)
-      if (data.escalated) model += " (escalated)"
-      parts.push(`model: ${model}`)
-    }
-    if (data.rag?.hit_count > 0) {
-      let rag = `RAG: ${data.rag.hit_count}件`
-      if (data.rag.semantic_used) rag += " · semantic"
-      parts.push(rag)
-    }
-    if (data.mcp?.tools_run?.length) {
-      parts.push(`MCP: ${data.mcp.tools_run.join(", ")}`)
-    }
-    if (data.pending_tools) parts.push("tools: pending")
-    return parts.length > 0 ? parts.join(" · ") : null
   }
 
   renderMessages() {
@@ -190,7 +240,7 @@ export default class extends Controller {
       this.messagesTarget.append(this.activityPanel)
     }
 
-    this.messagesTarget.scrollTop = this.messagesTarget.scrollHeight
+    this.scrollMessages()
   }
 
   messageNode(entry) {
@@ -228,11 +278,10 @@ export default class extends Controller {
       stepsWrap.className = "kb-ai-chat-activity kb-ai-chat-activity-steps"
       stepsWrap.append(buildChatSteps(entry.activity.steps))
       wrapper.append(stepsWrap)
-    } else if (!isUser && entry.meta) {
-      const meta = document.createElement("p")
-      meta.className = "mt-1 text-xs kb-text-muted"
-      meta.textContent = entry.meta
-      wrapper.append(meta)
+    }
+
+    if (!isUser && entry.activity?.interactions?.length) {
+      wrapper.append(buildInteractionLog(entry.activity.interactions))
     }
 
     return wrapper
@@ -244,6 +293,11 @@ export default class extends Controller {
       if (index > 0) container.append(document.createElement("br"))
       container.append(document.createTextNode(line))
     })
+  }
+
+  scrollMessages() {
+    if (!this.hasMessagesTarget) return
+    this.messagesTarget.scrollTop = this.messagesTarget.scrollHeight
   }
 
   updateSendState() {

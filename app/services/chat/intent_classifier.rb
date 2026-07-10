@@ -27,18 +27,30 @@ module Chat
 
     # @param user_text [String]
     # @param account [Account, nil]
+    # @param stream [Boolean]
+    # @yield [Hash] { content:, thinking: }
     # @return [Chat::IntentClassifier::Result]
-    def classify(user_text, account: nil)
+    def classify(user_text, account: nil, stream: false, &block)
       text = user_text.to_s.strip
       return fallback("入力が空です。") if text.blank?
 
-      raw = client(account).chat(
-        [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: text }
-        ],
-        response_format: { "type" => "json_object" }
-      )
+      messages = [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: text }
+      ]
+      raw = if stream
+        client(account).chat(
+          messages,
+          response_format: { "type" => "json_object" },
+          stream: true,
+          &block
+        )
+      else
+        client(account).chat(
+          messages,
+          response_format: { "type" => "json_object" }
+        )
+      end
       build_result(parse_json(raw))
     rescue Chat::LlmClient::Error, JSON::ParserError => e
       fallback("分類に失敗しました: #{e.message}")
