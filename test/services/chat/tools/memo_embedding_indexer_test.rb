@@ -37,18 +37,18 @@ module Chat
         client = Object.new
         client.define_singleton_method(:embed) do |text, kind: :document|
           calls << text
-          raise Chat::EmbeddingClient::Error, "input is too large to process" if text.length > 400
+          raise Chat::EmbeddingClient::Error, "input is too large to process" if text.length > 250
 
           Array.new(MemoEmbeddingChunk::EMBEDDING_DIMENSIONS) { 0.1 }
         end
 
         memo = memos(:one)
-        memo.update_columns(title: "T", body: "x" * 700)
+        memo.update_columns(title: "T", body: "x" * 500)
 
         count = MemoEmbeddingIndexer.new(embedding_client: client).index_memo(memo)
 
         assert_operator count, :>, 1
-        assert calls.all? { |text| text.length <= 400 }
+        assert calls.all? { |text| text.length <= 250 }
       end
 
       test "index_memo returns zero on embedding error without raising" do

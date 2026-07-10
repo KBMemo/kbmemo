@@ -12,7 +12,17 @@ class Chat::MemoChunkerTest < ActiveSupport::TestCase
   end
 
   test "default max chars stays within embedding server token budget" do
-    assert_operator Chat::MemoChunker::DEFAULT_MAX_CHARS, :<=, 900
+    assert_operator Chat::MemoChunker::DEFAULT_MAX_CHARS, :<=, 480
+  end
+
+  test "strips base64 image blobs before chunking" do
+    body = "intro\n\nimage:data:image/svg+xml;base64,#{"A" * 2_000}\n\noutro"
+    chunks = Chat::MemoChunker.chunk(title: "T", body: body, max_chars: 200)
+
+    joined = chunks.join("\n")
+    refute_includes joined, "AAAA"
+    assert_includes joined, "[image]"
+    assert_includes joined, "outro"
   end
 
   test "returns title and body when short" do

@@ -4,7 +4,7 @@ module Chat
   module Tools
     # メモ本文チャンクを LFM2.5-Embedding でベクトル化し memo_embedding_chunks に保存する。
     class MemoEmbeddingIndexer
-      MIN_SPLIT_CHARS = 200
+      MIN_SPLIT_CHARS = Chat::MemoChunker::MIN_CHUNK_CHARS
 
       def initialize(embedding_client: nil, chunker: Chat::MemoChunker.new)
         @embedding_client = embedding_client
@@ -40,7 +40,7 @@ module Chat
         next_limit = [ max_chars / 2, MIN_SPLIT_CHARS ].max
         raise if next_limit >= text.length
 
-        @chunker.chunk(title: "", body: text, max_chars: next_limit).flat_map do |piece|
+        Chat::MemoChunker.chunk(title: "", body: text, max_chars: next_limit).flat_map do |piece|
           embed_text_chunks(piece, account: account, max_chars: next_limit)
         end
       end
