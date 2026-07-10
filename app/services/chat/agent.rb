@@ -41,9 +41,11 @@ module Chat
     # @param account [Account, nil] RAG ツール実行時に必須
     # @param broadcaster [AgentChat::UiBroadcaster, nil]
     # @return [Chat::Agent::Result]
-    def call(messages:, system_prompt: nil, account: nil, broadcaster: nil)
+    # @param enabled_mcp_tools [Array<String>, nil] ユーザーが有効化した Nyoy MCP ツール名
+    def call(messages:, system_prompt: nil, account: nil, broadcaster: nil, enabled_mcp_tools: nil)
       @account = account
       @broadcaster = broadcaster
+      @enabled_mcp_tools = normalize_enabled_mcp_tools(enabled_mcp_tools)
       @interaction_log = Chat::AgentInteractionLog.new(broadcaster: broadcaster)
       trace = Chat::AgentTrace.new(broadcaster: broadcaster && TraceBroadcaster.new(broadcaster))
       broadcaster&.turn_started
@@ -143,19 +145,42 @@ module Chat
     def pending_tools?(decision, mcp:, user_text:)
       decision.tools.any? do |tool|
         next false if IMPLEMENTED_TOOLS.include?(tool)
-        next false if mcp&.tools_run&.include?(tool)
+        next false unless delegated_tool_enabled?(tool)
+        next false if mcp&.tools_run&.include?(tool) || mcp_tool_ran?(mcp, tool)
         next false if mcp_runner.optional_skip?(tool, user_text: user_text)
 
         true
       end
     end
 
+    def mcp_tool_ran?(mcp, tool)
+      mcp_name = Chat::Tools::NyoyMcpRunner::TOOL_MAP[tool]
+      return false unless mcp_name
+
+      Array(mcp&.tools_run).map(&:to_s).include?(mcp_name)
+    end
+
+    def delegated_tool_enabled?(tool)
+      return true if @enabled_mcp_tools.nil?
+
+      mcp_name = Chat::Tools::NyoyMcpRunner::TOOL_MAP[tool]
+      return false unless mcp_name
+
+      @enabled_mcp_tools.include?(mcp_name)
+    end
+
     def run_mcp_tools(decision, user_text, trace:)
-      tools = decision.tools.select { |tool| DELEGATED_TOOLS.include?(tool) }
-      return nil if tools.empty?
+      router_mcp_names = decision.tools.filter_map do |tool|
+        next unless DELEGATED_TOOLS.include?(tool)
+        next unless delegated_tool_enabled?(tool)
+
+        Chat::Tools::NyoyMcpRunner::TOOL_MAP[tool]
+      end.uniq
+      return nil if router_mcp_names.empty?
+      return nil if @enabled_mcp_tools == []
 
       trace.run(:mcp_tools, "外部ツール（Nyoy MCP）") do
-        result = mcp_runner.call(tools: tools, user_text: user_text)
+        result = mcp_runner.call(mcp_names: router_mcp_names, user_text: user_text)
         @interaction_log.tool_context(
           step_key: :mcp_tools,
           label: "Nyoy MCP",
@@ -164,6 +189,12 @@ module Chat
         trace.finish_step_detail(mcp_step_detail(result))
         result
       end
+    end
+
+    def normalize_enabled_mcp_tools(raw)
+      return nil if raw.nil?
+
+      Array(raw).map(&:to_s).map(&:strip).reject(&:blank?).uniq
     end
 
     def run_rag_tool(decision, user_text, account, trace:)
@@ -284,7 +315,7 @@ module Chat
     end
 
     def mcp_runner
-      @mcp_runner ||= Chat::Tools::NyoyMcpRunner.new
+      @mcp_runner ||= Chat::Tools::NyoyMcpRunner.new(account: @account)
     end
 
     def client_for(role)

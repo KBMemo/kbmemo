@@ -12,43 +12,46 @@ module Chat
         memo_add: "create_memo"
       }.freeze
 
+      MCP_TO_SYMBOL = TOOL_MAP.invert.freeze
+
       Result = Struct.new(:tools_run, :tools_skipped, :context_text, :errors, keyword_init: true)
 
-      def initialize(client: nil)
-        @client = client || Chat::NyoyMcpClient.new
+      def initialize(client: nil, account: nil)
+        @client = client || Chat::NyoyMcpConfig.client(account: account)
       end
 
       def configured?
         @client.configured?
       end
 
-      # @param tools [Array<Symbol>]
+      # @param tools [Array<Symbol>] Router 由来のシンボル（後方互換）
+      # @param mcp_names [Array<String>] Nyoy MCP のツール名
       # @param user_text [String]
-      def call(tools:, user_text:)
+      def call(tools: nil, mcp_names: nil, user_text:)
         empty = Result.new(tools_run: [], tools_skipped: [], context_text: "", errors: [])
         return empty unless configured?
+
+        names = normalize_mcp_names(mcp_names: mcp_names, tools: tools)
+        return empty if names.empty?
 
         run = []
         skipped = []
         errors = []
         chunks = []
 
-        Array(tools).each do |tool|
-          mcp_name = TOOL_MAP[tool]
-          next unless mcp_name
-
-          arguments = build_arguments(tool, user_text)
+        names.each do |mcp_name|
+          arguments = build_arguments(mcp_name, user_text)
           if arguments.nil?
-            skipped << tool
+            skipped << mcp_name
             next
           end
 
           payload = @client.call_tool(name: mcp_name, arguments: arguments)
-          run << tool
-          chunks << format_context(tool, mcp_name, payload)
+          run << mcp_name
+          chunks << format_context(mcp_name, payload)
         rescue Chat::NyoyMcpClient::Error => e
-          errors << { tool: tool.to_s, message: e.message }
-          skipped << tool
+          errors << { tool: mcp_name, message: e.message }
+          skipped << mcp_name
         end
 
         Result.new(
@@ -60,33 +63,53 @@ module Chat
       end
 
       def optional_skip?(tool, user_text:)
-        tool == :fetch_url && Chat::Tools::UrlExtractor.first(user_text).blank?
+        mcp_name = TOOL_MAP[tool]
+        return false unless mcp_name
+
+        mcp_name == "fetch_url" && Chat::Tools::UrlExtractor.first(user_text).blank?
       end
 
       private
 
-      def build_arguments(tool, user_text)
-        case tool
-        when :web_search
-          { q: user_text.to_s.strip }
-        when :fetch_url
+      def normalize_mcp_names(mcp_names:, tools:)
+        names = Array(mcp_names).map(&:to_s).map(&:strip).reject(&:blank?)
+        return names.uniq if names.any?
+
+        Array(tools).filter_map { |tool| TOOL_MAP[tool.to_sym] }.uniq
+      end
+
+      def build_arguments(mcp_name, user_text)
+        case mcp_name
+        when "web_search"
+          query = user_text.to_s.strip
+          return nil if query.blank?
+
+          { q: query }
+        when "fetch_url"
           url = Chat::Tools::UrlExtractor.first(user_text)
           return nil if url.blank?
 
           { url: url }
-        when :image_generation
+        when "generate_image"
           prompt = user_text.to_s.strip
           return nil if prompt.blank?
 
           { japanese_prompt: prompt }
-        when :image_analysis, :memo_add
+        when "analyze_image"
+          prompt = user_text.to_s.strip
+          return nil if prompt.blank?
+
+          { prompt: prompt }
+        when "list_prompt_styles"
+          {}
+        when "create_memo", "update_memo"
           nil
         else
           nil
         end
       end
 
-      def format_context(tool, mcp_name, payload)
+      def format_context(mcp_name, payload)
         body =
           if payload.is_a?(Hash)
             JSON.pretty_generate(payload)
@@ -94,7 +117,9 @@ module Chat
             payload.to_s
           end
 
-        "### Nyoy MCP: #{mcp_name} (#{tool})\n#{body}"
+        symbol = MCP_TO_SYMBOL[mcp_name]
+        label = symbol ? "#{mcp_name} (#{symbol})" : mcp_name
+        "### Nyoy MCP: #{label}\n#{body}"
       end
     end
   end

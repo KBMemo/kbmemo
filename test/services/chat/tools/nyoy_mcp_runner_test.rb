@@ -13,10 +13,21 @@ module Chat
 
         result = runner.call(tools: [ :web_search ], user_text: "最新の Ruby")
 
-        assert_equal [ :web_search ], result.tools_run
+        assert_equal [ "web_search" ], result.tools_run
         assert_empty result.tools_skipped
         assert_includes result.context_text, "web_search"
         assert_includes result.context_text, "A"
+      end
+
+      test "runs mcp_names directly" do
+        client = stub_client(
+          "web_search" => { "results" => [] }
+        )
+        runner = NyoyMcpRunner.new(client: client)
+
+        result = runner.call(mcp_names: [ "web_search" ], user_text: "query")
+
+        assert_equal [ "web_search" ], result.tools_run
       end
 
       test "skips fetch_url when user text has no url" do
@@ -26,7 +37,7 @@ module Chat
         result = runner.call(tools: [ :fetch_url ], user_text: "要約して")
 
         assert_empty result.tools_run
-        assert_equal [ :fetch_url ], result.tools_skipped
+        assert_equal [ "fetch_url" ], result.tools_skipped
         assert runner.optional_skip?(:fetch_url, user_text: "要約して")
       end
 
@@ -41,7 +52,7 @@ module Chat
           user_text: "https://example.com/docs を読んで"
         )
 
-        assert_equal [ :fetch_url ], result.tools_run
+        assert_equal [ "fetch_url" ], result.tools_run
         assert_includes result.context_text, "Example"
       end
 
@@ -54,7 +65,7 @@ module Chat
         result = runner.call(tools: [ :web_search ], user_text: "q")
 
         assert_empty result.tools_run
-        assert_equal [ :web_search ], result.tools_skipped
+        assert_equal [ "web_search" ], result.tools_skipped
         assert_equal "down", result.errors.first[:message]
       end
 

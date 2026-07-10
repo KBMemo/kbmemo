@@ -57,5 +57,24 @@ module Chat
         client.call_tool(name: "web_search", arguments: { q: "test" })
       end
     end
+
+    test "list_tools returns normalized tool metadata" do
+      client = Chat::NyoyMcpClient.new
+      client.define_singleton_method(:rpc_request) do |**|
+        {
+          "result" => {
+            "tools" => [
+              { "name" => "web_search", "description" => "Search the web" },
+              { "name" => "mcp_auth", "description" => "Auth" }
+            ]
+          }
+        }
+      end
+
+      tools = client.list_tools
+      assert_equal 1, tools.size
+      assert_equal "web_search", tools.first["name"]
+      assert_equal "Search the web", tools.first["description"]
+    end
   end
 end

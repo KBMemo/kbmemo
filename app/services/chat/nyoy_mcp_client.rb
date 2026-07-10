@@ -38,7 +38,21 @@ module Chat
 
     def list_tools
       ensure_configured!
-      parse_result(rpc_request(method: "tools/list", params: {}))
+      response = rpc_request(method: "tools/list", params: {})
+      if response["error"].present?
+        message = response.dig("error", "message").presence || "Nyoy MCP RPC エラー"
+        raise ApiError, message
+      end
+
+      Array(response.dig("result", "tools")).filter_map do |tool|
+        name = tool["name"].to_s
+        next if name.blank? || name == "mcp_auth"
+
+        {
+          "name" => name,
+          "description" => tool["description"].to_s
+        }
+      end
     end
 
     def call_tool(name:, arguments: {})

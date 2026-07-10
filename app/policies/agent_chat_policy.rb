@@ -8,4 +8,5 @@ class AgentChatPolicy < ApplicationPolicy
 
   alias create? show?
   alias destroy? show?
+  alias nyoy_tools? show?
 end

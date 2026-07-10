@@ -24,11 +24,17 @@ Rails.application.routes.draw do
   get "help", to: "help#show", as: :help
   get "help/:memo_slug", to: "help#show", as: :help_memo
 
-  resource :agent_chat, only: %i[show create destroy], controller: "agent_chats"
+  resource :agent_chat, only: %i[show create destroy], controller: "agent_chats" do
+    get :nyoy_tools
+  end
 
   resource :chat_server, only: %i[show update], controller: "chat_servers" do
     post :health_check
     post :list_models
+  end
+
+  resource :nyoy_mcp, only: %i[show update], controller: "nyoy_mcp_settings" do
+    post :test_connection
   end
 
   resource :profile, only: %i[edit update] do

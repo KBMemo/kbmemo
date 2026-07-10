@@ -10,6 +10,22 @@ class AgentChatsController < ApplicationController
     @conversation = store.active_conversation
     @initial_messages = store.ui_messages(@conversation)
     @conversation_id = @conversation&.id
+    @nyoy_mcp_configured = Chat::NyoyMcpConfig.configured?(account: rodauth.rails_account)
+  end
+
+  def nyoy_tools
+    authorize :agent_chat, :nyoy_tools?
+
+    account = rodauth.rails_account
+    unless Chat::NyoyMcpConfig.configured?(account: account)
+      render json: { tools: [], configured: false, error: "Nyoy MCP が未設定です。" }, status: :service_unavailable
+      return
+    end
+
+    tools = Chat::NyoyMcpConfig.client(account: account).list_tools
+    render json: { tools: tools, configured: true }
+  rescue Chat::NyoyMcpClient::Error => e
+    render json: { tools: [], configured: true, error: e.message }, status: :unprocessable_entity
   end
 
   def create
@@ -38,7 +54,8 @@ class AgentChatsController < ApplicationController
     result = Chat::Agent.new.call(
       messages: chat_messages_param,
       account: account,
-      broadcaster: broadcaster
+      broadcaster: broadcaster,
+      enabled_mcp_tools: enabled_mcp_tools_param
     )
 
     if result.reply.blank?
@@ -138,5 +155,12 @@ class AgentChatsController < ApplicationController
     end
 
     nil
+  end
+
+  def enabled_mcp_tools_param
+    raw = params[:enabled_mcp_tools]
+    return nil if raw.nil?
+
+    Array(raw).map(&:to_s).map(&:strip).reject(&:blank?)
   end
 end

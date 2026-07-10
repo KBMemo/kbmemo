@@ -133,8 +133,8 @@ module Chat
       result = a.call(messages: [ { role: "user", content: "最新の llama.cpp" } ])
 
       refute result.pending_tools
-      assert_equal [ :web_search ], result.mcp.tools_run
-      assert_equal [ :fetch_url ], result.mcp.tools_skipped
+      assert_equal [ "web_search" ], result.mcp.tools_run
+      assert_equal [ "fetch_url" ], result.mcp.tools_skipped
       system = system_content(factory.seen[:main])
       assert_includes system, "外部ツール結果（Nyoy MCP）"
       assert_includes system, "web_search"
@@ -142,7 +142,7 @@ module Chat
 
     test "url_analysis with mcp fetch_url clears pending when url present" do
       mcp_result = Chat::Tools::NyoyMcpRunner::Result.new(
-        tools_run: [ :fetch_url ],
+        tools_run: [ "fetch_url" ],
         tools_skipped: [],
         context_text: "### Nyoy MCP: fetch_url\n{}",
         errors: []
@@ -161,7 +161,45 @@ module Chat
       result = a.call(messages: [ { role: "user", content: "https://example.com を要約" } ])
 
       refute result.pending_tools
-      assert_equal [ :fetch_url ], result.mcp.tools_run
+      assert_equal [ "fetch_url" ], result.mcp.tools_run
+    end
+
+    test "enabled_mcp_tools filters delegated nyoy tools" do
+      client = Object.new
+      client.define_singleton_method(:configured?) { true }
+      client.define_singleton_method(:call_tool) do |name:, arguments:|
+        { "results" => [{ "title" => name }] }
+      end
+      mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
+
+      factory = RecordingFactory.new
+      a = Chat::Agent.new(
+        classifier: StubClassifier.new(intent("web_research")),
+        client_factory: factory,
+        mcp_runner: mcp_runner
+      )
+      result = a.call(
+        messages: [ { role: "user", content: "最新の llama.cpp" } ],
+        enabled_mcp_tools: [ "web_search" ]
+      )
+
+      assert_equal [ "web_search" ], result.mcp.tools_run
+      refute result.pending_tools
+    end
+
+    test "empty enabled_mcp_tools disables nyoy mcp" do
+      factory = RecordingFactory.new
+      a = Chat::Agent.new(
+        classifier: StubClassifier.new(intent("web_research")),
+        client_factory: factory
+      )
+      result = a.call(
+        messages: [ { role: "user", content: "最新の llama.cpp" } ],
+        enabled_mcp_tools: []
+      )
+
+      assert_nil result.mcp
+      refute result.pending_tools
     end
 
     # 役割ごとに渡された messages を記録するファクトリ。

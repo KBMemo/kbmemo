@@ -12,6 +12,8 @@
 #  google_calendar_meta          :json             not null
 #  google_calendar_refresh_token :text
 #  nickname                      :string
+#  nyoy_mcp_api_token            :text
+#  nyoy_mcp_url                  :string
 #  openai_api_key                :text
 #  password_hash                 :string
 #  status                        :integer          default("unverified"), not null
@@ -30,6 +32,7 @@ class Account < ApplicationRecord
   include Rodauth::Rails.model
   include AccountThemePreference
   include AccountChatServerSettings
+  include AccountNyoyMcpSettings
   include AccountGoogleCalendar
   enum :status, { unverified: 1, verified: 2, closed: 3 }
 

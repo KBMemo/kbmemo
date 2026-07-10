@@ -14,6 +14,7 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "agent-chat"
     assert_includes response.body, "AI チャット"
+    assert_includes response.body, "Nyoy MCP"
   end
 
   test "show restores persisted conversation messages" do
@@ -34,6 +35,30 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "以前の回答"
     assert_includes response.body, "data-agent-chat-target=\"initialMessagesJson\""
     assert_includes response.body, "data-agent-chat-conversation-id-value=\"#{conversation.id}\""
+  end
+
+  test "nyoy_tools returns tool list" do
+    original = Chat::NyoyMcpClient.instance_method(:list_tools)
+    original_url = ENV["NYOY_MCP_URL"]
+    original_token = ENV["NYOY_MCP_API_TOKEN"]
+    ENV["NYOY_MCP_URL"] = "http://nyoy.test/mcp"
+    ENV["NYOY_MCP_API_TOKEN"] = "secret-token"
+    begin
+      Chat::NyoyMcpClient.define_method(:list_tools) do
+        [ { "name" => "web_search", "description" => "Search" } ]
+      end
+
+      get nyoy_tools_agent_chat_url, as: :json
+
+      assert_response :success
+      body = JSON.parse(response.body)
+      assert_equal true, body["configured"]
+      assert_equal "web_search", body["tools"].first["name"]
+    ensure
+      Chat::NyoyMcpClient.define_method(:list_tools, original)
+      ENV["NYOY_MCP_URL"] = original_url
+      ENV["NYOY_MCP_API_TOKEN"] = original_token
+    end
   end
 
   test "create returns agent reply json" do
@@ -73,6 +98,44 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
       conversation = AgentChatConversation.find(body["conversation_id"])
       assert_equal 2, conversation.messages.count
       assert_equal "メモを探して", conversation.messages.ordered.first.content
+    ensure
+      Chat::Agent.define_singleton_method(:new, original_new)
+    end
+  end
+
+  test "create passes enabled_mcp_tools to agent" do
+    captured = {}
+    fake_result = Chat::Agent::Result.new(
+      reply: "ok",
+      intent: "conversation",
+      classification: nil,
+      model_role: :fast_chat,
+      escalated: false,
+      tools: [],
+      pending_tools: false,
+      rag: nil
+    )
+
+    original_new = Chat::Agent.method(:new)
+    begin
+      Chat::Agent.define_singleton_method(:new) do |**_kwargs|
+        Object.new.tap do |o|
+          o.define_singleton_method(:call) do |**kwargs|
+            captured.replace(kwargs)
+            fake_result
+          end
+        end
+      end
+
+      post agent_chat_url,
+        params: {
+          messages: [ { role: "user", content: "hi" } ],
+          enabled_mcp_tools: [ "web_search", "fetch_url" ]
+        },
+        as: :json
+
+      assert_response :success
+      assert_equal [ "web_search", "fetch_url" ], captured[:enabled_mcp_tools]
     ensure
       Chat::Agent.define_singleton_method(:new, original_new)
     end

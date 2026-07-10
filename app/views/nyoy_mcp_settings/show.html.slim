@@ -1,0 +1,50 @@
+- content_for :title, "Nyoy MCP 設定"
+
+.nyoy-mcp-page.mx-auto.w-full.max-w-3xl
+  header.mb-6
+    h1 class=kb_page_title Nyoy MCP 設定
+    p.mt-2.text-sm.kb-text-secondary
+      | AI チャットから如意（Nyoy）MCP ツール（Web 検索・URL 取得・画像生成など）を呼び出すための接続設定です。
+    p.mt-1.text-xs.kb-text-muted
+      | Cursor の .cursor/mcp.json と同じ MCP API トークンを使えます。未入力の項目は credentials / 環境変数（NYOY_MCP_*）にフォールバックします。
+
+  - if flash[:notice].present?
+    p.mt-4.text-sm.kb-status-success = flash[:notice]
+
+  .nyoy-mcp-panel data-controller="nyoy-mcp-settings" data-nyoy-mcp-settings-test-url-value=test_connection_nyoy_mcp_path(format: :json)
+    = form_with model: @account, url: nyoy_mcp_path, method: :patch, class: "mt-6 space-y-6" do |f|
+      section
+        h2 class=kb_section_title 接続先
+        .mt-4.space-y-4
+          div
+            = f.label :nyoy_mcp_url, "MCP URL", class: kb_label
+            = f.url_field :nyoy_mcp_url, class: "#{kb_field_input_classes} w-full font-mono text-sm", placeholder: Chat::NyoyMcpConfig::DEFAULT_URL, autocomplete: "off"
+            p.mt-1.text-xs.kb-text-muted
+              | 現在の有効 URL:
+              =< @effective_url
+          div
+            = f.label :nyoy_mcp_api_token, "API トークン", class: kb_label
+            - if @account.nyoy_mcp_api_token_configured?
+              p.text-xs.kb-text-muted 保存済みトークンがあります。変更するときだけ入力してください。
+            = f.password_field :nyoy_mcp_api_token, class: "#{kb_field_input_classes} w-full max-w-md font-mono text-sm", autocomplete: "new-password", placeholder: "Bearer トークン"
+            - if @account.nyoy_mcp_api_token_configured?
+              .mt-2.flex.items-center.gap-2
+                = f.check_box :clear_nyoy_mcp_api_token, class: "rounded kb-border"
+                = f.label :clear_nyoy_mcp_api_token, "保存済みトークンを削除する", class: "text-sm kb-text-secondary"
+          - if @account.nyoy_mcp_configured?
+            p.text-sm.kb-status-success アカウントに MCP 接続設定が保存されています。
+          - elsif @configured
+            p.text-sm.kb-text-muted credentials または環境変数（NYOY_MCP_*）から接続しています。アカウント別に上書き保存できます。
+          - else
+            p.text-sm.kb-status-danger URL と API トークンの両方が必要です。
+
+      .flex.flex-wrap.gap-3
+        button.kb-chrome-btn-primary type="submit" data-theme-slot="btn-primary" 保存
+        button.kb-chrome-btn-secondary type="button" data-action="nyoy-mcp-settings#testConnection" data-nyoy-mcp-settings-target="testButton" 接続確認
+        = link_to "AI チャット", agent_chat_path, class: "kb-chrome-btn-secondary kb-btn-md"
+        = link_to "Chat サーバー設定", chat_server_path, class: "kb-chrome-btn-secondary kb-btn-md"
+
+    .mt-6.hidden data-nyoy-mcp-settings-target="resultPanel"
+      h2 class=kb_section_title 接続確認結果
+      p.mt-2.text-sm data-nyoy-mcp-settings-target="resultMessage"
+      ul.mt-3.space-y-2 data-nyoy-mcp-settings-target="toolsList"

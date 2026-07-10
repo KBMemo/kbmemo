@@ -7,16 +7,26 @@ module Chat
 
     module_function
 
-    def url
+    def url(account: nil)
+      account_url = account&.nyoy_mcp_url.to_s.strip.chomp("/")
+      return account_url if account_url.present?
+
       ENV["NYOY_MCP_URL"].presence || credentials&.dig(:url).presence || DEFAULT_URL
     end
 
-    def api_token
+    def api_token(account: nil)
+      account_token = account&.nyoy_mcp_api_token.to_s.strip
+      return account_token if account_token.present?
+
       ENV["NYOY_MCP_API_TOKEN"].presence || credentials&.dig(:api_token).presence
     end
 
-    def configured?
-      url.present? && api_token.present?
+    def configured?(account: nil)
+      url(account: account).present? && api_token(account: account).present?
+    end
+
+    def client(account: nil)
+      NyoyMcpClient.new(url: url(account: account), api_token: api_token(account: account))
     end
 
     def credentials

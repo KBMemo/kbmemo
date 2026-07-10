@@ -40,6 +40,7 @@ const lazyControllers = {
   "board-add-memo": () => import("./board_add_memo_controller"),
   "board-kanban-dnd": () => import("./board_kanban_dnd_controller"),
   "chat-server": () => import("./chat_server_controller"),
+  "nyoy-mcp-settings": () => import("./nyoy_mcp_settings_controller"),
   "code-block-tools": () => import("./code_block_tools_controller"),
   "diagram-source-viewer": () => import("./diagram_source_viewer_controller"),
   "diagram-svg-viewer": () => import("./diagram_svg_viewer_controller"),

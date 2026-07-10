@@ -9,16 +9,32 @@ import {
 } from "../lib/chat_interactions"
 
 export default class extends Controller {
-  static targets = ["messages", "input", "sendButton", "error", "initialMessagesJson"]
+  static targets = [
+    "messages",
+    "input",
+    "sendButton",
+    "error",
+    "initialMessagesJson",
+    "mcpToolsPanel",
+    "mcpToolsButton",
+    "mcpToolsList",
+    "mcpToolsHint"
+  ]
 
   static values = {
     chatUrl: String,
     settingsUrl: String,
-    conversationId: String
+    conversationId: String,
+    nyoyToolsUrl: String,
+    nyoyConfigured: Boolean
   }
+
+  static storageKey = "agent_chat_enabled_mcp_tools"
 
   connect() {
     this.history = this.readInitialMessages()
+    this.nyoyTools = []
+    this.enabledMcpTools = this.readEnabledMcpTools()
     this.sending = false
     this.activityTracker = null
     this.streamPanel = null
@@ -29,6 +45,9 @@ export default class extends Controller {
     this.renderMessages()
     this.updateSendState()
     this.initialMessagesJsonTarget?.remove()
+    if (this.nyoyConfiguredValue && this.nyoyToolsUrlValue) {
+      this.fetchNyoyTools()
+    }
   }
 
   disconnect() {
@@ -119,10 +138,150 @@ export default class extends Controller {
   }
 
   sendOnEnter(event) {
+    if (event.key !== "Enter") return
     if (!event.ctrlKey && !event.metaKey) return
+    if (event.isComposing || event.keyCode === 229) return
 
     event.preventDefault()
     this.send(event)
+  }
+
+  readEnabledMcpTools() {
+    try {
+      const raw = window.localStorage.getItem(this.constructor.storageKey)
+      if (!raw) return null
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed.map(String) : null
+    } catch {
+      return null
+    }
+  }
+
+  writeEnabledMcpTools(tools) {
+    this.enabledMcpTools = tools
+    if (tools == null) {
+      window.localStorage.removeItem(this.constructor.storageKey)
+      return
+    }
+    window.localStorage.setItem(this.constructor.storageKey, JSON.stringify(tools))
+  }
+
+  async fetchNyoyTools(event) {
+    event?.preventDefault()
+    if (!this.nyoyToolsUrlValue) return
+
+    const button = this.hasMcpToolsButtonTarget ? this.mcpToolsButtonTarget : null
+    if (button) {
+      button.disabled = true
+      button.textContent = "取得中…"
+    }
+
+    try {
+      const res = await fetch(this.nyoyToolsUrlValue, {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" }
+      })
+      const body = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        this.setMcpToolsHint(body.error || "Nyoy MCP ツール一覧の取得に失敗しました。", true)
+        return
+      }
+
+      this.nyoyTools = Array.isArray(body.tools) ? body.tools : []
+      this.renderMcpToolsList()
+      this.setMcpToolsHint(
+        body.configured === false
+          ? "Nyoy MCP が未設定です。"
+          : `${this.nyoyTools.length} 件のツールを読み込みました。`,
+        body.configured === false
+      )
+    } catch (error) {
+      this.setMcpToolsHint(error.message, true)
+    } finally {
+      if (button) {
+        button.disabled = false
+        button.textContent = "ツール一覧を取得"
+      }
+    }
+  }
+
+  renderMcpToolsList() {
+    if (!this.hasMcpToolsListTarget) return
+
+    const list = this.mcpToolsListTarget
+    list.replaceChildren()
+    list.classList.remove("hidden")
+
+    if (this.nyoyTools.length === 0) {
+      const empty = document.createElement("p")
+      empty.className = "text-xs kb-text-muted"
+      empty.textContent = "利用可能なツールがありません。"
+      list.append(empty)
+      return
+    }
+
+    const enabled = new Set(this.enabledMcpTools || this.nyoyTools.map((tool) => tool.name))
+    if (this.enabledMcpTools == null) {
+      this.writeEnabledMcpTools([ ...enabled ])
+    }
+
+    const fieldset = document.createElement("fieldset")
+    fieldset.className = "space-y-2"
+
+    const legend = document.createElement("legend")
+    legend.className = "sr-only"
+    legend.textContent = "有効にする Nyoy MCP ツール"
+    fieldset.append(legend)
+
+    for (const tool of this.nyoyTools) {
+      const row = document.createElement("label")
+      row.className = "flex items-start gap-2 text-sm leading-snug"
+
+      const checkbox = document.createElement("input")
+      checkbox.type = "checkbox"
+      checkbox.className = "mt-0.5"
+      checkbox.value = tool.name
+      checkbox.checked = enabled.has(tool.name)
+      checkbox.addEventListener("change", () => this.syncEnabledMcpTools())
+
+      const text = document.createElement("span")
+      const title = document.createElement("span")
+      title.className = "font-mono text-xs"
+      title.textContent = tool.name
+
+      text.append(title)
+      if (tool.description) {
+        text.append(document.createElement("br"))
+        const desc = document.createElement("span")
+        desc.className = "text-xs kb-text-muted"
+        desc.textContent = tool.description
+        text.append(desc)
+      }
+
+      row.append(checkbox, text)
+      fieldset.append(row)
+    }
+
+    list.append(fieldset)
+  }
+
+  syncEnabledMcpTools() {
+    if (!this.hasMcpToolsListTarget) return
+
+    const selected = [
+      ...this.mcpToolsListTarget.querySelectorAll('input[type="checkbox"]:checked')
+    ].map((input) => input.value)
+
+    this.writeEnabledMcpTools(selected)
+  }
+
+  setMcpToolsHint(message, isError = false) {
+    if (!this.hasMcpToolsHintTarget) return
+
+    this.mcpToolsHintTarget.textContent = message
+    this.mcpToolsHintTarget.classList.toggle("kb-status-danger", isError)
+    this.mcpToolsHintTarget.classList.toggle("kb-text-muted", !isError)
   }
 
   async send(event) {
@@ -158,7 +317,8 @@ export default class extends Controller {
         body: JSON.stringify({
           messages: this.history,
           conversation_id: this.conversationIdValue || null,
-          turn_id: turnId
+          turn_id: turnId,
+          enabled_mcp_tools: this.enabledMcpTools
         })
       })
 

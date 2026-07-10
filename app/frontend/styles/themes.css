@@ -663,6 +663,20 @@ html[data-kb-theme-base="minimal"] {
   margin-top: 0.75rem;
 }
 
+.kb-ai-chat-mcp-tools {
+  border-top: 1px solid var(--kb-border);
+  padding-top: 0.75rem;
+}
+
+.kb-ai-chat-mcp-tools-summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+.kb-ai-chat-mcp-tools-summary::-webkit-details-marker {
+  display: none;
+}
+
 .kb-ai-chat-live-reply .kb-ai-message-assistant {
   white-space: pre-wrap;
   word-break: break-word;

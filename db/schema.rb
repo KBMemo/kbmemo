@@ -10,11 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_10_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_10_220000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgroonga"
-  # vector は pgvector 導入時に migration が条件付きで有効化（型が schema dump 非対応のためここでは宣言しない）
+  enable_extension "vector"
 
   create_table "account_login_change_keys", force: :cascade do |t|
     t.datetime "deadline", null: false
@@ -49,6 +49,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_10_110000) do
     t.json "google_calendar_meta", default: {}, null: false
     t.text "google_calendar_refresh_token"
     t.string "nickname"
+    t.text "nyoy_mcp_api_token"
+    t.string "nyoy_mcp_url"
     t.text "openai_api_key"
     t.string "password_hash"
     t.integer "status", default: 1, null: false
@@ -145,15 +147,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_10_110000) do
     t.index ["parent_id"], name: "index_memo_directories_on_parent_id"
   end
 
-  create_table "memo_embedding_chunks", force: :cascade do |t|
-    t.bigint "memo_id", null: false
-    t.integer "chunk_index", default: 0, null: false
-    t.text "content", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["memo_id", "chunk_index"], name: "index_memo_embedding_chunks_on_memo_id_and_chunk_index", unique: true
-    t.index ["memo_id"], name: "index_memo_embedding_chunks_on_memo_id"
-  end
+# Could not dump table "memo_embedding_chunks" because of following StandardError
+#   Unknown type 'vector(1024)' for column 'embedding'
+
 
   create_table "memo_group_memberships", force: :cascade do |t|
     t.integer "account_id", null: false
