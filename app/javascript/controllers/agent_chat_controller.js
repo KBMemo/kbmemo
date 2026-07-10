@@ -1,4 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
+import { appendChatMarkdown } from "../lib/chat_markdown"
+import { buildChatActivity, buildChatStats, buildChatSteps, ChatActivityTracker } from "../lib/chat_activity"
 
 export default class extends Controller {
   static targets = ["messages", "input", "sendButton", "error"]
@@ -13,8 +15,14 @@ export default class extends Controller {
   connect() {
     this.history = Array.isArray(this.initialMessagesValue) ? [...this.initialMessagesValue] : []
     this.sending = false
+    this.activityTracker = null
+    this.activityPanel = null
     this.renderMessages()
     this.updateSendState()
+  }
+
+  disconnect() {
+    this.stopActivityTracker()
   }
 
   async send(event) {
@@ -30,6 +38,7 @@ export default class extends Controller {
     this.renderMessages()
     this.sending = true
     this.updateSendState()
+    this.startActivityPanel()
 
     try {
       const token = document.querySelector('meta[name="csrf-token"]')?.content
@@ -50,6 +59,8 @@ export default class extends Controller {
       const data = await res.json().catch(() => ({}))
 
       if (!res.ok) {
+        this.stopActivityTracker()
+        this.renderMessages()
         this.showError(data.error || "AI との通信に失敗しました。", {
           settingsUrl: data.settings_url
         })
@@ -58,6 +69,8 @@ export default class extends Controller {
 
       const reply = (data.reply || "").trim()
       if (!reply) {
+        this.stopActivityTracker()
+        this.renderMessages()
         this.showError("応答が空でした。")
         return
       }
@@ -66,18 +79,45 @@ export default class extends Controller {
         this.conversationIdValue = String(data.conversation_id)
       }
 
+      this.stopActivityTracker()
       this.history.push({
         role: "assistant",
         content: reply,
-        meta: this.metaFromResponse(data)
+        activity: data.trace || null,
+        meta: data.trace ? null : this.metaFromResponse(data)
       })
       this.renderMessages()
     } catch {
       this.showError("AI との通信に失敗しました。")
+      this.stopActivityTracker()
+      this.renderMessages()
     } finally {
       this.sending = false
       this.updateSendState()
     }
+  }
+
+  startActivityPanel() {
+    if (!this.hasMessagesTarget) return
+
+    this.stopActivityTracker()
+    this.activityPanel = buildChatActivity({ running: true, elapsedMs: 0 })
+    this.messagesTarget.append(this.activityPanel)
+    this.messagesTarget.scrollTop = this.messagesTarget.scrollHeight
+
+    this.activityTracker = new ChatActivityTracker({
+      onTick: (elapsedMs) => {
+        const elapsed = this.activityPanel?.querySelector("[data-chat-activity-elapsed]")
+        if (elapsed) elapsed.textContent = `${(elapsedMs / 1000).toFixed(1)}秒`
+      }
+    })
+    this.activityTracker.start()
+  }
+
+  stopActivityTracker() {
+    this.activityTracker?.stop()
+    this.activityTracker = null
+    this.activityPanel = null
   }
 
   async clearChat(event) {
@@ -103,6 +143,7 @@ export default class extends Controller {
 
     this.history = []
     this.conversationIdValue = ""
+    this.stopActivityTracker()
     this.renderMessages()
     this.clearError()
   }
@@ -144,6 +185,11 @@ export default class extends Controller {
     for (const entry of this.history) {
       this.messagesTarget.append(this.messageNode(entry))
     }
+
+    if (this.sending && this.activityPanel) {
+      this.messagesTarget.append(this.activityPanel)
+    }
+
     this.messagesTarget.scrollTop = this.messagesTarget.scrollHeight
   }
 
@@ -152,20 +198,37 @@ export default class extends Controller {
     const wrapper = document.createElement("div")
     wrapper.className = "mb-4"
 
+    const header = document.createElement("div")
+    header.className = "kb-ai-message-header"
+
     const label = document.createElement("p")
     label.className =
-      "mb-0.5 kb-ai-message-label font-medium uppercase tracking-wide kb-text-muted"
+      "mb-0 kb-ai-message-label font-medium uppercase tracking-wide kb-text-muted"
     label.textContent = isUser ? "あなた" : "AI"
+    header.append(label)
+
+    if (!isUser && entry.activity?.stats?.length) {
+      header.append(buildChatStats(entry.activity.stats))
+    }
 
     const bubble = document.createElement("div")
     bubble.className = `rounded-md px-3 py-2 text-sm leading-relaxed ${
       isUser ? "kb-ai-message-user" : "kb-ai-message-assistant"
     }`
-    this.appendTextWithLineBreaks(bubble, entry.content)
+    if (isUser) {
+      this.appendTextWithLineBreaks(bubble, entry.content)
+    } else {
+      appendChatMarkdown(bubble, entry.content)
+    }
 
-    wrapper.append(label, bubble)
+    wrapper.append(header, bubble)
 
-    if (!isUser && entry.meta) {
+    if (!isUser && entry.activity?.steps?.length) {
+      const stepsWrap = document.createElement("div")
+      stepsWrap.className = "kb-ai-chat-activity kb-ai-chat-activity-steps"
+      stepsWrap.append(buildChatSteps(entry.activity.steps))
+      wrapper.append(stepsWrap)
+    } else if (!isUser && entry.meta) {
       const meta = document.createElement("p")
       meta.className = "mt-1 text-xs kb-text-muted"
       meta.textContent = entry.meta

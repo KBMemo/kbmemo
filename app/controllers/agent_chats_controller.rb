@@ -86,6 +86,15 @@ class AgentChatsController < ApplicationController
       }
     end
 
+    if result.trace
+      payload[:trace] = result.trace.as_json(
+        account: rodauth.rails_account,
+        intent: result.intent,
+        model_role: result.model_role,
+        escalated: result.escalated
+      )
+    end
+
     payload
   end
 

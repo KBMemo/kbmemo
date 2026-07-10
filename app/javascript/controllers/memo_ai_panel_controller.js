@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { appendChatMarkdown } from "../lib/chat_markdown"
 
 export default class extends Controller {
   static targets = ["messages", "input", "sendButton", "error", "includeSelection"]
@@ -151,7 +152,11 @@ export default class extends Controller {
     bubble.className = `rounded-md px-2 py-1.5 text-xs leading-relaxed ${
       isUser ? "kb-ai-message-user" : "kb-ai-message-assistant"
     }`
-    this.appendTextWithLineBreaks(bubble, entry.content)
+    if (isUser) {
+      this.appendTextWithLineBreaks(bubble, entry.content)
+    } else {
+      appendChatMarkdown(bubble, entry.content)
+    }
 
     wrapper.append(label, bubble)
     return wrapper

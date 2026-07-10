@@ -64,8 +64,14 @@ class AgentChatMessage < ApplicationRecord
 
   def as_ui_entry
     entry = { role: role, content: content.to_s }
-    meta = ui_meta
-    entry[:meta] = meta if meta.present?
+    if assistant?
+      if metadata["trace"].present?
+        entry[:activity] = metadata["trace"]
+      else
+        meta = ui_meta
+        entry[:meta] = meta if meta.present?
+      end
+    end
     entry
   end
 end

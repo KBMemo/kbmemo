@@ -79,6 +79,15 @@ module AgentChat
         }
       end
 
+      if result.trace
+        metadata["trace"] = result.trace.as_json(
+          account: @account,
+          intent: result.intent,
+          model_role: result.model_role,
+          escalated: result.escalated
+        )
+      end
+
       metadata
     end
   end

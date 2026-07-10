@@ -15,7 +15,7 @@ module Chat
 
     Result = Struct.new(
       :reply, :intent, :classification, :model_role, :escalated, :tools, :pending_tools,
-      :rag, :mcp, keyword_init: true
+      :rag, :mcp, :trace, keyword_init: true
     )
 
     # @param classifier [Chat::IntentClassifier, nil]
@@ -35,25 +35,33 @@ module Chat
     # @return [Chat::Agent::Result]
     def call(messages:, system_prompt: nil, account: nil)
       @account = account
+      trace = Chat::AgentTrace.new
       history = normalize_messages(messages)
       user_text = last_user_text(history)
 
-      classification = classifier.classify(user_text, account: account)
+      classification = trace.run(:intent, "Intent 分類") do
+        result = classifier.classify(user_text, account: account)
+        trace.finish_step_detail(intent_step_detail(result))
+        result
+      end
       decision = Chat::Router.decide(classification)
 
       return build_result(
         reply: nil, classification: classification, decision: decision,
-        model_role: nil, escalated: false, rag: nil, mcp: nil, user_text: user_text
+        model_role: nil, escalated: false, rag: nil, mcp: nil, user_text: user_text, trace: trace
       ) if user_text.blank?
 
-      rag_result = run_rag_tool(decision, user_text, account)
-      mcp_result = run_mcp_tools(decision, user_text)
+      rag_result = run_rag_tool(decision, user_text, account, trace: trace)
+      mcp_result = run_mcp_tools(decision, user_text, trace: trace)
 
       primary_role = chat_role(decision.model_role)
-      reply = generate(
-        primary_role, system_prompt, classification.intent, history,
-        rag_result: rag_result, mcp_result: mcp_result
-      )
+      reply = trace.run(:generate, "応答生成", model_role: primary_role) do
+        trace.finish_step_detail(model_label_for(primary_role))
+        generate(
+          primary_role, system_prompt, classification.intent, history,
+          rag_result: rag_result, mcp_result: mcp_result
+        )
+      end
 
       escalated = Chat::Escalation.escalate?(
         intent: classification, user_text: user_text, model_role: primary_role, reply: reply,
@@ -61,23 +69,30 @@ module Chat
       )
       final_role = primary_role
       if escalated
+        trace.run(:escalate, "モデル昇格") do
+          trace.finish_step_detail("#{primary_role} → #{Chat::Escalation::TOP_ROLE}")
+          true
+        end
         final_role = Chat::Escalation::TOP_ROLE
-        reply = generate(
-          final_role, system_prompt, classification.intent, history,
-          rag_result: rag_result, mcp_result: mcp_result
-        )
+        reply = trace.run(:generate_escalated, "応答生成（昇格）", model_role: final_role) do
+          trace.finish_step_detail(model_label_for(final_role))
+          generate(
+            final_role, system_prompt, classification.intent, history,
+            rag_result: rag_result, mcp_result: mcp_result
+          )
+        end
       end
 
       build_result(
         reply: reply, classification: classification, decision: decision,
         model_role: final_role, escalated: escalated, rag: rag_result, mcp: mcp_result,
-        user_text: user_text
+        user_text: user_text, trace: trace
       )
     end
 
     private
 
-    def build_result(reply:, classification:, decision:, model_role:, escalated:, rag:, mcp:, user_text:)
+    def build_result(reply:, classification:, decision:, model_role:, escalated:, rag:, mcp:, user_text:, trace:)
       Result.new(
         reply: reply,
         intent: classification.intent,
@@ -87,7 +102,8 @@ module Chat
         tools: decision.tools,
         pending_tools: pending_tools?(decision, mcp: mcp, user_text: user_text),
         rag: rag,
-        mcp: mcp
+        mcp: mcp,
+        trace: trace
       )
     end
 
@@ -101,19 +117,54 @@ module Chat
       end
     end
 
-    def run_mcp_tools(decision, user_text)
+    def run_mcp_tools(decision, user_text, trace:)
       tools = decision.tools.select { |tool| DELEGATED_TOOLS.include?(tool) }
       return nil if tools.empty?
 
-      mcp_runner.call(tools: tools, user_text: user_text)
+      trace.run(:mcp_tools, "外部ツール（Nyoy MCP）") do
+        result = mcp_runner.call(tools: tools, user_text: user_text)
+        trace.finish_step_detail(mcp_step_detail(result))
+        result
+      end
     end
 
-    def run_rag_tool(decision, user_text, account)
+    def run_rag_tool(decision, user_text, account, trace:)
       return nil unless account
       return nil unless decision.tools.intersect?(IMPLEMENTED_TOOLS)
 
-      factory = @rag_search_factory || Chat::Tools::RagSearch.new(account: account)
-      factory.call(user_text: user_text)
+      trace.run(:rag_search, "メモ検索（RAG）") do
+        factory = @rag_search_factory || Chat::Tools::RagSearch.new(account: account)
+        result = factory.call(user_text: user_text)
+        trace.finish_step_detail(rag_step_detail(result))
+        result
+      end
+    end
+
+    def intent_step_detail(classification)
+      confidence = classification.confidence
+      label = classification.intent.to_s
+      return label if confidence.nil?
+
+      format("%s (%.0f%%)", label, confidence * 100)
+    end
+
+    def rag_step_detail(result)
+      parts = [ "#{result.hits.size}件" ]
+      parts << "semantic" if result.semantic_used
+      parts.join(" · ")
+    end
+
+    def mcp_step_detail(result)
+      run = Array(result.tools_run).map(&:to_s)
+      return "スキップ" if run.empty?
+
+      run.join(", ")
+    end
+
+    def model_label_for(role)
+      Chat::ModelRegistry.for(role, account: @account).model
+    rescue KeyError
+      role.to_s
     end
 
     def generate(role, system_prompt, intent, history, rag_result:, mcp_result:)
