@@ -5,6 +5,7 @@
 マルチモデル・intent ルーティング型エージェント**へ拡張する。
 
 NOTE: 方針は <<open,§10 確定事項>> で合意済み（2026-07）。実装は Phase 0 から順に進める。
+NOTE: **2026-07-10** — 如意 Nyoy MCP 公開を前提に、Phase 3–7 のツール実装方針を <<nyoy-mcp,§11>> で再定義した。
 
 == 1. 現状（as-is）
 
@@ -201,11 +202,11 @@ User 入力
 
 |3
 |URL 要約ツール（fetch → 抽出 → チャンク → 一次/統合要約）
-|`Chat::Tools::FetchUrl`
+|**Nyoy MCP に委譲**（<<nyoy-mcp,§11>>）。徒然に `Chat::Tools::FetchUrl` は実装しない
 
 |4
 |Web 検索ツール（SearXNG）
-|`Chat::Tools::WebSearch`
+|**Nyoy MCP に委譲**。徒然に `Chat::Tools::WebSearch` は実装しない
 
 |5a ✅
 |RAG lexical（pgroonga retriever → query 生成 → 12B 回答。**2026-07 完了**）
@@ -217,19 +218,27 @@ User 入力
 
 |6
 |Vision（Qwen2.5-VL）
-|`Chat::Tools::ImageAnalysis`
+|**Nyoy MCP に委譲**（`analyze_image`）
 
 |7
 |画像生成（sd プロンプト → sd.cpp）
-|`Chat::Tools::ImageGeneration`
+|**Nyoy MCP に委譲**（`generate_image` / `refine_image`）
+
+|MCP
+|Cursor 等から如意ツールを利用
+|徒然 `.cursor/mcp.json` + 如意 `docs/architecture/nyoy-mcp.adoc`（**2026-07 着手**）
 
 |8
 |会話永続化（DB テーブル・UI 履歴復元）
 |migration / モデル / パネル UI 更新
+
+|9（任意）
+|in-app Agent から Nyoy MCP を HTTP 呼び出し
+|`Chat::NyoyMcpClient`（後追い・優先度低）
 |===
 
 初期リリースは **Phase 0–2**（ローカル 3 モデルで intent ルーティングが動く状態）を目標にし、
-Phase 3 以降はツール単位で追加する。
+Phase 3–7 の横断ツールは **Nyoy MCP へ委譲**し、徒然 in-app では Phase 5 RAG と Phase 8 永続化を継続する（<<nyoy-mcp,§11>>）。
 
 === Phase 0 実装メモ（完了）
 
@@ -328,7 +337,7 @@ development 既定 `base_url` は `http://localhost:10031`（intent）等。`emb
 * **RAG インデックス**: pgvector 追加で DB サイズ・再インデックスコストが増える。Embedding サーバ未起動時は pgroonga のみにフォールバック（Phase 5a 単独でも動作）。
 * **埋め込みモデルの制約**: LFM2.5-Embedding-350M は short-context（~512 tokens/doc）向け。長文メモはチャンク分割が必須。
 
-* **UI の位置づけ**: 現状はメモ編集サイドパネル。汎用エージェント機能（Web 調査・画像生成）は memo コンテキストと相性が薄く、UI 再設計が要る場合がある（<<open,§10>>）。
+* **UI の位置づけ**: メモ編集パネルは執筆特化。汎用機能（Web 調査・画像生成）は独立チャット画面または **Nyoy MCP**（<<nyoy-mcp,§11>>）。
 
 [[open]]
 == 10. 確定事項（2026-07 合意）
@@ -338,3 +347,34 @@ development 既定 `base_url` は `http://localhost:10031`（intent）等。`emb
 . **初期マイルストーンは Phase 0–2**（ローカル 3 モデル・intent ルーティング。dev note §9 準拠）。
 . **会話永続化は Phase 8**（後回し）。
 . **RAG は段階導入（2026-07 更新）。** まず既存 **pgroonga** を lexical retriever として接続（Phase 5a）。その後 **LFM2.5-Embedding-350M**（llama-server `--embeddings`、1024 次元）+ **pgvector** でセマンティック検索を上乗せし、pgroonga とハイブリッド（Phase 5b）。ColBERT は当面見送り。
+
+[[nyoy-mcp]]
+== 11. Nyoy MCP を前提とした構成見直し（2026-07-10）
+
+如意（Nyoy）が `ChatTools::*` を MCP（`https://nyoy.kbmemo.net/mcp`）で公開した。
+徒然は **ツールの二重実装を避け**、役割を次のように分ける。
+
+=== 11.1 徒然に残すもの
+
+* **in-app `Chat::Agent`** — intent / router / escalation / ローカル LLM 接続
+* **`Chat::Tools::RagSearch`** — 徒然 DB 直接の pgroonga + pgvector（鮮度・`MemoPolicy`）
+* **メモ編集 AI パネル**（`MemoAiChat`）— 執筆特化、intent ルーティングなし
+* **会話永続化（Phase 8）** — 徒然アカウントスコープ
+
+=== 11.2 Nyoy MCP に委譲するもの（徒然では実装しない）
+
+* Web / URL: `web_search`, `fetch_url`, `search_fetched_page`
+* 徒然 API ラッパ（Cursor 向け）: `search_memos`, `get_memo`, `create_memo`, `update_memo`
+* export ベース RAG: `recall_memos`（如意取込。in-app とは別経路）
+* Vision / SD: `analyze_image`, `generate_image`, `refine_image`, `list_prompt_styles`
+* 葛籠: `list_albums`, `get_media`
+
+詳細な構成図・データ経路の比較は如意
+link:https://gitea.artif.org/Artif.org/nyoy/blob/main/docs/architecture/nyoy-mcp.adoc[`docs/architecture/nyoy-mcp.adoc`] を正本とする。
+徒然側 Cursor 設定は link:nyoy-mcp.adoc[nyoy-mcp.adoc]。
+
+=== 11.3 `Chat::Agent` と MCP の関係
+
+* Router が `fetch_url` 等を返しても **徒然内では未実行**（`pending_tools: true` のまま）。
+* Cursor 開発では `.cursor/mcp.json` で Nyoy に直接接続し、同等ツールを使う。
+* 将来、in-app から Nyoy MCP を呼ぶ場合は Phase 9（`Chat::NyoyMcpClient`）を検討。

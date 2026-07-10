@@ -1,6 +1,7 @@
 = 如意（Nyoy）MCP 連携
 
-徒然（site）Workspace から如意の Chat ツール・画像生成を Cursor MCP 経由で使う設定。
+徒然 Workspace から如意 MCP を使うための要約。
+**構成の正本**は如意リポジトリ link:https://gitea.artif.org/Artif.org/nyoy/blob/main/docs/architecture/nyoy-mcp.adoc[`docs/architecture/nyoy-mcp.adoc`]（エコシステム全体の責務分界・フェーズ見直し）。
 
 == セットアップ
 
@@ -10,17 +11,37 @@
 
 `.cursor/mcp.json` は git 管理外（トークン含むため）。
 
-== 公開ツール（概要）
+[source,json]
+----
+{
+  "mcpServers": {
+    "nyoy": {
+      "url": "https://nyoy.kbmemo.net/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_MCP_API_TOKEN",
+        "Accept": "application/json, text/event-stream"
+      }
+    }
+  }
+}
+----
 
-* 徒然 API 連携: `search_memos`, `get_memo`, `create_memo`, `update_memo`, `recall_memos`
-* Web: `web_search`, `fetch_url`, `search_fetched_page`
+== 何を Nyoy MCP に任せるか
+
+徒然 **in-app** `Chat::Agent` では pgroonga/pgvector RAG（`rag_search`）を継続する。
+次は **徒然に実装せず** Nyoy MCP を使う（link:../../localai/nyoy/docs/architecture/nyoy-mcp.adoc[§6 フェーズ見直し]）。
+
+* Web / URL: `web_search`, `fetch_url`, `search_fetched_page`
+* 徒然 API 経由のメモ操作: `search_memos`, `get_memo`, `create_memo`, `update_memo`
+* export ベース意味検索: `recall_memos`（如意側取込 RAG）
 * 画像: `analyze_image`, `generate_image`, `refine_image`, `list_prompt_styles`
+* 葛籠: `list_albums`, `get_media`
 
-詳細は如意リポジトリ `docs/mcp-server.md` を参照。
+運用詳細: 如意 `docs/mcp-server.md`
 
-== ローカル開発（stdio）
+== stdio（ローカル開発）
 
-如意リポジトリを clone している場合は stdio も利用可:
+如意を clone している場合:
 
 [source,json]
 ----
