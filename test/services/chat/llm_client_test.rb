@@ -60,5 +60,65 @@ module Chat
         assert_match(/接続できませんでした/, err.message)
       end
     end
+
+    test "streamable_chunk? keeps newline-only deltas like Nyoy streamable_text?" do
+      assert Chat::LlmClient.streamable_chunk?("\n")
+      assert Chat::LlmClient.streamable_chunk?("\n\n")
+      refute Chat::LlmClient.streamable_chunk?("")
+      refute Chat::LlmClient.streamable_chunk?(nil)
+      assert "\n".blank?
+    end
+
+    test "parse_stream_delta accepts newline-only content" do
+      client = Chat::LlmClient.new(base_url: "http://localhost:10010", model: "m")
+      delta = client.send(
+        :parse_stream_delta,
+        { "choices" => [ { "delta" => { "content" => "\n" } } ] }
+      )
+
+      assert_equal "\n", delta[:content]
+    end
+
+    test "chat_stream preserves newline chunks in accumulated reply" do
+      client = Chat::LlmClient.new(base_url: "http://localhost:10010", model: "m")
+      events = [
+        { "choices" => [ { "delta" => { "content" => "得られました。" } } ] },
+        { "choices" => [ { "delta" => { "content" => "\n\n" } } ] },
+        { "choices" => [ { "delta" => { "content" => "---\n\n" } } ] },
+        { "choices" => [ { "delta" => { "content" => "### 見出し\n\n" } } ] },
+        { "choices" => [ { "delta" => { "content" => "本文" } } ] }
+      ]
+      sse = events.map { |event| "data: #{JSON.generate(event)}\n\n" }.join + "data: [DONE]\n\n"
+
+      fake_response = Object.new
+      def fake_response.is_a?(klass) = klass == Net::HTTPSuccess
+      def fake_response.read_body
+        yield @body
+      end
+      fake_response.instance_variable_set(:@body, sse)
+
+      fake_http = Object.new
+      def fake_http.use_ssl=(_); end
+      def fake_http.open_timeout=(_); end
+      def fake_http.read_timeout=(_); end
+      def fake_http.request(_)
+        if block_given?
+          yield @response
+        else
+          @response
+        end
+      end
+      fake_http.instance_variable_set(:@response, fake_response)
+
+      Net::HTTP.stub(:new, fake_http) do
+        reply = client.chat([ { role: "user", content: "hi" } ], stream: true)
+        assert_includes reply, "得られました。"
+        assert_includes reply, "---"
+        assert_includes reply, "### 見出し"
+        assert_includes reply, "本文"
+        assert_match(/得られました。\n\n---\n\n### 見出し\n\n本文\z/m, reply)
+      end
+    end
   end
 end
+

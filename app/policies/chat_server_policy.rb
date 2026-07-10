@@ -8,4 +8,5 @@ class ChatServerPolicy < ApplicationPolicy
 
   alias update? show?
   alias health_check? show?
+  alias list_models? show?
 end

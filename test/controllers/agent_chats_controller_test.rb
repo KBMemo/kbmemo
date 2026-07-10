@@ -32,6 +32,7 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "以前の質問"
     assert_includes response.body, "以前の回答"
+    assert_includes response.body, "data-agent-chat-target=\"initialMessagesJson\""
     assert_includes response.body, "data-agent-chat-conversation-id-value=\"#{conversation.id}\""
   end
 

@@ -44,11 +44,12 @@ module AgentChat
       )
     end
 
-    def assistant_delta(text:, thinking: false)
+    def assistant_delta(text:, thinking: false, step_key: nil)
       broadcast(
         type: "assistant_delta",
         text: text.to_s,
-        thinking: thinking
+        thinking: thinking,
+        step_key: step_key&.to_s
       )
     end
 

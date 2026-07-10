@@ -24,6 +24,11 @@ module Chat
     # 接続失敗（サーバ未起動・タイムアウト等）。API エラーと区別してフォールバック判定に使う。
     class ConnectionError < Error; end
 
+    # Nyoy ChatResponseJob#streamable_text? 相当。改行のみの chunk は blank? だが保持する。
+    def self.streamable_chunk?(text)
+      !text.nil? && text != ""
+    end
+
     # @param base_url [String] OpenAI 互換 API のルート（例 http://localhost:10010 もしくは .../v1）
     # @param model [String]
     # @param api_key [String, nil] ローカル llama-server では通常不要
@@ -136,11 +141,11 @@ module Chat
       assistant_thinking = +""
 
       handle_delta = lambda do |delta|
-        thinking = delta[:thinking].to_s
-        content = delta[:content].to_s
-        assistant_thinking << thinking if thinking.present?
-        assistant_content << content if content.present?
-        block&.call(delta) if thinking.present? || content.present?
+        thinking = delta[:thinking]
+        content = delta[:content]
+        assistant_thinking << thinking if self.class.streamable_chunk?(thinking)
+        assistant_content << content if self.class.streamable_chunk?(content)
+        block&.call(delta) if self.class.streamable_chunk?(thinking) || self.class.streamable_chunk?(content)
       end
 
       http.request(request) do |response|
@@ -183,9 +188,9 @@ module Chat
       delta = parse_stream_delta(JSON.parse(data))
       return unless delta
 
-      thinking = delta[:thinking].to_s
-      content = delta[:content].to_s
-      block.call(delta) if thinking.present? || content.present?
+      thinking = delta[:thinking]
+      content = delta[:content]
+      block.call(delta) if self.class.streamable_chunk?(thinking) || self.class.streamable_chunk?(content)
     end
 
     def parse_stream_delta(data)
@@ -193,9 +198,12 @@ module Chat
       delta = choice&.fetch("delta", {}) || {}
       content = delta["content"]
       thinking = delta["reasoning_content"]
-      return nil if content.blank? && thinking.blank?
+      return nil unless self.class.streamable_chunk?(content) || self.class.streamable_chunk?(thinking)
 
-      { content: content.to_s, thinking: thinking.to_s }
+      {
+        content: content.nil? ? nil : content.to_s,
+        thinking: thinking.nil? ? nil : thinking.to_s
+      }
     end
   end
 end

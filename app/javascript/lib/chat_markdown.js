@@ -3,17 +3,26 @@
 const INLINE_PATTERN =
   /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g
 
+export function renderChatMarkdown(markdown) {
+  const container = document.createElement("div")
+  container.className = "kb-ai-markdown"
+  appendChatMarkdown(container, markdown)
+  return container
+}
+
 export function appendChatMarkdown(container, markdown) {
   container.classList.add("kb-ai-markdown")
+  container.replaceChildren()
   for (const block of parseBlocks(markdown)) {
     container.append(renderBlock(block))
   }
 }
 
 function parseBlocks(text) {
-  const lines = String(text ?? "").split("\n")
+  const lines = String(text ?? "").replace(/\r\n?/g, "\n").split("\n")
   const blocks = []
   let list = null
+  let paragraphLines = []
 
   const flushList = () => {
     if (!list) return
@@ -21,23 +30,32 @@ function parseBlocks(text) {
     list = null
   }
 
+  const flushParagraph = () => {
+    if (paragraphLines.length === 0) return
+    blocks.push({ type: "p", text: paragraphLines.join("\n") })
+    paragraphLines = []
+  }
+
   for (const line of lines) {
-    if (/^### /.test(line)) {
+    const trimmed = line.trim()
+
+    if (/^-{3,}\s*$/.test(trimmed) && !/^----/.test(trimmed)) {
+      flushParagraph()
       flushList()
-      blocks.push({ type: "h3", text: line.slice(4) })
+      blocks.push({ type: "hr" })
       continue
     }
-    if (/^## /.test(line)) {
+
+    const heading = line.match(/^(#{1,6})\s+(.*)$/)
+    if (heading) {
+      flushParagraph()
       flushList()
-      blocks.push({ type: "h2", text: line.slice(3) })
+      blocks.push({ type: `h${heading[1].length}`, text: heading[2] })
       continue
     }
-    if (/^# /.test(line)) {
-      flushList()
-      blocks.push({ type: "h1", text: line.slice(2) })
-      continue
-    }
+
     if (/^[-*] /.test(line)) {
+      flushParagraph()
       if (!list || list.type !== "ul") {
         flushList()
         list = { type: "ul", items: [] }
@@ -46,6 +64,7 @@ function parseBlocks(text) {
       continue
     }
     if (/^\d+\. /.test(line)) {
+      flushParagraph()
       if (!list || list.type !== "ol") {
         flushList()
         list = { type: "ol", items: [] }
@@ -53,20 +72,26 @@ function parseBlocks(text) {
       list.items.push(line.replace(/^\d+\. /, ""))
       continue
     }
-    if (line.trim() === "") {
+    if (trimmed === "") {
+      flushParagraph()
       flushList()
       continue
     }
 
     flushList()
-    blocks.push({ type: "p", text: line })
+    paragraphLines.push(line)
   }
 
+  flushParagraph()
   flushList()
   return blocks
 }
 
 function renderBlock(block) {
+  if (block.type === "hr") {
+    return document.createElement("hr")
+  }
+
   if (block.type === "ul" || block.type === "ol") {
     const list = document.createElement(block.type)
     for (const item of block.items) {
@@ -77,9 +102,21 @@ function renderBlock(block) {
     return list
   }
 
-  const element = document.createElement(block.type)
-  appendInline(element, block.text)
+  const tag = block.type.match(/^h[1-6]$/) ? block.type : "p"
+  const element = document.createElement(tag)
+  appendBlockText(element, block.text)
   return element
+}
+
+function appendBlockText(element, text) {
+  const source = String(text ?? "")
+  if (!source) return
+
+  const lines = source.split("\n")
+  lines.forEach((line, index) => {
+    if (index > 0) element.append(document.createElement("br"))
+    appendInline(element, line)
+  })
 }
 
 function appendInline(parent, text) {

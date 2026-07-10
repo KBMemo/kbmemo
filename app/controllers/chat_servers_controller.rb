@@ -30,10 +30,31 @@ class ChatServersController < ApplicationController
           role: result.role,
           base_url: result.base_url,
           ok: result.ok,
-          message: result.message
+          message: result.message,
+          model: result.model
         }
       end
     }
+  end
+
+  def list_models
+    authorize :chat_server, :list_models?
+
+    role = params[:role].to_s
+    base_url = params[:base_url].to_s.strip.chomp("/")
+    if base_url.blank?
+      render json: { models: [], error: "接続 URL を入力してください。" }, status: :unprocessable_entity
+      return
+    end
+
+    api_key = Rails.application.credentials.chat_models&.dig(:api_keys, role.to_sym)
+    models = Chat::ServerModels.list_ids(base_url: base_url, api_key: api_key)
+    if models.empty?
+      render json: { models: [], error: "モデル一覧を取得できませんでした（/v1/models）。" }, status: :unprocessable_entity
+      return
+    end
+
+    render json: { models: models }
   end
 
   private
@@ -41,18 +62,14 @@ class ChatServersController < ApplicationController
   def prepare_form
     @account = rodauth.rails_account
     @settings = @account.chat_server_settings_payload
-    @default_urls = Chat::ServerEndpoints.default_urls
-    @role_urls = Chat::ServerEndpoints.resolved_urls(account: @account)
     @role_labels = Chat::ServerEndpoints::ROLE_LABELS
-    @default_ports = Chat::ServerEndpoints::DEFAULT_PORTS
-    @models_config = Rails.application.config_for(:chat_models).to_h
   end
 
   def settings_params
     raw = params.require(:chat_server_settings).permit(
-      base_urls: Chat::ServerEndpoints::ROLES.map(&:to_s)
+      roles: Chat::ServerEndpoints::ROLES.index_with { %i[base_url model] }
     )
 
-    { "base_urls" => (raw[:base_urls] || {}).to_h.compact_blank }
+    { "roles" => (raw[:roles] || {}).to_h }
   end
 end

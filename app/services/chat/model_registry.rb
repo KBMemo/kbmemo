@@ -4,13 +4,10 @@ module Chat
   # Chat エージェントの役割（intent / fast_chat / main / vision / image_generation）を、
   # 接続情報（provider / base_url / model / temperature / api_key）へ解決する薄いアクセサ。
   #
-  # 役割マッピング: config/chat_models.yml（非機密）
-  # 接続先・機密: Rails credentials（chat_models）
+  # 役割マッピング: config/chat_models.yml（provider / temperature 等）
+  # 接続先 URL・モデル: Account#chat_server_settings（または credentials chat_models.base_urls）
   module ModelRegistry
     ROLES = %i[intent fast_chat main vision embedding image_generation].freeze
-
-    # development / test で base_url が未設定のときの既定（balvenie llama-server 構成）。
-    # 詳細: Chat::ServerEndpoints
 
     Config = Struct.new(:role, :provider, :base_url, :model, :temperature, :api_key, keyword_init: true) do
       def build_client(api_key: nil)
@@ -46,7 +43,7 @@ module Chat
           role: key,
           provider: entry[:provider].to_s.to_sym,
           base_url: resolve_base_url(key, account: account),
-          model: entry[:model],
+          model: resolve_model(key, account: account),
           temperature: entry[:temperature],
           api_key: resolve_api_key(key)
         )
@@ -76,12 +73,20 @@ module Chat
         explicit = credentials&.dig(:base_urls, role).presence
         return normalize(explicit) if explicit
 
-        if local_default?
-          default_url = Chat::ServerEndpoints.url_for(host: Chat::ServerEndpoints.default_host, role: role)
-          return normalize(default_url) if default_url.present?
+        raise KeyError, "chat model role #{role.inspect} の接続 URL が未設定です（Chat サーバー設定）。"
+      end
+
+      def resolve_model(role, account: nil)
+        if account
+          selected = account.chat_server_model(role)
+          return selected if selected.present?
         end
 
-        raise KeyError, "chat model role #{role.inspect} の base_url が未設定です（credentials chat_models.base_urls）。"
+        entry = roles_config[role]
+        configured = entry[:model].to_s.presence if entry
+        return configured if configured
+
+        raise KeyError, "chat model role #{role.inspect} のモデルが未設定です（Chat サーバー設定）。"
       end
 
       def resolve_api_key(role)
@@ -90,10 +95,6 @@ module Chat
 
       def credentials
         Rails.application.credentials.chat_models
-      end
-
-      def local_default?
-        Rails.env.development? || Rails.env.test?
       end
 
       def normalize(url)

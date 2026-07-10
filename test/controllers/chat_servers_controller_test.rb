@@ -14,17 +14,18 @@ class ChatServersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Chat サーバー設定"
     assert_includes response.body, "chat-server"
-    assert_includes response.body, "10010"
+    assert_includes response.body, "モデル取得"
+    assert_includes response.body, "http://localhost:10011"
   end
 
-  test "update saves per-role base urls" do
+  test "update saves per-role url and model" do
     account = accounts(:one)
     patch chat_server_url, params: {
       chat_server_settings: {
-        base_urls: {
-          intent: "http://pc-a.test:10010",
-          main: "http://pc-b.test:10012",
-          fast_chat: ""
+        roles: {
+          intent: { base_url: "http://pc-a.test:10010", model: "intent-model" },
+          main: { base_url: "http://pc-b.test:10012", model: "main-model" },
+          fast_chat: { base_url: "", model: "" }
         }
       }
     }
@@ -32,13 +33,21 @@ class ChatServersControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to chat_server_url
     account.reload
     assert_equal "http://pc-a.test:10010", account.chat_server_base_url(:intent)
+    assert_equal "intent-model", account.chat_server_model(:intent)
     assert_equal "http://pc-b.test:10012", account.chat_server_base_url(:main)
+    assert_equal "main-model", account.chat_server_model(:main)
     assert_nil account.chat_server_base_url(:fast_chat)
   end
 
   test "health_check returns json checks" do
     fake_results = [
-      Chat::ServerHealth::Result.new(role: :intent, base_url: "http://balvenie:10010", ok: true, message: "OK (200)")
+      Chat::ServerHealth::Result.new(
+        role: :intent,
+        base_url: "http://localhost:10010",
+        ok: true,
+        message: "OK (200)",
+        model: "lfm2.5-1.2b"
+      )
     ]
 
     original = Chat::ServerHealth.method(:check_all)
@@ -55,5 +64,30 @@ class ChatServersControllerTest < ActionDispatch::IntegrationTest
     ensure
       Chat::ServerHealth.define_singleton_method(:check_all, original)
     end
+  end
+
+  test "list_models returns model ids from server" do
+    original = Chat::ServerModels.method(:list_ids)
+    begin
+      Chat::ServerModels.define_singleton_method(:list_ids) do |**_|
+        [ "model-a", "model-b" ]
+      end
+
+      post list_models_chat_server_url, params: { role: "main", base_url: "http://llm.test:10011" }, as: :json
+
+      assert_response :success
+      body = JSON.parse(response.body)
+      assert_equal [ "model-a", "model-b" ], body["models"]
+    ensure
+      Chat::ServerModels.define_singleton_method(:list_ids, original)
+    end
+  end
+
+  test "list_models rejects blank base_url" do
+    post list_models_chat_server_url, params: { role: "main", base_url: "" }, as: :json
+
+    assert_response :unprocessable_entity
+    body = JSON.parse(response.body)
+    assert_includes body["error"], "接続 URL"
   end
 end

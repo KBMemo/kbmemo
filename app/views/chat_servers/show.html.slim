@@ -4,14 +4,14 @@
   header.mb-6
     h1 class=kb_page_title Chat サーバー設定
     p.mt-2.text-sm.kb-text-secondary
-      | ローカル llama-server の接続先 URL です。役割ごとに別ホスト・別 PC へ分散しても構いません。
+      | 役割ごとに LLM サーバーの接続 URL と、接続先で利用するモデルを指定します。
     p.mt-1.text-xs.kb-text-muted
-      | 空欄にすると環境既定（#{Chat::ServerEndpoints.default_host} + 既定ポート）を使います。
+      | URL を入力して「モデル取得」から /v1/models の一覧を読み込み、使用するモデルを選んで保存してください。
 
   - if flash[:notice].present?
     p.mt-4.text-sm.kb-status-success = flash[:notice]
 
-  .chat-server-panel data-controller="chat-server" data-chat-server-health-url-value=health_check_chat_server_path(format: :json)
+  .chat-server-panel data-controller="chat-server" data-chat-server-health-url-value=health_check_chat_server_path(format: :json) data-chat-server-list-models-url-value=list_models_chat_server_path(format: :json)
     = form_with url: chat_server_path, method: :patch, class: "mt-6 space-y-8" do |f|
       section
         h2 class=kb_section_title 役割ごとの接続先
@@ -20,25 +20,23 @@
             thead
               tr class="text-left kb-text-muted"
                 th class="pr-3 pb-2 font-medium" 役割
-                th class="pr-3 pb-2 font-medium" モデル
-                th class="pr-3 pb-2 font-medium" 既定ポート
-                th class="pb-2 font-medium" 接続 URL
+                th class="pr-3 pb-2 font-medium" 接続 URL
+                th class="pb-2 font-medium" モデル
             tbody
               - Chat::ServerEndpoints::ROLES.each do |role|
-                - model_entry = @models_config[role]
-                - model_name = model_entry.is_a?(Hash) ? (model_entry[:model] || model_entry["model"]) : nil
-                - saved_url = @settings.dig("base_urls", role.to_s)
-                - effective_url = @role_urls[role]
-                - placeholder_url = @default_urls[role]
-                tr class="border-t kb-border align-top"
+                - role_settings = @settings.dig("roles", role.to_s) || {}
+                - saved_url = role_settings["base_url"]
+                - saved_model = role_settings["model"]
+                tr class="border-t kb-border align-top" data-role=role
                   td class="pr-3 py-3 whitespace-nowrap"
                     = @role_labels[role]
-                  td class="pr-3 py-3 font-mono text-xs"
-                    = model_name
-                  td class="pr-3 py-3 font-mono text-xs"
-                    = @default_ports[role]
+                  td class="pr-3 py-3"
+                    = text_field_tag "chat_server_settings[roles][#{role}][base_url]", saved_url, class: "kb-input w-full min-w-48 font-mono text-xs", placeholder: "http://host:port", autocomplete: "off", aria: { label: "#{@role_labels[role]} の接続 URL" }, data: { chat_server_target: "baseUrl", action: "input->chat-server#markRoleDirty" }
                   td class="py-3"
-                    = text_field_tag "chat_server_settings[base_urls][#{role}]", saved_url, class: "kb-input w-full min-w-48 font-mono text-xs", placeholder: placeholder_url, autocomplete: "off", aria: { label: "#{@role_labels[role]} の接続 URL（現在 #{effective_url}）" }
+                    .flex.flex-wrap.items-center.gap-2
+                      = select_tag "chat_server_settings[roles][#{role}][model]", options_for_select(saved_model.present? ? [ [ saved_model, saved_model ] ] : [], saved_model), { include_blank: "モデルを選択", class: "kb-input min-w-48 font-mono text-xs", data: { chat_server_target: "modelSelect", saved_model: saved_model } }
+                      button.kb-chrome-btn-secondary type="button" data-action="chat-server#fetchModels" data-role=role モデル取得
+                      span.hidden.text-xs.kb-text-muted data-chat-server-target="modelStatus"
 
       .flex.flex-wrap.gap-3
         button.kb-chrome-btn-primary type="submit" data-theme-slot="btn-primary" 保存

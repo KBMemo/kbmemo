@@ -44,6 +44,7 @@ const lazyControllers = {
   "diagram-source-viewer": () => import("./diagram_source_viewer_controller"),
   "diagram-svg-viewer": () => import("./diagram_svg_viewer_controller"),
   "expandable-hint": () => import("./expandable_hint_controller"),
+  "interaction-autoscroll": () => import("./interaction_autoscroll_controller"),
   "memo-ai-panel": () => import("./memo_ai_panel_controller"),
   "memo-attachments": () => import("./memo_attachments_controller"),
   "memo-body-editor": () => import("./memo_body_editor_controller"),

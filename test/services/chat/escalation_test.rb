@@ -44,7 +44,10 @@ module Chat
 
     test "does not escalate when main matches fast_chat" do
       refute Chat::Escalation.escalate?(
-        intent: intent("conversation", confidence: 0.5), user_text: "こんにちは", model_role: :fast_chat
+        intent: intent("conversation", confidence: 0.5),
+        user_text: "こんにちは",
+        model_role: :fast_chat,
+        account: accounts(:one)
       )
     end
 

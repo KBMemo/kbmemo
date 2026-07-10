@@ -246,10 +246,10 @@ module Chat
     end
 
     def record_model_delta(step_key:, model:, delta:)
-      thinking = delta[:thinking].to_s
-      content = delta[:content].to_s
+      thinking = delta[:thinking]
+      content = delta[:content]
 
-      if thinking.present?
+      if Chat::LlmClient.streamable_chunk?(thinking)
         @interaction_log.record(
           step_key: step_key,
           role: "thinking",
@@ -257,10 +257,9 @@ module Chat
           text: thinking,
           append: true
         )
-        @broadcaster&.assistant_delta(text: thinking, thinking: true)
       end
 
-      return if content.blank?
+      return unless Chat::LlmClient.streamable_chunk?(content)
 
       @interaction_log.record(
         step_key: step_key,
@@ -269,7 +268,6 @@ module Chat
         text: content,
         append: true
       )
-      @broadcaster&.assistant_delta(text: content, thinking: false)
     end
 
     def messages_preview(messages)

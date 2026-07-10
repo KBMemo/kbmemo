@@ -1,43 +1,53 @@
 import { Controller } from "@hotwired/stimulus"
-import { createConsumer } from "@rails/actioncable"
+import { subscribeAgentChat } from "../lib/agent_chat_cable"
 import { appendChatMarkdown } from "../lib/chat_markdown"
 import { buildChatStats, buildChatSteps } from "../lib/chat_activity"
-import { buildInteractionLog, ChatStreamPanel } from "../lib/chat_interactions"
-
-const cable = createConsumer()
+import {
+  buildInteractionLog,
+  ChatStreamPanel,
+  resolveAssistantReply
+} from "../lib/chat_interactions"
 
 export default class extends Controller {
-  static targets = ["messages", "input", "sendButton", "error"]
+  static targets = ["messages", "input", "sendButton", "error", "initialMessagesJson"]
 
   static values = {
     chatUrl: String,
     settingsUrl: String,
-    conversationId: String,
-    initialMessages: Array,
-    cableUrl: { type: String, default: "/cable" }
+    conversationId: String
   }
 
   connect() {
-    this.history = Array.isArray(this.initialMessagesValue) ? [...this.initialMessagesValue] : []
+    this.history = this.readInitialMessages()
     this.sending = false
     this.activityTracker = null
     this.streamPanel = null
     this.activeTurnId = null
     this.lastSeq = 0
-    this.subscribeCable()
+    this.turnFinalized = false
+    this.unsubscribeCable = subscribeAgentChat((event) => this.receivedCable(event))
     this.renderMessages()
     this.updateSendState()
+    this.initialMessagesJsonTarget?.remove()
   }
 
   disconnect() {
     this.stopActivityTracker()
-    this.cableSubscription?.unsubscribe()
+    this.unsubscribeCable?.()
+    this.unsubscribeCable = null
   }
 
-  subscribeCable() {
-    this.cableSubscription = cable.subscriptions.create("AgentChatAccountChannel", {
-      received: (event) => this.receivedCable(event)
-    })
+  readInitialMessages() {
+    if (!this.hasInitialMessagesJsonTarget) return []
+
+    try {
+      const raw = this.initialMessagesJsonTarget.textContent?.trim()
+      if (!raw) return []
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
   }
 
   receivedCable(event) {
@@ -55,20 +65,38 @@ export default class extends Controller {
         this.streamPanel?.upsertTraceStep(event.step, event.phase)
         break
       case "interaction":
+        this.streamPanel?.appendInteraction({
+          step_key: event.step_key,
+          role: event.role,
+          model: event.model,
+          text: event.text,
+          append: event.append
+        })
+        if (event.role === "thinking" || event.role === "response") {
+          this.scrollMessages()
+        }
+        break
       case "tool_context":
         this.streamPanel?.appendInteraction({
           step_key: event.step_key,
-          role: event.type === "tool_context" ? "tool" : event.role,
-          model: event.type === "tool_context" ? event.label : event.model,
-          text: event.type === "tool_context" ? event.preview : event.text,
-          append: event.append
+          role: "tool",
+          model: event.label,
+          text: event.preview,
+          append: false
         })
         break
-      case "assistant_delta":
-        this.streamPanel?.appendAssistantDelta(event.text, { thinking: event.thinking })
-        this.scrollMessages()
+      case "turn_finalized":
+        if (
+          this.finalizeAssistantTurn(
+            this.normalizeTurnPayload(event.payload, event.conversation_id)
+          )
+        ) {
+          this.clearError()
+        }
         break
       case "turn_error":
+        this.activeTurnId = null
+        this.turnFinalized = false
         this.stopActivityTracker()
         this.renderMessages()
         this.showError(event.error || "AI との通信に失敗しました。", {
@@ -80,6 +108,21 @@ export default class extends Controller {
       default:
         break
     }
+  }
+
+  normalizeTurnPayload(payload, conversationId) {
+    const data = payload && typeof payload === "object" ? { ...payload } : {}
+    if (conversationId && !data.conversation_id) {
+      data.conversation_id = conversationId
+    }
+    return data
+  }
+
+  sendOnEnter(event) {
+    if (!event.ctrlKey && !event.metaKey) return
+
+    event.preventDefault()
+    this.send(event)
   }
 
   async send(event) {
@@ -100,6 +143,7 @@ export default class extends Controller {
     const turnId = crypto.randomUUID()
     this.activeTurnId = turnId
     this.lastSeq = 0
+    this.turnFinalized = false
 
     try {
       const token = document.querySelector('meta[name="csrf-token"]')?.content
@@ -120,6 +164,13 @@ export default class extends Controller {
 
       const data = await res.json().catch(() => ({}))
 
+      if (this.turnFinalized) {
+        if (data.conversation_id) {
+          this.conversationIdValue = String(data.conversation_id)
+        }
+        return
+      }
+
       if (!res.ok) {
         this.stopActivityTracker()
         this.renderMessages()
@@ -129,26 +180,11 @@ export default class extends Controller {
         return
       }
 
-      const reply = (data.reply || "").trim()
-      if (!reply) {
+      if (!this.finalizeAssistantTurn(this.normalizeTurnPayload(data, data.conversation_id))) {
         this.stopActivityTracker()
         this.renderMessages()
         this.showError("応答が空でした。")
-        return
       }
-
-      if (data.conversation_id) {
-        this.conversationIdValue = String(data.conversation_id)
-      }
-
-      this.stopActivityTracker()
-      this.history.push({
-        role: "assistant",
-        content: reply,
-        activity: data.trace || null
-      })
-      this.activeTurnId = null
-      this.renderMessages()
     } catch {
       this.showError("AI との通信に失敗しました。")
       this.stopActivityTracker()
@@ -187,6 +223,43 @@ export default class extends Controller {
     }
     this.streamPanel = null
     this.activityPanel = null
+  }
+
+  finalizeAssistantTurn(payload) {
+    if (this.turnFinalized) return true
+
+    const reply = resolveAssistantReply({
+      reply: payload.reply,
+      trace: payload.trace,
+      streamedPreview: ""
+    })
+
+    if (!reply.trim()) return false
+
+    this.stopActivityTracker()
+
+    if (payload.conversation_id) {
+      this.conversationIdValue = String(payload.conversation_id)
+    }
+
+    this.history.push({
+      role: "assistant",
+      content: reply,
+      activity: payload.trace || null
+    })
+    this.turnFinalized = true
+    this.activeTurnId = null
+    this.renderMessages()
+    this.focusLatestAnswer()
+    this.sending = false
+    this.updateSendState()
+    return true
+  }
+
+  focusLatestAnswer() {
+    const answer = this.messagesTarget?.querySelector(".kb-ai-chat-answer:last-of-type")
+    answer?.scrollIntoView({ block: "nearest" })
+    this.scrollMessages()
   }
 
   async clearChat(event) {
@@ -261,28 +334,56 @@ export default class extends Controller {
       header.append(buildChatStats(entry.activity.stats))
     }
 
-    const bubble = document.createElement("div")
-    bubble.className = `rounded-md px-3 py-2 text-sm leading-relaxed ${
-      isUser ? "kb-ai-message-user" : "kb-ai-message-assistant"
-    }`
+    wrapper.append(header)
+
+    const answerText = isUser
+      ? String(entry.content ?? "")
+      : resolveAssistantReply({
+          reply: entry.content,
+          trace: entry.activity,
+          streamedPreview: ""
+        })
+
     if (isUser) {
-      this.appendTextWithLineBreaks(bubble, entry.content)
-    } else {
-      appendChatMarkdown(bubble, entry.content)
+      const bubble = document.createElement("div")
+      bubble.className =
+        "kb-ai-chat-answer rounded-md px-3 py-2 text-sm leading-relaxed kb-ai-message-user"
+      this.appendTextWithLineBreaks(bubble, answerText)
+      wrapper.append(bubble)
+      return wrapper
     }
 
-    wrapper.append(header, bubble)
-
-    if (!isUser && entry.activity?.steps?.length) {
+    if (entry.activity?.steps?.length) {
       const stepsWrap = document.createElement("div")
       stepsWrap.className = "kb-ai-chat-activity kb-ai-chat-activity-steps"
       stepsWrap.append(buildChatSteps(entry.activity.steps))
       wrapper.append(stepsWrap)
     }
 
-    if (!isUser && entry.activity?.interactions?.length) {
-      wrapper.append(buildInteractionLog(entry.activity.interactions))
+    if (entry.activity?.interactions?.length) {
+      const logLabel = document.createElement("p")
+      logLabel.className = "kb-ai-chat-log-label kb-text-muted"
+      logLabel.textContent = "モデル詳細"
+      wrapper.append(logLabel, buildInteractionLog(entry.activity.interactions))
     }
+
+    const answerLabel = document.createElement("p")
+    answerLabel.className = "kb-ai-chat-answer-label kb-text-muted"
+    answerLabel.textContent = "回答"
+    wrapper.append(answerLabel)
+
+    const bubble = document.createElement("div")
+    bubble.className =
+      "kb-ai-chat-answer rounded-md px-3 py-2 text-sm leading-relaxed kb-ai-message-assistant"
+
+    if (answerText.trim()) {
+      appendChatMarkdown(bubble, answerText)
+    } else {
+      bubble.classList.add("kb-text-muted")
+      bubble.textContent = "（応答なし）"
+    }
+
+    wrapper.append(bubble)
 
     return wrapper
   }

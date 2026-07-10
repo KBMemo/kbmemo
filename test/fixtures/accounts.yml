@@ -34,6 +34,23 @@ one:
   password_hash: <%= RodauthApp.rodauth.allocate.password_hash("password") %>
   status: verified
   admin: true
+  chat_server_settings:
+    roles:
+      intent:
+        base_url: http://localhost:10010
+        model: lfm2.5-1.2b
+      fast_chat:
+        base_url: http://localhost:10011
+        model: gemma-4-e4b
+      main:
+        base_url: http://localhost:10011
+        model: gemma-4-e4b
+      vision:
+        base_url: http://localhost:10021
+        model: qwen2.5-vl
+      embedding:
+        base_url: http://localhost:10020
+        model: lfm2.5-embedding-350m
 
 two:
   id: 2

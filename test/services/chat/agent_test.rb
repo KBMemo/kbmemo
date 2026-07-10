@@ -100,7 +100,7 @@ module Chat
 
     test "low confidence conversation does not escalate when main matches fast_chat" do
       a, factory = agent(intent("conversation", confidence: 0.4), replies: { fast_chat: "d", main: "f" })
-      result = a.call(messages: [ { role: "user", content: "?" } ])
+      result = a.call(messages: [ { role: "user", content: "?" } ], account: accounts(:one))
 
       refute result.escalated
       assert_equal [ :fast_chat ], factory.calls

@@ -7,6 +7,45 @@ const ROLE_LABELS = {
   tool: "ツール"
 }
 
+const GENERATE_STEP_KEYS = new Set(["generate", "generate_escalated"])
+
+/** @param {Array<{ role?: string, step_key?: string, text?: string }> | undefined} interactions */
+export function replyFromTraceInteractions(interactions) {
+  if (!Array.isArray(interactions) || interactions.length === 0) return ""
+
+  const responses = interactions.filter((entry) => entry.role === "response")
+  const generateResponses = responses.filter((entry) =>
+    GENERATE_STEP_KEYS.has(String(entry.step_key || ""))
+  )
+  const chosen = (generateResponses.length > 0 ? generateResponses : responses).at(-1)
+  return String(chosen?.text ?? "")
+}
+
+/** @param {{ reply?: string, trace?: { interactions?: Array }, streamedPreview?: string }} sources */
+export function resolveAssistantReply({ reply, trace, streamedPreview = "" }) {
+  const direct = String(reply ?? "")
+  if (direct.trim()) return direct
+
+  const fromTrace = replyFromTraceInteractions(trace?.interactions)
+  if (fromTrace.trim()) return fromTrace
+
+  return String(streamedPreview ?? "")
+}
+
+const FOLLOW_ROLES = new Set(["thinking", "response"])
+
+export function scrollInteractionBodyToEnd(body, { intoView = false } = {}) {
+  if (!body) return
+
+  body.scrollTop = body.scrollHeight
+
+  if (!intoView) return
+
+  requestAnimationFrame(() => {
+    body.scrollIntoView({ block: "nearest", behavior: "instant" })
+  })
+}
+
 export class ChatStreamPanel {
   constructor() {
     this.root = document.createElement("div")
@@ -32,15 +71,10 @@ export class ChatStreamPanel {
     this.interactionsEl = document.createElement("div")
     this.interactionsEl.className = "kb-ai-chat-interactions"
 
-    this.previewEl = document.createElement("pre")
-    this.previewEl.className = "kb-ai-chat-live-preview hidden"
-    this.previewEl.dataset.chatLivePreview = "true"
-
-    this.root.append(header, this.stepsEl, this.interactionsEl, this.previewEl)
+    this.root.append(header, this.stepsEl, this.interactionsEl)
 
     this.steps = new Map()
     this.interactionNodes = new Map()
-    this.previewText = ""
   }
 
   element() {
@@ -63,43 +97,31 @@ export class ChatStreamPanel {
     const key = `${event.step_key}:${event.role}:${event.model || ""}`
     let node = this.interactionNodes.get(key)
 
-    if (!node || !event.append) {
+    if (!node) {
       node = this.createInteractionNode(event)
       this.interactionsEl.append(node)
       this.interactionNodes.set(key, node)
+      this.followInteraction(event.role, node)
       return
     }
 
     const body = node.querySelector(".kb-ai-chat-interaction-body")
-    if (body) body.textContent += event.text || ""
-  }
+    if (!body) return
 
-  appendAssistantDelta(text, { thinking = false } = {}) {
-    const chunk = String(text ?? "")
-    if (!chunk) return
-
-    if (thinking) {
-      const key = "assistant:thinking"
-      let node = this.interactionNodes.get(key)
-      if (!node) {
-        node = this.createInteractionNode({
-          step_key: "assistant",
-          role: "thinking",
-          model: null,
-          text: chunk
-        })
-        this.interactionsEl.append(node)
-        this.interactionNodes.set(key, node)
-      } else {
-        const body = node.querySelector(".kb-ai-chat-interaction-body")
-        if (body) body.textContent += chunk
-      }
-      return
+    if (event.append) {
+      body.textContent += event.text || ""
+    } else {
+      body.textContent = event.text || ""
     }
 
-    this.previewEl.classList.remove("hidden")
-    this.previewText += chunk
-    this.previewEl.textContent = this.previewText
+    this.followInteraction(event.role, node)
+  }
+
+  followInteraction(role, node) {
+    if (!FOLLOW_ROLES.has(role)) return
+
+    const body = node.querySelector(".kb-ai-chat-interaction-body")
+    scrollInteractionBodyToEnd(body, { intoView: role === "response" })
   }
 
   renderSteps() {
@@ -139,10 +161,12 @@ export class ChatStreamPanel {
     }
   }
 
-  createInteractionNode(event) {
+  createInteractionNode(event, { expanded = null } = {}) {
     const item = document.createElement("details")
     item.className = "kb-ai-chat-interaction"
-    item.open = event.role === "response" || event.role === "thinking"
+    item.open =
+      expanded ??
+      (event.role === "response" || event.role === "thinking" || event.role === "request")
 
     const summary = document.createElement("summary")
     summary.className = "kb-ai-chat-interaction-summary"
@@ -159,6 +183,13 @@ export class ChatStreamPanel {
 
     const body = document.createElement("pre")
     body.className = "kb-ai-chat-interaction-body"
+    if (FOLLOW_ROLES.has(event.role)) {
+      body.classList.add("kb-ai-chat-interaction-body-follow")
+      body.dataset.controller = "interaction-autoscroll"
+      if (event.role === "response") {
+        body.dataset.interactionAutoscrollIntoViewValue = "true"
+      }
+    }
     body.textContent = event.text || ""
 
     item.append(summary, body)
@@ -166,13 +197,13 @@ export class ChatStreamPanel {
   }
 }
 
-export function buildInteractionLog(interactions) {
+export function buildInteractionLog(interactions, { expanded = false } = {}) {
   const container = document.createElement("div")
   container.className = "kb-ai-chat-interactions"
 
+  const panel = new ChatStreamPanel()
   for (const entry of interactions || []) {
-    const panel = new ChatStreamPanel()
-    container.append(panel.createInteractionNode(entry))
+    container.append(panel.createInteractionNode(entry, { expanded }))
   }
 
   return container

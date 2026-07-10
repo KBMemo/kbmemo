@@ -28,6 +28,7 @@ Rails.application.routes.draw do
 
   resource :chat_server, only: %i[show update], controller: "chat_servers" do
     post :health_check
+    post :list_models
   end
 
   resource :profile, only: %i[edit update] do
