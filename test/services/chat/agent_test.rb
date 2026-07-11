@@ -276,23 +276,33 @@ module Chat
       assert_includes system_content(factory.seen[:main]), "sky"
     end
 
-    test "image attachments boost router to local image analysis for conversation intent" do
+    test "image attachments boost router and still run ui-enabled web_search" do
       ulid = "01JABCDEFGHJKMNPQRSTVWXYZ0"
+      client = Object.new
+      client.define_singleton_method(:configured?) { true }
+      client.define_singleton_method(:call_tool) do |name:, arguments:|
+        { "results" => [{ "title" => "News" }] }
+      end
+      mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
+
       factory = RecordingFactory.new
       a = Chat::Agent.new(
         classifier: StubClassifier.new(intent("conversation")),
         client_factory: factory,
-        image_analysis: stub_image_analysis(description: "blue sky", media_id: ulid)
+        image_analysis: stub_image_analysis(description: "blue sky", media_id: ulid),
+        mcp_runner: mcp_runner,
+        mcp_loop: mcp_loop_for(mcp_runner)
       )
       result = a.call(
-        messages: [ { role: "user", content: "この写真を説明して" } ],
+        messages: [ { role: "user", content: "この写真の製品を Web で調べて" } ],
         account: accounts(:one),
         enabled_mcp_tools: [ "web_search" ],
         image_attachments: [ { tsuzura_media_id: ulid } ]
       )
 
-      assert_nil result.mcp
+      assert_equal [ "web_search" ], result.mcp.tools_run
       assert_includes system_content(factory.seen[:main]), "blue sky"
+      assert_includes system_content(factory.seen[:main]), "web_search"
     end
 
     test "image attachments run local image analysis" do
@@ -334,23 +344,35 @@ module Chat
       assert_includes system_content(factory.seen[:main]), "a cat"
     end
 
-    test "image_analysis intent does not run ui-enabled web_search" do
+    test "image_analysis intent runs ui-enabled web_search alongside local vision" do
       ulid = "01JABCDEFGHJKMNPQRSTVWXYZ0"
+      client = Object.new
+      client.define_singleton_method(:configured?) { true }
+      client.define_singleton_method(:call_tool) do |name:, arguments:|
+        { "results" => [{ "title" => "Product info" }] }
+      end
+      mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
+
       factory = RecordingFactory.new
       a = Chat::Agent.new(
         classifier: StubClassifier.new(intent("image_analysis")),
         client_factory: factory,
-        image_analysis: stub_image_analysis(description: "a cat", media_id: ulid)
+        image_analysis: stub_image_analysis(description: "a cat", media_id: ulid),
+        mcp_runner: mcp_runner,
+        mcp_loop: mcp_loop_for(mcp_runner)
       )
       result = a.call(
-        messages: [ { role: "user", content: "何が写っていますか？" } ],
+        messages: [ { role: "user", content: "何が写っていますか？製品情報も Web で調べて" } ],
         account: accounts(:one),
         enabled_mcp_tools: [ "web_search", "analyze_image" ],
         image_attachments: [ { tsuzura_media_id: ulid } ]
       )
 
-      assert_nil result.mcp
+      assert_equal [ "web_search" ], result.mcp.tools_run
+      refute_includes result.mcp.tools_run, "analyze_image"
       refute result.pending_tools
+      assert_includes system_content(factory.seen[:main]), "a cat"
+      assert_includes system_content(factory.seen[:main]), "web_search"
     end
 
     test "empty enabled_mcp_tools disables optional nyoy mcp" do

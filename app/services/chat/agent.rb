@@ -219,15 +219,8 @@ module Chat
       end.uniq
     end
 
-    def intent_assigned_local_tools?(decision)
-      decision.tools.intersect?(%i[image_analysis rag_search memo_search])
-    end
-
     def run_mcp_tools(decision, user_text, intent:, trace:)
-      mcp_names = @intent_mcp_names.dup
-      if mcp_names.empty? && !intent_assigned_local_tools?(decision)
-        mcp_names = extra_enabled_mcp_names([])
-      end
+      mcp_names = merge_mcp_tool_names(decision)
       return nil if mcp_names.empty?
       return nil if @enabled_mcp_tools == [] && @intent_mcp_names.empty?
 
@@ -263,6 +256,23 @@ module Chat
 
         name
       end.uniq
+    end
+
+    def merge_mcp_tool_names(decision)
+      names = @intent_mcp_names.dup
+      names.concat(extra_enabled_mcp_names(names))
+      names.uniq!
+      names.reject! { |name| redundant_mcp_tool?(name, decision) }
+      names
+    end
+
+    # 徒然内 vision で解析する場合、Nyoy analyze_image は二重実行になるため除外する。
+    def redundant_mcp_tool?(mcp_name, decision)
+      return false unless mcp_name == "analyze_image"
+      return false unless decision.tools.include?(:image_analysis)
+      return false if @image_attachments.blank?
+
+      true
     end
 
     def run_image_analysis_tool(decision, user_text, account, trace:)
