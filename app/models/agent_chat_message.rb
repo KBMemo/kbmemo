@@ -71,6 +71,10 @@ class AgentChatMessage < ApplicationRecord
         meta = ui_meta
         entry[:meta] = meta if meta.present?
       end
+      if metadata["pending_tools"]
+        entry[:pending_tools] = true
+        entry[:pending_tool_names] = metadata["pending_tool_names"] if metadata["pending_tool_names"].present?
+      end
     end
     entry
   end

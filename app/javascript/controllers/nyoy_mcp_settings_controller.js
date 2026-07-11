@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { csrfFetchHeaders, jsonRequestHeaders, withAuthenticityToken } from "../lib/csrf_fetch"
 
 export default class extends Controller {
   static targets = ["testButton", "resultPanel", "resultMessage", "toolsList"]
@@ -27,16 +28,11 @@ export default class extends Controller {
     }
 
     try {
-      const token = document.querySelector('meta[name="csrf-token"]')?.content
       const res = await fetch(this.testUrlValue, {
         method: "POST",
         credentials: "same-origin",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          ...(token ? { "X-CSRF-Token": token } : {})
-        },
-        body: JSON.stringify(this.collectFormSettings())
+        headers: jsonRequestHeaders(),
+        body: JSON.stringify(withAuthenticityToken(this.collectFormSettings()))
       })
 
       const body = await res.json()

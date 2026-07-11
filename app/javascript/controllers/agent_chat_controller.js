@@ -3,6 +3,12 @@ import { subscribeAgentChat } from "../lib/agent_chat_cable"
 import { appendChatMarkdown } from "../lib/chat_markdown"
 import { buildChatStats, buildChatSteps } from "../lib/chat_activity"
 import {
+  csrfFetchHeaders,
+  isCsrfErrorResponse,
+  jsonRequestHeaders,
+  withAuthenticityToken
+} from "../lib/csrf_fetch"
+import {
   buildInteractionLog,
   ChatStreamPanel,
   resolveAssistantReply
@@ -33,6 +39,7 @@ export default class extends Controller {
     chatUrl: String,
     newChatUrl: String,
     settingsUrl: String,
+    nyoyMcpUrl: String,
     conversationId: String,
     nyoyToolsUrl: String,
     nyoyConfigured: Boolean,
@@ -42,6 +49,14 @@ export default class extends Controller {
   }
 
   static storageKey = "agent_chat_enabled_mcp_tools"
+
+  static pendingToolLabels = {
+    web_search: "Web 検索",
+    fetch_url: "URL 取得",
+    image_generation: "画像生成",
+    image_analysis: "画像解析",
+    memo_add: "メモ作成"
+  }
 
   connect() {
     this.history = this.readInitialMessages()
@@ -331,22 +346,17 @@ export default class extends Controller {
     this.turnFinalized = false
 
     try {
-      const token = document.querySelector('meta[name="csrf-token"]')?.content
       const res = await fetch(this.chatUrlValue, {
         method: "POST",
         credentials: "same-origin",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          ...(token ? { "X-CSRF-Token": token } : {})
-        },
-        body: JSON.stringify({
+        headers: jsonRequestHeaders(),
+        body: JSON.stringify(withAuthenticityToken({
           messages: this.history,
           conversation_id: this.conversationIdValue || null,
           turn_id: turnId,
           enabled_mcp_tools: this.enabledMcpTools,
           attachments
-        })
+        }))
       })
 
       const data = await res.json().catch(() => ({}))
@@ -361,9 +371,13 @@ export default class extends Controller {
       if (!res.ok) {
         this.stopActivityTracker()
         this.renderMessages()
-        this.showError(data.error || "AI との通信に失敗しました。", {
-          settingsUrl: data.settings_url
-        })
+        if (isCsrfErrorResponse(res.status, data)) {
+          this.showError(data.error, { reload: true })
+        } else {
+          this.showError(data.error || "AI との通信に失敗しました。", {
+            settingsUrl: data.settings_url
+          })
+        }
         return
       }
 
@@ -432,7 +446,11 @@ export default class extends Controller {
     this.history.push({
       role: "assistant",
       content: reply,
-      activity: payload.trace || null
+      activity: payload.trace || null,
+      pending_tools: Boolean(payload.pending_tools),
+      pending_tool_names: Array.isArray(payload.pending_tool_names)
+        ? payload.pending_tool_names.map(String)
+        : []
     })
     this.turnFinalized = true
     this.activeTurnId = null
@@ -454,7 +472,6 @@ export default class extends Controller {
 
     if (this.conversationIdValue) {
       try {
-        const token = document.querySelector('meta[name="csrf-token"]')?.content
         const url = new URL(this.chatUrlValue, window.location.origin)
         url.searchParams.set("conversation_id", this.conversationIdValue)
         const res = await fetch(url.toString(), {
@@ -462,7 +479,7 @@ export default class extends Controller {
           credentials: "same-origin",
           headers: {
             Accept: "application/json",
-            ...(token ? { "X-CSRF-Token": token } : {})
+            ...csrfFetchHeaders()
           }
         })
         if (res.ok && this.hasNewChatUrlValue) {
@@ -582,7 +599,79 @@ export default class extends Controller {
 
     wrapper.append(bubble)
 
+    if (!isUser && entry.pending_tools) {
+      wrapper.append(this.pendingToolsNoticeNode(entry))
+    }
+
     return wrapper
+  }
+
+  pendingToolsNoticeNode(entry) {
+    const notice = document.createElement("div")
+    notice.className = "kb-ai-chat-pending-tools"
+    notice.setAttribute("role", "status")
+
+    const title = document.createElement("p")
+    title.className = "kb-ai-chat-pending-tools-title"
+    title.textContent = "外部ツールは実行されませんでした"
+    notice.append(title)
+
+    const body = document.createElement("p")
+    body.className = "kb-ai-chat-pending-tools-body"
+    body.textContent = this.pendingToolsMessage(entry)
+    notice.append(body)
+
+    const actions = document.createElement("div")
+    actions.className = "kb-ai-chat-pending-tools-actions"
+
+    if (!this.nyoyConfiguredValue && this.hasNyoyMcpUrlValue) {
+      const settingsLink = document.createElement("a")
+      settingsLink.href = this.nyoyMcpUrlValue
+      settingsLink.className = "kb-chrome-btn-secondary kb-btn-xs underline"
+      settingsLink.textContent = "Nyoy MCP 設定を開く"
+      actions.append(settingsLink)
+    } else if (this.hasMcpToolsPanelTarget) {
+      const openTools = document.createElement("button")
+      openTools.type = "button"
+      openTools.className = "kb-chrome-btn-secondary kb-btn-xs"
+      openTools.textContent = "Nyoy MCP ツールを選ぶ"
+      openTools.addEventListener("click", () => this.openMcpToolsPanel())
+      actions.append(openTools)
+    }
+
+    if (actions.childElementCount > 0) {
+      notice.append(actions)
+    }
+
+    return notice
+  }
+
+  pendingToolsMessage(entry) {
+    const names = Array.isArray(entry.pending_tool_names) ? entry.pending_tool_names : []
+    const labels = names.map((name) => this.constructor.pendingToolLabels[name] || name)
+    const toolPart =
+      labels.length > 0 ? `（${labels.join("、")}）` : ""
+
+    if (!this.nyoyConfiguredValue) {
+      return `この応答には Nyoy MCP 経由のツール${toolPart}が必要ですが、接続設定がありません。URL と API トークンを保存してください。`
+    }
+
+    if (names.includes("image_analysis")) {
+      return `画像解析${toolPart}には画像の添付が必要です。ローカル添付または葛籠から選んでから再送信してください。`
+    }
+
+    return `Nyoy MCP のツール${toolPart}が無効か、実行できませんでした。下の「Nyoy MCP ツール」で有効化するか、設定を確認してください。`
+  }
+
+  openMcpToolsPanel() {
+    if (!this.hasMcpToolsPanelTarget) return
+
+    this.mcpToolsPanelTarget.open = true
+    this.mcpToolsPanelTarget.scrollIntoView({ block: "nearest", behavior: "smooth" })
+
+    if (this.nyoyTools.length === 0 && this.nyoyConfiguredValue && this.nyoyToolsUrlValue) {
+      this.fetchNyoyTools()
+    }
   }
 
   appendTextWithLineBreaks(container, text) {
@@ -618,6 +707,16 @@ export default class extends Controller {
       this.errorTarget.append(link)
     }
 
+    if (options.reload) {
+      this.errorTarget.append(" ")
+      const reload = document.createElement("button")
+      reload.type = "button"
+      reload.className = "underline"
+      reload.textContent = "再読み込み"
+      reload.addEventListener("click", () => window.location.reload())
+      this.errorTarget.append(reload)
+    }
+
     this.errorTarget.classList.remove("hidden")
   }
 
@@ -649,7 +748,6 @@ export default class extends Controller {
       throw new Error("画像アップロード URL が未設定です。")
     }
 
-    const token = document.querySelector('meta[name="csrf-token"]')?.content
     const body = new FormData()
     body.append("file", file)
 
@@ -658,7 +756,7 @@ export default class extends Controller {
       credentials: "same-origin",
       headers: {
         Accept: "application/json",
-        ...(token ? { "X-CSRF-Token": token } : {})
+        ...csrfFetchHeaders()
       },
       body
     })

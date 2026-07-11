@@ -10,6 +10,7 @@ class ApplicationController < ActionController::Base
   after_action :set_csrf_token_header
 
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
+  rescue_from ActionController::InvalidAuthenticityToken, with: :invalid_authenticity_token
 
   private
 
@@ -28,6 +29,19 @@ class ApplicationController < ActionController::Base
     end
 
     flash[:alert] = "権限がありません。"
+    redirect_back(fallback_location: root_path, allow_other_host: false)
+  end
+
+  def invalid_authenticity_token
+    if json_request?
+      render json: {
+        error: "セッションの確認に失敗しました。ページを再読み込みしてからもう一度お試しください。",
+        code: "csrf_token_invalid"
+      }, status: :unprocessable_entity
+      return
+    end
+
+    flash[:alert] = "セッションの確認に失敗しました。もう一度お試しください。"
     redirect_back(fallback_location: root_path, allow_other_host: false)
   end
 

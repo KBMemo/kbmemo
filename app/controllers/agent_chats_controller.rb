@@ -130,6 +130,7 @@ class AgentChatsController < ApplicationController
       model_role: result.model_role,
       escalated: result.escalated,
       pending_tools: result.pending_tools,
+      pending_tool_names: Array(result.pending_tool_names).map(&:to_s),
       conversation_id: conversation.id
     }
 

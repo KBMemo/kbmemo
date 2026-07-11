@@ -2,6 +2,7 @@ import "../styles/application.css"
 
 import "../../javascript/trusted_types_default_policy.js"
 import "@hotwired/turbo-rails"
+import { csrfFetchHeaders } from "@kbmemo/adoc-kbmemo"
 import "../../javascript/controllers"
 import { initUserInvalidAriaSync } from "../../javascript/forms/user_invalid_aria.js"
 import { highlightMemoBodies } from "../../javascript/memo_body_highlight.js"
@@ -63,6 +64,16 @@ function refreshCsrfFromResponse(response) {
 document.addEventListener("turbo:before-fetch-response", (event) => {
   const response = event.detail?.fetchResponse?.response
   if (response) refreshCsrfFromResponse(response)
+})
+
+document.addEventListener("turbo:before-fetch-request", (event) => {
+  const headers = csrfFetchHeaders()
+  if (!headers["X-CSRF-Token"]) return
+
+  event.detail.fetchOptions.headers = {
+    ...event.detail.fetchOptions.headers,
+    ...headers
+  }
 })
 
 const nativeFetch = window.fetch.bind(window)

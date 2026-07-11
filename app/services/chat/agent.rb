@@ -16,7 +16,7 @@ module Chat
 
     Result = Struct.new(
       :reply, :intent, :classification, :model_role, :escalated, :tools, :pending_tools,
-      :rag, :mcp, :trace, :interactions, keyword_init: true
+      :pending_tool_names, :rag, :mcp, :trace, :interactions, keyword_init: true
     )
 
     TraceBroadcaster = Struct.new(:ui) do
@@ -124,6 +124,7 @@ module Chat
     private
 
     def build_result(reply:, classification:, decision:, model_role:, escalated:, rag:, mcp:, user_text:, trace:, interactions:)
+      pending_names = pending_tool_names(decision, mcp: mcp, user_text: user_text)
       Result.new(
         reply: reply,
         intent: classification.intent,
@@ -131,7 +132,8 @@ module Chat
         model_role: model_role,
         escalated: escalated,
         tools: decision.tools,
-        pending_tools: pending_tools?(decision, mcp: mcp, user_text: user_text),
+        pending_tools: pending_names.any?,
+        pending_tool_names: pending_names,
         rag: rag,
         mcp: mcp,
         trace: trace,
@@ -182,15 +184,15 @@ module Chat
       )
     end
 
-    def pending_tools?(decision, mcp:, user_text:)
-      decision.tools.any? do |tool|
-        next false if tool == :image_analysis && @image_analysis_result&.context_text.present?
-        next false if (IMPLEMENTED_TOOLS - [ :image_analysis ]).include?(tool)
-        next false unless delegated_tool_enabled?(tool)
-        next false if mcp&.tools_run&.include?(tool) || mcp_tool_ran?(mcp, tool)
-        next false if mcp_runner.optional_skip?(tool, user_text: user_text)
+    def pending_tool_names(decision, mcp:, user_text:)
+      decision.tools.filter_map do |tool|
+        next if tool == :image_analysis && @image_analysis_result&.context_text.present?
+        next if (IMPLEMENTED_TOOLS - [ :image_analysis ]).include?(tool)
+        next unless delegated_tool_enabled?(tool)
+        next if mcp_tool_ran?(mcp, tool)
+        next if mcp_runner.optional_skip?(tool, user_text: user_text)
 
-        true
+        tool
       end
     end
 

@@ -73,6 +73,7 @@ module AgentChat
       metadata = {
         "escalated" => result.escalated,
         "pending_tools" => result.pending_tools,
+        "pending_tool_names" => Array(result.pending_tool_names).map(&:to_s),
         "tools" => Array(result.tools).map(&:to_s)
       }
 

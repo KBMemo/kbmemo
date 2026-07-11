@@ -112,6 +112,7 @@ module Chat
 
       assert_equal :main, result.model_role
       assert result.pending_tools
+      assert_equal [ :image_generation ], result.pending_tool_names
       assert_includes result.tools, :image_generation
       assert_equal [ :main ], factory.calls
     end

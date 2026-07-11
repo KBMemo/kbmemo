@@ -307,6 +307,7 @@ Phase 3–7 の横断ツールは **Nyoy MCP へ委譲**し、徒然 in-app で�
 * `Chat::Tools::NyoyMcpRunner` — Router の委譲ツール（`web_search` / `fetch_url` / `generate_image` 等）を実行し結果を system コンテキストへ注入。
 * `Chat::Agent` — 徒然内 RAG の後に MCP ツールを実行。`fetch_url` は URL 未検出時はスキップ（pending にしない）。`image_analysis` / `memo_add` は引き続き pending。
 * 未設定時は従来どおり `pending_tools: true`（MCP 未接続と同じ挙動）。
+* **pending_tools UI** — 未実行ツール名を `pending_tool_names` で返し、assistant 応答下に Nyoy MCP 設定／ツール有効化の案内を表示。
 
 [[agent-ui]]
 == 6.6. 独立チャット画面 — 2026-07 完了

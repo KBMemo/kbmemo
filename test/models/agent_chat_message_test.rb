@@ -42,5 +42,25 @@ class AgentChatMessageTest < ActiveSupport::TestCase
     assert_equal "回答", entry[:content]
     assert_includes entry[:meta], "intent: chat"
     assert_includes entry[:meta], "tools: pending"
+    assert entry[:pending_tools]
+  end
+
+  test "as_ui_entry includes pending tool names when stored" do
+    conversation = accounts(:one).agent_chat_conversations.create!
+    message = conversation.messages.create!(
+      role: "assistant",
+      content: "回答",
+      intent: "image_generation",
+      model_role: "main",
+      metadata: {
+        "pending_tools" => true,
+        "pending_tool_names" => [ "image_generation" ],
+        "trace" => { "steps" => [] }
+      }
+    )
+
+    entry = message.as_ui_entry
+    assert entry[:pending_tools]
+    assert_equal [ "image_generation" ], entry[:pending_tool_names]
   end
 end
