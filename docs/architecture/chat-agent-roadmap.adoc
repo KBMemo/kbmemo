@@ -298,6 +298,7 @@ Phase 3–7 の横断ツールは **Nyoy MCP へ委譲**し、徒然 in-app で�
 * `AgentChat::ConversationStore` — アカウント単位の会話取得・ターン追記・履歴消去。
 * `AgentChatsController` — `create` で user/assistant を永続化、`show` で直近会話を UI へ復元、`destroy` で履歴消去。
 * Stimulus `agent-chat` — `conversation_id` 付き POST、DELETE でサーバ側クリア。ページ再読込で履歴復元。
+* **会話一覧 UI** — サイドバーに `updated_at` 降順のスレッド一覧。`?conversation_id=` で切替、`?new=1` で新規チャット。「この会話を削除」後は新規画面へ遷移。
 
 === Phase 9 実装メモ（完了）
 

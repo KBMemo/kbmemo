@@ -1,0 +1,17 @@
+nav.agent-chat-sidebar.kb-ai-panel.kb-chrome-panel.flex.min-h-0.flex-col.overflow-hidden.rounded-lg.border aria-label="会話一覧"
+  .flex.shrink-0.items-center.justify-between.gap-2.border-b.kb-border.px-3.py-2
+    h2.text-sm.font-medium.kb-text-primary 会話
+    = link_to "新規", agent_chat_path(new: 1), class: "kb-chrome-btn-secondary kb-btn-xs #{'is-active' if @new_chat}", data: { turbo_frame: "_top" }
+
+  ol.agent-chat-conversation-list.min-h-0.flex-1.list-none.overflow-y-auto.p-2
+    - if @conversations.empty?
+      li.px-2.py-3.text-xs.kb-text-muted まだ会話がありません。
+    - else
+      - @conversations.each do |conversation|
+        li
+          = link_to agent_chat_path(conversation_id: conversation.id),
+            class: "agent-chat-conversation-link #{'is-active' if !@new_chat && @conversation_id == conversation.id}",
+            data: { turbo_frame: "_top" } do
+            span.agent-chat-conversation-title = conversation.display_title
+            time.agent-chat-conversation-time datetime=conversation.updated_at.iso8601
+              = agent_chat_conversation_list_time(conversation.updated_at)

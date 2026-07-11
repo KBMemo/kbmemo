@@ -8,7 +8,20 @@ module AgentChat
     end
 
     def active_conversation
-      @account.agent_chat_conversations.order(updated_at: :desc).first
+      @account.agent_chat_conversations.recent_first.first
+    end
+
+    def list_recent(limit: 40)
+      @account.agent_chat_conversations.recent_first.limit(limit)
+    end
+
+    def conversation_for_show(conversation_id:, new_chat:)
+      return nil if ActiveModel::Type::Boolean.new.cast(new_chat)
+
+      conversation = find_conversation(conversation_id)
+      return conversation if conversation_id.present?
+
+      active_conversation
     end
 
     def find_conversation(conversation_id)

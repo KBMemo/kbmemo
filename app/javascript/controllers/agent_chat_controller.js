@@ -31,6 +31,7 @@ export default class extends Controller {
 
   static values = {
     chatUrl: String,
+    newChatUrl: String,
     settingsUrl: String,
     conversationId: String,
     nyoyToolsUrl: String,
@@ -456,7 +457,7 @@ export default class extends Controller {
         const token = document.querySelector('meta[name="csrf-token"]')?.content
         const url = new URL(this.chatUrlValue, window.location.origin)
         url.searchParams.set("conversation_id", this.conversationIdValue)
-        await fetch(url.toString(), {
+        const res = await fetch(url.toString(), {
           method: "DELETE",
           credentials: "same-origin",
           headers: {
@@ -464,6 +465,10 @@ export default class extends Controller {
             ...(token ? { "X-CSRF-Token": token } : {})
           }
         })
+        if (res.ok && this.hasNewChatUrlValue) {
+          window.location.assign(this.newChatUrlValue)
+          return
+        }
       } catch {
         // ローカル表示は消す。サーバ削除失敗時も UI はリセットする。
       }

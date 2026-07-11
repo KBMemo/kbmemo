@@ -6,11 +6,17 @@ class AgentChatsController < ApplicationController
   def show
     authorize :agent_chat, :show?
 
+    account = rodauth.rails_account
     store = conversation_store
-    @conversation = store.active_conversation
+    @conversations = store.list_recent
+    @conversation = store.conversation_for_show(
+      conversation_id: params[:conversation_id],
+      new_chat: params[:new]
+    )
+    @new_chat = ActiveModel::Type::Boolean.new.cast(params[:new])
     @initial_messages = store.ui_messages(@conversation)
     @conversation_id = @conversation&.id
-    @nyoy_mcp_configured = Chat::NyoyMcpConfig.configured?(account: rodauth.rails_account)
+    @nyoy_mcp_configured = Chat::NyoyMcpConfig.configured?(account: account)
   end
 
   def nyoy_tools

@@ -36,6 +36,17 @@ class AgentChatConversation < ApplicationRecord
 
   validates :title, length: { maximum: TITLE_MAX_LENGTH }, allow_blank: true
 
+  scope :recent_first, -> { order(updated_at: :desc) }
+
+  def display_title(fallback: "無題の会話")
+    return title if title.present?
+
+    preview = messages.where(role: "user").order(:created_at, :id).pick(:content).to_s.strip
+    return preview.truncate(TITLE_MAX_LENGTH, omission: "…") if preview.present?
+
+    fallback
+  end
+
   def assign_title_from!(text)
     return if title.present?
 

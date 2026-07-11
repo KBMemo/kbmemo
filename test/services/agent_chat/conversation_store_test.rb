@@ -63,4 +63,25 @@ class AgentChatConversationStoreTest < ActiveSupport::TestCase
       @store.clear!(conversation_id: conversation.id)
     end
   end
+
+  test "list_recent returns conversations newest first" do
+    older = @account.agent_chat_conversations.create!(title: "古い", updated_at: 2.days.ago)
+    newer = @account.agent_chat_conversations.create!(title: "新しい", updated_at: 1.hour.ago)
+
+    listed = @store.list_recent
+    assert_equal [ newer.id, older.id ], listed.map(&:id)
+  end
+
+  test "conversation_for_show honors new chat flag" do
+    @account.agent_chat_conversations.create!(title: "既存")
+
+    assert_nil @store.conversation_for_show(conversation_id: nil, new_chat: true)
+  end
+
+  test "conversation_for_show loads explicit conversation id" do
+    conversation = @account.agent_chat_conversations.create!(title: "指定")
+
+    found = @store.conversation_for_show(conversation_id: conversation.id, new_chat: false)
+    assert_equal conversation.id, found.id
+  end
 end

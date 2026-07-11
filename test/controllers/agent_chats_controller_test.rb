@@ -35,6 +35,33 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "以前の回答"
     assert_includes response.body, "data-agent-chat-target=\"initialMessagesJson\""
     assert_includes response.body, "data-agent-chat-conversation-id-value=\"#{conversation.id}\""
+    assert_includes response.body, "agent-chat-conversation-list"
+    assert_includes response.body, "履歴"
+  end
+
+  test "show loads conversation by id" do
+    older = accounts(:one).agent_chat_conversations.create!(title: "古い", updated_at: 2.days.ago)
+    older.messages.create!(role: "user", content: "古い質問", metadata: {})
+
+    newer = accounts(:one).agent_chat_conversations.create!(title: "新しい", updated_at: 1.hour.ago)
+    newer.messages.create!(role: "user", content: "新しい質問", metadata: {})
+
+    get agent_chat_path(conversation_id: older.id)
+
+    assert_response :success
+    assert_includes response.body, "古い質問"
+    refute_includes response.body, "新しい質問"
+  end
+
+  test "show with new param starts empty chat" do
+    conversation = accounts(:one).agent_chat_conversations.create!(title: "履歴")
+    conversation.messages.create!(role: "user", content: "以前の質問", metadata: {})
+
+    get agent_chat_path(new: 1)
+
+    assert_response :success
+    refute_includes response.body, "以前の質問"
+    assert_includes response.body, 'data-agent-chat-conversation-id-value=""'
   end
 
   test "nyoy_tools returns tool list" do
