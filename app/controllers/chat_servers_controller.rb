@@ -23,7 +23,10 @@ class ChatServersController < ApplicationController
   def health_check
     authorize :chat_server, :health_check?
 
-    results = Chat::ServerHealth.check_all(account: rodauth.rails_account)
+    results = Chat::ServerHealth.check_all(
+      account: rodauth.rails_account,
+      role_overrides: health_check_role_overrides
+    )
     render json: {
       checks: results.map do |result|
         {
@@ -71,5 +74,25 @@ class ChatServersController < ApplicationController
     )
 
     { "roles" => (raw[:roles] || {}).to_h }
+  end
+
+  def health_check_role_overrides
+    raw = params[:chat_server_settings]
+    return nil if raw.blank?
+
+    permitted = if raw.is_a?(ActionController::Parameters)
+      raw.permit(roles: Chat::ServerEndpoints::ROLES.index_with { %i[base_url model] })
+    else
+      ActionController::Parameters.new(raw).permit(
+        roles: Chat::ServerEndpoints::ROLES.index_with { %i[base_url model] }
+      )
+    end
+
+    roles = (permitted[:roles] || {}).to_h.transform_keys(&:to_s).transform_values do |entry|
+      entry.to_h.stringify_keys.slice("base_url", "model")
+    end
+    return nil if roles.empty?
+
+    { "roles" => roles }
   end
 end

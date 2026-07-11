@@ -66,6 +66,42 @@ class ChatServersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "health_check passes form role overrides to server health" do
+    captured = nil
+    original = Chat::ServerHealth.method(:check_all)
+    begin
+      Chat::ServerHealth.define_singleton_method(:check_all) do |**kwargs|
+        captured = kwargs
+        [
+          Chat::ServerHealth::Result.new(
+            role: :intent,
+            base_url: "http://form.test:10010",
+            ok: true,
+            message: "OK (200)",
+            model: "form-model"
+          )
+        ]
+      end
+
+      post health_check_chat_server_url,
+        params: {
+          chat_server_settings: {
+            roles: {
+              intent: { base_url: "http://form.test:10010", model: "form-model" }
+            }
+          }
+        },
+        as: :json
+
+      assert_response :success
+      assert_equal "http://form.test:10010",
+        captured[:role_overrides].dig("roles", "intent", "base_url")
+      assert_equal "form-model", captured[:role_overrides].dig("roles", "intent", "model")
+    ensure
+      Chat::ServerHealth.define_singleton_method(:check_all, original)
+    end
+  end
+
   test "list_models returns model ids from server" do
     original = Chat::ServerModels.method(:list_ids)
     begin

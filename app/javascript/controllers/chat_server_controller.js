@@ -121,8 +121,10 @@ export default class extends Controller {
         credentials: "same-origin",
         headers: {
           Accept: "application/json",
+          "Content-Type": "application/json",
           ...(token ? { "X-CSRF-Token": token } : {})
-        }
+        },
+        body: JSON.stringify(this.collectRoleSettings())
       })
 
       const body = await res.json()
@@ -135,6 +137,21 @@ export default class extends Controller {
         button.textContent = "接続確認"
       }
     }
+  }
+
+  collectRoleSettings() {
+    const roles = {}
+
+    for (const row of this.element.querySelectorAll("tr[data-role]")) {
+      const role = row.dataset.role
+      if (!role) continue
+
+      const baseUrl = row.querySelector('[data-chat-server-target="baseUrl"]')?.value?.trim() || ""
+      const model = row.querySelector('[data-chat-server-target="modelSelect"]')?.value?.trim() || ""
+      roles[role] = { base_url: baseUrl, model: model }
+    }
+
+    return { chat_server_settings: { roles } }
   }
 
   renderHealth(checks) {
