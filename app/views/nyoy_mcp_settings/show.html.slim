@@ -6,7 +6,9 @@
     p.mt-2.text-sm.kb-text-secondary
       | AI チャットから如意（Nyoy）MCP ツール（Web 検索・URL 取得・画像生成など）を呼び出すための接続設定です。
     p.mt-1.text-xs.kb-text-muted
-      | Cursor の .cursor/mcp.json と同じ MCP API トークンを使えます。未入力の項目は credentials / 環境変数（NYOY_MCP_*）にフォールバックします。
+      | Cursor の .cursor/mcp.json と同じ MCP API トークンを使えます。未入力の項目は credentials / 環境変数（NYOY_MCP_*）にフォールバックします。接続確認はフォームの値で試します（保存前でも可）。
+    p.mt-1.text-xs.kb-text-muted
+      | 404 になる場合は URL（末尾 /mcp）と、接続先 Nyoy で MCP_API_TOKEN が設定されているかを確認してください。
 
   - if flash[:notice].present?
     p.mt-4.text-sm.kb-status-success = flash[:notice]
@@ -18,10 +20,14 @@
         .mt-4.space-y-4
           div
             = f.label :nyoy_mcp_url, "MCP URL", class: kb_label
-            = f.url_field :nyoy_mcp_url, class: "#{kb_field_input_classes} w-full font-mono text-sm", placeholder: Chat::NyoyMcpConfig::DEFAULT_URL, autocomplete: "off"
-            p.mt-1.text-xs.kb-text-muted
-              | 現在の有効 URL:
-              =< @effective_url
+            = f.text_field :nyoy_mcp_url, value: @form_mcp_url, class: "#{kb_field_input_classes} w-full font-mono text-sm", placeholder: "https://host.example/mcp", autocomplete: "off", spellcheck: "false", inputmode: "url"
+            - if @url_from_fallback
+              p.mt-1.text-xs.kb-text-muted
+                | アカウント未保存のため、credentials / 環境変数の URL を表示しています。変更して保存するとアカウント設定として記録されます。
+            - else
+              p.mt-1.text-xs.kb-text-muted
+                | 現在の有効 URL:
+                =< @effective_url
           div
             = f.label :nyoy_mcp_api_token, "API トークン", class: kb_label
             - if @account.nyoy_mcp_api_token_configured?

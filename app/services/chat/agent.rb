@@ -9,10 +9,10 @@ module Chat
     MESSAGE_PREVIEW_LIMIT = 3_000
 
     # 徒然内で実行するツール。
-    IMPLEMENTED_TOOLS = %i[rag_search memo_search].freeze
+    IMPLEMENTED_TOOLS = %i[rag_search memo_search image_analysis].freeze
 
-    # Nyoy MCP へ委譲可能なツール（Phase 9）。
-    DELEGATED_TOOLS = Chat::Tools::NyoyMcpRunner::TOOL_MAP.keys.freeze
+    # Nyoy MCP へ委譲可能なツール（image_analysis は徒然内 vision で実行）。
+    DELEGATED_TOOLS = (Chat::Tools::NyoyMcpRunner::TOOL_MAP.keys - %i[image_analysis]).freeze
 
     Result = Struct.new(
       :reply, :intent, :classification, :model_role, :escalated, :tools, :pending_tools,
@@ -30,12 +30,16 @@ module Chat
     # @param rag_search [Chat::Tools::RagSearch, nil]
     # @param mcp_runner [Chat::Tools::NyoyMcpRunner, nil]
     # @param mcp_loop [Chat::Tools::McpToolLoop, nil]
-    def initialize(classifier: nil, client_factory: nil, rag_search: nil, mcp_runner: nil, mcp_loop: nil)
+    # @param image_attachments [Array<Hash>, nil] analyze_image 向け tsuzura_media_id
+    # @param tsuzura_cookie_header [String, nil] Tsuzura 画像取得用 Cookie
+    def initialize(classifier: nil, client_factory: nil, rag_search: nil, mcp_runner: nil, mcp_loop: nil,
+                   image_analysis: nil)
       @classifier = classifier
       @custom_client_factory = client_factory
       @rag_search_factory = rag_search
       @mcp_runner = mcp_runner
       @mcp_loop = mcp_loop
+      @image_analysis_factory = image_analysis
     end
 
     # @param messages [Array<Hash>] { role:, content: }（user/assistant 履歴）
@@ -44,10 +48,15 @@ module Chat
     # @param broadcaster [AgentChat::UiBroadcaster, nil]
     # @return [Chat::Agent::Result]
     # @param enabled_mcp_tools [Array<String>, nil] ユーザーが有効化した Nyoy MCP ツール名
-    def call(messages:, system_prompt: nil, account: nil, broadcaster: nil, enabled_mcp_tools: nil)
+    # @param image_attachments [Array<Hash>, nil] analyze_image 向け tsuzura_media_id
+    def call(messages:, system_prompt: nil, account: nil, broadcaster: nil, enabled_mcp_tools: nil,
+             image_attachments: nil, tsuzura_cookie_header: nil)
       @account = account
       @broadcaster = broadcaster
+      @tsuzura_cookie_header = tsuzura_cookie_header.to_s
       @enabled_mcp_tools = normalize_enabled_mcp_tools(enabled_mcp_tools)
+      @image_attachments = AgentChat::ImageAttachments.normalize(image_attachments)
+      @image_analysis_result = nil
       @interaction_log = Chat::AgentInteractionLog.new(broadcaster: broadcaster)
       trace = Chat::AgentTrace.new(broadcaster: broadcaster && TraceBroadcaster.new(broadcaster))
       broadcaster&.turn_started
@@ -60,7 +69,8 @@ module Chat
         trace.finish_step_detail(intent_step_detail(result))
         result
       end
-      decision = Chat::Router.decide(classification)
+      decision = boost_decision_for_image_attachments(Chat::Router.decide(classification))
+      @intent_mcp_names = router_assigned_nyoy_tools(decision)
 
       return build_result(
         reply: nil, classification: classification, decision: decision,
@@ -69,6 +79,8 @@ module Chat
       ) if user_text.blank?
 
       rag_result = run_rag_tool(decision, user_text, account, trace: trace)
+      image_analysis_result = run_image_analysis_tool(decision, user_text, account, trace: trace)
+      @image_analysis_result = image_analysis_result
       mcp_result = run_mcp_tools(decision, user_text, intent: classification.intent, trace: trace)
 
       primary_role = chat_role(decision.model_role)
@@ -76,7 +88,8 @@ module Chat
         trace.finish_step_detail(model_label_for(primary_role))
         generate(
           primary_role, system_prompt, classification.intent, history,
-          rag_result: rag_result, mcp_result: mcp_result, step_key: trace.current_step_key
+          rag_result: rag_result, image_analysis_result: image_analysis_result, mcp_result: mcp_result,
+          step_key: trace.current_step_key
         )
       end
 
@@ -95,7 +108,8 @@ module Chat
           trace.finish_step_detail(model_label_for(final_role))
           generate(
             final_role, system_prompt, classification.intent, history,
-            rag_result: rag_result, mcp_result: mcp_result, step_key: trace.current_step_key
+            rag_result: rag_result, image_analysis_result: image_analysis_result, mcp_result: mcp_result,
+            step_key: trace.current_step_key
           )
         end
       end
@@ -127,26 +141,51 @@ module Chat
 
     def classify_intent(user_text, account:, step_key:)
       model = model_label_for(:intent)
+      classification_text = intent_classification_text(user_text)
       @interaction_log.record(
         step_key: step_key,
         role: "request",
         model: model,
         text: messages_preview([
           { role: "system", content: Chat::Prompts::INTENT_CLASSIFIER },
-          { role: "user", content: user_text }
+          { role: "user", content: classification_text }
         ])
       )
 
-      result = classifier.classify(user_text, account: account, stream: @broadcaster.present?) do |delta|
+      result = classifier.classify(classification_text, account: account, stream: @broadcaster.present?) do |delta|
         record_model_delta(step_key: step_key, model: model, delta: delta)
       end
 
       result
     end
 
+    def intent_classification_text(user_text)
+      text = user_text.to_s.strip
+      return text if @image_attachments.blank?
+
+      labels = @image_attachments.map { |attachment| attachment.filename.presence || attachment.tsuzura_media_id }
+      [ text, "", "（画像添付あり: #{labels.join(', ')}）" ].join("\n")
+    end
+
+    def boost_decision_for_image_attachments(decision)
+      return decision if @image_attachments.blank?
+      return decision if decision.tools.include?(:image_analysis)
+
+      tools = decision.tools.dup << :image_analysis
+      role = decision.model_role
+      role = :vision if role == :fast_chat || role.nil?
+
+      Chat::Router::Decision.new(
+        intent: decision.intent,
+        model_role: role,
+        tools: tools
+      )
+    end
+
     def pending_tools?(decision, mcp:, user_text:)
       decision.tools.any? do |tool|
-        next false if IMPLEMENTED_TOOLS.include?(tool)
+        next false if tool == :image_analysis && @image_analysis_result&.context_text.present?
+        next false if (IMPLEMENTED_TOOLS - [ :image_analysis ]).include?(tool)
         next false unless delegated_tool_enabled?(tool)
         next false if mcp&.tools_run&.include?(tool) || mcp_tool_ran?(mcp, tool)
         next false if mcp_runner.optional_skip?(tool, user_text: user_text)
@@ -163,30 +202,41 @@ module Chat
     end
 
     def delegated_tool_enabled?(tool)
-      return true if @enabled_mcp_tools.nil?
-
       mcp_name = Chat::Tools::NyoyMcpRunner::TOOL_MAP[tool]
       return false unless mcp_name
+
+      return true if @intent_mcp_names&.include?(mcp_name)
+      return true if @enabled_mcp_tools.nil?
 
       @enabled_mcp_tools.include?(mcp_name)
     end
 
-    def run_mcp_tools(decision, user_text, intent:, trace:)
-      router_mcp_names = decision.tools.filter_map do |tool|
+    def router_assigned_nyoy_tools(decision)
+      decision.tools.filter_map do |tool|
         next unless DELEGATED_TOOLS.include?(tool)
-        next unless delegated_tool_enabled?(tool)
 
         Chat::Tools::NyoyMcpRunner::TOOL_MAP[tool]
       end.uniq
-      mcp_names = (router_mcp_names + extra_enabled_mcp_names(router_mcp_names)).uniq
+    end
+
+    def intent_assigned_local_tools?(decision)
+      decision.tools.intersect?(%i[image_analysis rag_search memo_search])
+    end
+
+    def run_mcp_tools(decision, user_text, intent:, trace:)
+      mcp_names = @intent_mcp_names.dup
+      if mcp_names.empty? && !intent_assigned_local_tools?(decision)
+        mcp_names = extra_enabled_mcp_names([])
+      end
       return nil if mcp_names.empty?
-      return nil if @enabled_mcp_tools == []
+      return nil if @enabled_mcp_tools == [] && @intent_mcp_names.empty?
 
       trace.run(:mcp_tools, "外部ツール（Nyoy MCP）") do
         result = mcp_tool_loop.call(
           user_text: user_text,
           intent: intent,
-          candidate_tools: mcp_names
+          candidate_tools: mcp_names,
+          image_attachments: AgentChat::ImageAttachments.as_json(@image_attachments)
         )
         @interaction_log.tool_context(
           step_key: :mcp_tools,
@@ -215,9 +265,44 @@ module Chat
       end.uniq
     end
 
+    def run_image_analysis_tool(decision, user_text, account, trace:)
+      return nil unless account
+      return nil unless decision.tools.include?(:image_analysis)
+
+      if @image_attachments.blank?
+        return trace.run(:image_analysis, "画像解析") do
+          trace.finish_step_detail("スキップ — 画像を添付してください", status: :skipped)
+          nil
+        end
+      end
+
+      trace.run(:image_analysis, "画像解析") do
+        result = image_analysis_tool.call(
+          user_text: user_text,
+          image_attachments: AgentChat::ImageAttachments.as_json(@image_attachments)
+        )
+        @interaction_log.tool_context(
+          step_key: :image_analysis,
+          label: "画像解析",
+          preview: result.context_text
+        )
+        trace.finish_step_detail(image_analysis_step_detail(result))
+        result
+      rescue Chat::Tools::ImageAnalysis::Error => e
+        trace.finish_step_detail("失敗 — #{e.message.to_s.truncate(80)}", status: :error)
+        nil
+      end
+    end
+
+    def image_analysis_step_detail(result)
+      parts = [ result.tsuzura_media_id.to_s ]
+      parts << "添付 #{@image_attachments.size} 件" if @image_attachments.any?
+      parts.join(" · ")
+    end
+
     def run_rag_tool(decision, user_text, account, trace:)
       return nil unless account
-      return nil unless decision.tools.intersect?(IMPLEMENTED_TOOLS)
+      return nil unless decision.tools.include?(:rag_search)
 
       trace.run(:rag_search, "メモ検索（RAG）") do
         factory = @rag_search_factory || Chat::Tools::RagSearch.new(account: account)
@@ -248,9 +333,27 @@ module Chat
 
     def mcp_step_detail(result)
       run = Array(result.tools_run).map(&:to_s)
-      return "スキップ" if run.empty?
+      parts = if run.any?
+        [ run.join(", ") ]
+      else
+        [ mcp_skip_summary(result) ]
+      end
+      parts << "添付 #{@image_attachments.size} 件" if @image_attachments.any?
+      parts.join(" · ")
+    end
 
-      run.join(", ")
+    def mcp_skip_summary(result)
+      skipped = Array(result.tools_skipped).map(&:to_s).uniq
+      parts = []
+      parts << if skipped.any?
+        "スキップ (#{skipped.join(', ')})"
+      else
+        "スキップ"
+      end
+
+      error = Array(result.errors).first
+      parts << error[:message].to_s.truncate(80) if error.is_a?(Hash) && error[:message].present?
+      parts.join(" — ")
     end
 
     def model_label_for(role)
@@ -259,7 +362,7 @@ module Chat
       role.to_s
     end
 
-    def generate(role, system_prompt, intent, history, rag_result:, mcp_result:, step_key:)
+    def generate(role, system_prompt, intent, history, rag_result:, image_analysis_result:, mcp_result:, step_key:)
       effective = system_prompt.presence || Chat::Prompts.system_for(role: role, intent: intent)
       if rag_result&.context_text.present?
         effective = [
@@ -267,6 +370,13 @@ module Chat
           "検索結果:",
           rag_result.context_text
         ].join("\n\n")
+      end
+      if image_analysis_result&.context_text.present?
+        effective = [
+          effective,
+          "画像解析結果:",
+          image_analysis_result.context_text
+        ].compact.join("\n\n")
       end
       if mcp_result&.context_text.present?
         effective = [
@@ -330,6 +440,13 @@ module Chat
 
     def classifier
       @classifier ||= Chat::IntentClassifier.new
+    end
+
+    def image_analysis_tool
+      @image_analysis_factory || Chat::Tools::ImageAnalysis.new(
+        account: @account,
+        cookie_header: @tsuzura_cookie_header
+      )
     end
 
     def mcp_runner

@@ -141,7 +141,90 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "create returns error when reply blank" do
+    test "create passes attachments from top-level params to agent" do
+      ulid = "01JABCDEFGHJKMNPQRSTVWXYZ0"
+      captured = {}
+      fake_result = Chat::Agent::Result.new(
+        reply: "ok",
+        intent: "image_analysis",
+        classification: nil,
+        model_role: :main,
+        escalated: false,
+        tools: [],
+        pending_tools: false,
+        rag: nil
+      )
+
+      original_new = Chat::Agent.method(:new)
+      begin
+        Chat::Agent.define_singleton_method(:new) do |**_kwargs|
+          Object.new.tap do |o|
+            o.define_singleton_method(:call) do |**kwargs|
+              captured.replace(kwargs)
+              fake_result
+            end
+          end
+        end
+
+        post agent_chat_url,
+          params: {
+            messages: [ { role: "user", content: "この写真は？" } ],
+            attachments: [ { tsuzura_media_id: ulid, filename: "photo.jpg" } ]
+          },
+          as: :json
+
+        assert_response :success
+        assert_equal [ { tsuzura_media_id: ulid, filename: "photo.jpg" } ], captured[:image_attachments]
+      ensure
+        Chat::Agent.define_singleton_method(:new, original_new)
+      end
+    end
+
+    test "create passes attachments embedded in last user message" do
+      ulid = "01JABCDEFGHJKMNPQRSTVWXYZ0"
+      captured = {}
+      fake_result = Chat::Agent::Result.new(
+        reply: "ok",
+        intent: "image_analysis",
+        classification: nil,
+        model_role: :main,
+        escalated: false,
+        tools: [],
+        pending_tools: false,
+        rag: nil
+      )
+
+      original_new = Chat::Agent.method(:new)
+      begin
+        Chat::Agent.define_singleton_method(:new) do |**_kwargs|
+          Object.new.tap do |o|
+            o.define_singleton_method(:call) do |**kwargs|
+              captured.replace(kwargs)
+              fake_result
+            end
+          end
+        end
+
+        post agent_chat_url,
+          params: {
+            messages: [
+              {
+                role: "user",
+                content: "この写真は？",
+                attachments: [ { tsuzura_media_id: ulid, filename: "photo.jpg" } ]
+              }
+            ]
+          },
+          as: :json
+
+        assert_response :success
+        assert_equal [ { tsuzura_media_id: ulid, filename: "photo.jpg" } ], captured[:image_attachments]
+      ensure
+        Chat::Agent.define_singleton_method(:new, original_new)
+      end
+    end
+
+    test "create returns error when reply blank" do
     fake_result = Chat::Agent::Result.new(
       reply: nil, intent: "unknown", classification: nil,
       model_role: nil, escalated: false, tools: [], pending_tools: false, rag: nil

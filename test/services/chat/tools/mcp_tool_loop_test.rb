@@ -9,7 +9,7 @@ module Chat
         planned_calls = nil
         runner = Object.new
         runner.define_singleton_method(:configured?) { true }
-        runner.define_singleton_method(:call_planned) do |calls:, user_text:|
+        runner.define_singleton_method(:call_planned) do |calls:, user_text:, **|
           planned_calls = calls
           NyoyMcpRunner::Result.new(
             tools_run: [ "fetch_url" ],
@@ -48,7 +48,7 @@ module Chat
         runner = Object.new
         runner.define_singleton_method(:configured?) { true }
         runner.define_singleton_method(:call_planned) { |**| raise "should not plan" }
-        runner.define_singleton_method(:call) do |mcp_names:, user_text:|
+        runner.define_singleton_method(:call) do |mcp_names:, user_text:, **|
           fallback_names = mcp_names
           NyoyMcpRunner::Result.new(
             tools_run: [ "web_search" ],
@@ -80,7 +80,7 @@ module Chat
         rounds = []
         runner = Object.new
         runner.define_singleton_method(:configured?) { true }
-        runner.define_singleton_method(:call_planned) do |calls:, user_text:|
+        runner.define_singleton_method(:call_planned) do |calls:, user_text:, **|
           rounds << calls.map { |call| call[:name] }
           NyoyMcpRunner::Result.new(
             tools_run: calls.map { |call| call[:name] },

@@ -28,12 +28,32 @@ class AgentChatsController < ApplicationController
     render json: { tools: [], configured: true, error: e.message }, status: :unprocessable_entity
   end
 
+  def upload_image
+    authorize :agent_chat, :upload_image?
+
+    file = params[:file]
+    if file.blank?
+      render json: { error: "ファイルがありません。" }, status: :unprocessable_entity
+      return
+    end
+
+    result = AgentChat::TsuzuraUpload.call(file: file, cookie_header: request.headers["Cookie"])
+    render json: {
+      tsuzura_media_id: result.tsuzura_media_id,
+      filename: result.filename
+    }
+  rescue AgentChat::TsuzuraUpload::Error => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
   def create
     authorize :agent_chat, :create?
 
     store = conversation_store
     conversation = store.find_or_create_conversation!(conversation_id: params[:conversation_id])
+    image_attachments = AgentChat::ImageAttachments.normalize(image_attachments_param)
     user_text = last_user_text_from_params
+    user_text = "（画像を添付）" if user_text.blank? && image_attachments.any?
     turn_id = params[:turn_id].presence || SecureRandom.uuid
     account = rodauth.rails_account
     broadcaster = nil
@@ -55,7 +75,9 @@ class AgentChatsController < ApplicationController
       messages: chat_messages_param,
       account: account,
       broadcaster: broadcaster,
-      enabled_mcp_tools: enabled_mcp_tools_param
+      enabled_mcp_tools: enabled_mcp_tools_param,
+      image_attachments: AgentChat::ImageAttachments.as_json(image_attachments),
+      tsuzura_cookie_header: request.headers["Cookie"]
     )
 
     if result.reply.blank?
@@ -162,5 +184,32 @@ class AgentChatsController < ApplicationController
     return nil if raw.nil?
 
     Array(raw).map(&:to_s).map(&:strip).reject(&:blank?)
+  end
+
+  def image_attachments_param
+    top_level = params[:attachments] || params[:image_attachments]
+    top = Array(top_level).reject { |entry| entry.blank? }
+    return top if top.any?
+
+    attachments_from_messages_param
+  end
+
+  def attachments_from_messages_param
+    raw = params[:messages]
+    return [] unless raw.is_a?(Array)
+
+    raw.reverse_each do |entry|
+      next unless entry.is_a?(Hash) || entry.is_a?(ActionController::Parameters)
+
+      hash = entry.is_a?(ActionController::Parameters) ? entry.to_unsafe_h : entry
+      next unless hash[:role].to_s == "user" || hash["role"].to_s == "user"
+
+      attachments = hash[:attachments] || hash["attachments"]
+      next if attachments.blank?
+
+      return Array(attachments)
+    end
+
+    []
   end
 end

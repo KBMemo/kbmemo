@@ -1718,6 +1718,16 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   border-color: var(--kb-border);
 }
 
+.agent-chat-attachment-thumb {
+  width: 2.5rem;
+  height: 2.5rem;
+  max-width: 2.5rem;
+  max-height: 2.5rem;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: var(--kb-radius-sm, 0.25rem);
+}
+
 .kb-ai-messages {
   background: var(--kb-bg-subtle);
   border: 1px solid var(--kb-border);

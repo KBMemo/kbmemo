@@ -165,7 +165,41 @@ module Chat
         assert_includes result.context_text, "Photo"
       end
 
-      test "call_planned executes explicit arguments" do
+      test "runs analyze_image with attached tsuzura media id" do
+        ulid = "01JABCDEFGHJKMNPQRSTVWXYZ0"
+        client = stub_client(
+          "analyze_image" => { "description" => "A cat" }
+        )
+        runner = NyoyMcpRunner.new(client: client)
+
+        result = runner.call_planned(
+          calls: [ { name: "analyze_image", arguments: { prompt: "何が写っている？" } } ],
+          user_text: "何が写っている？",
+          image_attachments: [ { tsuzura_media_id: ulid } ]
+        )
+
+      assert_equal [ "analyze_image" ], result.tools_run
+      assert_includes result.context_text, "A cat"
+    end
+
+    test "call_planned builds analyze_image arguments when planner omits them" do
+      ulid = "01JABCDEFGHJKMNPQRSTVWXYZ0"
+      client = stub_client(
+        "analyze_image" => { "description" => "A cat" }
+      )
+      runner = NyoyMcpRunner.new(client: client)
+
+      result = runner.call_planned(
+        calls: [ { name: "analyze_image", arguments: nil } ],
+        user_text: "何が写っている？",
+        image_attachments: [ { tsuzura_media_id: ulid } ]
+      )
+
+      assert_equal [ "analyze_image" ], result.tools_run
+      assert_equal ulid, client.last_arguments["tsuzura_media_id"]
+    end
+
+    test "call_planned executes explicit arguments" do
         client = stub_client(
           "fetch_url" => { "title" => "Docs", "content_preview" => "hello" }
         )
@@ -205,11 +239,14 @@ module Chat
       private
 
       def stub_client(responses = {})
+        captured = {}
         client = Object.new
         client.define_singleton_method(:configured?) { true }
         client.define_singleton_method(:call_tool) do |name:, arguments:|
+          captured[:arguments] = arguments
           responses.fetch(name.to_s) { raise "unexpected tool #{name} (#{arguments.inspect})" }
         end
+        client.define_singleton_method(:last_arguments) { captured[:arguments] }
         client
       end
     end

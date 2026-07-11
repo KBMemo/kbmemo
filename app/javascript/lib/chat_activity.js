@@ -17,6 +17,7 @@ const STATUS_LABELS = {
   pending: "待機",
   running: "処理中",
   completed: "完了",
+  skipped: "スキップ",
   error: "失敗"
 }
 
@@ -88,6 +89,7 @@ function defaultPendingSteps() {
   return [
     { key: "intent", label: "Intent 分類", status: "running" },
     { key: "rag_search", label: "メモ検索（RAG）", status: "pending" },
+    { key: "image_analysis", label: "画像解析", status: "pending" },
     { key: "mcp_tools", label: "外部ツール（Nyoy MCP）", status: "pending" },
     { key: "generate", label: "応答生成", status: "pending" }
   ]

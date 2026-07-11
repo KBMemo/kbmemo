@@ -99,7 +99,7 @@ module Chat
       body = response.body.to_s
 
       unless response.is_a?(Net::HTTPSuccess)
-        message = extract_rpc_error(body) || "Nyoy MCP API エラー（#{response.code}）"
+        message = extract_rpc_error(body) || http_error_message(response.code, uri)
         raise ApiError.new(message, status: response.code.to_i, body: body)
       end
 
@@ -139,6 +139,17 @@ module Chat
 
     def next_request_id
       @request_id += 1
+    end
+
+    def http_error_message(code, uri)
+      case code.to_i
+      when 404
+        "Nyoy MCP API エラー（404）— #{uri} が見つかりません。URL（例: https://host/mcp）を確認するか、接続先 Nyoy で MCP_API_TOKEN が設定されているか確認してください。"
+      when 401, 403
+        "Nyoy MCP API エラー（#{code}）— API トークンが正しくないか、接続先で MCP が拒否しました。"
+      else
+        "Nyoy MCP API エラー（#{code}）"
+      end
     end
   end
 end

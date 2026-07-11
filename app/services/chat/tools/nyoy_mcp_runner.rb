@@ -44,7 +44,7 @@ module Chat
       IMAGE_GENERATION_COMPLETED = %w[completed done succeeded].freeze
       IMAGE_GENERATION_FAILED = %w[failed error cancelled canceled].freeze
 
-      Session = Struct.new(:user_text, :page_id, keyword_init: true)
+      Session = Struct.new(:user_text, :page_id, :image_attachments, keyword_init: true)
 
       Result = Struct.new(:tools_run, :tools_skipped, :context_text, :errors, keyword_init: true)
 
@@ -64,14 +64,14 @@ module Chat
       # @param tools [Array<Symbol>] Router 由来のシンボル（後方互換）
       # @param mcp_names [Array<String>] Nyoy MCP のツール名
       # @param user_text [String]
-      def call(tools: nil, mcp_names: nil, user_text:)
+      def call(tools: nil, mcp_names: nil, user_text:, image_attachments: nil)
         empty = Result.new(tools_run: [], tools_skipped: [], context_text: "", errors: [])
         return empty unless configured?
 
         names = normalize_mcp_names(mcp_names: mcp_names, tools: tools)
         return empty if names.empty?
 
-        session = Session.new(user_text: user_text.to_s)
+        session = build_session(user_text:, image_attachments:)
         run = []
         skipped = []
         errors = []
@@ -90,11 +90,11 @@ module Chat
       end
 
       # @param calls [Array<Hash>] { name:, arguments: } または LLM 計画 JSON
-      def call_planned(calls:, user_text:)
+      def call_planned(calls:, user_text:, image_attachments: nil)
         empty = Result.new(tools_run: [], tools_skipped: [], context_text: "", errors: [])
         return empty unless configured?
 
-        session = Session.new(user_text: user_text.to_s)
+        session = build_session(user_text:, image_attachments:)
         run = []
         skipped = []
         errors = []
@@ -105,6 +105,7 @@ module Chat
           next if mcp_name.blank?
 
           arguments = call[:arguments] || call["arguments"]
+          arguments = build_arguments(mcp_name, session) if arguments.nil?
           execute_tool_with_arguments(mcp_name, arguments, session:, run:, skipped:, errors:, chunks:)
         end
 
@@ -137,6 +138,12 @@ module Chat
         end
 
         if MANUAL_MCP_TOOLS.include?(mcp_name)
+          skipped << mcp_name
+          return
+        end
+
+        arguments = enrich_arguments(mcp_name, arguments, session)
+        if mcp_name == "analyze_image" && analyze_image_missing_source?(arguments)
           skipped << mcp_name
           return
         end
@@ -253,12 +260,7 @@ module Chat
 
           { japanese_prompt: user_text }
         when "analyze_image"
-          return nil if user_text.blank?
-
-          args = { prompt: user_text }
-          media_id = first_ulid(session.user_text)
-          args[:tsuzura_media_id] = media_id if media_id.present?
-          args
+          ensure_analyze_image_source({}, session)
         when "get_media"
           media_id = first_ulid(session.user_text)
           return nil if media_id.blank?
@@ -276,6 +278,59 @@ module Chat
       def first_ulid(text)
         match = text.to_s.match(ULID_PATTERN)
         match&.to_s
+      end
+
+      def build_session(user_text:, image_attachments:)
+        Session.new(
+          user_text: user_text.to_s,
+          image_attachments: normalize_image_attachments(image_attachments)
+        )
+      end
+
+      def normalize_image_attachments(raw)
+        AgentChat::ImageAttachments.normalize(raw).map do |attachment|
+          {
+            "tsuzura_media_id" => attachment.tsuzura_media_id,
+            "filename" => attachment.filename
+          }.compact
+        end
+      end
+
+      def enrich_arguments(mcp_name, arguments, session)
+        return normalize_arguments_hash(arguments) unless mcp_name == "analyze_image"
+
+        ensure_analyze_image_source(arguments, session)
+      end
+
+      def ensure_analyze_image_source(arguments, session)
+        args = normalize_arguments_hash(arguments || {})
+        args["prompt"] = analyze_image_prompt(session) if args["prompt"].blank?
+
+        if args["tsuzura_media_id"].blank?
+          index = args["attachment_index"].to_i
+          index = 0 if index.negative?
+          media_id = first_attachment_media_id(session, index: index)
+          media_id = first_attachment_media_id(session, index: 0) if media_id.blank?
+          media_id = first_ulid(session.user_text) if media_id.blank?
+          args["tsuzura_media_id"] = media_id if media_id.present?
+        end
+
+        args.except("attachment_index")
+      end
+
+      def analyze_image_prompt(session)
+        session.user_text.to_s.strip.presence || "この画像を説明してください"
+      end
+
+      def analyze_image_missing_source?(arguments)
+        normalize_arguments_hash(arguments)["tsuzura_media_id"].blank?
+      end
+
+      def first_attachment_media_id(session, index:)
+        attachment = Array(session.image_attachments)[index]
+        return nil unless attachment.is_a?(Hash)
+
+        attachment[:tsuzura_media_id].presence || attachment["tsuzura_media_id"].presence
       end
 
       def format_context(mcp_name, payload)

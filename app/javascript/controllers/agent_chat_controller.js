@@ -18,7 +18,15 @@ export default class extends Controller {
     "mcpToolsPanel",
     "mcpToolsButton",
     "mcpToolsList",
-    "mcpToolsHint"
+    "mcpToolsHint",
+    "fileInput",
+    "attachmentList",
+    "attachmentError",
+    "tsuzuraDialog",
+    "tsuzuraAlbumList",
+    "tsuzuraMediaList",
+    "tsuzuraStatus",
+    "tsuzuraConfirmButton"
   ]
 
   static values = {
@@ -26,7 +34,10 @@ export default class extends Controller {
     settingsUrl: String,
     conversationId: String,
     nyoyToolsUrl: String,
-    nyoyConfigured: Boolean
+    nyoyConfigured: Boolean,
+    uploadImageUrl: String,
+    tsuzuraAlbumsUrl: String,
+    tsuzuraAlbumUrlTemplate: String
   }
 
   static storageKey = "agent_chat_enabled_mcp_tools"
@@ -35,6 +46,8 @@ export default class extends Controller {
     this.history = this.readInitialMessages()
     this.nyoyTools = []
     this.enabledMcpTools = this.readEnabledMcpTools()
+    this.pendingAttachments = []
+    this.tsuzuraSelectedIds = new Set()
     this.sending = false
     this.activityTracker = null
     this.streamPanel = null
@@ -288,12 +301,24 @@ export default class extends Controller {
     event?.preventDefault()
     if (this.sending) return
 
-    const text = this.inputTarget?.value?.trim()
-    if (!text) return
+    const text = this.inputTarget?.value?.trim() || ""
+    if (!text && this.pendingAttachments.length === 0) return
+
+    const attachments = this.pendingAttachments.map((entry) => ({
+      tsuzura_media_id: entry.tsuzura_media_id,
+      filename: entry.filename
+    }))
 
     this.clearError()
-    this.history.push({ role: "user", content: text })
+    this.clearAttachmentError()
+    this.history.push({
+      role: "user",
+      content: text || "（画像を添付）",
+      attachments
+    })
     if (this.inputTarget) this.inputTarget.value = ""
+    this.pendingAttachments = []
+    this.renderAttachmentList()
     this.renderMessages()
     this.sending = true
     this.updateSendState()
@@ -318,7 +343,8 @@ export default class extends Controller {
           messages: this.history,
           conversation_id: this.conversationIdValue || null,
           turn_id: turnId,
-          enabled_mcp_tools: this.enabledMcpTools
+          enabled_mcp_tools: this.enabledMcpTools,
+          attachments
         })
       })
 
@@ -445,6 +471,8 @@ export default class extends Controller {
 
     this.history = []
     this.conversationIdValue = ""
+    this.pendingAttachments = []
+    this.renderAttachmentList()
     this.activeTurnId = null
     this.stopActivityTracker()
     this.renderMessages()
@@ -509,6 +537,10 @@ export default class extends Controller {
       bubble.className =
         "kb-ai-chat-answer rounded-md px-3 py-2 text-sm leading-relaxed kb-ai-message-user"
       this.appendTextWithLineBreaks(bubble, answerText)
+      if (Array.isArray(entry.attachments) && entry.attachments.length > 0) {
+        bubble.append(document.createElement("br"))
+        bubble.append(this.renderAttachmentPreview(entry.attachments))
+      }
       wrapper.append(bubble)
       return wrapper
     }
@@ -588,5 +620,272 @@ export default class extends Controller {
     if (!this.hasErrorTarget) return
     this.errorTarget.textContent = ""
     this.errorTarget.classList.add("hidden")
+  }
+
+  async addFiles(event) {
+    const files = Array.from(event.target.files || [])
+    event.target.value = ""
+    if (files.length === 0) return
+
+    this.clearAttachmentError()
+    for (const file of files) {
+      try {
+        const attachment = await this.uploadImageFile(file)
+        this.pendingAttachments.push(attachment)
+      } catch (error) {
+        this.showAttachmentError(error.message || "画像のアップロードに失敗しました。")
+      }
+    }
+    this.renderAttachmentList()
+  }
+
+  async uploadImageFile(file) {
+    if (!this.uploadImageUrlValue) {
+      throw new Error("画像アップロード URL が未設定です。")
+    }
+
+    const token = document.querySelector('meta[name="csrf-token"]')?.content
+    const body = new FormData()
+    body.append("file", file)
+
+    const res = await fetch(this.uploadImageUrlValue, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        Accept: "application/json",
+        ...(token ? { "X-CSRF-Token": token } : {})
+      },
+      body
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(data.error || "画像のアップロードに失敗しました。")
+    }
+
+    const previewUrl = URL.createObjectURL(file)
+    return {
+      tsuzura_media_id: String(data.tsuzura_media_id || ""),
+      filename: data.filename || file.name,
+      preview_url: previewUrl
+    }
+  }
+
+  renderAttachmentList() {
+    if (!this.hasAttachmentListTarget) return
+
+    this.attachmentListTarget.replaceChildren()
+    if (this.pendingAttachments.length === 0) return
+
+    for (const [index, attachment] of this.pendingAttachments.entries()) {
+      this.attachmentListTarget.append(this.attachmentChipNode(attachment, index))
+    }
+  }
+
+  attachmentChipNode(attachment, index) {
+    const chip = document.createElement("div")
+    chip.className =
+      "inline-flex items-center gap-2 rounded-md border kb-border px-2 py-1 text-xs kb-text-primary"
+
+    if (attachment.preview_url) {
+      const img = document.createElement("img")
+      img.src = attachment.preview_url
+      img.alt = attachment.filename || "添付画像"
+      img.className = "agent-chat-attachment-thumb"
+      chip.append(img)
+    }
+
+    const label = document.createElement("span")
+    label.className = "font-mono"
+    label.textContent = attachment.filename || attachment.tsuzura_media_id
+    chip.append(label)
+
+    const remove = document.createElement("button")
+    remove.type = "button"
+    remove.className = "kb-toolbar-btn px-1"
+    remove.setAttribute("aria-label", "添付を削除")
+    remove.textContent = "×"
+    remove.addEventListener("click", () => {
+      this.pendingAttachments.splice(index, 1)
+      this.renderAttachmentList()
+    })
+    chip.append(remove)
+
+    return chip
+  }
+
+  renderAttachmentPreview(attachments) {
+    const wrap = document.createElement("div")
+    wrap.className = "mt-2 flex flex-wrap gap-2"
+    attachments.forEach((attachment) => {
+      const chip = document.createElement("span")
+      chip.className = "inline-block rounded border kb-border px-2 py-1 text-xs font-mono"
+      chip.textContent = attachment.filename || attachment.tsuzura_media_id
+      wrap.append(chip)
+    })
+    return wrap
+  }
+
+  async openTsuzuraPicker(event) {
+    event?.preventDefault()
+    if (!this.hasTsuzuraDialogTarget) return
+
+    this.tsuzuraSelectedIds = new Set()
+    if (this.hasTsuzuraConfirmButtonTarget) {
+      this.tsuzuraConfirmButtonTarget.disabled = true
+    }
+    this.setTsuzuraStatus("アルバムを読み込み中…")
+    this.tsuzuraAlbumListTarget?.replaceChildren()
+    this.tsuzuraMediaListTarget?.replaceChildren()
+    this.tsuzuraDialogTarget.showModal()
+    await this.loadTsuzuraAlbums()
+  }
+
+  closeTsuzuraPicker(event) {
+    event?.preventDefault()
+    this.tsuzuraDialogTarget?.close()
+  }
+
+  async loadTsuzuraAlbums() {
+    if (!this.tsuzuraAlbumsUrlValue) {
+      this.setTsuzuraStatus("葛籠 API が未設定です。")
+      return
+    }
+
+    try {
+      const res = await fetch(this.tsuzuraAlbumsUrlValue, {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" }
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        this.setTsuzuraStatus(data.error || "アルバム一覧の取得に失敗しました。")
+        return
+      }
+
+      this.renderTsuzuraAlbums(data.albums || [])
+      this.setTsuzuraStatus(
+        (data.albums || []).length ? "アルバムを選んでください。" : "アルバムがありません。"
+      )
+    } catch {
+      this.setTsuzuraStatus("アルバム一覧の取得に失敗しました。")
+    }
+  }
+
+  renderTsuzuraAlbums(albums) {
+    if (!this.hasTsuzuraAlbumListTarget) return
+
+    this.tsuzuraAlbumListTarget.replaceChildren()
+    for (const album of albums) {
+      const button = document.createElement("button")
+      button.type = "button"
+      button.className = "block w-full border-b kb-border px-3 py-2 text-left text-sm kb-hover-row"
+      button.textContent = `${album.title || "（無題）"} · ${album.media_item_count ?? "?"} 枚`
+      button.addEventListener("click", () => this.loadTsuzuraAlbum(album.id))
+      this.tsuzuraAlbumListTarget.append(button)
+    }
+  }
+
+  async loadTsuzuraAlbum(albumId) {
+    if (!this.tsuzuraAlbumUrlTemplateValue) return
+
+    const url = this.tsuzuraAlbumUrlTemplateValue.replace(
+      "__ID__",
+      encodeURIComponent(String(albumId))
+    )
+    this.setTsuzuraStatus("写真を読み込み中…")
+
+    try {
+      const res = await fetch(url, {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" }
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        this.setTsuzuraStatus("アルバムを開けませんでした。")
+        return
+      }
+
+      this.renderTsuzuraMedia(data)
+      this.setTsuzuraStatus("添付する写真を選んでください。")
+    } catch {
+      this.setTsuzuraStatus("写真の読み込みに失敗しました。")
+    }
+  }
+
+  renderTsuzuraMedia(album) {
+    if (!this.hasTsuzuraMediaListTarget) return
+
+    const ids = Array.isArray(album.media_item_ids)
+      ? album.media_item_ids.map((id) => String(id).toUpperCase())
+      : []
+    this.tsuzuraMediaListTarget.replaceChildren()
+
+    if (ids.length === 0) {
+      const empty = document.createElement("p")
+      empty.className = "px-3 py-2 text-xs kb-text-muted"
+      empty.textContent = "写真がありません。"
+      this.tsuzuraMediaListTarget.append(empty)
+      return
+    }
+
+    for (const id of ids) {
+      const row = document.createElement("label")
+      row.className = "flex items-center gap-2 border-b kb-border px-3 py-2 text-xs"
+
+      const checkbox = document.createElement("input")
+      checkbox.type = "checkbox"
+      checkbox.value = id
+      checkbox.addEventListener("change", () => this.syncTsuzuraSelection())
+
+      const text = document.createElement("span")
+      text.className = "font-mono"
+      text.textContent = id
+
+      row.append(checkbox, text)
+      this.tsuzuraMediaListTarget.append(row)
+    }
+  }
+
+  syncTsuzuraSelection() {
+    if (!this.hasTsuzuraMediaListTarget) return
+
+    this.tsuzuraSelectedIds = new Set(
+      [...this.tsuzuraMediaListTarget.querySelectorAll('input[type="checkbox"]:checked')].map(
+        (input) => input.value
+      )
+    )
+    if (this.hasTsuzuraConfirmButtonTarget) {
+      this.tsuzuraConfirmButtonTarget.disabled = this.tsuzuraSelectedIds.size === 0
+    }
+  }
+
+  confirmTsuzuraSelection(event) {
+    event?.preventDefault()
+    for (const id of this.tsuzuraSelectedIds) {
+      if (this.pendingAttachments.some((entry) => entry.tsuzura_media_id === id)) continue
+      this.pendingAttachments.push({
+        tsuzura_media_id: id,
+        filename: id.slice(-8)
+      })
+    }
+    this.renderAttachmentList()
+    this.closeTsuzuraPicker()
+  }
+
+  setTsuzuraStatus(message) {
+    if (!this.hasTsuzuraStatusTarget) return
+    this.tsuzuraStatusTarget.textContent = message
+  }
+
+  showAttachmentError(message) {
+    if (!this.hasAttachmentErrorTarget) return
+    this.attachmentErrorTarget.textContent = message
+    this.attachmentErrorTarget.classList.remove("hidden")
+  }
+
+  clearAttachmentError() {
+    if (!this.hasAttachmentErrorTarget) return
+    this.attachmentErrorTarget.textContent = ""
+    this.attachmentErrorTarget.classList.add("hidden")
   }
 }

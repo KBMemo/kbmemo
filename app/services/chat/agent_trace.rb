@@ -43,7 +43,7 @@ module Chat
       return unless @open_step
 
       elapsed = [ monotonic_ms - @open_started_at, 0 ].max
-      @open_step.status = :completed
+      @open_step.status = :completed unless terminal_status?(@open_step.status)
       @open_step.elapsed_ms = elapsed.round
       @open_step.detail = detail if detail.present?
       @steps << @open_step
@@ -51,8 +51,11 @@ module Chat
       @open_started_at = nil
     end
 
-    def finish_step_detail(detail)
-      @open_step.detail = detail if @open_step && detail.present?
+    def finish_step_detail(detail, status: nil)
+      return unless @open_step
+
+      @open_step.detail = detail if detail.present?
+      @open_step.status = status if status.present?
     end
 
     def total_elapsed_ms
@@ -102,6 +105,10 @@ module Chat
       end
 
       stats
+    end
+
+    def terminal_status?(status)
+      %i[error skipped].include?(status)
     end
 
     def model_display_name(role, account:)

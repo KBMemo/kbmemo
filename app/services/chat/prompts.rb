@@ -40,6 +40,7 @@ module Chat
       - アプリ内メモやナレッジ検索が必要なら rag_lookup
       - 画像生成依頼なら image_generation
       - 画像・スクリーンショット解析なら image_analysis
+      - 「画像添付あり」と書かれている場合は image_analysis
       - コード修正・実装相談なら code
       - 単なる会話なら conversation
     PROMPT
@@ -106,6 +107,7 @@ module Chat
       - ツールが不要なら calls は空配列 []
       - 一覧にないツール名は使わない
       - create_memo / update_memo はユーザーが明示的にメモ保存・更新を求めたときだけ
+      - intent が image_analysis、または添付画像があるときは analyze_image を使う
       - get_image_generation は generate_image の後に自動実行されるため plan に含めない
       - search_fetched_page は page_id と query が必要（前回 fetch_url 結果に page_id があれば使う）
       - 同じツールを不要に繰り返さない

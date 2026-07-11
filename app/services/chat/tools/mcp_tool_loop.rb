@@ -17,7 +17,7 @@ module Chat
       # @param intent [String]
       # @param candidate_tools [Array<String>] 実行候補の MCP ツール名
       # @return [Chat::Tools::NyoyMcpRunner::Result]
-      def call(user_text:, intent:, candidate_tools:)
+      def call(user_text:, intent:, candidate_tools:, image_attachments: nil)
         empty = NyoyMcpRunner::Result.new(tools_run: [], tools_skipped: [], context_text: "", errors: [])
         return empty unless @runner.configured?
 
@@ -33,14 +33,22 @@ module Chat
             user_text: user_text,
             intent: intent,
             tool_catalog: catalog,
-            prior_context: prior_context
+            prior_context: prior_context,
+            image_attachments: image_attachments
           )
           remaining = plan.calls.reject do |call|
             merged.tools_run.include?((call[:name] || call["name"]).to_s)
           end
+          remaining = remaining.select do |call|
+            names.include?((call[:name] || call["name"]).to_s)
+          end
           break if remaining.empty?
 
-          round = @runner.call_planned(calls: remaining, user_text: user_text)
+          round = @runner.call_planned(
+            calls: remaining,
+            user_text: user_text,
+            image_attachments: image_attachments
+          )
           merged = merge_results(merged, round)
           prior_context = merged.context_text.presence
           break if round.tools_run.empty?
@@ -48,7 +56,7 @@ module Chat
 
         return merged if merged.tools_run.any? || merged.errors.any?
 
-        @runner.call(mcp_names: names, user_text: user_text)
+        @runner.call(mcp_names: names, user_text: user_text, image_attachments: image_attachments)
       end
 
       private

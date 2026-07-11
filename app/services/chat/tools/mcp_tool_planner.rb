@@ -21,7 +21,7 @@ module Chat
       # @param tool_catalog [Array<Hash>] list_tools のエントリ（name / description / input_schema）
       # @param prior_context [String, nil] 前ラウンドの MCP 実行結果
       # @return [Chat::Tools::McpToolPlanner::Plan]
-      def plan(user_text:, intent:, tool_catalog:, prior_context: nil)
+      def plan(user_text:, intent:, tool_catalog:, prior_context: nil, image_attachments: nil)
         catalog = Array(tool_catalog).filter_map do |entry|
           name = entry["name"].to_s.strip
           next if name.blank?
@@ -42,7 +42,8 @@ module Chat
           user_text: text,
           intent: intent.to_s,
           tool_catalog: catalog,
-          prior_context: prior_context
+          prior_context: prior_context,
+          image_attachments: image_attachments
         )
 
         raw = intent_client.chat(
@@ -63,7 +64,7 @@ module Chat
         @client || Chat::ModelRegistry.for(:intent, account: @account).build_client
       end
 
-      def build_user_content(user_text:, intent:, tool_catalog:, prior_context:)
+      def build_user_content(user_text:, intent:, tool_catalog:, prior_context:, image_attachments: nil)
         parts = [
           "intent: #{intent}",
           "ユーザー入力:",
@@ -72,6 +73,13 @@ module Chat
           "利用可能ツール（JSON）:",
           JSON.generate(tool_catalog)
         ]
+        attachments = AgentChat::ImageAttachments.normalize(image_attachments)
+        if attachments.any?
+          parts << ""
+          parts << "添付画像（JSON）:"
+          parts << JSON.generate(AgentChat::ImageAttachments.as_json(attachments))
+          parts << "analyze_image を使う場合は tsuzura_media_id または attachment_index（0 始まり）を指定してください。"
+        end
         if prior_context.present?
           parts << ""
           parts << "前回のツール実行結果:"

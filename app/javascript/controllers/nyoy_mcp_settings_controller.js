@@ -33,8 +33,10 @@ export default class extends Controller {
         credentials: "same-origin",
         headers: {
           Accept: "application/json",
+          "Content-Type": "application/json",
           ...(token ? { "X-CSRF-Token": token } : {})
-        }
+        },
+        body: JSON.stringify(this.collectFormSettings())
       })
 
       const body = await res.json()
@@ -51,6 +53,19 @@ export default class extends Controller {
       if (button) {
         button.disabled = false
         button.textContent = "接続確認"
+      }
+    }
+  }
+
+  collectFormSettings() {
+    const form = this.element.querySelector("form")
+    const url = form?.querySelector("#account_nyoy_mcp_url")?.value?.trim() || ""
+    const apiToken = form?.querySelector("#account_nyoy_mcp_api_token")?.value?.trim() || ""
+
+    return {
+      account: {
+        nyoy_mcp_url: url,
+        nyoy_mcp_api_token: apiToken
       }
     }
   }

@@ -28,6 +28,18 @@ class NyoyMcpSettingsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "nyoy-mcp-settings"
   end
 
+  test "show prefills effective url when account url is blank" do
+    ENV["NYOY_MCP_URL"] = "https://nyoy.example/mcp"
+
+    get nyoy_mcp_url
+
+    assert_response :success
+    assert_includes response.body, 'value="https://nyoy.example/mcp"'
+    assert_includes response.body, "アカウント未保存"
+  ensure
+    ENV.delete("NYOY_MCP_URL")
+  end
+
   test "update saves url and api token" do
     account = accounts(:one)
     patch nyoy_mcp_url, params: {
@@ -76,5 +88,46 @@ class NyoyMcpSettingsControllerTest < ActionDispatch::IntegrationTest
     ensure
       Chat::NyoyMcpClient.define_method(:list_tools, original)
     end
+  end
+
+  test "test_connection uses form url and token without saving" do
+    called_with = {}
+    fake_client = Object.new
+    fake_client.define_singleton_method(:list_tools) do
+      [ { "name" => "fetch_url", "description" => "Fetch" } ]
+    end
+
+    original_new = Chat::NyoyMcpClient.method(:new)
+    Chat::NyoyMcpClient.define_singleton_method(:new) do |**kwargs|
+      called_with.replace(kwargs)
+      fake_client
+    end
+
+    begin
+      post test_connection_nyoy_mcp_url,
+           params: {
+             account: {
+               nyoy_mcp_url: "http://nyoy.example/mcp",
+               nyoy_mcp_api_token: "form-token"
+             }
+           },
+           as: :json
+
+      assert_response :success
+      assert_equal "http://nyoy.example/mcp", called_with[:url]
+      assert_equal "form-token", called_with[:api_token]
+    ensure
+      Chat::NyoyMcpClient.define_singleton_method(:new, original_new)
+    end
+  end
+
+  test "test_connection requires token when none saved" do
+    post test_connection_nyoy_mcp_url,
+         params: { account: { nyoy_mcp_url: "http://nyoy.example/mcp" } },
+         as: :json
+
+    assert_response :unprocessable_entity
+    body = JSON.parse(response.body)
+    assert_includes body["message"], "API トークン"
   end
 end

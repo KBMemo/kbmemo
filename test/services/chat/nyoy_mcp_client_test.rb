@@ -77,5 +77,21 @@ module Chat
       assert_equal "Search the web", tools.first["description"]
       assert_equal({ "type" => "object" }, tools.first["input_schema"])
     end
+
+    test "list_tools explains 404 as disabled or wrong url" do
+      client = Chat::NyoyMcpClient.new(url: "http://nyoy.test/mcp", api_token: "token")
+      client.define_singleton_method(:rpc_request) do |**|
+        raise Chat::NyoyMcpClient::ApiError.new(
+          client.send(:http_error_message, 404, URI.parse("http://nyoy.test/mcp")),
+          status: 404
+        )
+      end
+
+      error = assert_raises(Chat::NyoyMcpClient::ApiError) do
+        client.list_tools
+      end
+      assert_includes error.message, "404"
+      assert_includes error.message, "MCP_API_TOKEN"
+    end
   end
 end

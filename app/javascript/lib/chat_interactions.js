@@ -143,6 +143,8 @@ export class ChatStreamPanel {
         state.textContent = `${(step.elapsed_ms / 1000).toFixed(1)}秒`
       } else if (step.status === "running") {
         state.textContent = "処理中"
+      } else if (step.status === "error" || step.status === "skipped") {
+        state.textContent = step.detail || step.status
       } else {
         state.textContent = step.detail || ""
       }
@@ -150,7 +152,7 @@ export class ChatStreamPanel {
       head.append(label, state)
       li.append(head)
 
-      if (step.detail && step.status === "completed") {
+      if (step.detail && (step.status === "completed" || step.status === "error" || step.status === "skipped")) {
         const detail = document.createElement("div")
         detail.className = "kb-ai-chat-step-detail"
         detail.textContent = step.detail

@@ -70,7 +70,26 @@ module Chat
     def stringify_message(message)
       role = message[:role] || message["role"]
       content = message[:content] || message["content"]
-      { "role" => role.to_s, "content" => content.to_s }
+      if content.is_a?(Array)
+        { "role" => role.to_s, "content" => content.map { |part| normalize_content_part(part) } }
+      else
+        { "role" => role.to_s, "content" => content.to_s }
+      end
+    end
+
+    def normalize_content_part(part)
+      hash = part.is_a?(Hash) ? part : { type: "text", text: part.to_s }
+      hash.each_with_object({}) do |(key, value), normalized|
+        next if key.blank?
+
+        string_key = key.to_s
+        normalized[string_key] =
+          if value.is_a?(Hash)
+            value.each_with_object({}) { |(nested_key, nested_value), nested| nested[nested_key.to_s] = nested_value }
+          else
+            value
+          end
+      end
     end
 
     def endpoint
