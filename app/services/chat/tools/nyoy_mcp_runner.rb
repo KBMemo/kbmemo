@@ -14,10 +14,47 @@ module Chat
 
       MCP_TO_SYMBOL = TOOL_MAP.invert.freeze
 
+      # ユーザー文だけから引数を組める MCP ツール（UI 有効化時の直接実行も可）。
+      DIRECT_MCP_TOOLS = %w[
+        web_search
+        fetch_url
+        generate_image
+        analyze_image
+        list_prompt_styles
+        search_memos
+        recall_memos
+        list_albums
+        get_media
+      ].freeze
+
+      CHAIN_ONLY_MCP_TOOLS = %w[
+        search_fetched_page
+        get_image_generation
+      ].freeze
+
+      MANUAL_MCP_TOOLS = %w[
+        create_memo
+        update_memo
+      ].freeze
+
+      ULID_PATTERN = /\b[0-9A-HJKMNP-TV-Z]{26}\b/
+
+      IMAGE_GENERATION_POLL_INTERVAL = 1.0
+      IMAGE_GENERATION_MAX_ATTEMPTS = 30
+      IMAGE_GENERATION_COMPLETED = %w[completed done succeeded].freeze
+      IMAGE_GENERATION_FAILED = %w[failed error cancelled canceled].freeze
+
+      Session = Struct.new(:user_text, :page_id, keyword_init: true)
+
       Result = Struct.new(:tools_run, :tools_skipped, :context_text, :errors, keyword_init: true)
 
-      def initialize(client: nil, account: nil)
+      def self.directly_invocable?(name)
+        DIRECT_MCP_TOOLS.include?(name.to_s)
+      end
+
+      def initialize(client: nil, account: nil, poll_sleep: nil)
         @client = client || Chat::NyoyMcpConfig.client(account: account)
+        @poll_sleep = poll_sleep || method(:default_poll_sleep)
       end
 
       def configured?
@@ -34,29 +71,19 @@ module Chat
         names = normalize_mcp_names(mcp_names: mcp_names, tools: tools)
         return empty if names.empty?
 
+        session = Session.new(user_text: user_text.to_s)
         run = []
         skipped = []
         errors = []
         chunks = []
 
         names.each do |mcp_name|
-          arguments = build_arguments(mcp_name, user_text)
-          if arguments.nil?
-            skipped << mcp_name
-            next
-          end
-
-          payload = @client.call_tool(name: mcp_name, arguments: arguments)
-          run << mcp_name
-          chunks << format_context(mcp_name, payload)
-        rescue Chat::NyoyMcpClient::Error => e
-          errors << { tool: mcp_name, message: e.message }
-          skipped << mcp_name
+          execute_tool(mcp_name, session:, run:, skipped:, errors:, chunks:)
         end
 
         Result.new(
           tools_run: run,
-          tools_skipped: skipped,
+          tools_skipped: skipped.uniq,
           context_text: chunks.compact.join("\n\n"),
           errors: errors
         )
@@ -71,6 +98,88 @@ module Chat
 
       private
 
+      def execute_tool(mcp_name, session:, run:, skipped:, errors:, chunks:)
+        arguments = build_arguments(mcp_name, session)
+        if arguments.nil?
+          skipped << mcp_name
+          return
+        end
+
+        payload = @client.call_tool(name: mcp_name, arguments: arguments)
+        run << mcp_name
+        chunks << format_context(mcp_name, payload)
+        chain_follow_ups(mcp_name, payload, session:, run:, skipped:, errors:, chunks:)
+      rescue Chat::NyoyMcpClient::Error => e
+        errors << { tool: mcp_name, message: e.message }
+        skipped << mcp_name
+      end
+
+      def chain_follow_ups(mcp_name, payload, session:, run:, skipped:, errors:, chunks:)
+        case mcp_name
+        when "fetch_url"
+          chain_search_fetched_page(payload, session:, run:, skipped:, errors:, chunks:)
+        when "generate_image"
+          chain_image_generation_poll(payload, run:, skipped:, errors:, chunks:)
+        end
+      end
+
+      def chain_search_fetched_page(payload, session:, run:, skipped:, errors:, chunks:)
+        return unless payload.is_a?(Hash)
+        return unless payload["truncated"]
+        return if payload["page_id"].blank?
+
+        session.page_id = payload["page_id"].to_s
+        execute_tool("search_fetched_page", session:, run:, skipped:, errors:, chunks:)
+      end
+
+      def chain_image_generation_poll(payload, run:, skipped:, errors:, chunks:)
+        return unless payload.is_a?(Hash)
+
+        generation_id = payload["id"] || payload["image_generation_id"]
+        return if generation_id.blank?
+
+        run << "get_image_generation"
+
+        IMAGE_GENERATION_MAX_ATTEMPTS.times do |attempt|
+          poll_payload = @client.call_tool(
+            name: "get_image_generation",
+            arguments: { id: generation_id.to_i }
+          )
+          upsert_poll_chunk(chunks, poll_payload)
+
+          status = image_generation_status(poll_payload)
+          return if status.in?(IMAGE_GENERATION_COMPLETED)
+          return if status.in?(IMAGE_GENERATION_FAILED)
+          break if attempt + 1 >= IMAGE_GENERATION_MAX_ATTEMPTS
+
+          @poll_sleep.call(IMAGE_GENERATION_POLL_INTERVAL)
+        end
+      rescue Chat::NyoyMcpClient::Error => e
+        errors << { tool: "get_image_generation", message: e.message }
+        skipped << "get_image_generation"
+      end
+
+      def upsert_poll_chunk(chunks, poll_payload)
+        formatted = format_context("get_image_generation", poll_payload)
+        poll_label = "### Nyoy MCP: get_image_generation"
+
+        if chunks.last&.start_with?(poll_label)
+          chunks[-1] = formatted
+        else
+          chunks << formatted
+        end
+      end
+
+      def image_generation_status(payload)
+        return "" unless payload.is_a?(Hash)
+
+        (payload["status"] || payload["state"]).to_s.downcase
+      end
+
+      def default_poll_sleep(seconds)
+        sleep(seconds)
+      end
+
       def normalize_mcp_names(mcp_names:, tools:)
         names = Array(mcp_names).map(&:to_s).map(&:strip).reject(&:blank?)
         return names.uniq if names.any?
@@ -78,35 +187,51 @@ module Chat
         Array(tools).filter_map { |tool| TOOL_MAP[tool.to_sym] }.uniq
       end
 
-      def build_arguments(mcp_name, user_text)
-        case mcp_name
-        when "web_search"
-          query = user_text.to_s.strip
-          return nil if query.blank?
+      def build_arguments(mcp_name, session)
+        user_text = session.user_text.to_s.strip
 
-          { q: query }
+        case mcp_name
+        when "web_search", "search_memos", "recall_memos"
+          return nil if user_text.blank?
+
+          { q: user_text }
         when "fetch_url"
-          url = Chat::Tools::UrlExtractor.first(user_text)
+          url = Chat::Tools::UrlExtractor.first(session.user_text)
           return nil if url.blank?
 
           { url: url }
+        when "search_fetched_page"
+          return nil if session.page_id.blank? || user_text.blank?
+
+          { page_id: session.page_id, query: user_text }
         when "generate_image"
-          prompt = user_text.to_s.strip
-          return nil if prompt.blank?
+          return nil if user_text.blank?
 
-          { japanese_prompt: prompt }
+          { japanese_prompt: user_text }
         when "analyze_image"
-          prompt = user_text.to_s.strip
-          return nil if prompt.blank?
+          return nil if user_text.blank?
 
-          { prompt: prompt }
-        when "list_prompt_styles"
+          args = { prompt: user_text }
+          media_id = first_ulid(session.user_text)
+          args[:tsuzura_media_id] = media_id if media_id.present?
+          args
+        when "get_media"
+          media_id = first_ulid(session.user_text)
+          return nil if media_id.blank?
+
+          { tsuzura_media_id: media_id }
+        when "list_prompt_styles", "list_albums"
           {}
-        when "create_memo", "update_memo"
+        when *MANUAL_MCP_TOOLS
           nil
         else
           nil
         end
+      end
+
+      def first_ulid(text)
+        match = text.to_s.match(ULID_PATTERN)
+        match&.to_s
       end
 
       def format_context(mcp_name, payload)

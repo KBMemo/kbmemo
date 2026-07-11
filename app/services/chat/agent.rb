@@ -176,11 +176,12 @@ module Chat
 
         Chat::Tools::NyoyMcpRunner::TOOL_MAP[tool]
       end.uniq
-      return nil if router_mcp_names.empty?
+      mcp_names = (router_mcp_names + extra_enabled_mcp_names(router_mcp_names)).uniq
+      return nil if mcp_names.empty?
       return nil if @enabled_mcp_tools == []
 
       trace.run(:mcp_tools, "外部ツール（Nyoy MCP）") do
-        result = mcp_runner.call(mcp_names: router_mcp_names, user_text: user_text)
+        result = mcp_runner.call(mcp_names: mcp_names, user_text: user_text)
         @interaction_log.tool_context(
           step_key: :mcp_tools,
           label: "Nyoy MCP",
@@ -195,6 +196,17 @@ module Chat
       return nil if raw.nil?
 
       Array(raw).map(&:to_s).map(&:strip).reject(&:blank?).uniq
+    end
+
+    def extra_enabled_mcp_names(router_mcp_names)
+      return [] unless @enabled_mcp_tools.is_a?(Array) && @enabled_mcp_tools.any?
+
+      @enabled_mcp_tools.filter_map do |name|
+        next if router_mcp_names.include?(name)
+        next unless Chat::Tools::NyoyMcpRunner.directly_invocable?(name)
+
+        name
+      end.uniq
     end
 
     def run_rag_tool(decision, user_text, account, trace:)

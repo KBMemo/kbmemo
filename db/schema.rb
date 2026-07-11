@@ -147,9 +147,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_10_220000) do
     t.index ["parent_id"], name: "index_memo_directories_on_parent_id"
   end
 
-# Could not dump table "memo_embedding_chunks" because of following StandardError
-#   Unknown type 'vector(1024)' for column 'embedding'
-
+  create_table "memo_embedding_chunks", force: :cascade do |t|
+    t.integer "chunk_index", default: 0, null: false
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.vector "embedding", limit: 1024
+    t.bigint "memo_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["embedding"], name: "index_memo_embedding_chunks_on_embedding_hnsw", opclass: :vector_cosine_ops, using: :hnsw
+    t.index ["memo_id", "chunk_index"], name: "index_memo_embedding_chunks_on_memo_id_and_chunk_index", unique: true
+    t.index ["memo_id"], name: "index_memo_embedding_chunks_on_memo_id"
+  end
 
   create_table "memo_group_memberships", force: :cascade do |t|
     t.integer "account_id", null: false

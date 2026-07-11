@@ -23,6 +23,8 @@
 #  fk_rails_...  (memo_id => memos.id)
 #
 class MemoEmbeddingChunk < ApplicationRecord
+  has_neighbors :embedding
+
   EMBEDDING_DIMENSIONS = 1024
 
   belongs_to :memo
@@ -61,18 +63,8 @@ class MemoEmbeddingChunk < ApplicationRecord
     def upsert!(memo_id:, chunk_index:, content:, embedding: nil)
       record = find_or_initialize_by(memo_id: memo_id, chunk_index: chunk_index)
       record.content = content
+      record.embedding = embedding if pgvector_enabled? && embedding.present?
       record.save!
-
-      if pgvector_enabled? && embedding.present?
-        connection.execute(
-          sanitize_sql_array([
-            "UPDATE memo_embedding_chunks SET embedding = ?::vector WHERE id = ?",
-            format_vector(embedding),
-            record.id
-          ])
-        )
-      end
-
       record
     end
 

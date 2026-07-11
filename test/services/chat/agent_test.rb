@@ -116,6 +116,54 @@ module Chat
       assert_equal [ :main ], factory.calls
     end
 
+    test "image_generation with nyoy mcp runs generate_image chain and clears pending tools" do
+      client = Object.new
+      client.define_singleton_method(:configured?) { true }
+      client.define_singleton_method(:call_tool) do |name:, arguments:|
+        case name.to_s
+        when "generate_image"
+          { "id" => 1 }
+        when "get_image_generation"
+          { "status" => "completed", "image_url" => "https://example.com/cat.png" }
+        end
+      end
+      mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client, poll_sleep: ->(_seconds) {})
+
+      factory = RecordingFactory.new
+      a = Chat::Agent.new(
+        classifier: StubClassifier.new(intent("image_generation")),
+        client_factory: factory,
+        mcp_runner: mcp_runner
+      )
+      result = a.call(messages: [ { role: "user", content: "猫の絵を描いて" } ])
+
+      refute result.pending_tools
+      assert_equal [ "generate_image", "get_image_generation" ], result.mcp.tools_run
+    end
+
+    test "enabled_mcp_tools runs directly invocable tools outside router" do
+      client = Object.new
+      client.define_singleton_method(:configured?) { true }
+      client.define_singleton_method(:call_tool) do |name:, arguments:|
+        { "styles" => [{ "id" => "watercolor" }] }
+      end
+      mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
+
+      factory = RecordingFactory.new
+      a = Chat::Agent.new(
+        classifier: StubClassifier.new(intent("conversation")),
+        client_factory: factory,
+        mcp_runner: mcp_runner
+      )
+      result = a.call(
+        messages: [ { role: "user", content: "スタイル教えて" } ],
+        enabled_mcp_tools: [ "list_prompt_styles" ]
+      )
+
+      assert_equal [ "list_prompt_styles" ], result.mcp.tools_run
+      assert_includes system_content(factory.seen[:fast_chat]), "list_prompt_styles"
+    end
+
     test "web_research delegates to nyoy mcp and clears pending tools" do
       client = Object.new
       client.define_singleton_method(:configured?) { true }
