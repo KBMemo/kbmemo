@@ -50,7 +50,8 @@ module Chat
 
         {
           "name" => name,
-          "description" => tool["description"].to_s
+          "description" => tool["description"].to_s,
+          "input_schema" => tool["inputSchema"] || tool["input_schema"] || {}
         }
       end
     end

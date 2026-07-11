@@ -133,7 +133,8 @@ module Chat
       a = Chat::Agent.new(
         classifier: StubClassifier.new(intent("image_generation")),
         client_factory: factory,
-        mcp_runner: mcp_runner
+        mcp_runner: mcp_runner,
+        mcp_loop: mcp_loop_for(mcp_runner)
       )
       result = a.call(messages: [ { role: "user", content: "猫の絵を描いて" } ])
 
@@ -153,7 +154,8 @@ module Chat
       a = Chat::Agent.new(
         classifier: StubClassifier.new(intent("conversation")),
         client_factory: factory,
-        mcp_runner: mcp_runner
+        mcp_runner: mcp_runner,
+        mcp_loop: mcp_loop_for(mcp_runner)
       )
       result = a.call(
         messages: [ { role: "user", content: "スタイル教えて" } ],
@@ -176,7 +178,8 @@ module Chat
       a = Chat::Agent.new(
         classifier: StubClassifier.new(intent("web_research")),
         client_factory: factory,
-        mcp_runner: mcp_runner
+        mcp_runner: mcp_runner,
+        mcp_loop: mcp_loop_for(mcp_runner)
       )
       result = a.call(messages: [ { role: "user", content: "最新の llama.cpp" } ])
 
@@ -204,7 +207,8 @@ module Chat
       a = Chat::Agent.new(
         classifier: StubClassifier.new(intent("url_analysis")),
         client_factory: factory,
-        mcp_runner: mcp_runner
+        mcp_runner: mcp_runner,
+        mcp_loop: mcp_loop_for(mcp_runner)
       )
       result = a.call(messages: [ { role: "user", content: "https://example.com を要約" } ])
 
@@ -224,7 +228,8 @@ module Chat
       a = Chat::Agent.new(
         classifier: StubClassifier.new(intent("web_research")),
         client_factory: factory,
-        mcp_runner: mcp_runner
+        mcp_runner: mcp_runner,
+        mcp_loop: mcp_loop_for(mcp_runner)
       )
       result = a.call(
         messages: [ { role: "user", content: "最新の llama.cpp" } ],
@@ -272,6 +277,19 @@ module Chat
     def system_content(messages)
       first = messages.first
       first && first[:role] == "system" ? first[:content] : nil
+    end
+
+    def mcp_loop_for(runner, planner: nil)
+      planner ||= begin
+        stub = Object.new
+        stub.define_singleton_method(:plan) do |**|
+          Chat::Tools::McpToolPlanner::Plan.new(calls: [], reason: "stub")
+        end
+        stub
+      end
+      client = Object.new
+      client.define_singleton_method(:list_tools) { [] }
+      Chat::Tools::McpToolLoop.new(runner: runner, planner: planner, client: client)
     end
 
     test "injects fast_chat default prompt for conversation" do

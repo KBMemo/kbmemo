@@ -29,11 +29,13 @@ module Chat
     # @param client_factory [#call, nil] role(Symbol) -> Chat::LlmClient
     # @param rag_search [Chat::Tools::RagSearch, nil]
     # @param mcp_runner [Chat::Tools::NyoyMcpRunner, nil]
-    def initialize(classifier: nil, client_factory: nil, rag_search: nil, mcp_runner: nil)
+    # @param mcp_loop [Chat::Tools::McpToolLoop, nil]
+    def initialize(classifier: nil, client_factory: nil, rag_search: nil, mcp_runner: nil, mcp_loop: nil)
       @classifier = classifier
       @custom_client_factory = client_factory
       @rag_search_factory = rag_search
       @mcp_runner = mcp_runner
+      @mcp_loop = mcp_loop
     end
 
     # @param messages [Array<Hash>] { role:, content: }（user/assistant 履歴）
@@ -67,7 +69,7 @@ module Chat
       ) if user_text.blank?
 
       rag_result = run_rag_tool(decision, user_text, account, trace: trace)
-      mcp_result = run_mcp_tools(decision, user_text, trace: trace)
+      mcp_result = run_mcp_tools(decision, user_text, intent: classification.intent, trace: trace)
 
       primary_role = chat_role(decision.model_role)
       reply = trace.run(:generate, "応答生成", model_role: primary_role) do
@@ -169,7 +171,7 @@ module Chat
       @enabled_mcp_tools.include?(mcp_name)
     end
 
-    def run_mcp_tools(decision, user_text, trace:)
+    def run_mcp_tools(decision, user_text, intent:, trace:)
       router_mcp_names = decision.tools.filter_map do |tool|
         next unless DELEGATED_TOOLS.include?(tool)
         next unless delegated_tool_enabled?(tool)
@@ -181,7 +183,11 @@ module Chat
       return nil if @enabled_mcp_tools == []
 
       trace.run(:mcp_tools, "外部ツール（Nyoy MCP）") do
-        result = mcp_runner.call(mcp_names: mcp_names, user_text: user_text)
+        result = mcp_tool_loop.call(
+          user_text: user_text,
+          intent: intent,
+          candidate_tools: mcp_names
+        )
         @interaction_log.tool_context(
           step_key: :mcp_tools,
           label: "Nyoy MCP",
@@ -328,6 +334,10 @@ module Chat
 
     def mcp_runner
       @mcp_runner ||= Chat::Tools::NyoyMcpRunner.new(account: @account)
+    end
+
+    def mcp_tool_loop
+      @mcp_loop ||= Chat::Tools::McpToolLoop.new(account: @account, runner: mcp_runner)
     end
 
     def client_for(role)

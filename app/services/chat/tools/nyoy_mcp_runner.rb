@@ -89,6 +89,33 @@ module Chat
         )
       end
 
+      # @param calls [Array<Hash>] { name:, arguments: } または LLM 計画 JSON
+      def call_planned(calls:, user_text:)
+        empty = Result.new(tools_run: [], tools_skipped: [], context_text: "", errors: [])
+        return empty unless configured?
+
+        session = Session.new(user_text: user_text.to_s)
+        run = []
+        skipped = []
+        errors = []
+        chunks = []
+
+        Array(calls).each do |call|
+          mcp_name = (call[:name] || call["name"]).to_s.strip
+          next if mcp_name.blank?
+
+          arguments = call[:arguments] || call["arguments"]
+          execute_tool_with_arguments(mcp_name, arguments, session:, run:, skipped:, errors:, chunks:)
+        end
+
+        Result.new(
+          tools_run: run,
+          tools_skipped: skipped.uniq,
+          context_text: chunks.compact.join("\n\n"),
+          errors: errors
+        )
+      end
+
       def optional_skip?(tool, user_text:)
         mcp_name = TOOL_MAP[tool]
         return false unless mcp_name
@@ -100,18 +127,35 @@ module Chat
 
       def execute_tool(mcp_name, session:, run:, skipped:, errors:, chunks:)
         arguments = build_arguments(mcp_name, session)
+        execute_tool_with_arguments(mcp_name, arguments, session:, run:, skipped:, errors:, chunks:)
+      end
+
+      def execute_tool_with_arguments(mcp_name, arguments, session:, run:, skipped:, errors:, chunks:)
         if arguments.nil?
           skipped << mcp_name
           return
         end
 
-        payload = @client.call_tool(name: mcp_name, arguments: arguments)
+        if MANUAL_MCP_TOOLS.include?(mcp_name)
+          skipped << mcp_name
+          return
+        end
+
+        payload = @client.call_tool(name: mcp_name, arguments: normalize_arguments_hash(arguments))
         run << mcp_name
         chunks << format_context(mcp_name, payload)
         chain_follow_ups(mcp_name, payload, session:, run:, skipped:, errors:, chunks:)
       rescue Chat::NyoyMcpClient::Error => e
         errors << { tool: mcp_name, message: e.message }
         skipped << mcp_name
+      end
+
+      def normalize_arguments_hash(arguments)
+        arguments.each_with_object({}) do |(key, value), hash|
+          next if key.blank?
+
+          hash[key.to_s] = value
+        end
       end
 
       def chain_follow_ups(mcp_name, payload, session:, run:, skipped:, errors:, chunks:)

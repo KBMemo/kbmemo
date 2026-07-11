@@ -165,6 +165,23 @@ module Chat
         assert_includes result.context_text, "Photo"
       end
 
+      test "call_planned executes explicit arguments" do
+        client = stub_client(
+          "fetch_url" => { "title" => "Docs", "content_preview" => "hello" }
+        )
+        runner = NyoyMcpRunner.new(client: client)
+
+        result = runner.call_planned(
+          calls: [
+            { name: "fetch_url", arguments: { url: "https://example.com/docs" } }
+          ],
+          user_text: "要約して"
+        )
+
+        assert_equal [ "fetch_url" ], result.tools_run
+        assert_includes result.context_text, "Docs"
+      end
+
       test "directly_invocable excludes chain-only and manual tools" do
         assert NyoyMcpRunner.directly_invocable?("web_search")
         assert NyoyMcpRunner.directly_invocable?("list_albums")

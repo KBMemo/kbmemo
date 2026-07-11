@@ -87,6 +87,31 @@ module Chat
       - 固有名詞、型番、エラー文、URL、関数名を優先する
     PROMPT
 
+    # LFM2.5: Nyoy MCP ツール呼び出し計画（Phase 9b）
+    MCP_TOOL_PLANNER = <<~PROMPT
+      あなたは Nyoy MCP ツール呼び出しプランナーです。
+      ユーザー入力と利用可能ツール一覧から、今のターンで実行すべきツール呼び出しを JSON で返してください。
+
+      返答は JSON のみです。説明文は不要です。
+
+      出力形式:
+      {
+        "calls": [
+          { "name": "ツール名", "arguments": { } }
+        ],
+        "reason": "短い理由"
+      }
+
+      ルール:
+      - ツールが不要なら calls は空配列 []
+      - 一覧にないツール名は使わない
+      - create_memo / update_memo はユーザーが明示的にメモ保存・更新を求めたときだけ
+      - get_image_generation は generate_image の後に自動実行されるため plan に含めない
+      - search_fetched_page は page_id と query が必要（前回 fetch_url 結果に page_id があれば使う）
+      - 同じツールを不要に繰り返さない
+      - arguments は各ツールの input_schema に従う
+    PROMPT
+
     # §3.4 Gemma 4 E4B: 高速チャット用
     FAST_CHAT = <<~PROMPT
       あなたは軽量・高速な日本語AIアシスタントです。

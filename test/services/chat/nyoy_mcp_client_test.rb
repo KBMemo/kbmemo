@@ -64,7 +64,7 @@ module Chat
         {
           "result" => {
             "tools" => [
-              { "name" => "web_search", "description" => "Search the web" },
+              { "name" => "web_search", "description" => "Search the web", "inputSchema" => { "type" => "object" } },
               { "name" => "mcp_auth", "description" => "Auth" }
             ]
           }
@@ -75,6 +75,7 @@ module Chat
       assert_equal 1, tools.size
       assert_equal "web_search", tools.first["name"]
       assert_equal "Search the web", tools.first["description"]
+      assert_equal({ "type" => "object" }, tools.first["input_schema"])
     end
   end
 end
