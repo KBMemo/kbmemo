@@ -128,7 +128,7 @@ module Chat
           { "status" => "completed", "image_url" => "https://example.com/cat.png" }
         end
       end
-      mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client, poll_sleep: ->(_seconds) {})
+      mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
 
       factory = RecordingFactory.new
       a = Chat::Agent.new(

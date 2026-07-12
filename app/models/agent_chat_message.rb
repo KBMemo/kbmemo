@@ -77,6 +77,8 @@ class AgentChatMessage < ApplicationRecord
       end
       image_urls = metadata.dig("mcp", "image_urls")
       entry[:generated_images] = image_urls if image_urls.present?
+      watch = metadata.dig("mcp", "image_generation_watch")
+      entry[:image_generation_watch] = watch if watch.present?
       mcp_errors = metadata.dig("mcp", "errors")
       entry[:mcp_errors] = mcp_errors if mcp_errors.present?
     end

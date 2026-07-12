@@ -72,10 +72,12 @@ export default class extends Controller {
     this.lastSeq = 0
     this.turnFinalized = false
     this.imageGenerationWatchTimer = null
+    this.imageGenerationWatchIndex = null
     this.unsubscribeCable = subscribeAgentChat((event) => this.receivedCable(event))
     this.renderMessages()
     this.updateSendState()
     this.initialMessagesJsonTarget?.remove()
+    this.resumeImageGenerationWatches()
     if (this.nyoyConfiguredValue && this.nyoyToolsUrlValue) {
       this.fetchNyoyTools()
     }
@@ -341,6 +343,7 @@ export default class extends Controller {
 
     this.clearError()
     this.clearAttachmentError()
+    this.stopImageGenerationWatch()
     this.syncEnabledMcpTools()
     this.history.push({
       role: "user",
@@ -477,7 +480,7 @@ export default class extends Controller {
       (!payload.mcp?.image_urls || payload.mcp.image_urls.length === 0) &&
       payload.mcp?.image_generation_watch?.id
     ) {
-      this.startImageGenerationWatch(payload.mcp.image_generation_watch)
+      this.startImageGenerationWatch(payload.mcp.image_generation_watch, this.history.length - 1)
     }
     this.turnFinalized = true
     this.activeTurnId = null
@@ -685,9 +688,12 @@ export default class extends Controller {
     return /\.(png|jpe?g|gif|webp)(\?|$)/i.test(url) || url.includes("/rails/active_storage/")
   }
 
-  startImageGenerationWatch(watch) {
+  startImageGenerationWatch(watch, historyIndex = null) {
     this.stopImageGenerationWatch()
     if (!watch?.id || !this.hasImageGenerationUrlTemplateValue) return
+
+    this.imageGenerationWatchIndex =
+      historyIndex != null ? historyIndex : this.history.length - 1
 
     const url = this.imageGenerationUrlTemplateValue.replace(
       "__ID__",
@@ -715,14 +721,14 @@ export default class extends Controller {
           ? data.image_urls.map(String).filter(Boolean)
           : []
         if (urls.length > 0) {
-          this.appendGeneratedImagesToLastAssistant(urls)
+          this.appendGeneratedImagesToAssistant(urls)
           this.stopImageGenerationWatch()
           return
         }
 
         if (data.done) {
           if (data.show_url) {
-            this.appendGeneratedImagesToLastAssistant([ String(data.show_url) ])
+            this.appendGeneratedImagesToAssistant([ String(data.show_url) ])
           }
           this.stopImageGenerationWatch()
         }
@@ -740,15 +746,35 @@ export default class extends Controller {
       window.clearInterval(this.imageGenerationWatchTimer)
       this.imageGenerationWatchTimer = null
     }
+    this.imageGenerationWatchIndex = null
   }
 
-  appendGeneratedImagesToLastAssistant(urls) {
-    const last = this.history[this.history.length - 1]
-    if (!last || last.role !== "assistant") return
+  resumeImageGenerationWatches() {
+    let watchIndex = -1
+    let watch = null
 
-    const existing = Array.isArray(last.generated_images) ? last.generated_images : []
-    const merged = [ ...existing, ...urls ].filter((value, index, array) => array.indexOf(value) === index)
-    last.generated_images = merged
+    this.history.forEach((entry, index) => {
+      if (entry.role !== "assistant") return
+      if (!entry.image_generation_watch?.id) return
+      if (Array.isArray(entry.generated_images) && entry.generated_images.length > 0) return
+
+      watchIndex = index
+      watch = entry.image_generation_watch
+    })
+
+    if (watchIndex >= 0 && watch) {
+      this.startImageGenerationWatch(watch, watchIndex)
+    }
+  }
+
+  appendGeneratedImagesToAssistant(urls) {
+    const index = this.imageGenerationWatchIndex ?? this.history.length - 1
+    const entry = this.history[index]
+    if (!entry || entry.role !== "assistant") return
+
+    const existing = Array.isArray(entry.generated_images) ? entry.generated_images : []
+    const merged = [ ...existing, ...urls ].filter((value, idx, array) => array.indexOf(value) === idx)
+    entry.generated_images = merged
     this.renderMessages()
     this.focusLatestAnswer()
   }

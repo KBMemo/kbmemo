@@ -94,7 +94,7 @@ module Chat
           end
         end
 
-        runner = NyoyMcpRunner.new(client: client, poll_sleep: ->(_seconds) {})
+        runner = NyoyMcpRunner.new(client: client)
         result = runner.call(tools: [ :image_generation ], user_text: "猫のイラスト")
 
         assert_equal [ "generate_image", "get_image_generation" ], result.tools_run
@@ -124,7 +124,7 @@ module Chat
           end
         end
 
-        runner = NyoyMcpRunner.new(client: client, poll_sleep: ->(_seconds) {})
+        runner = NyoyMcpRunner.new(client: client)
         result = runner.call(mcp_names: [ "generate_image" ], user_text: "猫のイラスト")
 
         assert_equal [ "generate_image", "get_image_generation" ], result.tools_run
@@ -132,7 +132,7 @@ module Chat
         assert_nil result.image_generation_watch
       end
 
-      test "sets image generation watch when polling times out before drafts are ready" do
+      test "sets image generation watch when generation is still in progress" do
         attempts = 0
         client = Object.new
         client.define_singleton_method(:configured?) { true }
@@ -149,24 +149,37 @@ module Chat
           end
         end
 
-        stub_const = Chat::Tools::NyoyMcpRunner
-        original = stub_const.const_get(:IMAGE_GENERATION_MAX_ATTEMPTS)
-        stub_const.send(:remove_const, :IMAGE_GENERATION_MAX_ATTEMPTS)
-        stub_const.const_set(:IMAGE_GENERATION_MAX_ATTEMPTS, 2)
-
-        runner = NyoyMcpRunner.new(client: client, poll_sleep: ->(_seconds) {})
+        runner = NyoyMcpRunner.new(client: client)
         result = runner.call(mcp_names: [ "generate_image" ], user_text: "猫")
 
-        assert_equal 2, attempts
+        assert_equal 1, attempts
         assert_equal({ id: 9, status: "drafting" }, result.image_generation_watch)
         assert_empty result.image_urls
-      ensure
-        stub_const.send(:remove_const, :IMAGE_GENERATION_MAX_ATTEMPTS)
-        stub_const.const_set(:IMAGE_GENERATION_MAX_ATTEMPTS, original)
       end
 
-      test "polls get_image_generation until terminal status" do
-        attempts = []
+      test "records error when image generation failed" do
+        client = Object.new
+        client.define_singleton_method(:configured?) { true }
+        client.define_singleton_method(:call_tool) do |name:, arguments:|
+          case name.to_s
+          when "generate_image"
+            { "id" => 12 }
+          when "get_image_generation"
+            { "status" => "failed", "error_message" => "SD pipeline error" }
+          else
+            raise "unexpected tool #{name}"
+          end
+        end
+
+        runner = NyoyMcpRunner.new(client: client)
+        result = runner.call(mcp_names: [ "generate_image" ], user_text: "猫")
+
+        assert_equal [ "generate_image", "get_image_generation" ], result.tools_run
+        assert_equal "SD pipeline error", result.errors.first[:message]
+        assert_nil result.image_generation_watch
+      end
+
+      test "sets image generation watch when first status check is still running" do
         client = Object.new
         client.define_singleton_method(:configured?) { true }
         client.define_singleton_method(:call_tool) do |name:, arguments:|
@@ -174,16 +187,16 @@ module Chat
           when "generate_image"
             { "id" => 7 }
           when "get_image_generation"
-            attempts << arguments
-            attempts.size >= 2 ? { "status" => "completed" } : { "status" => "running" }
+            { "id" => 7, "status" => "running" }
           end
         end
 
-        runner = NyoyMcpRunner.new(client: client, poll_sleep: ->(_seconds) {})
+        runner = NyoyMcpRunner.new(client: client)
         result = runner.call(mcp_names: [ "generate_image" ], user_text: "風景画")
 
-        assert_equal 2, attempts.size
         assert_equal [ "generate_image", "get_image_generation" ], result.tools_run
+        assert_equal({ id: 7, status: "running" }, result.image_generation_watch)
+        assert_empty result.image_urls
       end
 
       test "runs list_prompt_styles with empty arguments" do

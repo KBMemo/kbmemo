@@ -39,8 +39,6 @@ module Chat
 
       ULID_PATTERN = /\b[0-9A-HJKMNP-TV-Z]{26}\b/
 
-      IMAGE_GENERATION_POLL_INTERVAL = 2.0
-      IMAGE_GENERATION_MAX_ATTEMPTS = 90
       IMAGE_GENERATION_COMPLETED = %w[completed done succeeded].freeze
       IMAGE_GENERATION_AWAITING = %w[awaiting_selection].freeze
       IMAGE_GENERATION_FAILED = %w[failed error cancelled canceled].freeze
@@ -63,9 +61,8 @@ module Chat
         DIRECT_MCP_TOOLS.include?(name.to_s)
       end
 
-      def initialize(client: nil, account: nil, poll_sleep: nil)
+      def initialize(client: nil, account: nil)
         @client = client || Chat::NyoyMcpConfig.client(account: account)
-        @poll_sleep = poll_sleep || method(:default_poll_sleep)
       end
 
       def configured?
@@ -209,28 +206,28 @@ module Chat
         return if generation_id.blank?
 
         run << "get_image_generation"
-        last_payload = nil
+        poll_payload = @client.call_tool(
+          name: "get_image_generation",
+          arguments: { id: generation_id.to_i }
+        )
+        upsert_poll_chunk(chunks, poll_payload)
 
-        IMAGE_GENERATION_MAX_ATTEMPTS.times do |attempt|
-          poll_payload = @client.call_tool(
-            name: "get_image_generation",
-            arguments: { id: generation_id.to_i }
-          )
-          last_payload = poll_payload
-          upsert_poll_chunk(chunks, poll_payload)
-
-          status = image_generation_status(poll_payload)
-          if image_generation_terminal_success?(status)
-            capture_image_generation_result(poll_payload, image_urls)
-            return
-          end
-          return if status.in?(IMAGE_GENERATION_FAILED)
-          break if attempt + 1 >= IMAGE_GENERATION_MAX_ATTEMPTS
-
-          @poll_sleep.call(IMAGE_GENERATION_POLL_INTERVAL)
+        status = image_generation_status(poll_payload)
+        if image_generation_terminal_success?(status)
+          capture_image_generation_result(poll_payload, image_urls)
+          return
         end
 
-        assign_image_generation_watch(watch_holder, last_payload, generation_id: generation_id)
+        if status.in?(IMAGE_GENERATION_FAILED)
+          message = poll_payload.is_a?(Hash) ? poll_payload["error_message"].presence : nil
+          errors << {
+            tool: "get_image_generation",
+            message: message || "画像生成に失敗しました（status: #{status}）"
+          }
+          return
+        end
+
+        assign_image_generation_watch(watch_holder, poll_payload, generation_id: generation_id)
       rescue Chat::NyoyMcpClient::Error => e
         errors << { tool: "get_image_generation", message: e.message }
         skipped << "get_image_generation"
@@ -286,10 +283,6 @@ module Chat
         return nil unless payload.is_a?(Hash)
 
         payload["image_url"].presence || payload["url"].presence
-      end
-
-      def default_poll_sleep(seconds)
-        sleep(seconds)
       end
 
       def normalize_mcp_names(mcp_names:, tools:)

@@ -80,4 +80,23 @@ class AgentChatMessageTest < ActiveSupport::TestCase
     entry = message.as_ui_entry
     assert_equal [ "https://example.com/cat.png" ], entry[:generated_images]
   end
+
+  test "as_ui_entry includes image generation watch when stored" do
+    conversation = accounts(:one).agent_chat_conversations.create!
+    message = conversation.messages.create!(
+      role: "assistant",
+      content: "生成中",
+      intent: "image_generation",
+      model_role: "main",
+      metadata: {
+        "mcp" => {
+          "image_generation_watch" => { "id" => 42, "status" => "drafting" }
+        },
+        "trace" => { "steps" => [] }
+      }
+    )
+
+    entry = message.as_ui_entry
+    assert_equal({ "id" => 42, "status" => "drafting" }, entry[:image_generation_watch])
+  end
 end
