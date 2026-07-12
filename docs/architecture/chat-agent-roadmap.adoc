@@ -309,6 +309,7 @@ Phase 3–7 の横断ツールは **Nyoy MCP へ委譲**し、徒然 in-app で�
 * 未設定時は従来どおり `pending_tools: true`（MCP 未接続と同じ挙動）。
 * **pending_tools UI** — 未実行ツール名を `pending_tool_names` で返し、assistant 応答下に Nyoy MCP 設定／ツール有効化の案内を表示。
 * **MCP マージ拡張** — `rag_lookup` / `web_research` で UI 有効時に `recall_memos` / `search_memos` をローカル RAG・Web 検索と併用。`generate_image` 完了時は `mcp.image_urls` を UI プレビュー。
+* **画像生成（部分）** — ラフ案まで（<<image-refine-gap,§12>>）。`refine_image` / 完成画像は未接続。
 
 [[agent-ui]]
 == 6.6. 独立チャット画面 — 2026-07 完了
@@ -396,3 +397,67 @@ link:https://gitea.artif.org/Artif.org/nyoy/blob/main/docs/architecture/nyoy-mcp
 * Router が `fetch_url` / `web_search` 等を返したとき、**Phase 9** で `Chat::NyoyMcpClient` 経由で Nyoy MCP を呼ぶ（credentials / ENV 設定時）。
 * MCP 未設定時は **徒然内では未実行**（`pending_tools: true`）。
 * Cursor 開発では `.cursor/mcp.json` で Nyoy に直接接続し、同等ツールを使う。
+
+[[image-refine-gap]]
+== 12. 既知の課題 — 画像生成の仕上げ（refine）未接続（2026-07）
+
+=== 12.1 症状
+
+徒然 `/agent_chat` から画像生成を依頼すると、**ラフ案（ドラフト 1〜4）の生成までは動作する**。
+Nyoy 側の `ImageGeneration` は `awaiting_selection` に到達し、`get_image_generation` の `draft_urls` / `show_path` でプレビューできる。
+
+一方、**ドラフトのいずれかを選んで仕上げ（refine）生成するフローは in-app では未実装**である。
+そのため完成画像（`completed`）まで自動では進まず、チャット上ではラフ案プレビューまたは「如意でラフ案を見る」リンクで止まる。
+
+=== 12.2 想定フロー（Nyoy MCP 契約）
+
+如意の SD パイプラインは次の段階を持つ（正本: 如意 `docs/mcp-server.md`）。
+
+[source,text]
+----
+generate_image
+  → get_image_generation（status: drafting → awaiting_selection）
+  → refine_image（draft_index: 0..3）
+  → get_image_generation（status: refining → completed）
+----
+
+徒然 Agent Chat が現状接続しているのは **`generate_image` と 1 回の `get_image_generation`** のみ。
+`refine_image` は Router / `NyoyMcpRunner` / UI のいずれにも未接続。
+
+=== 12.3 ギャップ一覧
+
+[cols="1,2,2"]
+|===
+|領域 |現状 |不足
+
+|`Chat::Tools::NyoyMcpRunner`
+|`generate_image` 後に状態確認。`awaiting_selection` で `image_urls`（ラフ）を返す
+|`refine_image` のチェーンなし。`draft_index` を誰が決めるか未定
+
+|`Chat::Agent`
+|`image_generation` intent で `generate_image` を直接呼ぶ
+|ユーザーが「2 番を選んで」等と言っても refine に繋がらない
+
+|Agent Chat UI
+|ラフ案の `<img>` プレビュー、`image_generation_watch` によるクライアントポーリング
+|ドラフト選択 UI（1〜4 のボタン／番号指定）なし。完成画像プレビューなし
+
+|会話永続化
+|`mcp.image_urls` / `image_generation_watch` を metadata に保存
+|選択した `draft_index` / refine 後の `completed` 画像 URL の保存なし
+|===
+
+=== 12.4 当面の回避
+
+* チャット内の **「如意でラフ案を見る」**（`show_path`）から Nyoy の画像生成画面を開き、**如意 UI 上でドラフトを選んで refine** する。
+* Cursor 等で Nyoy MCP に直接接続している場合は、手動で `refine_image` を呼ぶ。
+
+=== 12.5 実装時の検討事項（未着手）
+
+* **選択の入力経路**: チャット本文（「3 番」）を LLM / 正規表現で解釈するか、専用 UI（ドラフトサムネイル + 選択ボタン）を出すか。
+* **Runner 拡張**: `awaiting_selection` 検知後に `refine_image` を呼ぶチェーン、またはユーザー操作をトリガーに `refine_image` 単発実行。
+* **ポーリング**: refine も非同期のため、ラフ案と同様に `image_generation_watch` またはクライアントポーリングで `completed` を待つ。
+* **認可・ツール有効化**: `refine_image` を `enabled_mcp_tools` / `DIRECT_MCP_TOOLS` に含めるか。
+* **クロスオリジン**: 完成画像も Active Storage URL の場合、ラフ案と同様にプロキシ要否を再検討。
+
+関連: 如意 `docs/architecture/nyoy-mcp.adoc` §9、如意 `docs/ecosystem-roadmap.md` §6（徒然側）。
