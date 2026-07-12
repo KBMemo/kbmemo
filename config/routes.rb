@@ -27,6 +27,7 @@ Rails.application.routes.draw do
   resource :agent_chat, only: %i[show create destroy], controller: "agent_chats" do
     get :nyoy_tools
     post :upload_image
+    get "image_generations/:id", action: :image_generation_status, as: :image_generation
   end
 
   resource :chat_server, only: %i[show update], controller: "chat_servers" do

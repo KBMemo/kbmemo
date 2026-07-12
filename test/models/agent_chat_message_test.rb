@@ -63,4 +63,21 @@ class AgentChatMessageTest < ActiveSupport::TestCase
     assert entry[:pending_tools]
     assert_equal [ "image_generation" ], entry[:pending_tool_names]
   end
+
+  test "as_ui_entry includes generated image urls when stored" do
+    conversation = accounts(:one).agent_chat_conversations.create!
+    message = conversation.messages.create!(
+      role: "assistant",
+      content: "できました",
+      intent: "image_generation",
+      model_role: "main",
+      metadata: {
+        "mcp" => { "image_urls" => [ "https://example.com/cat.png" ] },
+        "trace" => { "steps" => [] }
+      }
+    )
+
+    entry = message.as_ui_entry
+    assert_equal [ "https://example.com/cat.png" ], entry[:generated_images]
+  end
 end

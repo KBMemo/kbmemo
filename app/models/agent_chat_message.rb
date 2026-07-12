@@ -71,10 +71,14 @@ class AgentChatMessage < ApplicationRecord
         meta = ui_meta
         entry[:meta] = meta if meta.present?
       end
-      if metadata["pending_tools"]
+      if (metadata["pending_tools"])
         entry[:pending_tools] = true
         entry[:pending_tool_names] = metadata["pending_tool_names"] if metadata["pending_tool_names"].present?
       end
+      image_urls = metadata.dig("mcp", "image_urls")
+      entry[:generated_images] = image_urls if image_urls.present?
+      mcp_errors = metadata.dig("mcp", "errors")
+      entry[:mcp_errors] = mcp_errors if mcp_errors.present?
     end
     entry
   end

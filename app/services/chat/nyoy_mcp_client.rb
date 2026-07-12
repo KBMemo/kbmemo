@@ -36,6 +36,15 @@ module Chat
       @url.present? && @api_token.present?
     end
 
+    def site_origin
+      uri = URI.parse(@url)
+      origin = "#{uri.scheme}://#{uri.host}"
+      origin += ":#{uri.port}" if uri.port && ![ 80, 443 ].include?(uri.port)
+      origin
+    rescue URI::InvalidURIError
+      nil
+    end
+
     def list_tools
       ensure_configured!
       response = rpc_request(method: "tools/list", params: {})

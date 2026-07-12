@@ -39,14 +39,25 @@ module Chat
 
       ULID_PATTERN = /\b[0-9A-HJKMNP-TV-Z]{26}\b/
 
-      IMAGE_GENERATION_POLL_INTERVAL = 1.0
-      IMAGE_GENERATION_MAX_ATTEMPTS = 30
+      IMAGE_GENERATION_POLL_INTERVAL = 2.0
+      IMAGE_GENERATION_MAX_ATTEMPTS = 90
       IMAGE_GENERATION_COMPLETED = %w[completed done succeeded].freeze
+      IMAGE_GENERATION_AWAITING = %w[awaiting_selection].freeze
       IMAGE_GENERATION_FAILED = %w[failed error cancelled canceled].freeze
 
       Session = Struct.new(:user_text, :page_id, :image_attachments, keyword_init: true)
 
-      Result = Struct.new(:tools_run, :tools_skipped, :context_text, :errors, keyword_init: true)
+      Result = Struct.new(
+        :tools_run, :tools_skipped, :context_text, :errors, :image_urls, :image_generation_watch,
+        keyword_init: true
+      )
+
+      def self.empty
+        Result.new(
+          tools_run: [], tools_skipped: [], context_text: "", errors: [], image_urls: [],
+          image_generation_watch: nil
+        )
+      end
 
       def self.directly_invocable?(name)
         DIRECT_MCP_TOOLS.include?(name.to_s)
@@ -65,7 +76,7 @@ module Chat
       # @param mcp_names [Array<String>] Nyoy MCP のツール名
       # @param user_text [String]
       def call(tools: nil, mcp_names: nil, user_text:, image_attachments: nil)
-        empty = Result.new(tools_run: [], tools_skipped: [], context_text: "", errors: [])
+        empty = self.class.empty
         return empty unless configured?
 
         names = normalize_mcp_names(mcp_names: mcp_names, tools: tools)
@@ -76,22 +87,26 @@ module Chat
         skipped = []
         errors = []
         chunks = []
+        image_urls = []
+        watch_holder = []
 
         names.each do |mcp_name|
-          execute_tool(mcp_name, session:, run:, skipped:, errors:, chunks:)
+          execute_tool(mcp_name, session:, run:, skipped:, errors:, chunks:, image_urls:, watch_holder:)
         end
 
         Result.new(
           tools_run: run,
           tools_skipped: skipped.uniq,
           context_text: chunks.compact.join("\n\n"),
-          errors: errors
+          errors: errors,
+          image_urls: image_urls.uniq,
+          image_generation_watch: watch_holder.first
         )
       end
 
       # @param calls [Array<Hash>] { name:, arguments: } または LLM 計画 JSON
       def call_planned(calls:, user_text:, image_attachments: nil)
-        empty = Result.new(tools_run: [], tools_skipped: [], context_text: "", errors: [])
+        empty = self.class.empty
         return empty unless configured?
 
         session = build_session(user_text:, image_attachments:)
@@ -99,6 +114,8 @@ module Chat
         skipped = []
         errors = []
         chunks = []
+        image_urls = []
+        watch_holder = []
 
         Array(calls).each do |call|
           mcp_name = (call[:name] || call["name"]).to_s.strip
@@ -106,14 +123,16 @@ module Chat
 
           arguments = call[:arguments] || call["arguments"]
           arguments = build_arguments(mcp_name, session) if arguments.nil?
-          execute_tool_with_arguments(mcp_name, arguments, session:, run:, skipped:, errors:, chunks:)
+          execute_tool_with_arguments(mcp_name, arguments, session:, run:, skipped:, errors:, chunks:, image_urls:, watch_holder:)
         end
 
         Result.new(
           tools_run: run,
           tools_skipped: skipped.uniq,
           context_text: chunks.compact.join("\n\n"),
-          errors: errors
+          errors: errors,
+          image_urls: image_urls.uniq,
+          image_generation_watch: watch_holder.first
         )
       end
 
@@ -126,12 +145,12 @@ module Chat
 
       private
 
-      def execute_tool(mcp_name, session:, run:, skipped:, errors:, chunks:)
+      def execute_tool(mcp_name, session:, run:, skipped:, errors:, chunks:, image_urls:, watch_holder: [])
         arguments = build_arguments(mcp_name, session)
-        execute_tool_with_arguments(mcp_name, arguments, session:, run:, skipped:, errors:, chunks:)
+        execute_tool_with_arguments(mcp_name, arguments, session:, run:, skipped:, errors:, chunks:, image_urls:, watch_holder:)
       end
 
-      def execute_tool_with_arguments(mcp_name, arguments, session:, run:, skipped:, errors:, chunks:)
+      def execute_tool_with_arguments(mcp_name, arguments, session:, run:, skipped:, errors:, chunks:, image_urls:, watch_holder: [])
         if arguments.nil?
           skipped << mcp_name
           return
@@ -151,7 +170,7 @@ module Chat
         payload = @client.call_tool(name: mcp_name, arguments: normalize_arguments_hash(arguments))
         run << mcp_name
         chunks << format_context(mcp_name, payload)
-        chain_follow_ups(mcp_name, payload, session:, run:, skipped:, errors:, chunks:)
+        chain_follow_ups(mcp_name, payload, session:, run:, skipped:, errors:, chunks:, image_urls:, watch_holder:)
       rescue Chat::NyoyMcpClient::Error => e
         errors << { tool: mcp_name, message: e.message }
         skipped << mcp_name
@@ -165,46 +184,53 @@ module Chat
         end
       end
 
-      def chain_follow_ups(mcp_name, payload, session:, run:, skipped:, errors:, chunks:)
+      def chain_follow_ups(mcp_name, payload, session:, run:, skipped:, errors:, chunks:, image_urls:, watch_holder:)
         case mcp_name
         when "fetch_url"
-          chain_search_fetched_page(payload, session:, run:, skipped:, errors:, chunks:)
+          chain_search_fetched_page(payload, session:, run:, skipped:, errors:, chunks:, image_urls:, watch_holder:)
         when "generate_image"
-          chain_image_generation_poll(payload, run:, skipped:, errors:, chunks:)
+          chain_image_generation_poll(payload, run:, skipped:, errors:, chunks:, image_urls:, watch_holder:)
         end
       end
 
-      def chain_search_fetched_page(payload, session:, run:, skipped:, errors:, chunks:)
+      def chain_search_fetched_page(payload, session:, run:, skipped:, errors:, chunks:, image_urls:, watch_holder:)
         return unless payload.is_a?(Hash)
         return unless payload["truncated"]
         return if payload["page_id"].blank?
 
         session.page_id = payload["page_id"].to_s
-        execute_tool("search_fetched_page", session:, run:, skipped:, errors:, chunks:)
+        execute_tool("search_fetched_page", session:, run:, skipped:, errors:, chunks:, image_urls:, watch_holder:)
       end
 
-      def chain_image_generation_poll(payload, run:, skipped:, errors:, chunks:)
+      def chain_image_generation_poll(payload, run:, skipped:, errors:, chunks:, image_urls:, watch_holder:)
         return unless payload.is_a?(Hash)
 
         generation_id = payload["id"] || payload["image_generation_id"]
         return if generation_id.blank?
 
         run << "get_image_generation"
+        last_payload = nil
 
         IMAGE_GENERATION_MAX_ATTEMPTS.times do |attempt|
           poll_payload = @client.call_tool(
             name: "get_image_generation",
             arguments: { id: generation_id.to_i }
           )
+          last_payload = poll_payload
           upsert_poll_chunk(chunks, poll_payload)
 
           status = image_generation_status(poll_payload)
-          return if status.in?(IMAGE_GENERATION_COMPLETED)
+          if image_generation_terminal_success?(status)
+            capture_image_generation_result(poll_payload, image_urls)
+            return
+          end
           return if status.in?(IMAGE_GENERATION_FAILED)
           break if attempt + 1 >= IMAGE_GENERATION_MAX_ATTEMPTS
 
           @poll_sleep.call(IMAGE_GENERATION_POLL_INTERVAL)
         end
+
+        assign_image_generation_watch(watch_holder, last_payload, generation_id: generation_id)
       rescue Chat::NyoyMcpClient::Error => e
         errors << { tool: "get_image_generation", message: e.message }
         skipped << "get_image_generation"
@@ -225,6 +251,41 @@ module Chat
         return "" unless payload.is_a?(Hash)
 
         (payload["status"] || payload["state"]).to_s.downcase
+      end
+
+      def image_generation_terminal_success?(status)
+        status.in?(IMAGE_GENERATION_COMPLETED) || status.in?(IMAGE_GENERATION_AWAITING)
+      end
+
+      def capture_image_url(payload, image_urls)
+        url = extract_image_url(payload)
+        image_urls << url if url.present?
+      end
+
+      def capture_image_generation_result(payload, image_urls)
+        normalized = NyoyImageGenerationStatus.normalize(payload, client: @client)
+        normalized[:image_urls].each { |url| image_urls << url }
+      end
+
+      def assign_image_generation_watch(watch_holder, payload, generation_id:)
+        normalized = NyoyImageGenerationStatus.normalize(payload || { "id" => generation_id }, client: @client)
+        return if normalized[:done] && normalized[:image_urls].present?
+
+        watch_holder[0] = {
+          id: normalized[:id] || generation_id,
+          status: normalized[:status],
+          show_url: normalized[:show_url]
+        }.compact
+      end
+
+      def absolute_nyoy_url(path)
+        NyoyImageGenerationStatus.absolute_nyoy_url(path, client: @client)
+      end
+
+      def extract_image_url(payload)
+        return nil unless payload.is_a?(Hash)
+
+        payload["image_url"].presence || payload["url"].presence
       end
 
       def default_poll_sleep(seconds)

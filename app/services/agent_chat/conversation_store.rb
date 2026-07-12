@@ -89,8 +89,10 @@ module AgentChat
         metadata["mcp"] = {
           "tools_run" => Array(result.mcp.tools_run).map(&:to_s),
           "tools_skipped" => Array(result.mcp.tools_skipped).map(&:to_s),
-          "errors" => result.mcp.errors
-        }
+          "errors" => result.mcp.errors,
+          "image_urls" => Array(result.mcp.image_urls).map(&:to_s).reject(&:blank?),
+          "image_generation_watch" => result.mcp.image_generation_watch
+        }.compact
       end
 
       if result.trace

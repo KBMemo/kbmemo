@@ -18,7 +18,7 @@ module Chat
       # @param candidate_tools [Array<String>] 実行候補の MCP ツール名
       # @return [Chat::Tools::NyoyMcpRunner::Result]
       def call(user_text:, intent:, candidate_tools:, image_attachments: nil)
-        empty = NyoyMcpRunner::Result.new(tools_run: [], tools_skipped: [], context_text: "", errors: [])
+        empty = NyoyMcpRunner.empty
         return empty unless @runner.configured?
 
         names = Array(candidate_tools).map(&:to_s).map(&:strip).reject(&:blank?).uniq
@@ -73,7 +73,9 @@ module Chat
           tools_run: left.tools_run + right.tools_run,
           tools_skipped: (left.tools_skipped + right.tools_skipped).uniq,
           context_text: [ left.context_text, right.context_text ].compact_blank.join("\n\n"),
-          errors: left.errors + right.errors
+          errors: left.errors + right.errors,
+          image_urls: (Array(left.image_urls) + Array(right.image_urls)).uniq,
+          image_generation_watch: right.image_generation_watch || left.image_generation_watch
         )
       end
     end

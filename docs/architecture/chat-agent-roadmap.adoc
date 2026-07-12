@@ -308,6 +308,7 @@ Phase 3–7 の横断ツールは **Nyoy MCP へ委譲**し、徒然 in-app で�
 * `Chat::Agent` — 徒然内 RAG の後に MCP ツールを実行。`fetch_url` は URL 未検出時はスキップ（pending にしない）。`image_analysis` / `memo_add` は引き続き pending。
 * 未設定時は従来どおり `pending_tools: true`（MCP 未接続と同じ挙動）。
 * **pending_tools UI** — 未実行ツール名を `pending_tool_names` で返し、assistant 応答下に Nyoy MCP 設定／ツール有効化の案内を表示。
+* **MCP マージ拡張** — `rag_lookup` / `web_research` で UI 有効時に `recall_memos` / `search_memos` をローカル RAG・Web 検索と併用。`generate_image` 完了時は `mcp.image_urls` を UI プレビュー。
 
 [[agent-ui]]
 == 6.6. 独立チャット画面 — 2026-07 完了

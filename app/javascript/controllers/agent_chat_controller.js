@@ -40,6 +40,7 @@ export default class extends Controller {
     newChatUrl: String,
     settingsUrl: String,
     nyoyMcpUrl: String,
+    imageGenerationUrlTemplate: String,
     conversationId: String,
     nyoyToolsUrl: String,
     nyoyConfigured: Boolean,
@@ -70,6 +71,7 @@ export default class extends Controller {
     this.activeTurnId = null
     this.lastSeq = 0
     this.turnFinalized = false
+    this.imageGenerationWatchTimer = null
     this.unsubscribeCable = subscribeAgentChat((event) => this.receivedCable(event))
     this.renderMessages()
     this.updateSendState()
@@ -80,6 +82,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.stopImageGenerationWatch()
     this.stopActivityTracker()
     this.unsubscribeCable?.()
     this.unsubscribeCable = null
@@ -218,6 +221,7 @@ export default class extends Controller {
       }
 
       this.nyoyTools = Array.isArray(body.tools) ? body.tools : []
+      this.pruneUnavailableMcpTools()
       this.renderMcpToolsList()
       this.setMcpToolsHint(
         body.configured === false
@@ -305,6 +309,16 @@ export default class extends Controller {
     this.writeEnabledMcpTools(selected)
   }
 
+  pruneUnavailableMcpTools() {
+    if (!Array.isArray(this.enabledMcpTools) || this.nyoyTools.length === 0) return
+
+    const available = new Set(this.nyoyTools.map((tool) => tool.name))
+    const filtered = this.enabledMcpTools.filter((name) => available.has(name))
+    if (filtered.length !== this.enabledMcpTools.length) {
+      this.writeEnabledMcpTools(filtered)
+    }
+  }
+
   setMcpToolsHint(message, isError = false) {
     if (!this.hasMcpToolsHintTarget) return
 
@@ -327,6 +341,7 @@ export default class extends Controller {
 
     this.clearError()
     this.clearAttachmentError()
+    this.syncEnabledMcpTools()
     this.history.push({
       role: "user",
       content: text || "（画像を添付）",
@@ -450,8 +465,20 @@ export default class extends Controller {
       pending_tools: Boolean(payload.pending_tools),
       pending_tool_names: Array.isArray(payload.pending_tool_names)
         ? payload.pending_tool_names.map(String)
-        : []
+        : [],
+      generated_images: Array.isArray(payload.mcp?.image_urls)
+        ? payload.mcp.image_urls.map(String).filter(Boolean)
+        : [],
+      mcp_errors: Array.isArray(payload.mcp?.errors) ? payload.mcp.errors : [],
+      image_generation_watch: payload.mcp?.image_generation_watch || null
     })
+
+    if (
+      (!payload.mcp?.image_urls || payload.mcp.image_urls.length === 0) &&
+      payload.mcp?.image_generation_watch?.id
+    ) {
+      this.startImageGenerationWatch(payload.mcp.image_generation_watch)
+    }
     this.turnFinalized = true
     this.activeTurnId = null
     this.renderMessages()
@@ -601,9 +628,129 @@ export default class extends Controller {
 
     if (!isUser && entry.pending_tools) {
       wrapper.append(this.pendingToolsNoticeNode(entry))
+    } else if (!isUser && Array.isArray(entry.mcp_errors) && entry.mcp_errors.length > 0) {
+      wrapper.append(this.mcpErrorNoticeNode(entry.mcp_errors))
+    }
+
+    if (!isUser && Array.isArray(entry.generated_images) && entry.generated_images.length > 0) {
+      wrapper.append(this.generatedImagesNode(entry.generated_images))
     }
 
     return wrapper
+  }
+
+  generatedImagesNode(urls) {
+    const wrap = document.createElement("div")
+    wrap.className = "kb-ai-chat-generated-images"
+
+    const label = document.createElement("p")
+    label.className = "kb-ai-chat-generated-images-label kb-text-muted"
+    label.textContent = "生成画像"
+    wrap.append(label)
+
+    const grid = document.createElement("div")
+    grid.className = "kb-ai-chat-generated-images-grid"
+
+    for (const url of urls) {
+      if (this.looksLikeImageUrl(url)) {
+        const link = document.createElement("a")
+        link.href = url
+        link.target = "_blank"
+        link.rel = "noopener noreferrer"
+        link.className = "kb-ai-chat-generated-image-link"
+
+        const img = document.createElement("img")
+        img.src = url
+        img.alt = "生成された画像"
+        img.className = "kb-ai-chat-generated-image"
+        img.loading = "lazy"
+        link.append(img)
+        grid.append(link)
+      } else {
+        const link = document.createElement("a")
+        link.href = url
+        link.target = "_blank"
+        link.rel = "noopener noreferrer"
+        link.className = "kb-chrome-btn-secondary kb-btn-xs"
+        link.textContent = "如意でラフ案を見る"
+        grid.append(link)
+      }
+    }
+
+    wrap.append(grid)
+    return wrap
+  }
+
+  looksLikeImageUrl(url) {
+    return /\.(png|jpe?g|gif|webp)(\?|$)/i.test(url) || url.includes("/rails/active_storage/")
+  }
+
+  startImageGenerationWatch(watch) {
+    this.stopImageGenerationWatch()
+    if (!watch?.id || !this.hasImageGenerationUrlTemplateValue) return
+
+    const url = this.imageGenerationUrlTemplateValue.replace(
+      "__ID__",
+      encodeURIComponent(String(watch.id))
+    )
+    let attempts = 0
+    const maxAttempts = 100
+
+    const poll = async () => {
+      attempts += 1
+      if (attempts > maxAttempts) {
+        this.stopImageGenerationWatch()
+        return
+      }
+
+      try {
+        const res = await fetch(url, {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" }
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) return
+
+        const urls = Array.isArray(data.image_urls)
+          ? data.image_urls.map(String).filter(Boolean)
+          : []
+        if (urls.length > 0) {
+          this.appendGeneratedImagesToLastAssistant(urls)
+          this.stopImageGenerationWatch()
+          return
+        }
+
+        if (data.done) {
+          if (data.show_url) {
+            this.appendGeneratedImagesToLastAssistant([ String(data.show_url) ])
+          }
+          this.stopImageGenerationWatch()
+        }
+      } catch {
+        // 次のポーリングで再試行
+      }
+    }
+
+    poll()
+    this.imageGenerationWatchTimer = window.setInterval(poll, 3000)
+  }
+
+  stopImageGenerationWatch() {
+    if (this.imageGenerationWatchTimer != null) {
+      window.clearInterval(this.imageGenerationWatchTimer)
+      this.imageGenerationWatchTimer = null
+    }
+  }
+
+  appendGeneratedImagesToLastAssistant(urls) {
+    const last = this.history[this.history.length - 1]
+    if (!last || last.role !== "assistant") return
+
+    const existing = Array.isArray(last.generated_images) ? last.generated_images : []
+    const merged = [ ...existing, ...urls ].filter((value, index, array) => array.indexOf(value) === index)
+    last.generated_images = merged
+    this.renderMessages()
+    this.focusLatestAnswer()
   }
 
   pendingToolsNoticeNode(entry) {
@@ -660,7 +807,36 @@ export default class extends Controller {
       return `画像解析${toolPart}には画像の添付が必要です。ローカル添付または葛籠から選んでから再送信してください。`
     }
 
+    if (names.includes("image_generation")) {
+      return `画像生成${toolPart}は Nyoy 側の Stable Diffusion 接続が必要です。Nyoy MCP 設定と如意の sd.cpp 接続を確認してください。`
+    }
+
     return `Nyoy MCP のツール${toolPart}が無効か、実行できませんでした。下の「Nyoy MCP ツール」で有効化するか、設定を確認してください。`
+  }
+
+  mcpErrorNoticeNode(errors) {
+    const notice = document.createElement("div")
+    notice.className = "kb-ai-chat-pending-tools"
+    notice.setAttribute("role", "status")
+
+    const title = document.createElement("p")
+    title.className = "kb-ai-chat-pending-tools-title"
+    title.textContent = "外部ツールの実行に失敗しました"
+    notice.append(title)
+
+    const list = document.createElement("ul")
+    list.className = "kb-ai-chat-mcp-error-list"
+
+    for (const entry of errors) {
+      const item = document.createElement("li")
+      const tool = entry?.tool || entry?.["tool"] || "tool"
+      const message = entry?.message || entry?.["message"] || "不明なエラー"
+      item.textContent = `${tool}: ${message}`
+      list.append(item)
+    }
+
+    notice.append(list)
+    return notice
   }
 
   openMcpToolsPanel() {

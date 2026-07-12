@@ -100,6 +100,69 @@ module Chat
         assert_equal [ "generate_image", "get_image_generation" ], result.tools_run
         assert_equal [ "get_image_generation", { id: 42 } ], calls.last
         assert_includes result.context_text, "completed"
+        assert_equal [ "https://example.com/img.png" ], result.image_urls
+      end
+
+      test "captures nyoy show_path when generation awaits draft selection" do
+        calls = []
+        client = Object.new
+        client.define_singleton_method(:configured?) { true }
+        client.define_singleton_method(:site_origin) { "https://nyoy.example" }
+        client.define_singleton_method(:call_tool) do |name:, arguments:|
+          calls << name.to_s
+          case name.to_s
+          when "generate_image"
+            { "id" => 42 }
+          when "get_image_generation"
+            {
+              "status" => "awaiting_selection",
+              "show_path" => "/image_generations/42",
+              "draft_urls" => [ "https://nyoy.example/rails/active_storage/blobs/draft.png" ]
+            }
+          else
+            raise "unexpected tool #{name}"
+          end
+        end
+
+        runner = NyoyMcpRunner.new(client: client, poll_sleep: ->(_seconds) {})
+        result = runner.call(mcp_names: [ "generate_image" ], user_text: "猫のイラスト")
+
+        assert_equal [ "generate_image", "get_image_generation" ], result.tools_run
+        assert_equal [ "https://nyoy.example/rails/active_storage/blobs/draft.png" ], result.image_urls
+        assert_nil result.image_generation_watch
+      end
+
+      test "sets image generation watch when polling times out before drafts are ready" do
+        attempts = 0
+        client = Object.new
+        client.define_singleton_method(:configured?) { true }
+        client.define_singleton_method(:site_origin) { "https://nyoy.example" }
+        client.define_singleton_method(:call_tool) do |name:, arguments:|
+          case name.to_s
+          when "generate_image"
+            { "id" => 9 }
+          when "get_image_generation"
+            attempts += 1
+            { "id" => 9, "status" => "drafting" }
+          else
+            raise "unexpected tool #{name}"
+          end
+        end
+
+        stub_const = Chat::Tools::NyoyMcpRunner
+        original = stub_const.const_get(:IMAGE_GENERATION_MAX_ATTEMPTS)
+        stub_const.send(:remove_const, :IMAGE_GENERATION_MAX_ATTEMPTS)
+        stub_const.const_set(:IMAGE_GENERATION_MAX_ATTEMPTS, 2)
+
+        runner = NyoyMcpRunner.new(client: client, poll_sleep: ->(_seconds) {})
+        result = runner.call(mcp_names: [ "generate_image" ], user_text: "猫")
+
+        assert_equal 2, attempts
+        assert_equal({ id: 9, status: "drafting" }, result.image_generation_watch)
+        assert_empty result.image_urls
+      ensure
+        stub_const.send(:remove_const, :IMAGE_GENERATION_MAX_ATTEMPTS)
+        stub_const.const_set(:IMAGE_GENERATION_MAX_ATTEMPTS, original)
       end
 
       test "polls get_image_generation until terminal status" do

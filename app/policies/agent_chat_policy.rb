@@ -10,4 +10,5 @@ class AgentChatPolicy < ApplicationPolicy
   alias destroy? show?
   alias nyoy_tools? show?
   alias upload_image? show?
+  alias image_generation_status? show?
 end

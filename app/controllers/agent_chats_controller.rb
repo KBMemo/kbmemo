@@ -52,6 +52,28 @@ class AgentChatsController < ApplicationController
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  def image_generation_status
+    authorize :agent_chat, :image_generation_status?
+
+    account = rodauth.rails_account
+    unless Chat::NyoyMcpConfig.configured?(account: account)
+      render json: { error: "Nyoy MCP が未設定です。" }, status: :service_unavailable
+      return
+    end
+
+    generation_id = params[:id].to_i
+    if generation_id <= 0
+      render json: { error: "画像生成 ID が不正です。" }, status: :unprocessable_entity
+      return
+    end
+
+    client = Chat::NyoyMcpConfig.client(account: account)
+    payload = client.call_tool(name: "get_image_generation", arguments: { id: generation_id })
+    render json: Chat::Tools::NyoyImageGenerationStatus.normalize(payload, client: client)
+  rescue Chat::NyoyMcpClient::Error => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
   def create
     authorize :agent_chat, :create?
 
@@ -142,13 +164,15 @@ class AgentChatsController < ApplicationController
       }
     end
 
-    if result.mcp
-      payload[:mcp] = {
-        tools_run: result.mcp.tools_run.map(&:to_s),
-        tools_skipped: result.mcp.tools_skipped.map(&:to_s),
-        errors: result.mcp.errors
-      }
-    end
+      if result.mcp
+        payload[:mcp] = {
+          tools_run: result.mcp.tools_run.map(&:to_s),
+          tools_skipped: result.mcp.tools_skipped.map(&:to_s),
+          errors: result.mcp.errors,
+          image_urls: Array(result.mcp.image_urls).map(&:to_s).reject(&:blank?),
+          image_generation_watch: result.mcp.image_generation_watch
+        }.compact
+      end
 
     if result.trace
       payload[:trace] = result.trace.as_json(

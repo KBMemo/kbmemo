@@ -141,6 +141,34 @@ module Chat
 
       refute result.pending_tools
       assert_equal [ "generate_image", "get_image_generation" ], result.mcp.tools_run
+      assert_equal [ "https://example.com/cat.png" ], result.mcp.image_urls
+    end
+
+    test "image_generation reports mcp errors instead of pending when generate_image fails" do
+      client = Object.new
+      client.define_singleton_method(:configured?) { true }
+      client.define_singleton_method(:call_tool) do |name:, arguments:|
+        raise Chat::NyoyMcpClient::ApiError, "sd.cpp unavailable" if name.to_s == "generate_image"
+
+        {}
+      end
+      mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
+
+      factory = RecordingFactory.new
+      a = Chat::Agent.new(
+        classifier: StubClassifier.new(intent("image_generation")),
+        client_factory: factory,
+        mcp_runner: mcp_runner,
+        mcp_loop: mcp_loop_for(mcp_runner)
+      )
+      result = a.call(
+        messages: [ { role: "user", content: "猫の絵を描いて" } ],
+        enabled_mcp_tools: [ "generate_image" ]
+      )
+
+      refute result.pending_tools
+      assert_equal [ "generate_image" ], result.mcp.tools_skipped
+      assert_equal "generate_image", result.mcp.errors.first[:tool]
     end
 
     test "enabled_mcp_tools runs directly invocable tools outside router" do
@@ -185,7 +213,8 @@ module Chat
       result = a.call(messages: [ { role: "user", content: "最新の llama.cpp" } ])
 
       refute result.pending_tools
-      assert_equal [ "web_search" ], result.mcp.tools_run
+      assert_includes result.mcp.tools_run, "web_search"
+      assert_includes result.mcp.tools_run, "recall_memos"
       assert_equal [ "fetch_url" ], result.mcp.tools_skipped
       system = system_content(factory.seen[:main])
       assert_includes system, "外部ツール結果（Nyoy MCP）"
@@ -540,6 +569,77 @@ module Chat
       system = system_content(factory.seen[:main])
       assert_includes system, Chat::Prompts::RAG_ANSWER
       assert_includes system, "body text"
+    end
+
+    test "rag_lookup merges supplemental recall_memos when mcp tools are not narrowed" do
+      stub_rag = Object.new
+      stub_rag.define_singleton_method(:call) do |user_text:|
+        Chat::Tools::RagSearch::Result.new(
+          queries: [ "q" ],
+          hits: [
+            Chat::Tools::RagSearch::Hit.new(memo_id: 1, title: "T", excerpt: "body text")
+          ],
+          context_text: "### 資料 1: T\nmemo_id: 1\nbody text"
+        )
+      end
+
+      client = Object.new
+      client.define_singleton_method(:configured?) { true }
+      client.define_singleton_method(:list_tools) { [] }
+      client.define_singleton_method(:call_tool) do |name:, arguments:|
+        { "memos" => [{ "title" => "Export memo" }] }
+      end
+      mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
+
+      factory = RecordingFactory.new
+      a = Chat::Agent.new(
+        classifier: StubClassifier.new(intent("rag_lookup")),
+        client_factory: factory,
+        rag_search: stub_rag,
+        mcp_runner: mcp_runner,
+        mcp_loop: mcp_loop_for(mcp_runner)
+      )
+      result = a.call(
+        messages: [ { role: "user", content: "旅行メモを探して" } ],
+        account: accounts(:one)
+      )
+
+      assert result.rag
+      assert_includes result.mcp.tools_run, "recall_memos"
+      assert_includes result.mcp.tools_run, "search_memos"
+    end
+
+    test "web_research merges supplemental recall_memos when enabled in ui" do
+      client = Object.new
+      client.define_singleton_method(:configured?) { true }
+      client.define_singleton_method(:list_tools) { [] }
+      client.define_singleton_method(:call_tool) do |name:, arguments:|
+        case name.to_s
+        when "web_search"
+          { "results" => [{ "title" => "News" }] }
+        when "recall_memos"
+          { "memos" => [{ "title" => "Memo" }] }
+        else
+          {}
+        end
+      end
+      mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
+
+      factory = RecordingFactory.new
+      a = Chat::Agent.new(
+        classifier: StubClassifier.new(intent("web_research")),
+        client_factory: factory,
+        mcp_runner: mcp_runner,
+        mcp_loop: mcp_loop_for(mcp_runner)
+      )
+      result = a.call(
+        messages: [ { role: "user", content: "旅行と最新ニュース" } ],
+        enabled_mcp_tools: [ "recall_memos" ]
+      )
+
+      assert_includes result.mcp.tools_run, "web_search"
+      assert_includes result.mcp.tools_run, "recall_memos"
+      refute_includes result.mcp.tools_run, "search_memos"
     end
 
     test "rag_lookup without account does not inject search context" do

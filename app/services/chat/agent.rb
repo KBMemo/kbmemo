@@ -14,6 +14,12 @@ module Chat
     # Nyoy MCP へ委譲可能なツール（image_analysis は徒然内 vision で実行）。
     DELEGATED_TOOLS = (Chat::Tools::NyoyMcpRunner::TOOL_MAP.keys - %i[image_analysis]).freeze
 
+    # intent ごとにローカルツールと併用しうる Nyoy MCP ツール（UI 有効時にマージ）。
+    INTENT_SUPPLEMENTAL_MCP_TOOLS = {
+      "rag_lookup" => %w[recall_memos search_memos],
+      "web_research" => %w[recall_memos search_memos]
+    }.freeze
+
     Result = Struct.new(
       :reply, :intent, :classification, :model_role, :escalated, :tools, :pending_tools,
       :pending_tool_names, :rag, :mcp, :trace, :interactions, keyword_init: true
@@ -189,11 +195,24 @@ module Chat
         next if tool == :image_analysis && @image_analysis_result&.context_text.present?
         next if (IMPLEMENTED_TOOLS - [ :image_analysis ]).include?(tool)
         next unless delegated_tool_enabled?(tool)
-        next if mcp_tool_ran?(mcp, tool)
+        next if mcp_tool_resolved?(mcp, tool)
         next if mcp_runner.optional_skip?(tool, user_text: user_text)
 
         tool
       end
+    end
+
+    def mcp_tool_resolved?(mcp, tool)
+      mcp_tool_ran?(mcp, tool) || mcp_tool_attempted?(mcp, tool)
+    end
+
+    def mcp_tool_attempted?(mcp, tool)
+      mcp_name = Chat::Tools::NyoyMcpRunner::TOOL_MAP[tool]
+      return false unless mcp_name
+
+      skipped = Array(mcp&.tools_skipped).map(&:to_s)
+      errors = Array(mcp&.errors).filter_map { |entry| (entry[:tool] || entry["tool"]).to_s }.reject(&:blank?)
+      skipped.include?(mcp_name) || errors.include?(mcp_name)
     end
 
     def mcp_tool_ran?(mcp, tool)
@@ -213,6 +232,14 @@ module Chat
       @enabled_mcp_tools.include?(mcp_name)
     end
 
+    def intent_mcp_tool_enabled?(mcp_name)
+      return true if @intent_mcp_names&.include?(mcp_name)
+      return false if @enabled_mcp_tools == []
+      return true if @enabled_mcp_tools.nil?
+
+      @enabled_mcp_tools.include?(mcp_name)
+    end
+
     def router_assigned_nyoy_tools(decision)
       decision.tools.filter_map do |tool|
         next unless DELEGATED_TOOLS.include?(tool)
@@ -227,12 +254,20 @@ module Chat
       return nil if @enabled_mcp_tools == [] && @intent_mcp_names.empty?
 
       trace.run(:mcp_tools, "外部ツール（Nyoy MCP）") do
-        result = mcp_tool_loop.call(
-          user_text: user_text,
-          intent: intent,
-          candidate_tools: mcp_names,
-          image_attachments: AgentChat::ImageAttachments.as_json(@image_attachments)
-        )
+        result = if image_generation_mcp_direct?(intent, mcp_names)
+          mcp_runner.call(
+            mcp_names: mcp_names,
+            user_text: user_text,
+            image_attachments: AgentChat::ImageAttachments.as_json(@image_attachments)
+          )
+        else
+          mcp_tool_loop.call(
+            user_text: user_text,
+            intent: intent,
+            candidate_tools: mcp_names,
+            image_attachments: AgentChat::ImageAttachments.as_json(@image_attachments)
+          )
+        end
         @interaction_log.tool_context(
           step_key: :mcp_tools,
           label: "Nyoy MCP",
@@ -262,10 +297,28 @@ module Chat
 
     def merge_mcp_tool_names(decision)
       names = @intent_mcp_names.dup
+      names.concat(intent_supplemental_mcp_names(decision.intent))
       names.concat(extra_enabled_mcp_names(names))
+      names.select! { |name| intent_mcp_tool_enabled?(name) }
       names.uniq!
       names.reject! { |name| redundant_mcp_tool?(name, decision) }
       names
+    end
+
+    def intent_supplemental_mcp_names(intent)
+      INTENT_SUPPLEMENTAL_MCP_TOOLS.fetch(intent.to_s, []).select do |name|
+        supplemental_mcp_tool_enabled?(name, intent: intent)
+      end
+    end
+
+    def supplemental_mcp_tool_enabled?(name, intent:)
+      return false unless Chat::Tools::NyoyMcpRunner.directly_invocable?(name)
+      return false unless INTENT_SUPPLEMENTAL_MCP_TOOLS.fetch(intent.to_s, []).include?(name)
+      return false if @enabled_mcp_tools == []
+
+      return true if @enabled_mcp_tools.nil?
+
+      @enabled_mcp_tools.include?(name)
     end
 
     # 徒然内 vision で解析する場合、Nyoy analyze_image は二重実行になるため除外する。
@@ -459,6 +512,10 @@ module Chat
         account: @account,
         cookie_header: @tsuzura_cookie_header
       )
+    end
+
+    def image_generation_mcp_direct?(intent, mcp_names)
+      intent.to_s == "image_generation" && mcp_names.include?("generate_image")
     end
 
     def mcp_runner
