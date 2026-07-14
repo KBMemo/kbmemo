@@ -68,6 +68,20 @@ class Api::V1::MemosControllerTest < ActionDispatch::IntegrationTest
     assert_equal false, body["draft"]
   end
 
+  test "create memo records view history so sidebar history lists it first" do
+    assert_difference -> { MemoViewHistory.where(account_id: @account.id).count }, 1 do
+      post api_v1_memos_path,
+        params: { title: "History memo", body: "== Section\n\nVia API." },
+        headers: auth_headers,
+        as: :json
+    end
+
+    assert_response :created
+    memo = Memo.find(JSON.parse(response.body).fetch("id"))
+    recent = MemoViewHistory.recent_memos_for(@account, scope: Memo.where(account_id: @account.id))
+    assert_equal memo.id, recent.first.id
+  end
+
   test "create memo converts markdown body to asciidoc" do
     converted = "== Section\n\nHello from Markdown."
 

@@ -29,9 +29,10 @@ class MemosController < ApplicationController
 
   def sidebar_memo_list
     authorize Memo, :index?
-    return head :not_found unless params[:sidebar_view].to_s == "history"
+    view = params[:sidebar_view].to_s
+    return head :not_found unless %w[history search].include?(view)
 
-    if params[:open_memo_id].present?
+    if view == "history" && params[:open_memo_id].present?
       @memo = policy_scope(Memo).find_by(id: params[:open_memo_id])
       # 表示中メモの履歴記録をこの同期リフレッシュで行う。Turbo の prefetch キャッシュ再利用で
       # 実クリックがサーバーに届かない場合でも、ここで move-to-top を成立させる。

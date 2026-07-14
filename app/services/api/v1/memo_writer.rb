@@ -25,6 +25,8 @@ module Api
         memo.apply_storage_slug!
         memo.save!
         commit!(memo) if attributes.fetch(:commit, true)
+        # UI 作成は edit 遷移で閲覧履歴に載る。API 作成も同じ扱いにする。
+        MemoViewHistory.record!(account: @account, memo: memo)
         memo
       end
 

@@ -209,6 +209,31 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "#memo_sidebar_memo_list_container #memo_sidebar_memo_list > li:nth-child(2)#sidebar_row_memo_#{memo_a.id}"
   end
 
+  test "sidebar_memo_list supports search view filtering" do
+    m = memos(:one)
+    m.update_columns(title: "UniqueSearchSidebarToken", body: "body")
+
+    get sidebar_memo_list_memos_url(sidebar_view: "search", q: "UniqueSearchSidebarToken"),
+      headers: { "X-Kbmemo-Sidebar-Sync" => "1" }
+
+    assert_response :success
+    assert_select "#memo_sidebar_memo_list_container #sidebar_row_memo_#{m.id}"
+    assert_select "#memo_sidebar_memo_list_container", text: /UniqueSearchSidebarToken/
+  end
+
+  test "sidebar_memo_list search without query returns empty state" do
+    get sidebar_memo_list_memos_url(sidebar_view: "search"),
+      headers: { "X-Kbmemo-Sidebar-Sync" => "1" }
+
+    assert_response :success
+    assert_select "#memo_sidebar_memo_list_container", text: /キーワードを入力/
+  end
+
+  test "sidebar_memo_list rejects unsupported sidebar views" do
+    get sidebar_memo_list_memos_url(sidebar_view: "directory")
+    assert_response :not_found
+  end
+
   test "sidebar_memo_list moves the open memo to the top for an already-viewed memo" do
     one = memos(:one)
     two = memos(:two)
