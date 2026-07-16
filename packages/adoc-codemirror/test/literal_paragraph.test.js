@@ -24,7 +24,7 @@ describe('indent literal paragraphs', () => {
     expect(normalizeBlockSegmentText('  Also indent literal.\n')).toBe('  Also indent literal.')
   })
 
-  it('parseEditUnitsFromSource keeps indent on literal paragraph units', () => {
+  it('parseEditUnitsFromSource keeps indent on literal paragraph units', async () => {
     const source = [
       'A normal paragraph.',
       '',
@@ -32,15 +32,15 @@ describe('indent literal paragraphs', () => {
       ' One or more consecutive lines indented by at least one space.',
     ].join('\n')
 
-    const units = parseEditUnitsFromSource(source)
+    const units = await parseEditUnitsFromSource(source)
     const literalUnit = units.find((unit) => unit.adoc.includes('literal paragraph'))
     expect(literalUnit).toBeDefined()
     expect(literalUnit.adoc.startsWith(' A literal paragraph.')).toBe(true)
     expect(literalUnit.adoc).toContain('\n One or more consecutive lines')
   })
 
-  it('asciidocBlockToHtml renders indent literals as literalblock', () => {
-    const html = asciidocBlockToHtml(' A literal paragraph.')
+  it('asciidocBlockToHtml renders indent literals as literalblock', async () => {
+    const html = await asciidocBlockToHtml(' A literal paragraph.')
     expect(html).toContain('literalblock')
     expect(html).not.toMatch(/class="paragraph"/)
   })

@@ -1,23 +1,73 @@
-import { RangeSetBuilder, StateField } from '@codemirror/state'
+import { RangeSetBuilder, StateEffect, StateField } from '@codemirror/state'
+import { ViewPlugin } from '@codemirror/view'
 import { refreshHighlights } from './parseSession.js'
 
 /** @typedef {{ from: number, to: number, className: string }} HighlightSpan */
 
 /** @typedef {{ source: string, spans: HighlightSpan[] }} HighlightState */
 
+export const setHighlightSpansEffect = StateEffect.define()
+
 export const highlightStateField = StateField.define({
   create(state) {
     const source = state.doc.toString()
-    return { source, spans: refreshHighlights(source) }
+    return { source, spans: [] }
   },
   update(value, tr) {
+    for (const effect of tr.effects) {
+      if (effect.is(setHighlightSpansEffect)) {
+        const { source, spans } = effect.value
+        if (source === tr.state.doc.toString()) {
+          return { source, spans }
+        }
+      }
+    }
+
     if (tr.docChanged) {
       const source = tr.newDoc.toString()
-      return { source, spans: refreshHighlights(source) }
+      return {
+        source,
+        spans: value.source === source ? value.spans : [],
+      }
     }
+
     return value
   },
 })
+
+function createHighlightLoader() {
+  return ViewPlugin.define((view) => {
+    let requestId = 0
+    let cancelled = false
+
+    async function load(currentView, id) {
+      const source = currentView.state.doc.toString()
+      const spans = await refreshHighlights(source)
+      if (cancelled || id !== requestId) return
+      currentView.dispatch({
+        effects: setHighlightSpansEffect.of({ source, spans }),
+      })
+    }
+
+    function schedule(currentView) {
+      const id = ++requestId
+      void load(currentView, id)
+    }
+
+    schedule(view)
+
+    return {
+      update(update) {
+        if (update.docChanged) {
+          schedule(update.view)
+        }
+      },
+      destroy() {
+        cancelled = true
+      },
+    }
+  })
+}
 
 /**
  * @param {HighlightSpan[]} spans
@@ -73,6 +123,7 @@ export function createAsciidocHighlight({ EditorView, Decoration }) {
   return [
     highlightStateField,
     highlightDecorationsField,
+    createHighlightLoader(),
     EditorView.baseTheme({
     '.adoc-heading': { fontWeight: 'bold', color: '#0550ae' },
     '.adoc-h0': { fontSize: '1.05em' },

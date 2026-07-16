@@ -8,64 +8,64 @@ import {
 } from '@kbmemo/test-fixtures'
 
 /** @param {string} id */
-function spansForSection(id) {
+async function spansForSection(id) {
   clearParseCache()
   const section = extractSyntaxRefSections(SYNTAX_QUICK_REFERENCE).find((entry) => entry.id === id)
   if (!section) throw new Error(`missing syntax-ref section: ${id}`)
-  return refreshHighlights(section.adoc)
+  return await refreshHighlights(section.adoc)
 }
 
-/** @param {ReturnType<typeof refreshHighlights>} spans @param {string} className */
+/** @param {Awaited<ReturnType<typeof refreshHighlights>>} spans @param {string} className */
 function hasClass(spans, className) {
   return spans.some((span) => span.className.includes(className))
 }
 
 describe('Phase E syntax highlighting', () => {
-  it('highlights include preprocessor lines', () => {
-    const spans = spansForSection('includes')
+  it('highlights include preprocessor lines', async () => {
+    const spans = await spansForSection('includes')
     expect(hasClass(spans, 'adoc-include')).toBe(true)
   })
 
-  it('highlights attribute definitions and references', () => {
-    const spans = spansForSection('attributes')
+  it('highlights attribute definitions and references', async () => {
+    const spans = await spansForSection('attributes')
     expect(hasClass(spans, 'adoc-attribute')).toBe(true)
     expect(hasClass(spans, 'adoc-attribute-ref')).toBe(true)
   })
 
-  it('highlights counter attribute references in tables', () => {
-    const spans = spansForSection('attributes-counter')
+  it('highlights counter attribute references in tables', async () => {
+    const spans = await spansForSection('attributes-counter')
     expect(hasClass(spans, 'adoc-attribute-ref')).toBe(true)
   })
 
-  it('highlights inline passthrough markup', () => {
-    const spans = spansForSection('passthrough-inline')
+  it('highlights inline passthrough markup', async () => {
+    const spans = await spansForSection('passthrough-inline')
     expect(hasClass(spans, 'adoc-passthrough')).toBe(true)
   })
 
-  it('highlights passthrough block delimiters', () => {
-    const spans = spansForSection('blocks-passthrough')
+  it('highlights passthrough block delimiters', async () => {
+    const spans = await spansForSection('blocks-passthrough')
     expect(hasClass(spans, 'adoc-delimiter')).toBe(true)
   })
 
-  it('highlights comment blocks and line comments', () => {
-    const spans = spansForSection('comments')
+  it('highlights comment blocks and line comments', async () => {
+    const spans = await spansForSection('comments')
     expect(hasClass(spans, 'adoc-comment')).toBe(true)
   })
 
-  it('highlights thematic and page breaks', () => {
-    expect(hasClass(spansForSection('breaks-thematic'), 'adoc-thematic-break')).toBe(true)
-    expect(hasClass(spansForSection('breaks-page'), 'adoc-page-break')).toBe(true)
+  it('highlights thematic and page breaks', async () => {
+    expect(hasClass(await spansForSection('breaks-thematic'), 'adoc-thematic-break')).toBe(true)
+    expect(hasClass(await spansForSection('breaks-page'), 'adoc-page-break')).toBe(true)
   })
 
-  it('highlights delimited admonition labels and delimiters', () => {
-    const spans = spansForSection('admonitions-block')
+  it('highlights delimited admonition labels and delimiters', async () => {
+    const spans = await spansForSection('admonitions-block')
     expect(hasClass(spans, 'adoc-admonition-label')).toBe(true)
     expect(hasClass(spans, 'adoc-delimiter')).toBe(true)
   })
 
-  it('highlights document header author and revision lines in the full fixture', () => {
+  it('highlights document header author and revision lines in the full fixture', async () => {
     clearParseCache()
-    const spans = refreshHighlights(SYNTAX_QUICK_REFERENCE)
+    const spans = await refreshHighlights(SYNTAX_QUICK_REFERENCE)
     expect(hasClass(spans, 'adoc-document-header')).toBe(true)
   })
 })

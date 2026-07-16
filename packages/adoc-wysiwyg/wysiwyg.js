@@ -148,7 +148,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     },
   })
 
-  function previewHtmlForAdoc(adoc) {
+  async function previewHtmlForAdoc(adoc) {
     let processed = substituteDiagramsForPreview(adoc)
     processed = substituteWikiLinksForPreview(processed, wikiLabelCache)
     processed = substituteTsuzuraForPreview(processed, tsuzuraCache)
@@ -159,9 +159,9 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
    * @param {HTMLElement} unit
    * @param {string} adoc
    */
-  function renderUnitPreview(unit, adoc) {
+  async function renderUnitPreview(unit, adoc) {
     const temp = document.createElement('div')
-    renderPreviewHtml(previewHtmlForAdoc(adoc), temp, getMemoId?.())
+    renderPreviewHtml(await previewHtmlForAdoc(adoc), temp, getMemoId?.())
     if (isIndentLiteralBlock(adoc)) {
       for (const block of temp.querySelectorAll('.literalblock')) {
         block.dataset[INDENT_LITERAL_DATA_ATTR] = 'true'
@@ -225,7 +225,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
       if (adoc === undefined) continue
       if (!unitNeedsDeferredPreviewRefresh(adoc, config)) continue
 
-      renderUnitPreview(/** @type {HTMLElement} */ (unit), adoc)
+      await renderUnitPreview(/** @type {HTMLElement} */ (unit), adoc)
     }
   }
 
@@ -698,7 +698,19 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
   function scheduleSplitCheck(host) {
     if (isWysiwygSourceComposing(host)) return
     clearTimeout(splitTimer)
-    splitTimer = setTimeout(() => trySplitActiveUnit(host), SPLIT_DEBOUNCE_MS)
+    splitTimer = setTimeout(() => void trySplitActiveUnit(host), SPLIT_DEBOUNCE_MS)
+  }
+
+  /**
+   * @param {HTMLElement} host
+   * @param {string} expectedSource
+   * @param {() => string} [readSource]
+   */
+  function isActiveSplitContext(host, expectedSource, readSource = () => getWysiwygSourceValue(host)) {
+    if (isRendering || activeSourceUnit !== host.closest('.wysiwyg-unit')) {
+      return false
+    }
+    return readSource() === expectedSource
   }
 
   function syncFromDom({ forceNotify = false } = {}) {
@@ -729,7 +741,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
         ensureDocumentTsuzuraUrls(normalizedSource),
       ])
 
-      for (const parsed of parseEditUnitsFromSource(normalizedSource)) {
+      for (const parsed of await parseEditUnitsFromSource(normalizedSource)) {
         const wrapper = document.createElement('div')
         wrapper.className = 'wysiwyg-unit'
         wrapper.contentEditable = 'false'
@@ -739,7 +751,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
           wrapper.classList.add('wysiwyg-unit--placeholder')
           appendEmptyParagraphPreview(wrapper)
         } else {
-          renderUnitPreview(wrapper, parsed.adoc)
+          await renderUnitPreview(wrapper, parsed.adoc)
         }
 
         editorEl.append(wrapper)
@@ -997,13 +1009,13 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
       return
     }
 
-    renderUnitPreview(unit, adoc)
+    void renderUnitPreview(unit, adoc)
     void Promise.all([
       ensureDocumentWikiLabels(adoc),
       ensureDocumentTsuzuraUrls(getDocumentSource()),
-    ]).then(() => {
+    ]).then(async () => {
       if (!unit.isConnected || unit.classList.contains('is-source')) return
-      renderUnitPreview(unit, adoc)
+      await renderUnitPreview(unit, adoc)
     })
 
     unit.classList.remove('is-source')
@@ -1047,55 +1059,68 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
   /**
    * @param {HTMLElement} host
    */
-  function trySplitActiveUnit(host) {
+  async function trySplitActiveUnit(host) {
     if (isSwitchingUnit || isRendering) return
     if (activeSourceUnit !== host.closest('.wysiwyg-unit')) return
 
-    const source = getWysiwygSourceValue(host)
-    const selectionStart = getWysiwygSourceSelection(host)
-    const cursorLine = source.slice(0, selectionStart).split('\n').length - 1
+    isSwitchingUnit = true
+    let applied = false
+    try {
+      const source = getWysiwygSourceValue(host)
+      const selectionStart = getWysiwygSourceSelection(host)
+      const cursorLine = source.slice(0, selectionStart).split('\n').length - 1
 
-    const tableSplit = getTableParagraphSplit(source, cursorLine)
-    if (tableSplit) {
-      splitIntoTableAndParagraph(host, source, selectionStart, tableSplit)
-      return
-    }
-
-    if (!shouldSplitEditUnits(source, cursorLine)) return
-
-    const allUnits = parseEditUnitsFromSource(source)
-    const activeIndex = getActiveUnitIndex(allUnits, cursorLine)
-    const activeUnit = allUnits[activeIndex]
-    let caret = getCaretOffsetInUnit(source, activeUnit, selectionStart)
-
-    let parsedUnits = allUnits.filter((unit) => unit.adoc.trim())
-    let filteredActiveIndex = parsedUnits.indexOf(activeUnit)
-
-    if (filteredActiveIndex < 0 && !activeUnit.adoc.trim()) {
-      const paragraphAdoc = source
-        .split('\n')
-        .slice(activeUnit.startLine)
-        .join('\n')
-        .replace(/^\n+/, '')
-      let insertAt = parsedUnits.findIndex((unit) => unit.startLine > activeUnit.startLine)
-      if (insertAt < 0) insertAt = parsedUnits.length
-      const paragraphUnit = {
-        adoc: paragraphAdoc,
-        startLine: activeUnit.startLine,
-        endLine: activeUnit.endLine,
+      const tableSplit = getTableParagraphSplit(source, cursorLine)
+      if (tableSplit) {
+        if (!isActiveSplitContext(host, source)) return
+        splitIntoTableAndParagraph(host, source, selectionStart, tableSplit)
+        applied = true
+        return
       }
-      parsedUnits = [
-        ...parsedUnits.slice(0, insertAt),
-        paragraphUnit,
-        ...parsedUnits.slice(insertAt),
-      ]
-      filteredActiveIndex = insertAt
-      caret = getCaretInFollowingBlock(source, activeUnit.startLine, selectionStart)
+
+      if (!(await shouldSplitEditUnits(source, cursorLine))) return
+      if (!isActiveSplitContext(host, source)) return
+
+      const allUnits = await parseEditUnitsFromSource(source)
+      if (!isActiveSplitContext(host, source)) return
+
+      const activeIndex = getActiveUnitIndex(allUnits, cursorLine)
+      const activeUnit = allUnits[activeIndex]
+      let caret = getCaretOffsetInUnit(source, activeUnit, selectionStart)
+
+      let parsedUnits = allUnits.filter((unit) => unit.adoc.trim())
+      let filteredActiveIndex = parsedUnits.indexOf(activeUnit)
+
+      if (filteredActiveIndex < 0 && !activeUnit.adoc.trim()) {
+        const paragraphAdoc = source
+          .split('\n')
+          .slice(activeUnit.startLine)
+          .join('\n')
+          .replace(/^\n+/, '')
+        let insertAt = parsedUnits.findIndex((unit) => unit.startLine > activeUnit.startLine)
+        if (insertAt < 0) insertAt = parsedUnits.length
+        const paragraphUnit = {
+          adoc: paragraphAdoc,
+          startLine: activeUnit.startLine,
+          endLine: activeUnit.endLine,
+        }
+        parsedUnits = [
+          ...parsedUnits.slice(0, insertAt),
+          paragraphUnit,
+          ...parsedUnits.slice(insertAt),
+        ]
+        filteredActiveIndex = insertAt
+        caret = getCaretInFollowingBlock(source, activeUnit.startLine, selectionStart)
+      }
+
+      if (filteredActiveIndex < 0) return
+      if (!isActiveSplitContext(host, source)) return
+
+      replaceActiveUnitWithSplit(host, parsedUnits, filteredActiveIndex, caret)
+      applied = true
+    } finally {
+      if (!applied) isSwitchingUnit = false
     }
-
-    if (filteredActiveIndex < 0) return
-
-    replaceActiveUnitWithSplit(host, parsedUnits, filteredActiveIndex, caret)
   }
 
   /**
@@ -1148,7 +1173,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     scheduleSync()
   }
 
-  splitUnitOnBlankLineFromView = (view) => {
+  splitUnitOnBlankLineFromView = async (view) => {
     if (isSwitchingUnit || isRendering) return
 
     const host = view.dom.closest('.wysiwyg-source-editor')
@@ -1160,39 +1185,48 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
     const line = view.state.doc.lineAt(head)
     if (line.text.trim() !== '') return
 
-    const preserveIndent = isIndentLiteralBlock(source)
-    const split = preserveIndent
-      ? splitIndentLiteralAtBlankLine(source, lineIndex)
-      : splitParagraphAtBlankLine(source, lineIndex)
-    const beforeAdoc = preserveIndent ? split.literalAdoc : split.beforeAdoc
-    const afterAdoc = split.afterAdoc
+    isSwitchingUnit = true
+    let applied = false
+    try {
+      const preserveIndent = isIndentLiteralBlock(source)
+      const split = preserveIndent
+        ? splitIndentLiteralAtBlankLine(source, lineIndex)
+        : splitParagraphAtBlankLine(source, lineIndex)
+      const beforeAdoc = preserveIndent ? split.literalAdoc : split.beforeAdoc
+      const afterAdoc = split.afterAdoc
 
-    /** @type {{ adoc: string, startLine: number, endLine: number }[]} */
-    const parsedUnits = []
+      /** @type {{ adoc: string, startLine: number, endLine: number }[]} */
+      const parsedUnits = []
 
-    if (beforeAdoc) {
-      for (const unit of parseEditUnitsFromSource(beforeAdoc)) {
-        parsedUnits.push({ adoc: unit.adoc, startLine: 0, endLine: 0 })
+      if (beforeAdoc) {
+        for (const unit of await parseEditUnitsFromSource(beforeAdoc)) {
+          parsedUnits.push({ adoc: unit.adoc, startLine: 0, endLine: 0 })
+        }
       }
-    }
 
-    let activeIndex = 0
-    if (afterAdoc.trim()) {
-      activeIndex = parsedUnits.length
-      for (const unit of parseEditUnitsFromSource(afterAdoc)) {
-        parsedUnits.push({ adoc: unit.adoc, startLine: 0, endLine: 0 })
+      let activeIndex = 0
+      if (afterAdoc.trim()) {
+        activeIndex = parsedUnits.length
+        for (const unit of await parseEditUnitsFromSource(afterAdoc)) {
+          parsedUnits.push({ adoc: unit.adoc, startLine: 0, endLine: 0 })
+        }
+      } else {
+        parsedUnits.push({ adoc: '', startLine: 0, endLine: 0 })
+        activeIndex = parsedUnits.length - 1
       }
-    } else {
-      parsedUnits.push({ adoc: '', startLine: 0, endLine: 0 })
-      activeIndex = parsedUnits.length - 1
-    }
 
-    if (parsedUnits.length === 0) {
-      parsedUnits.push({ adoc: '', startLine: 0, endLine: 0 })
-      activeIndex = 0
-    }
+      if (parsedUnits.length === 0) {
+        parsedUnits.push({ adoc: '', startLine: 0, endLine: 0 })
+        activeIndex = 0
+      }
 
-    replaceActiveUnitWithSplit(host, parsedUnits, activeIndex, 0)
+      if (!isActiveSplitContext(host, source, () => view.state.doc.toString())) return
+
+      replaceActiveUnitWithSplit(host, parsedUnits, activeIndex, 0)
+      applied = true
+    } finally {
+      if (!applied) isSwitchingUnit = false
+    }
   }
 
   /**
@@ -1229,7 +1263,7 @@ export function createWysiwygEditor(editorEl, { onSourceChange, paneEl, getMemoI
       return wrapper
     }
 
-    renderUnitPreview(wrapper, adoc)
+    void renderUnitPreview(wrapper, adoc)
     return wrapper
   }
 

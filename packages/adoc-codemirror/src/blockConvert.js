@@ -1,4 +1,5 @@
-import { getAsciidoctor, getExtensionRegistry } from './instance.js'
+import { convert } from '@asciidoctor/core'
+import { getExtensionRegistry } from './instance.js'
 import { restrictPassthroughInSource } from '@kbmemo/adoc-kbmemo'
 import { adocForBlockConversion } from './literalParagraph.js'
 
@@ -15,9 +16,9 @@ const BLOCK_CONVERT_ATTRIBUTES = {
  *
  * @param {string} adoc
  * @param {string | null | undefined} [memoId]
- * @returns {string}
+ * @returns {Promise<string>}
  */
-export function asciidocBlockToHtml(adoc, memoId) {
+export async function asciidocBlockToHtml(adoc, memoId) {
   const trimmed = adoc.trim()
   if (!trimmed) {
     return '<div class="paragraph"><p></p></div>'
@@ -30,7 +31,7 @@ export function asciidocBlockToHtml(adoc, memoId) {
     attributes.imagesdir = `/memos/${encodeURIComponent(String(memoId))}/assets/`
   }
 
-  return getAsciidoctor().convert(toConvert, {
+  return convert(toConvert, {
     safe: 'safe',
     standalone: false,
     extension_registry: getExtensionRegistry(),

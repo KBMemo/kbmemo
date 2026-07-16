@@ -1,4 +1,3 @@
-import { loadDocument } from './instance.js'
 import { captureInlines, findInlineMarkup, inlineClassName } from './inlineCapture.js'
 import { highlightCode } from './codeHighlight.js'
 
@@ -19,15 +18,15 @@ const INLINE_CAPABLE = new Set([
 
 /**
  * @param {string} source
- * @param {import('@asciidoctor/core').Document | null | undefined} doc
- * @returns {HighlightSpan[]}
+ * @param {import('@asciidoctor/core').Document} doc
+ * @returns {Promise<HighlightSpan[]>}
  */
-export function computeHighlights(source, doc = null) {
+export async function computeHighlights(source, doc) {
   const spans = []
   if (!source) return spans
 
   const lineStarts = buildLineStarts(source)
-  const document = doc ?? loadDocument(source)
+  const document = doc
   const claimedLines = new Set()
 
   for (const block of document.findBy()) {
@@ -40,7 +39,7 @@ export function computeHighlights(source, doc = null) {
     }
 
     if (context === 'paragraph' || context === 'table_cell') {
-      highlightInlineBlock(block, document, source, lineStarts, spans, claimedLines)
+      await highlightInlineBlock(block, document, source, lineStarts, spans, claimedLines)
       continue
     }
 
@@ -65,7 +64,7 @@ export function computeHighlights(source, doc = null) {
     }
 
     if (context === 'admonition') {
-      highlightAdmonition(block, document, source, lineStarts, spans, claimedLines)
+      await highlightAdmonition(block, document, source, lineStarts, spans, claimedLines)
       continue
     }
 
@@ -84,14 +83,14 @@ export function computeHighlights(source, doc = null) {
     }
 
     if (INLINE_CAPABLE.has(context)) {
-      highlightInlineBlock(block, document, source, lineStarts, spans, claimedLines)
+      await highlightInlineBlock(block, document, source, lineStarts, spans, claimedLines)
       continue
     }
 
-    highlightGenericBlock(block, document, source, lineStarts, spans, claimedLines)
+    await highlightGenericBlock(block, document, source, lineStarts, spans, claimedLines)
   }
 
-  highlightUnclaimedLines(document, source, lineStarts, spans, claimedLines)
+  await highlightUnclaimedLines(document, source, lineStarts, spans, claimedLines)
   return mergeSpans(spans)
 }
 
@@ -136,10 +135,10 @@ function claimLine(claimedLines, line) {
  * @param {number} baseOffset
  * @param {HighlightSpan[]} spans
  */
-function highlightInlinesWithAsciidoctor(node, text, baseOffset, spans) {
-  if (!text || !node?.applySubstitutions) return
+async function highlightInlinesWithAsciidoctor(node, text, baseOffset, spans) {
+  if (!text || !node?.applySubs) return
 
-  const captured = captureInlines(node, text)
+  const captured = await captureInlines(node, text)
   let searchFrom = 0
 
   for (const inline of captured) {
@@ -172,9 +171,9 @@ function highlightSection(block, source, lineStarts, spans, claimedLines) {
   claimLine(claimedLines, line)
 }
 
-function highlightInlineBlock(block, doc, source, lineStarts, spans, claimedLines) {
+async function highlightInlineBlock(block, doc, source, lineStarts, spans, claimedLines) {
   if (block.getContext() === 'table_cell') {
-    highlightTableCell(block, source, lineStarts, spans)
+    await highlightTableCell(block, source, lineStarts, spans)
     return
   }
 
@@ -199,12 +198,12 @@ function highlightInlineBlock(block, doc, source, lineStarts, spans, claimedLine
       addSpan(spans, from, to, 'adoc-lead')
     }
 
-    highlightLineContent(doc, text, from, spans)
+    await highlightLineContent(doc, text, from, spans)
     claimLine(claimedLines, line)
   }
 }
 
-function highlightTableCell(block, source, lineStarts, spans) {
+async function highlightTableCell(block, source, lineStarts, spans) {
   const line = block.getLineNumber()
   const cellSource = block.getSource?.() ?? ''
   if (!line || !cellSource) return
@@ -214,7 +213,7 @@ function highlightTableCell(block, source, lineStarts, spans) {
   const cellIndex = lineText.indexOf(cellSource)
   if (cellIndex < 0) return
 
-  highlightInlinesWithAsciidoctor(block, cellSource, lineFrom + cellIndex, spans)
+  await highlightInlinesWithAsciidoctor(block, cellSource, lineFrom + cellIndex, spans)
 }
 
 function highlightListing(block, source, lineStarts, spans, claimedLines) {
@@ -447,10 +446,10 @@ function highlightSupplementalInText(text, baseOffset, spans, fromIndex = 0) {
  * @param {number} baseOffset
  * @param {HighlightSpan[]} spans
  */
-function highlightLineContent(node, text, baseOffset, spans) {
-  if (highlightChecklistInText(text, baseOffset, spans, node)) return
-  if (highlightDlistInText(text, baseOffset, spans, node)) return
-  highlightInlinesWithAsciidoctor(node, text, baseOffset, spans)
+async function highlightLineContent(node, text, baseOffset, spans) {
+  if (await highlightChecklistInText(text, baseOffset, spans, node)) return
+  if (await highlightDlistInText(text, baseOffset, spans, node)) return
+  await highlightInlinesWithAsciidoctor(node, text, baseOffset, spans)
 }
 
 /**
@@ -459,13 +458,13 @@ function highlightLineContent(node, text, baseOffset, spans) {
  * @param {HighlightSpan[]} spans
  * @param {import('@asciidoctor/core').AbstractNode} node
  */
-function highlightChecklistInText(text, baseOffset, spans, node) {
+async function highlightChecklistInText(text, baseOffset, spans, node) {
   const match = text.match(/^(\[[ xX*]\])(\s+)(.*)$/)
   if (!match) return false
 
   addSpan(spans, baseOffset, baseOffset + match[1].length, 'adoc-checklist-marker')
   const contentFrom = baseOffset + match[1].length + match[2].length
-  highlightInlinesWithAsciidoctor(node, match[3], contentFrom, spans)
+  await highlightInlinesWithAsciidoctor(node, match[3], contentFrom, spans)
   return true
 }
 
@@ -475,7 +474,7 @@ function highlightChecklistInText(text, baseOffset, spans, node) {
  * @param {HighlightSpan[]} spans
  * @param {import('@asciidoctor/core').AbstractNode} node
  */
-function highlightDlistInText(text, baseOffset, spans, node) {
+async function highlightDlistInText(text, baseOffset, spans, node) {
   const match = text.match(/^(.+?)(::+)(\s*)(.*)$/)
   if (!match || match[2].length < 2) return false
 
@@ -485,7 +484,7 @@ function highlightDlistInText(text, baseOffset, spans, node) {
   addSpan(spans, termEnd, markerEnd, 'adoc-dlist-marker')
 
   if (match[4]) {
-    highlightInlinesWithAsciidoctor(node, match[4], markerEnd + match[3].length, spans)
+    await highlightInlinesWithAsciidoctor(node, match[4], markerEnd + match[3].length, spans)
   }
 
   return true
@@ -633,7 +632,7 @@ function isDocumentHeaderLine(text, lines, lineIndex) {
   return false
 }
 
-function highlightAdmonition(block, doc, source, lineStarts, spans, claimedLines) {
+async function highlightAdmonition(block, doc, source, lineStarts, spans, claimedLines) {
   const startLine = block.getLineNumber()
   const style = block.getStyle?.()
   const contentLines = block.getSourceLines() || []
@@ -656,9 +655,9 @@ function highlightAdmonition(block, doc, source, lineStarts, spans, claimedLines
     const labelMatch = text.match(new RegExp(`^(${ADMONITION_LABELS.join('|')}):\\s*`))
     if (labelMatch) {
       addSpan(spans, from, from + labelMatch[0].length, 'adoc-admonition-label')
-      highlightInlinesWithAsciidoctor(block, text.slice(labelMatch[0].length), from + labelMatch[0].length, spans)
+      await highlightInlinesWithAsciidoctor(block, text.slice(labelMatch[0].length), from + labelMatch[0].length, spans)
     } else {
-      highlightInlinesWithAsciidoctor(block, text, from, spans)
+      await highlightInlinesWithAsciidoctor(block, text, from, spans)
     }
     claimLine(claimedLines, line)
   }
@@ -684,7 +683,7 @@ function highlightTable(block, source, lineStarts, spans, claimedLines) {
   }
 }
 
-function highlightGenericBlock(block, doc, source, lineStarts, spans, claimedLines) {
+async function highlightGenericBlock(block, doc, source, lineStarts, spans, claimedLines) {
   const startLine = block.getLineNumber()
   const lines = block.getSourceLines?.() || block.getSource?.() ? [block.getSource()] : []
   if (lines.length === 0) return
@@ -693,12 +692,12 @@ function highlightGenericBlock(block, doc, source, lineStarts, spans, claimedLin
     const line = startLine + i
     const { from, to } = lineRange(lineStarts, line, source.length)
     addSpan(spans, from, to, `adoc-${block.getContext()}`)
-    highlightInlinesWithAsciidoctor(block, source.slice(from, to), from, spans)
+    await highlightInlinesWithAsciidoctor(block, source.slice(from, to), from, spans)
     claimLine(claimedLines, line)
   }
 }
 
-function highlightUnclaimedLines(doc, source, lineStarts, spans, claimedLines) {
+async function highlightUnclaimedLines(doc, source, lineStarts, spans, claimedLines) {
   const lines = source.split('\n')
   for (let i = 0; i < lines.length; i++) {
     const line = i + 1
@@ -793,15 +792,15 @@ function highlightUnclaimedLines(doc, source, lineStarts, spans, claimedLines) {
     const listMatch = text.match(/^(\s*(?:\d+\.|[a-zA-Z]\.|[ixvmIXVM]+\)|[*\-+.]+)\s+)(.*)$/)
     if (listMatch) {
       addSpan(spans, from, from + listMatch[1].length, 'adoc-list-marker')
-      highlightLineContent(doc, listMatch[2], from + listMatch[1].length, spans)
+      await highlightLineContent(doc, listMatch[2], from + listMatch[1].length, spans)
       continue
     }
 
-    if (highlightDlistInText(text, from, spans, doc)) {
+    if (await highlightDlistInText(text, from, spans, doc)) {
       continue
     }
 
-    highlightLineContent(doc, text, from, spans)
+    await highlightLineContent(doc, text, from, spans)
   }
 }
 

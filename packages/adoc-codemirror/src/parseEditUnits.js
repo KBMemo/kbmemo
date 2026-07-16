@@ -315,7 +315,7 @@ function extractStemBlockUnits(lines) {
  * @param {string} source
  * @returns {ParsedEditUnit[]}
  */
-export function parseEditUnitsFromSource(source) {
+export async function parseEditUnitsFromSource(source) {
   const lines = source.split('\n')
 
   if (!source.trim()) {
@@ -331,7 +331,7 @@ export function parseEditUnitsFromSource(source) {
     ...extractSourceParagraphUnits(lines),
   ]
 
-  const doc = loadDocument(source)
+  const doc = await loadDocument(source)
 
   const firstLine = lines[0] ?? ''
   if (/^=\s+\S/.test(firstLine) && !/^==/.test(firstLine)) {
@@ -1052,14 +1052,14 @@ export function getCaretInFollowingBlock(source, separatorStartLine, selectionSt
  * @param {string} source
  * @param {number} [cursorLine] 0-based; when set, enables table→paragraph split detection
  */
-export function shouldSplitEditUnits(source, cursorLine) {
+export async function shouldSplitEditUnits(source, cursorLine) {
   if (cursorLine != null && getTableParagraphSplit(source, cursorLine)) {
     return true
   }
 
   if (!hasBlankLineSeparator(source)) return false
 
-  const units = parseEditUnitsFromSource(source).filter((unit) => unit.adoc.trim())
+  const units = (await parseEditUnitsFromSource(source)).filter((unit) => unit.adoc.trim())
   return units.length > 1
 }
 

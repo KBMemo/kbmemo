@@ -19,19 +19,19 @@ let cachePreviewWikiLabelsKey
 let cachePreviewDiagramKey
 
 /**
- * Parse for editor highlights (sync on every keystroke).
+ * Parse for editor highlights (debounced via CodeMirror ViewPlugin).
  * Reuses cached doc when source is unchanged.
  *
  * @param {string} source
- * @returns {HighlightSpan[]}
+ * @returns {Promise<HighlightSpan[]>}
  */
-export function refreshHighlights(source) {
+export async function refreshHighlights(source) {
   if (cache.source === source) {
     return cache.highlights
   }
 
-  const doc = loadDocument(source)
-  const highlights = computeHighlights(source, doc)
+  const doc = await loadDocument(source)
+  const highlights = await computeHighlights(source, doc)
   cache = { source, doc, highlights, html: null }
   cachePreviewMemoId = undefined
   cachePreviewWikiLabelsKey = undefined
@@ -98,8 +98,9 @@ function previewSourceForConvert(source, memoId, wikiLabels, diagramAvailability
  *
  * @param {string} source
  * @param {{ memoId?: string | null, diagramAvailability?: Map<string, boolean>, wikiLabels?: Map<string, object>, tsuzuraCache?: { urls: Map<string, string>, albums: Map<string, string[]> } }} [options]
+ * @returns {Promise<{ html: string, highlights: HighlightSpan[] }>}
  */
-export function refreshPreview(source, { memoId, diagramAvailability, wikiLabels, tsuzuraCache } = {}) {
+export async function refreshPreview(source, { memoId, diagramAvailability, wikiLabels, tsuzuraCache } = {}) {
   const diagramKey = diagramAvailability !== undefined ? diagramAvailabilityCacheKey(diagramAvailability) : undefined
   const labelsKey = wikiLabels !== undefined ? wikiLabelsCacheKey(wikiLabels) : undefined
   const tsuzuraKey = tsuzuraCache !== undefined ? tsuzuraCacheKey(tsuzuraCache) : undefined
@@ -117,8 +118,8 @@ export function refreshPreview(source, { memoId, diagramAvailability, wikiLabels
   }
 
   if (cache.source !== source || !cache.doc) {
-    const doc = loadDocument(source)
-    const highlights = computeHighlights(source, doc)
+    const doc = await loadDocument(source)
+    const highlights = await computeHighlights(source, doc)
     cache = { source, doc, highlights, html: null }
     cachePreviewMemoId = undefined
     cachePreviewWikiLabelsKey = undefined
@@ -127,8 +128,8 @@ export function refreshPreview(source, { memoId, diagramAvailability, wikiLabels
   }
 
   const previewDoc =
-    previewSource === source ? cache.doc : loadDocument(previewSource)
-  cache.html = previewDoc.convert(previewConvertOptions(memoId))
+    previewSource === source ? cache.doc : await loadDocument(previewSource)
+  cache.html = await previewDoc.convert(previewConvertOptions(memoId))
   cachePreviewMemoId = memoId
   cachePreviewDiagramKey = diagramKey
   cachePreviewWikiLabelsKey = labelsKey

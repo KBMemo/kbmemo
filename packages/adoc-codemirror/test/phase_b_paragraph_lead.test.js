@@ -10,8 +10,8 @@ import {
 } from '@kbmemo/test-fixtures'
 
 /** @param {string} body */
-function unitsForBody(body) {
-  return parseEditUnitsFromSource(`= Title\n\n${body}`).filter((unit) => unit.startLine >= 2)
+async function unitsForBody(body) {
+  return (await parseEditUnitsFromSource(`= Title\n\n${body}`)).filter((unit) => unit.startLine >= 2)
 }
 
 /** @param {string} id */
@@ -22,8 +22,8 @@ function sectionBody(id) {
 }
 
 describe('Phase B lead paragraphs', () => {
-  it('keeps [.lead] attribute with paragraph body in one unit', () => {
-    const units = unitsForBody(sectionBody('paragraphs-lead'))
+  it('keeps [.lead] attribute with paragraph body in one unit', async () => {
+    const units = await unitsForBody(sectionBody('paragraphs-lead'))
     const leadUnit = units.find((unit) => unit.adoc.includes('lead paragraph'))
     expect(leadUnit).toBeDefined()
     expect(leadUnit.adoc).toContain('[.lead]')
@@ -31,18 +31,18 @@ describe('Phase B lead paragraphs', () => {
     expect(units.some((unit) => unit.adoc.trim() === '[.lead]')).toBe(false)
   })
 
-  it('round-trips [.lead] through preview html', () => {
+  it('round-trips [.lead] through preview html', async () => {
     const adoc = '[.lead]\nThis text will be styled as a lead paragraph (i.e., larger font).'
-    const html = asciidocBlockToHtml(adoc)
+    const html = await asciidocBlockToHtml(adoc)
     const wrapper = document.createElement('div')
     wrapper.innerHTML = html
     expect(wrapper.querySelector('.paragraph.lead')).toBeTruthy()
     expect(htmlToAsciidoc(wrapper).trim()).toBe(adoc)
   })
 
-  it('round-trips [.lead] using preview dataset annotation', () => {
+  it('round-trips [.lead] using preview dataset annotation', async () => {
     const adoc = '[.lead]\nLead body text.'
-    const html = asciidocBlockToHtml('Plain paragraph.\n\n' + adoc)
+    const html = await asciidocBlockToHtml('Plain paragraph.\n\n' + adoc)
     const wrapper = document.createElement('div')
     wrapper.innerHTML = html
     const leadParagraph = wrapper.querySelector('.paragraph.lead')

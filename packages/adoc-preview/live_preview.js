@@ -60,7 +60,7 @@ export function createLivePreview({
       if (seq !== renderSeq) return
     }
 
-    const { html } = refreshPreview(source, {
+    const { html } = await refreshPreview(source, {
       memoId,
       diagramAvailability: memoId ? diagramAvailabilityCache : undefined,
       wikiLabels: wikiLabelCache,

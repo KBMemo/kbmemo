@@ -1,35 +1,46 @@
-import { getAsciidoctor } from './instance.js'
+import { Inline } from '@asciidoctor/core'
 
 /** @typedef {{ context: string, type?: string, text?: string, target?: string, attributes?: Record<string, unknown> }} CapturedInline */
+
+/** Serialize capture runs — Inline.prototype.convert is patched globally. */
+let captureTail = Promise.resolve()
 
 /**
  * @param {import('@asciidoctor/core').AbstractNode} node
  * @param {string} text
- * @returns {CapturedInline[]}
+ * @returns {Promise<CapturedInline[]>}
  */
 export function captureInlines(node, text) {
-  const captured = []
-  const Inline = getAsciidoctor().Inline
-  const originalConvert = Inline.prototype.$convert
+  const run = async () => {
+    const captured = []
+    const originalConvert = Inline.prototype.convert
 
-  Inline.prototype.$convert = function captureInlineConvert() {
-    captured.push({
-      context: this.getContext(),
-      type: normalizeType(this.getType?.()),
-      text: this.getText?.(),
-      target: this.getTarget?.(),
-      attributes: this.getAttributes?.(),
-    })
-    return originalConvert.call(this)
+    Inline.prototype.convert = async function captureInlineConvert() {
+      captured.push({
+        context: this.getContext(),
+        type: normalizeType(this.getType?.()),
+        text: this.getText?.(),
+        target: this.getTarget?.(),
+        attributes: this.getAttributes?.(),
+      })
+      return originalConvert.call(this)
+    }
+
+    try {
+      await node.applySubs(text)
+    } finally {
+      Inline.prototype.convert = originalConvert
+    }
+
+    return captured
   }
 
-  try {
-    node.applySubstitutions(text)
-  } finally {
-    Inline.prototype.$convert = originalConvert
-  }
-
-  return captured
+  const job = captureTail.then(run, run)
+  captureTail = job.then(
+    () => {},
+    () => {},
+  )
+  return job
 }
 
 /**

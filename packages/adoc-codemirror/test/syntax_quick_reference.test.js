@@ -20,25 +20,25 @@ describe('syntax-quick-reference.adoc fixture', () => {
     expect(SYNTAX_QUICK_REFERENCE_IDS).toContain('kbmemo-wiki')
   })
 
-  it('parses highlights without throwing', () => {
+  it('parses highlights without throwing', async () => {
     clearParseCache()
-    const spans = refreshHighlights(SYNTAX_QUICK_REFERENCE)
+    const spans = await refreshHighlights(SYNTAX_QUICK_REFERENCE)
     expect(spans.length).toBeGreaterThan(0)
   })
 
-  it('splits edit units without throwing', () => {
-    const units = parseEditUnitsFromSource(SYNTAX_QUICK_REFERENCE)
+  it('splits edit units without throwing', async () => {
+    const units = await parseEditUnitsFromSource(SYNTAX_QUICK_REFERENCE)
     expect(units.length).toBeGreaterThan(10)
     expect(units.every((unit) => typeof unit.adoc === 'string')).toBe(true)
   })
 
-  it('parses highlights for every syntax-ref section', () => {
+  it('parses highlights for every syntax-ref section', async () => {
     clearParseCache()
     const failures = []
 
     for (const section of SYNTAX_QUICK_REFERENCE_SECTIONS) {
       try {
-        refreshHighlights(section.adoc)
+        await refreshHighlights(section.adoc)
       } catch (error) {
         failures.push({ id: section.id, layer: 'HL', error })
       }
@@ -47,12 +47,12 @@ describe('syntax-quick-reference.adoc fixture', () => {
     expect(failures, formatSectionFailures(failures)).toEqual([])
   })
 
-  it('splits edit units for every syntax-ref section', () => {
+  it('splits edit units for every syntax-ref section', async () => {
     const failures = []
 
     for (const section of SYNTAX_QUICK_REFERENCE_SECTIONS) {
       try {
-        const units = parseEditUnitsFromSource(section.adoc)
+        const units = await parseEditUnitsFromSource(section.adoc)
         if (!units.every((unit) => typeof unit.adoc === 'string')) {
           failures.push({ id: section.id, layer: 'EU', error: 'invalid unit shape' })
         }

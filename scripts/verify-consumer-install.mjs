@@ -13,7 +13,7 @@ import {
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 const PEER_DEPENDENCIES = {
-  '@asciidoctor/core': '^3.0.4',
+  '@asciidoctor/core': '^4.0.4',
   '@codemirror/state': '^6.6.0',
   '@codemirror/view': '^6.43.0',
   'highlight.js': '^11.11.1',
@@ -74,12 +74,12 @@ if (!Array.isArray(asciidocHighlight)) {
 }
 
 const source = '= Hello\\n\\n* list item'
-const spans = refreshHighlights(source)
+const spans = await refreshHighlights(source)
 if (spans.length === 0) {
   throw new Error('refreshHighlights returned no spans')
 }
 
-const units = parseEditUnitsFromSource(source)
+const units = await parseEditUnitsFromSource(source)
 if (units.length === 0) {
   throw new Error('parseEditUnitsFromSource returned no units')
 }

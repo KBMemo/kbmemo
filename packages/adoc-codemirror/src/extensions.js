@@ -1,11 +1,11 @@
+import { Extensions } from '@asciidoctor/core'
+
 /**
  * Shared Extension registry for load() and convert().
  * Add custom inlineMacro / treeProcessor hooks here.
- *
- * @param {import('@asciidoctor/core').default} asciidoctor
  */
-export function createExtensionRegistry(asciidoctor) {
-  const registry = asciidoctor.Extensions.create()
+export function createExtensionRegistry() {
+  const registry = Extensions.create()
 
   // Built-in kbd:/menu: are handled by sub_macros when :experimental: is set.
   // Register custom inline macros below, e.g.:

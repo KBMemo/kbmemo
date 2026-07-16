@@ -10,8 +10,8 @@ import {
 } from '@kbmemo/test-fixtures'
 
 /** @param {string} body */
-function unitsForBody(body) {
-  return parseEditUnitsFromSource(`= Title\n\n${body}`).filter((unit) => unit.startLine >= 2)
+async function unitsForBody(body) {
+  return (await parseEditUnitsFromSource(`= Title\n\n${body}`)).filter((unit) => unit.startLine >= 2)
 }
 
 /** @param {string} id */
@@ -22,8 +22,8 @@ function sectionBody(id) {
 }
 
 describe('Phase B paragraph hard breaks', () => {
-  it('keeps [%hardbreaks] paragraph in one unit', () => {
-    const units = unitsForBody(sectionBody('paragraphs-hardbreaks'))
+  it('keeps [%hardbreaks] paragraph in one unit', async () => {
+    const units = await unitsForBody(sectionBody('paragraphs-hardbreaks'))
     const hardbreakUnit = units.find((unit) => unit.adoc.includes('A ruby is red.'))
     expect(hardbreakUnit).toBeDefined()
     expect(hardbreakUnit.adoc).toContain('[%hardbreaks]')
@@ -31,17 +31,17 @@ describe('Phase B paragraph hard breaks', () => {
     expect(units.some((unit) => unit.adoc.trim() === '[%hardbreaks]')).toBe(false)
   })
 
-  it('keeps line-ending plus hard break paragraph in one unit', () => {
-    const units = unitsForBody(sectionBody('paragraphs-hardbreaks'))
+  it('keeps line-ending plus hard break paragraph in one unit', async () => {
+    const units = await unitsForBody(sectionBody('paragraphs-hardbreaks'))
     const plusUnit = units.find((unit) => unit.adoc.includes('Roses are red,'))
     expect(plusUnit).toBeDefined()
     expect(plusUnit.adoc).toContain('Roses are red, +')
     expect(plusUnit.adoc).toContain('violets are blue.')
   })
 
-  it('round-trips line-ending plus through preview html', () => {
+  it('round-trips line-ending plus through preview html', async () => {
     const adoc = 'Roses are red, +\nviolets are blue.'
-    const html = asciidocBlockToHtml(adoc)
+    const html = await asciidocBlockToHtml(adoc)
     const wrapper = document.createElement('div')
     wrapper.innerHTML = html
     const paragraph = wrapper.querySelector('.paragraph')
@@ -49,9 +49,9 @@ describe('Phase B paragraph hard breaks', () => {
     expect(htmlToAsciidoc(wrapper).trim()).toBe(adoc)
   })
 
-  it('round-trips [%hardbreaks] through preview html', () => {
+  it('round-trips [%hardbreaks] through preview html', async () => {
     const adoc = '[%hardbreaks]\nA ruby is red.\nJava is black.'
-    const html = asciidocBlockToHtml(adoc)
+    const html = await asciidocBlockToHtml(adoc)
     const wrapper = document.createElement('div')
     wrapper.innerHTML = html
     const paragraph = wrapper.querySelector('.paragraph')
@@ -60,9 +60,9 @@ describe('Phase B paragraph hard breaks', () => {
     expect(htmlToAsciidoc(wrapper).trim()).toBe(adoc)
   })
 
-  it('does not add trailing plus to single-line paragraphs', () => {
+  it('does not add trailing plus to single-line paragraphs', async () => {
     const adoc = 'Single line only.'
-    const html = asciidocBlockToHtml(adoc)
+    const html = await asciidocBlockToHtml(adoc)
     const wrapper = document.createElement('div')
     wrapper.innerHTML = html
     expect(htmlToAsciidoc(wrapper).trim()).toBe(adoc)
@@ -75,12 +75,12 @@ describe('Phase B paragraph hard breaks', () => {
     expect(htmlToAsciidoc(wrapper).trim()).toBe('')
   })
 
-  it('does not duplicate plus on double html round-trip', () => {
+  it('does not duplicate plus on double html round-trip', async () => {
     const adoc = 'Roses are red, +\nviolets are blue.'
     const wrapper = document.createElement('div')
-    wrapper.innerHTML = asciidocBlockToHtml(adoc)
+    wrapper.innerHTML = await asciidocBlockToHtml(adoc)
     const once = htmlToAsciidoc(wrapper).trim()
-    wrapper.innerHTML = asciidocBlockToHtml(once)
+    wrapper.innerHTML = await asciidocBlockToHtml(once)
     expect(htmlToAsciidoc(wrapper).trim()).toBe(adoc)
   })
 })

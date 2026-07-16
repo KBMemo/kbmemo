@@ -9,8 +9,8 @@ describe('refreshPreview diagrams', () => {
     clearParseCache()
   })
 
-  it('does not render a memo asset image when the diagram svg is unavailable', () => {
-    const { html } = refreshPreview('diagram::flow.mmd[]', {
+  it('does not render a memo asset image when the diagram svg is unavailable', async () => {
+    const { html } = await refreshPreview('diagram::flow.mmd[]', {
       memoId: '1',
       diagramAvailability: new Map([['diagrams/flow.svg', false]]),
     })
@@ -20,13 +20,13 @@ describe('refreshPreview diagrams', () => {
     expect(html).not.toContain('/memos/1/assets/diagrams/flow.svg')
   })
 
-  it('rebuilds cached preview when diagram availability changes', () => {
-    refreshPreview('diagram::flow.mmd[]', {
+  it('rebuilds cached preview when diagram availability changes', async () => {
+    await refreshPreview('diagram::flow.mmd[]', {
       memoId: '1',
       diagramAvailability: new Map([['diagrams/flow.svg', false]]),
     })
 
-    const { html } = refreshPreview('diagram::flow.mmd[]', {
+    const { html } = await refreshPreview('diagram::flow.mmd[]', {
       memoId: '1',
       diagramAvailability: new Map([['diagrams/flow.svg', true]]),
     })

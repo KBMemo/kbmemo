@@ -3,11 +3,11 @@ import { captureInlines, findInlineMarkup, inlineClassName } from '../src/inline
 import { loadDocument } from '../src/instance.js'
 
 /** @param {string} body */
-function inlineForBody(body) {
-  const doc = loadDocument(`= Title\n\n${body}`)
+async function inlineForBody(body) {
+  const doc = await loadDocument(`= Title\n\n${body}`)
   const paragraph = doc.findBy({ context: 'paragraph' })[0]
   const text = paragraph.getSource()
-  const captured = captureInlines(paragraph, text)
+  const captured = await captureInlines(paragraph, text)
   return { text, inline: captured[0] }
 }
 
@@ -21,45 +21,58 @@ describe('inlineCapture Phase C markup', () => {
     expect(inlineClassName({ context: 'footnote' })).toBe('adoc-footnote')
   })
 
-  it('finds highlight and superscript markup', () => {
-    const highlight = inlineForBody('Mark my words, #automation is essential#.')
+  it('finds highlight and superscript markup', async () => {
+    const highlight = await inlineForBody('Mark my words, #automation is essential#.')
     expect(findInlineMarkup(highlight.text, highlight.inline)).toEqual({
       from: 15,
       to: 40,
     })
 
-    const superscript = inlineForBody('^super^script')
+    const superscript = await inlineForBody('^super^script')
     expect(findInlineMarkup(superscript.text, superscript.inline)).toEqual({
       from: 0,
       to: 7,
     })
   })
 
-  it('finds anchor and inter-document xref markup', () => {
-    const anchor = inlineForBody('[[bookmark-a]]Inline anchors make arbitrary content referenceable.')
+  it('finds anchor and inter-document xref markup', async () => {
+    const anchor = await inlineForBody('[[bookmark-a]]Inline anchors make arbitrary content referenceable.')
     expect(findInlineMarkup(anchor.text, anchor.inline)).toEqual({
       from: 0,
       to: 14,
     })
 
-    const interdoc = inlineForBody('Refer to xref:other-document.adoc#section-b[Section B] for more information.')
+    const interdoc = await inlineForBody('Refer to xref:other-document.adoc#section-b[Section B] for more information.')
     expect(findInlineMarkup(interdoc.text, interdoc.inline)).toEqual({
       from: 9,
       to: 54,
     })
   })
 
-  it('finds btn and footnote markup', () => {
-    const button = inlineForBody('Press the btn:[OK] button.')
+  it('finds btn and footnote markup', async () => {
+    const button = await inlineForBody('Press the btn:[OK] button.')
     expect(findInlineMarkup(button.text, button.inline)).toEqual({
       from: 10,
       to: 18,
     })
 
-    const footnote = inlineForBody('A statement.footnote:[Clarification about this statement.]')
+    const footnote = await inlineForBody('A statement.footnote:[Clarification about this statement.]')
     expect(findInlineMarkup(footnote.text, footnote.inline)).toEqual({
       from: 12,
       to: 58,
     })
+  })
+
+  it('serializes concurrent captureInlines calls without cross-contamination', async () => {
+    const [strong, emphasis] = await Promise.all([
+      inlineForBody('*strong text*'),
+      inlineForBody('_emphasis text_'),
+    ])
+
+    expect(strong.inline.type).toBe('strong')
+    expect(findInlineMarkup(strong.text, strong.inline)).toEqual({ from: 0, to: 13 })
+
+    expect(emphasis.inline.type).toBe('emphasis')
+    expect(findInlineMarkup(emphasis.text, emphasis.inline)).toEqual({ from: 0, to: 15 })
   })
 })

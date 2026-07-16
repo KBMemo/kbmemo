@@ -1,8 +1,7 @@
-import Asciidoctor from '@asciidoctor/core'
+import { load } from '@asciidoctor/core'
 import { createExtensionRegistry } from './extensions.js'
 
-const asciidoctor = Asciidoctor()
-const extensionRegistry = createExtensionRegistry(asciidoctor)
+const extensionRegistry = createExtensionRegistry()
 
 const PARSE_OPTIONS = {
   safe: 'secure',
@@ -17,14 +16,14 @@ const PARSE_OPTIONS = {
   },
 }
 
-export function getAsciidoctor() {
-  return asciidoctor
-}
-
 export function getExtensionRegistry() {
   return extensionRegistry
 }
 
-export function loadDocument(source) {
-  return asciidoctor.load(source, PARSE_OPTIONS)
+/**
+ * @param {string} source
+ * @returns {Promise<import('@asciidoctor/core').Document>}
+ */
+export async function loadDocument(source) {
+  return load(source, PARSE_OPTIONS)
 }
