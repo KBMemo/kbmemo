@@ -35,7 +35,7 @@ module NyoyMemoWebhook
       raise Error, "Nyoy memo webhook URL must be HTTP or HTTPS" unless uri.is_a?(URI::HTTP)
 
       raw_body = JSON.generate(payload)
-      timestamp = Time.current.to_i.to_s
+      timestamp = Time.current.utc.iso8601(6)
       request = Net::HTTP::Post.new(uri.request_uri)
       request["Accept"] = "application/json"
       request["Content-Type"] = "application/json"

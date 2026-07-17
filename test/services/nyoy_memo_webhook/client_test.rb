@@ -29,6 +29,7 @@ module NyoyMemoWebhook
 
       request = captured.fetch(:request)
       timestamp = request["X-KBMemo-Webhook-Timestamp"]
+      assert_match(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z\z/, timestamp)
       assert_equal "application/json", request["Content-Type"]
       assert_equal "application/json", request["Accept"]
       assert_equal(

@@ -71,6 +71,7 @@ Nyoy 側の export ベース RAG を最新化するため、徒然はメモの�
 * `X-KBMemo-Webhook-Timestamp`
 * `X-KBMemo-Signature: sha256=<hmac>`
 * 署名対象は `<timestamp>.<raw JSON body>`
+* timestamp は UTC の ISO8601 形式
 
 == stdio（ローカル開発）
 
