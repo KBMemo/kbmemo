@@ -123,6 +123,18 @@ class AgentChatsController < ApplicationController
 
     store.append_user_message!(conversation, content: user_text)
 
+    if (refine_request = natural_language_refine_request(conversation:, user_text: user_text))
+      payload = handle_natural_language_refine!(
+        conversation: conversation,
+        account: account,
+        refine_request: refine_request,
+        turn_id: turn_id,
+        broadcaster: broadcaster
+      )
+      render json: payload
+      return
+    end
+
     result = Chat::Agent.new.call(
       messages: chat_messages_param,
       account: account,
@@ -146,6 +158,9 @@ class AgentChatsController < ApplicationController
   rescue Chat::LlmClient::Error => e
     broadcaster&.turn_error(error: e.message, settings_url: chat_server_path)
     render json: { error: e.message, settings_url: chat_server_path }, status: :unprocessable_entity
+  rescue Chat::NyoyMcpClient::Error => e
+    broadcaster&.turn_error(error: e.message, settings_url: nyoy_mcp_path)
+    render json: { error: e.message, settings_url: nyoy_mcp_path }, status: :unprocessable_entity
   rescue StandardError => e
     Rails.logger.error("[AgentChatsController] #{e.class}: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
     broadcaster&.turn_error(
@@ -290,6 +305,106 @@ class AgentChatsController < ApplicationController
     client.call_tool(name: "get_image_generation", arguments: { id: generation_id })
   end
 
+  def natural_language_refine_request(conversation:, user_text:)
+    draft_index = natural_language_draft_index(user_text)
+    return nil if draft_index.nil?
+
+    message = latest_refinable_image_generation_message(conversation)
+    return nil unless message
+
+    watch = message.metadata.dig("mcp", "image_generation_watch")
+    generation_id = watch["id"].presence
+    return nil if generation_id.blank?
+
+    { generation_id: generation_id.to_i, draft_index: draft_index }
+  end
+
+  def natural_language_draft_index(text)
+    normalized = text.to_s.strip.tr("０-９", "0-9")
+    return nil if normalized.blank?
+
+    number =
+      if (match = normalized.match(/(?:^|[^\d])([1-4])\s*(?:番|枚目|つ目|個目|案|draft|ドラフト)/i))
+        match[1].to_i
+      elsif (match = normalized.match(/(?:^|[^\d])(?:draft|ドラフト)\s*([1-4])(?:[^\d]|$)/i))
+        match[1].to_i
+      elsif normalized.match?(/\A[1-4]\z/)
+        normalized.to_i
+      end
+
+    return nil unless number
+
+    number - 1
+  end
+
+  def latest_refinable_image_generation_message(conversation)
+    conversation.messages.ordered.reverse_order.find do |candidate|
+      next false unless candidate.assistant?
+
+      watch = candidate.metadata.dig("mcp", "image_generation_watch")
+      watch.is_a?(Hash) && watch["id"].present? && watch["status"].to_s == "awaiting_selection"
+    end
+  end
+
+  def handle_natural_language_refine!(conversation:, account:, refine_request:, turn_id:, broadcaster:)
+    unless Chat::NyoyMcpConfig.configured?(account: account)
+      raise Chat::NyoyMcpClient::NotConfiguredError, "Nyoy MCP が未設定です。"
+    end
+
+    generation_id = refine_request.fetch(:generation_id)
+    draft_index = refine_request.fetch(:draft_index)
+    client = Chat::NyoyMcpConfig.client(account: account)
+    payload = client.call_tool(
+      name: "refine_image",
+      arguments: { id: generation_id, draft_index: draft_index }
+    )
+    status_payload = status_payload_after_refine(client:, generation_id:, payload:)
+    status = Chat::Tools::NyoyImageGenerationStatus.normalize(status_payload, client: client)
+    persist_image_generation_status!(conversation: conversation, status: status)
+
+    reply = "#{draft_index + 1}番の仕上げを開始しました。"
+    conversation.messages.create!(
+      role: "assistant",
+      content: reply,
+      intent: "image_generation",
+      model_role: "nyoy_mcp",
+      metadata: {
+        "escalated" => false,
+        "pending_tools" => false,
+        "pending_tool_names" => [],
+        "tools" => [ "refine_image" ],
+        "mcp" => {
+          "tools_run" => [ "refine_image" ],
+          "tools_skipped" => [],
+          "errors" => [],
+          "image_urls" => Array(status[:image_urls]).map(&:to_s).reject(&:blank?),
+          "image_generation_watch" => status.slice(:id, :status, :show_url).compact
+        }
+      }
+    )
+    conversation.touch
+
+    result_payload = {
+      reply: reply,
+      intent: "image_generation",
+      model_role: "nyoy_mcp",
+      escalated: false,
+      pending_tools: false,
+      pending_tool_names: [],
+      conversation_id: conversation.id,
+      mcp: {
+        tools_run: [ "refine_image" ],
+        tools_skipped: [],
+        errors: [],
+        image_urls: Array(status[:image_urls]).map(&:to_s).reject(&:blank?),
+        image_generation_watch: status.slice(:id, :status, :show_url).compact
+      },
+      turn_id: turn_id
+    }
+    broadcaster.turn_finalized(result_payload)
+    result_payload
+  end
+
   def persist_image_generation_result!(status)
     return if params[:conversation_id].blank?
     return if status[:image_urls].blank?
@@ -297,6 +412,18 @@ class AgentChatsController < ApplicationController
     conversation_store.merge_image_generation_result!(
       conversation_id: params[:conversation_id],
       generation_id: status[:id] || params[:id],
+      image_urls: status[:image_urls],
+      status: status[:status],
+      show_url: status[:show_url]
+    )
+  end
+
+  def persist_image_generation_status!(conversation:, status:)
+    return if status[:image_urls].blank?
+
+    conversation_store.merge_image_generation_result!(
+      conversation_id: conversation.id,
+      generation_id: status[:id],
       image_urls: status[:image_urls],
       status: status[:status],
       show_url: status[:show_url]

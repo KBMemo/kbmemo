@@ -431,7 +431,7 @@ generate_image
 
 |`Chat::Agent`
 |`image_generation` intent で `generate_image` を直接呼ぶ
-|ユーザーが自然文で「2 番を選んで」と送った場合の refine 解釈は未実装
+|ユーザーが自然文で「2 番を選んで」と送った場合は、直近の `awaiting_selection` 画像生成を `refine_image(draft_index=1)` に解釈して実行
 
 |Agent Chat UI
 |ラフ案の `<img>` プレビュー、draft ごとの **仕上げ** ボタン、`image_generation_watch` によるクライアントポーリング
@@ -439,7 +439,7 @@ generate_image
 
 |会話永続化
 |`mcp.image_urls` / `image_generation_watch` を metadata に保存。polling / refine の完了画像 URL は `conversation_id` 付き status API で同じ assistant message に merge 保存する
-|ユーザーが自然文で選択した draft 番号の保存は未実装
+|自然文で選択した draft 番号も assistant message の `mcp.image_generation_watch` として保存済み
 |===
 
 === 12.4 補足

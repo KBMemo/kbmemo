@@ -203,6 +203,80 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "create interprets natural language draft selection as refine request" do
+    conversation = accounts(:one).agent_chat_conversations.create!
+    conversation.messages.create!(
+      role: "assistant",
+      content: "ラフ案です",
+      intent: "image_generation",
+      model_role: "main",
+      metadata: {
+        "mcp" => {
+          "image_urls" => [
+            "https://nyoy.example/draft1.png",
+            "https://nyoy.example/draft2.png"
+          ],
+          "image_generation_watch" => { "id" => 42, "status" => "awaiting_selection" }
+        }
+      }
+    )
+
+    calls = []
+    client = Object.new
+    client.define_singleton_method(:site_origin) { "https://nyoy.example" }
+    client.define_singleton_method(:call_tool) do |name:, arguments:|
+      calls << [ name.to_s, arguments ]
+      case name.to_s
+      when "refine_image"
+        { "id" => arguments[:id] || arguments["id"] }
+      when "get_image_generation"
+        {
+          "id" => arguments[:id] || arguments["id"],
+          "status" => "completed",
+          "image_url" => "/rails/active_storage/final.png",
+          "show_path" => "/image_generations/#{arguments[:id] || arguments["id"]}"
+        }
+      else
+        raise "unexpected tool #{name}"
+      end
+    end
+
+    original_client = Chat::NyoyMcpConfig.method(:client)
+    original_configured = Chat::NyoyMcpConfig.method(:configured?)
+    original_new = Chat::Agent.method(:new)
+    begin
+      Chat::NyoyMcpConfig.define_singleton_method(:client) { |account: nil| client }
+      Chat::NyoyMcpConfig.define_singleton_method(:configured?) { |account: nil| true }
+      Chat::Agent.define_singleton_method(:new) { |**_kwargs| raise "Chat::Agent should not be called" }
+
+      post agent_chat_url,
+        params: {
+          conversation_id: conversation.id,
+          messages: [ { role: "user", content: "2番を選んで" } ]
+        },
+        as: :json
+
+      assert_response :success
+      body = JSON.parse(response.body)
+      assert_equal "image_generation", body["intent"]
+      assert_equal "nyoy_mcp", body["model_role"]
+      assert_equal "completed", body.dig("mcp", "image_generation_watch", "status")
+      assert_equal [
+        [ "refine_image", { id: 42, draft_index: 1 } ],
+        [ "get_image_generation", { id: 42 } ]
+      ], calls
+
+      messages = conversation.reload.messages.ordered.to_a
+      assert_equal "2番を選んで", messages[-2].content
+      assert_equal "2番の仕上げを開始しました。", messages[-1].content
+      assert_includes messages[-1].metadata.dig("mcp", "image_urls"), "https://nyoy.example/rails/active_storage/final.png"
+    ensure
+      Chat::NyoyMcpConfig.define_singleton_method(:client, original_client)
+      Chat::NyoyMcpConfig.define_singleton_method(:configured?, original_configured)
+      Chat::Agent.define_singleton_method(:new, original_new)
+    end
+  end
+
   test "create returns agent reply json" do
     fake_result = Chat::Agent::Result.new(
       reply: "回答です",
