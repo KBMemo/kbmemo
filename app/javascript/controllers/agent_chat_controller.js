@@ -729,7 +729,10 @@ export default class extends Controller {
         method: "POST",
         credentials: "same-origin",
         headers: jsonRequestHeaders(),
-        body: JSON.stringify(withAuthenticityToken({ draft_index: draftIndex }))
+        body: JSON.stringify(withAuthenticityToken({
+          draft_index: draftIndex,
+          conversation_id: this.conversationIdValue || null
+        }))
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -762,10 +765,16 @@ export default class extends Controller {
     this.imageGenerationWatchIndex =
       historyIndex != null ? historyIndex : this.history.length - 1
 
-    const url = this.imageGenerationUrlTemplateValue.replace(
-      "__ID__",
-      encodeURIComponent(String(watch.id))
+    const url = new URL(
+      this.imageGenerationUrlTemplateValue.replace(
+        "__ID__",
+        encodeURIComponent(String(watch.id))
+      ),
+      window.location.origin
     )
+    if (this.conversationIdValue) {
+      url.searchParams.set("conversation_id", this.conversationIdValue)
+    }
     let attempts = 0
     const maxAttempts = 100
 
@@ -777,7 +786,7 @@ export default class extends Controller {
       }
 
       try {
-        const res = await fetch(url, {
+        const res = await fetch(url.toString(), {
           credentials: "same-origin",
           headers: { Accept: "application/json" }
         })

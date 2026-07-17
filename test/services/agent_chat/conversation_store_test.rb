@@ -64,6 +64,40 @@ class AgentChatConversationStoreTest < ActiveSupport::TestCase
     end
   end
 
+  test "merge_image_generation_result appends image urls to matching assistant message" do
+    conversation = @account.agent_chat_conversations.create!
+    message = conversation.messages.create!(
+      role: "assistant",
+      content: "ラフ案です",
+      intent: "image_generation",
+      model_role: "main",
+      metadata: {
+        "mcp" => {
+          "image_urls" => [ "https://nyoy.example/draft.png" ],
+          "image_generation_watch" => { "id" => 42, "status" => "awaiting_selection" }
+        }
+      }
+    )
+
+    updated = @store.merge_image_generation_result!(
+      conversation_id: conversation.id,
+      generation_id: 42,
+      image_urls: [ "https://nyoy.example/final.png", "https://nyoy.example/draft.png" ],
+      status: "completed",
+      show_url: "https://nyoy.example/image_generations/42"
+    )
+
+    assert_equal message.id, updated.id
+    message.reload
+    assert_equal [
+      "https://nyoy.example/draft.png",
+      "https://nyoy.example/final.png"
+    ], message.metadata.dig("mcp", "image_urls")
+    assert_equal "completed", message.metadata.dig("mcp", "image_generation_watch", "status")
+    assert_equal "https://nyoy.example/image_generations/42",
+      message.metadata.dig("mcp", "image_generation_watch", "show_url")
+  end
+
   test "list_recent returns conversations newest first" do
     older = @account.agent_chat_conversations.create!(title: "古い", updated_at: 2.days.ago)
     newer = @account.agent_chat_conversations.create!(title: "新しい", updated_at: 1.hour.ago)

@@ -132,6 +132,61 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "refine_image_generation persists completed image url to conversation metadata" do
+    conversation = accounts(:one).agent_chat_conversations.create!
+    message = conversation.messages.create!(
+      role: "assistant",
+      content: "ラフ案です",
+      intent: "image_generation",
+      model_role: "main",
+      metadata: {
+        "mcp" => {
+          "image_urls" => [ "https://nyoy.example/draft.png" ],
+          "image_generation_watch" => { "id" => 42, "status" => "awaiting_selection" }
+        }
+      }
+    )
+
+    client = Object.new
+    client.define_singleton_method(:site_origin) { "https://nyoy.example" }
+    client.define_singleton_method(:call_tool) do |name:, arguments:|
+      case name.to_s
+      when "refine_image"
+        { "id" => arguments[:id] || arguments["id"] }
+      when "get_image_generation"
+        {
+          "id" => arguments[:id] || arguments["id"],
+          "status" => "completed",
+          "image_url" => "/rails/active_storage/final.png",
+          "show_path" => "/image_generations/#{arguments[:id] || arguments["id"]}"
+        }
+      else
+        raise "unexpected tool #{name}"
+      end
+    end
+
+    original_client = Chat::NyoyMcpConfig.method(:client)
+    original_configured = Chat::NyoyMcpConfig.method(:configured?)
+    begin
+      Chat::NyoyMcpConfig.define_singleton_method(:client) { |account: nil| client }
+      Chat::NyoyMcpConfig.define_singleton_method(:configured?) { |account: nil| true }
+
+      post refine_image_generation_agent_chat_url(42),
+        params: { draft_index: 1, conversation_id: conversation.id },
+        as: :json
+
+      assert_response :success
+      assert_equal [
+        "https://nyoy.example/draft.png",
+        "https://nyoy.example/rails/active_storage/final.png"
+      ], message.reload.metadata.dig("mcp", "image_urls")
+      assert_equal "completed", message.metadata.dig("mcp", "image_generation_watch", "status")
+    ensure
+      Chat::NyoyMcpConfig.define_singleton_method(:client, original_client)
+      Chat::NyoyMcpConfig.define_singleton_method(:configured?, original_configured)
+    end
+  end
+
   test "refine_image_generation rejects invalid draft index" do
     original_configured = Chat::NyoyMcpConfig.method(:configured?)
     begin

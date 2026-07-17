@@ -63,7 +63,9 @@ class AgentChatsController < ApplicationController
 
     client = Chat::NyoyMcpConfig.client(account: account)
     payload = client.call_tool(name: "get_image_generation", arguments: { id: image_generation_id_param })
-    render json: Chat::Tools::NyoyImageGenerationStatus.normalize(payload, client: client)
+    status = Chat::Tools::NyoyImageGenerationStatus.normalize(payload, client: client)
+    persist_image_generation_result!(status)
+    render json: status
   rescue Chat::NyoyMcpClient::Error => e
     render json: { error: e.message }, status: :unprocessable_entity
   rescue ArgumentError => e
@@ -87,7 +89,9 @@ class AgentChatsController < ApplicationController
       arguments: { id: generation_id, draft_index: draft_index }
     )
     status_payload = status_payload_after_refine(client:, generation_id:, payload:)
-    render json: Chat::Tools::NyoyImageGenerationStatus.normalize(status_payload, client: client)
+    status = Chat::Tools::NyoyImageGenerationStatus.normalize(status_payload, client: client)
+    persist_image_generation_result!(status)
+    render json: status
   rescue Chat::NyoyMcpClient::Error => e
     render json: { error: e.message }, status: :unprocessable_entity
   rescue ArgumentError => e
@@ -284,5 +288,18 @@ class AgentChatsController < ApplicationController
     return payload if payload.is_a?(Hash) && payload["status"].present?
 
     client.call_tool(name: "get_image_generation", arguments: { id: generation_id })
+  end
+
+  def persist_image_generation_result!(status)
+    return if params[:conversation_id].blank?
+    return if status[:image_urls].blank?
+
+    conversation_store.merge_image_generation_result!(
+      conversation_id: params[:conversation_id],
+      generation_id: status[:id] || params[:id],
+      image_urls: status[:image_urls],
+      status: status[:status],
+      show_url: status[:show_url]
+    )
   end
 end

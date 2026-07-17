@@ -62,6 +62,34 @@ module AgentChat
       conversation
     end
 
+    def merge_image_generation_result!(conversation_id:, generation_id:, image_urls:, status: nil, show_url: nil)
+      urls = Array(image_urls).map(&:to_s).reject(&:blank?)
+      return nil if urls.empty? || generation_id.blank?
+
+      conversation = find_conversation(conversation_id)
+      return nil unless conversation
+
+      message = conversation.messages.ordered.reverse_order.find do |candidate|
+        candidate.assistant? &&
+          candidate.metadata.dig("mcp", "image_generation_watch", "id").to_s == generation_id.to_s
+      end
+      return nil unless message
+
+      metadata = message.metadata.deep_dup
+      metadata["mcp"] ||= {}
+      metadata["mcp"]["image_urls"] = (
+        Array(metadata.dig("mcp", "image_urls")).map(&:to_s) + urls
+      ).reject(&:blank?).uniq
+      metadata["mcp"]["image_generation_watch"] ||= {}
+      metadata["mcp"]["image_generation_watch"]["id"] = generation_id
+      metadata["mcp"]["image_generation_watch"]["status"] = status if status.present?
+      metadata["mcp"]["image_generation_watch"]["show_url"] = show_url if show_url.present?
+
+      message.update!(metadata: metadata)
+      conversation.touch
+      message
+    end
+
     def clear!(conversation_id: nil)
       conversation = find_conversation(conversation_id) || active_conversation
       conversation&.destroy

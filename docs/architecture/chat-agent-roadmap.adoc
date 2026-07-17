@@ -438,8 +438,8 @@ generate_image
 |仕上げ後の画像は同じ応答内に追加表示する。draft を非表示にする履歴更新は未実装
 
 |会話永続化
-|`mcp.image_urls` / `image_generation_watch` を metadata に保存
-|クライアント polling で追加された完成画像 URL のサーバ永続化は未実装
+|`mcp.image_urls` / `image_generation_watch` を metadata に保存。polling / refine の完了画像 URL は `conversation_id` 付き status API で同じ assistant message に merge 保存する
+|ユーザーが自然文で選択した draft 番号の保存は未実装
 |===
 
 === 12.4 補足
