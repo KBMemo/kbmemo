@@ -19,6 +19,7 @@ module Chat
         web_search
         fetch_url
         generate_image
+        refine_image
         analyze_image
         list_prompt_styles
         search_memos
@@ -213,7 +214,13 @@ module Chat
         upsert_poll_chunk(chunks, poll_payload)
 
         status = image_generation_status(poll_payload)
-        if image_generation_terminal_success?(status)
+        if image_generation_awaiting_selection?(status)
+          capture_image_generation_result(poll_payload, image_urls)
+          assign_image_generation_watch(watch_holder, poll_payload, generation_id: generation_id)
+          return
+        end
+
+        if image_generation_completed?(status)
           capture_image_generation_result(poll_payload, image_urls)
           return
         end
@@ -254,6 +261,14 @@ module Chat
         status.in?(IMAGE_GENERATION_COMPLETED) || status.in?(IMAGE_GENERATION_AWAITING)
       end
 
+      def image_generation_completed?(status)
+        status.in?(IMAGE_GENERATION_COMPLETED)
+      end
+
+      def image_generation_awaiting_selection?(status)
+        status.in?(IMAGE_GENERATION_AWAITING)
+      end
+
       def capture_image_url(payload, image_urls)
         url = extract_image_url(payload)
         image_urls << url if url.present?
@@ -266,7 +281,7 @@ module Chat
 
       def assign_image_generation_watch(watch_holder, payload, generation_id:)
         normalized = NyoyImageGenerationStatus.normalize(payload || { "id" => generation_id }, client: @client)
-        return if normalized[:done] && normalized[:image_urls].present?
+        return if image_generation_completed?(normalized[:status]) && normalized[:image_urls].present?
 
         watch_holder[0] = {
           id: normalized[:id] || generation_id,

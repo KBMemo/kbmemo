@@ -11,4 +11,5 @@ class AgentChatPolicy < ApplicationPolicy
   alias nyoy_tools? show?
   alias upload_image? show?
   alias image_generation_status? show?
+  alias refine_image_generation? show?
 end

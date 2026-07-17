@@ -129,7 +129,7 @@ module Chat
 
         assert_equal [ "generate_image", "get_image_generation" ], result.tools_run
         assert_equal [ "https://nyoy.example/rails/active_storage/blobs/draft.png" ], result.image_urls
-        assert_nil result.image_generation_watch
+        assert_equal({ id: 42, status: "awaiting_selection", show_url: "https://nyoy.example/image_generations/42" }, result.image_generation_watch)
       end
 
       test "sets image generation watch when generation is still in progress" do
@@ -295,6 +295,7 @@ module Chat
       test "directly_invocable excludes chain-only and manual tools" do
         assert NyoyMcpRunner.directly_invocable?("web_search")
         assert NyoyMcpRunner.directly_invocable?("list_albums")
+        assert NyoyMcpRunner.directly_invocable?("refine_image")
         refute NyoyMcpRunner.directly_invocable?("search_fetched_page")
         refute NyoyMcpRunner.directly_invocable?("create_memo")
       end

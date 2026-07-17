@@ -61,16 +61,36 @@ class AgentChatsController < ApplicationController
       return
     end
 
-    generation_id = params[:id].to_i
-    if generation_id <= 0
-      render json: { error: "画像生成 ID が不正です。" }, status: :unprocessable_entity
+    client = Chat::NyoyMcpConfig.client(account: account)
+    payload = client.call_tool(name: "get_image_generation", arguments: { id: image_generation_id_param })
+    render json: Chat::Tools::NyoyImageGenerationStatus.normalize(payload, client: client)
+  rescue Chat::NyoyMcpClient::Error => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  rescue ArgumentError => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def refine_image_generation
+    authorize :agent_chat, :refine_image_generation?
+
+    account = rodauth.rails_account
+    unless Chat::NyoyMcpConfig.configured?(account: account)
+      render json: { error: "Nyoy MCP が未設定です。" }, status: :service_unavailable
       return
     end
 
+    generation_id = image_generation_id_param
+    draft_index = draft_index_param
     client = Chat::NyoyMcpConfig.client(account: account)
-    payload = client.call_tool(name: "get_image_generation", arguments: { id: generation_id })
-    render json: Chat::Tools::NyoyImageGenerationStatus.normalize(payload, client: client)
+    payload = client.call_tool(
+      name: "refine_image",
+      arguments: { id: generation_id, draft_index: draft_index }
+    )
+    status_payload = status_payload_after_refine(client:, generation_id:, payload:)
+    render json: Chat::Tools::NyoyImageGenerationStatus.normalize(status_payload, client: client)
   rescue Chat::NyoyMcpClient::Error => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  rescue ArgumentError => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
@@ -242,5 +262,27 @@ class AgentChatsController < ApplicationController
     end
 
     []
+  end
+
+  def image_generation_id_param
+    generation_id = params[:id].to_i
+    raise ArgumentError, "画像生成 ID が不正です。" if generation_id <= 0
+
+    generation_id
+  end
+
+  def draft_index_param
+    raise ArgumentError, "draft_index は 0 から 3 の範囲で指定してください。" if params[:draft_index].nil?
+
+    draft_index = params[:draft_index].to_i
+    raise ArgumentError, "draft_index は 0 から 3 の範囲で指定してください。" unless draft_index.between?(0, 3)
+
+    draft_index
+  end
+
+  def status_payload_after_refine(client:, generation_id:, payload:)
+    return payload if payload.is_a?(Hash) && payload["status"].present?
+
+    client.call_tool(name: "get_image_generation", arguments: { id: generation_id })
   end
 end

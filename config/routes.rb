@@ -28,6 +28,7 @@ Rails.application.routes.draw do
     get :nyoy_tools
     post :upload_image
     get "image_generations/:id", action: :image_generation_status, as: :image_generation
+    post "image_generations/:id/refine", action: :refine_image_generation, as: :refine_image_generation
   end
 
   resource :chat_server, only: %i[show update], controller: "chat_servers" do

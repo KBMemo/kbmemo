@@ -88,6 +88,66 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "refine_image_generation calls nyoy refine_image and returns normalized status" do
+    calls = []
+    client = Object.new
+    client.define_singleton_method(:site_origin) { "https://nyoy.example" }
+    client.define_singleton_method(:call_tool) do |name:, arguments:|
+      calls << [ name.to_s, arguments ]
+      case name.to_s
+      when "refine_image"
+        { "id" => arguments[:id] || arguments["id"] }
+      when "get_image_generation"
+        {
+          "id" => arguments[:id] || arguments["id"],
+          "status" => "refining",
+          "show_path" => "/image_generations/#{arguments[:id] || arguments["id"]}"
+        }
+      else
+        raise "unexpected tool #{name}"
+      end
+    end
+
+    original_client = Chat::NyoyMcpConfig.method(:client)
+    original_configured = Chat::NyoyMcpConfig.method(:configured?)
+    begin
+      Chat::NyoyMcpConfig.define_singleton_method(:client) { |account: nil| client }
+      Chat::NyoyMcpConfig.define_singleton_method(:configured?) { |account: nil| true }
+
+      post refine_image_generation_agent_chat_url(42),
+        params: { draft_index: 2 },
+        as: :json
+
+      assert_response :success
+      body = JSON.parse(response.body)
+      assert_equal "refining", body["status"]
+      assert_equal "https://nyoy.example/image_generations/42", body["show_url"]
+      assert_equal [
+        [ "refine_image", { id: 42, draft_index: 2 } ],
+        [ "get_image_generation", { id: 42 } ]
+      ], calls
+    ensure
+      Chat::NyoyMcpConfig.define_singleton_method(:client, original_client)
+      Chat::NyoyMcpConfig.define_singleton_method(:configured?, original_configured)
+    end
+  end
+
+  test "refine_image_generation rejects invalid draft index" do
+    original_configured = Chat::NyoyMcpConfig.method(:configured?)
+    begin
+      Chat::NyoyMcpConfig.define_singleton_method(:configured?) { |account: nil| true }
+
+      post refine_image_generation_agent_chat_url(42),
+        params: { draft_index: 9 },
+        as: :json
+
+      assert_response :unprocessable_entity
+      assert_includes JSON.parse(response.body)["error"], "draft_index"
+    ensure
+      Chat::NyoyMcpConfig.define_singleton_method(:configured?, original_configured)
+    end
+  end
+
   test "create returns agent reply json" do
     fake_result = Chat::Agent::Result.new(
       reply: "回答です",

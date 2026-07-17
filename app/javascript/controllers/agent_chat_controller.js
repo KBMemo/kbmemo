@@ -41,6 +41,7 @@ export default class extends Controller {
     settingsUrl: String,
     nyoyMcpUrl: String,
     imageGenerationUrlTemplate: String,
+    refineImageGenerationUrlTemplate: String,
     conversationId: String,
     nyoyToolsUrl: String,
     nyoyConfigured: Boolean,
@@ -636,26 +637,29 @@ export default class extends Controller {
     }
 
     if (!isUser && Array.isArray(entry.generated_images) && entry.generated_images.length > 0) {
-      wrapper.append(this.generatedImagesNode(entry.generated_images))
+      wrapper.append(this.generatedImagesNode(entry.generated_images, entry))
     }
 
     return wrapper
   }
 
-  generatedImagesNode(urls) {
+  generatedImagesNode(urls, entry = {}) {
     const wrap = document.createElement("div")
     wrap.className = "kb-ai-chat-generated-images"
 
     const label = document.createElement("p")
     label.className = "kb-ai-chat-generated-images-label kb-text-muted"
-    label.textContent = "生成画像"
+    label.textContent = this.imageGenerationAwaitingSelection(entry) ? "ラフ案" : "生成画像"
     wrap.append(label)
 
     const grid = document.createElement("div")
     grid.className = "kb-ai-chat-generated-images-grid"
 
-    for (const url of urls) {
+    urls.forEach((url, index) => {
       if (this.looksLikeImageUrl(url)) {
+        const item = document.createElement("div")
+        item.className = "kb-ai-chat-generated-image-item"
+
         const link = document.createElement("a")
         link.href = url
         link.target = "_blank"
@@ -668,7 +672,13 @@ export default class extends Controller {
         img.className = "kb-ai-chat-generated-image"
         img.loading = "lazy"
         link.append(img)
-        grid.append(link)
+        item.append(link)
+
+        if (this.imageGenerationAwaitingSelection(entry)) {
+          item.append(this.refineDraftButton(entry, index))
+        }
+
+        grid.append(item)
       } else {
         const link = document.createElement("a")
         link.href = url
@@ -678,10 +688,67 @@ export default class extends Controller {
         link.textContent = "如意でラフ案を見る"
         grid.append(link)
       }
-    }
+    })
 
     wrap.append(grid)
     return wrap
+  }
+
+  imageGenerationAwaitingSelection(entry) {
+    return String(entry?.image_generation_watch?.status || "").toLowerCase() === "awaiting_selection"
+  }
+
+  refineDraftButton(entry, draftIndex) {
+    const button = document.createElement("button")
+    button.type = "button"
+    button.className = "kb-chrome-btn-primary kb-btn-xs kb-ai-chat-refine-button"
+    button.textContent = "仕上げ"
+    button.disabled = !entry?.image_generation_watch?.id || !this.hasRefineImageGenerationUrlTemplateValue
+    button.addEventListener("click", () => this.refineImageDraft(entry, draftIndex))
+    return button
+  }
+
+  async refineImageDraft(entry, draftIndex) {
+    const generationId = entry?.image_generation_watch?.id
+    if (!generationId || !this.hasRefineImageGenerationUrlTemplateValue) return
+
+    const historyIndex = this.history.indexOf(entry)
+    const url = this.refineImageGenerationUrlTemplateValue.replace(
+      "__ID__",
+      encodeURIComponent(String(generationId))
+    )
+
+    entry.image_generation_watch = {
+      ...entry.image_generation_watch,
+      status: "refining"
+    }
+    this.renderMessages()
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: jsonRequestHeaders(),
+        body: JSON.stringify(withAuthenticityToken({ draft_index: draftIndex }))
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        this.showError(data.error || "画像の仕上げを開始できませんでした。")
+        return
+      }
+
+      this.updateImageGenerationEntry(entry, data)
+      if (!data.done || data.in_progress) {
+        this.startImageGenerationWatch(
+          entry.image_generation_watch || { id: generationId, status: data.status },
+          historyIndex >= 0 ? historyIndex : null
+        )
+      }
+    } catch {
+      this.showError("画像の仕上げを開始できませんでした。")
+    } finally {
+      this.renderMessages()
+    }
   }
 
   looksLikeImageUrl(url) {
@@ -721,7 +788,7 @@ export default class extends Controller {
           ? data.image_urls.map(String).filter(Boolean)
           : []
         if (urls.length > 0) {
-          this.appendGeneratedImagesToAssistant(urls)
+          this.appendGeneratedImagesToAssistant(urls, data)
           this.stopImageGenerationWatch()
           return
         }
@@ -767,16 +834,34 @@ export default class extends Controller {
     }
   }
 
-  appendGeneratedImagesToAssistant(urls) {
+  appendGeneratedImagesToAssistant(urls, data = {}) {
     const index = this.imageGenerationWatchIndex ?? this.history.length - 1
     const entry = this.history[index]
     if (!entry || entry.role !== "assistant") return
 
-    const existing = Array.isArray(entry.generated_images) ? entry.generated_images : []
-    const merged = [ ...existing, ...urls ].filter((value, idx, array) => array.indexOf(value) === idx)
-    entry.generated_images = merged
+    this.updateImageGenerationEntry(entry, { ...data, image_urls: urls })
     this.renderMessages()
     this.focusLatestAnswer()
+  }
+
+  updateImageGenerationEntry(entry, data = {}) {
+    if (!entry || entry.role !== "assistant") return
+
+    const existing = Array.isArray(entry.generated_images) ? entry.generated_images : []
+    const urls = Array.isArray(data.image_urls) ? data.image_urls.map(String).filter(Boolean) : []
+    if (urls.length > 0) {
+      entry.generated_images = [ ...existing, ...urls ]
+        .filter((value, idx, array) => array.indexOf(value) === idx)
+    }
+
+    const id = data.id || entry.image_generation_watch?.id
+    if (id) {
+      entry.image_generation_watch = {
+        id,
+        status: data.status || entry.image_generation_watch?.status,
+        show_url: data.show_url || entry.image_generation_watch?.show_url
+      }
+    }
   }
 
   pendingToolsNoticeNode(entry) {
