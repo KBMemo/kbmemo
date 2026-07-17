@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_10_220000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_17_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgroonga"
@@ -134,6 +134,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_10_220000) do
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_boards_on_account_id"
     t.index ["memo_directory_id"], name: "index_boards_on_memo_directory_id"
+  end
+
+  create_table "memo_deletion_records", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "deleted_at", null: false
+    t.bigint "memo_id", null: false
+    t.string "memo_uid", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "deleted_at", "id"], name: "idx_on_account_id_deleted_at_id_e0cd234d50"
+    t.index ["account_id", "memo_uid"], name: "index_memo_deletion_records_on_account_id_and_memo_uid", unique: true
+    t.index ["account_id"], name: "index_memo_deletion_records_on_account_id"
   end
 
   create_table "memo_directories", force: :cascade do |t|
@@ -326,6 +338,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_10_220000) do
   add_foreign_key "board_columns", "boards"
   add_foreign_key "boards", "accounts"
   add_foreign_key "boards", "memo_directories"
+  add_foreign_key "memo_deletion_records", "accounts"
   add_foreign_key "memo_directories", "memo_directories", column: "parent_id"
   add_foreign_key "memo_embedding_chunks", "memos"
   add_foreign_key "memo_group_memberships", "accounts"

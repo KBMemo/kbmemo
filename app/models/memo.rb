@@ -91,6 +91,16 @@ class Memo < ApplicationRecord
     remove_instance_variable(:@pgroonga_search) if defined?(@pgroonga_search)
   end
 
+  def record_deletion_for_export
+    return if uid.blank? || account_id.blank?
+
+    MemoDeletionRecord.find_or_initialize_by(account_id: account_id, memo_uid: uid).tap do |record|
+      record.memo_id = id
+      record.deleted_at = Time.current
+      record.save!
+    end
+  end
+
   # 0: 全体（未ログイン含む閲覧可） 1: グループ閲覧のみ 3: グループ内読み書き 4: 自分のみ読み書き
   # （旧「自分のみ閲覧」はオーナー更新と重複するため廃止。DB の 2 はマイグレーションで 4 に寄せた）
   enum :visibility, {
@@ -123,6 +133,7 @@ class Memo < ApplicationRecord
   before_validation :prepare_slug_from_title_and_manual
   before_validation :normalize_slug_for_storage
   before_create :assign_uid
+  before_destroy :record_deletion_for_export
   after_commit :reindex_outgoing_wiki_links, on: %i[create update], if: :memo_wiki_links_need_outgoing_reindex?
   after_commit :reindex_inbound_wiki_links, on: :update, if: :memo_wiki_links_need_inbound_reindex?
   after_commit :enqueue_memo_embedding_index, on: %i[create update], if: :memo_embedding_index_needed?
