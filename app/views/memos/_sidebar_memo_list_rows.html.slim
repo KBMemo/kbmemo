@@ -1,0 +1,8 @@
+- Array(memos).each do |memo|
+  li.flex.min-w-0 id=dom_id(memo, :sidebar_row)
+    - if @sidebar_view == "directory"
+      = link_to memo_sidebar_memo_main_href(memo), class: "#{memo_sidebar_memo_list_row_classes(memo.id)} min-w-0 flex-1 px-2 py-3 text-left text-inherit no-underline kb-focus-ring-inset", draggable: "false" do
+        = render "memos/list_panel_memo_row_inner", memo: memo, timestamp: memo_list_timestamp(memo)
+    - else
+      = link_to memo_sidebar_memo_main_href(memo), class: "#{memo_sidebar_memo_list_row_classes(memo.id)} min-w-0 flex-1 px-2 py-3 text-left text-inherit no-underline kb-focus-ring-inset", draggable: "false" do
+        = render "memos/list_panel_memo_row_inner", memo: memo, timestamp: memo_list_timestamp(memo)

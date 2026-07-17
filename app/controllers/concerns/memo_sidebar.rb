@@ -4,6 +4,8 @@
 module MemoSidebar
   extend ActiveSupport::Concern
 
+  SIDEBAR_MEMO_PAGE_SIZE = 15
+
   included do
     before_action :set_memo_directory_nav_context
     before_action :redirect_memo_tag_sidebar_to_memo_tag, if: :memo_show_or_edit_action?
@@ -75,26 +77,45 @@ module MemoSidebar
   def load_sidebar_memos_list
     return unless %w[memos memo_directories tags].include?(controller_path)
 
+    @all_memos_total_count = if rodauth.rails_account
+      Memo.where(account_id: rodauth.rails_account.id).count
+    else
+      policy_scope(Memo).count
+    end
+    @sidebar_memos_scope = build_sidebar_memos_scope
+    @sidebar_memos_scope_total_count = @sidebar_memos_scope.count
+    load_sidebar_memos_page(offset: 0)
+  end
+
+  def build_sidebar_memos_scope
     base = policy_scope(Memo).order(updated_at: :desc).includes(:tags, :memo_directory, :account)
 
-    @memos =
-      case @sidebar_view
-      when "search"
-        @memo_search_query.present? ? base.search_text(@memo_search_query) : base.none
-      when "tag"
-        if @current_tag
-          ids = policy_scope(Memo).joins(:memo_tags).where(memo_tags: { tag_id: @current_tag.id }).distinct.pluck(:id)
-          base.where(id: ids)
-        else
-          base.none
-        end
-      when "history"
-        history = MemoViewHistory.recent_history(rodauth.rails_account, scope: base.unscope(:order))
-        @memo_viewed_at_by_id = history.viewed_at_by_memo_id
-        history.memos
+    case @sidebar_view
+    when "search"
+      @memo_search_query.present? ? base.search_text(@memo_search_query) : base.none
+    when "tag"
+      if @current_tag
+        ids = policy_scope(Memo).joins(:memo_tags).where(memo_tags: { tag_id: @current_tag.id }).distinct.pluck(:id)
+        base.where(id: ids)
       else
-        base.where(memo_directory_id: @current_memo_directory.id)
+        base.none
       end
+    when "history"
+      history = MemoViewHistory.recent_history(rodauth.rails_account, scope: base.unscope(:order))
+      @memo_viewed_at_by_id = history.viewed_at_by_memo_id
+      history.memos
+    else
+      base.where(memo_directory_id: @current_memo_directory.id)
+    end
+  end
+
+  def load_sidebar_memos_page(offset:)
+    page_size = SIDEBAR_MEMO_PAGE_SIZE
+    batch = @sidebar_memos_scope.offset(offset).limit(page_size + 1).to_a
+    @memos = batch.first(page_size)
+    @sidebar_memo_list_next_offset = offset + @memos.size
+    @sidebar_memos_has_more = batch.size > page_size &&
+      @sidebar_memo_list_next_offset < @sidebar_memos_scope_total_count
   end
 
   def sidebar_view_from_params

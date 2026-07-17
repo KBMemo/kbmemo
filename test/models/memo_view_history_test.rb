@@ -45,11 +45,7 @@ class MemoViewHistoryTest < ActiveSupport::TestCase
     end
   end
 
-  test "record! trims entries beyond max per account" do
-    original_max = MemoViewHistory::MAX_PER_ACCOUNT
-    MemoViewHistory.send(:remove_const, :MAX_PER_ACCOUNT)
-    MemoViewHistory.const_set(:MAX_PER_ACCOUNT, 2)
-
+  test "record! keeps all history entries without a max per account" do
     MemoViewHistory.record!(account: @account, memo: @one)
     MemoViewHistory.record!(account: @account, memo: @two)
     third = Memo.create!(
@@ -61,11 +57,8 @@ class MemoViewHistoryTest < ActiveSupport::TestCase
     )
     MemoViewHistory.record!(account: @account, memo: third)
 
-    assert_equal 2, MemoViewHistory.where(account_id: @account.id).count
-    assert_not MemoViewHistory.exists?(account: @account, memo: @one)
-  ensure
-    MemoViewHistory.send(:remove_const, :MAX_PER_ACCOUNT)
-    MemoViewHistory.const_set(:MAX_PER_ACCOUNT, original_max)
+    assert_equal 3, MemoViewHistory.where(account_id: @account.id).count
+    assert MemoViewHistory.exists?(account: @account, memo: @one)
   end
 
   test "recent_memos_for returns memos in viewed_at order" do

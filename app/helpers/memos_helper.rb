@@ -166,9 +166,29 @@ module MemosHelper
 
   def memo_sidebar_history_memo_ids
     return unless defined?(@sidebar_view) && @sidebar_view == "history"
-    return if @memos.blank?
+    return unless defined?(@sidebar_memos_scope) && @sidebar_memos_scope
 
-    @memos.map(&:id).join(",")
+    @sidebar_memos_scope.pluck(:id).join(",")
+  end
+
+  def memo_sidebar_list_fetch_params
+    params = { sidebar_view: @sidebar_view }
+    if @sidebar_view == "search" && @memo_search_query.present?
+      params[:q] = @memo_search_query
+    elsif @sidebar_view == "tag" && @current_tag
+      params[:tag_id] = @current_tag.id
+    elsif @sidebar_view == "directory" && @current_memo_directory && !@current_memo_directory.root?
+      params[:memo_directory_id] = @current_memo_directory.id
+    end
+    params
+  end
+
+  def memo_sidebar_list_count_text
+    shown = @memos&.size.to_i
+    total = @all_memos_total_count.to_i
+    return if total.zero?
+
+    "#{shown} / #{total} 件"
   end
 
   # サイドバー用: policy_scope 内のディレクトリを parent_id でグルーピング（ルート行は除外）

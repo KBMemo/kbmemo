@@ -57,7 +57,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
     get memos_url(sidebar_view: "history")
     assert_response :success
-    assert_includes response.body, "表示履歴"
+    assert_includes response.body, " / "
+    assert_includes response.body, " 件"
     assert_match(/#{Regexp.escape(one.title)}[\s\S]*#{Regexp.escape(two.title)}/m, response.body)
   end
 
@@ -232,6 +233,98 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
   test "sidebar_memo_list rejects unsupported sidebar views" do
     get sidebar_memo_list_memos_url(sidebar_view: "directory")
     assert_response :not_found
+  end
+
+  test "sidebar memo list shows first page and appends more on request" do
+    dir = MemoDirectory.create!(
+      parent: memo_directories(:home_u_one),
+      path_segment: "paged-sidebar",
+      label: "Paged sidebar"
+    )
+    account = accounts(:one)
+    25.times do |i|
+      Memo.create!(
+        title: "Paged memo #{i}",
+        body: "body",
+        memo_directory: dir,
+        account: account,
+        file_committed_at: Time.current
+      )
+    end
+
+    get memos_url(memo_directory_id: dir.id, sidebar_view: "directory")
+    assert_response :success
+    account_total = Memo.where(account_id: account.id).count
+    assert_operator account_total, :>, 15
+    assert_select "#memo_sidebar_memo_list > li[id^='sidebar_row_memo_']", count: 15
+    assert_select "#memo_sidebar_memo_list_sentinel"
+    assert_select "#memo_sidebar_list_count[data-total-count='#{account_total}'][data-scope-total-count='25']"
+    assert_select "#memo_sidebar_list_count", text: "15 / #{account_total} 件"
+    assert_match(/data-memo-sidebar-memo-list-total-value="#{account_total}"/, response.body)
+
+    get sidebar_memo_list_memos_url(
+      sidebar_view: "directory",
+      memo_directory_id: dir.id,
+      append: 1,
+      offset: 15
+    ), headers: { "X-Kbmemo-Sidebar-Sync" => "1" }
+
+    assert_response :success
+    assert_select "#memo_sidebar_memo_list_append_meta[data-has-more='false'][data-next-offset='25']"
+    assert_select "li[id^='sidebar_row_memo_']", count: 10
+  end
+
+  test "sidebar memo list omits sentinel when all memos fit on first page" do
+    dir = MemoDirectory.create!(
+      parent: memo_directories(:home_u_one),
+      path_segment: "single-page-sidebar",
+      label: "Single page sidebar"
+    )
+    account = accounts(:one)
+    15.times do |i|
+      Memo.create!(
+        title: "Single page memo #{i}",
+        body: "body",
+        memo_directory: dir,
+        account: account,
+        file_committed_at: Time.current
+      )
+    end
+
+    get memos_url(memo_directory_id: dir.id, sidebar_view: "directory")
+    assert_response :success
+    account_total = Memo.where(account_id: account.id).count
+    assert_select "#memo_sidebar_memo_list > li[id^='sidebar_row_memo_']", count: 15
+    assert_select "#memo_sidebar_list_count", text: "15 / #{account_total} 件"
+    assert_select "#memo_sidebar_memo_list_sentinel", count: 0
+  end
+
+  test "history tab paginates and keeps total memo count in sidebar label" do
+    account = accounts(:one)
+    20.times do |i|
+      memo = Memo.create!(
+        title: "History paging memo #{i}",
+        body: "body",
+        memo_directory: memo_directories(:work),
+        account: account,
+        file_committed_at: Time.current
+      )
+      MemoViewHistory.record!(account: account, memo: memo)
+      travel 1.second
+    end
+
+    get memos_url(sidebar_view: "history")
+    assert_response :success
+    account_total = Memo.where(account_id: account.id).count
+    assert_select "#memo_sidebar_memo_list > li[id^='sidebar_row_memo_']", count: 15
+    assert_select "#memo_sidebar_memo_list_sentinel"
+    assert_select "#memo_sidebar_list_count", text: "15 / #{account_total} 件"
+
+    get sidebar_memo_list_memos_url(sidebar_view: "history", append: 1, offset: 15),
+      headers: { "X-Kbmemo-Sidebar-Sync" => "1" }
+    assert_response :success
+    assert_select "#memo_sidebar_memo_list_append_meta[data-has-more='false'][data-next-offset='20']"
+    assert_select "li[id^='sidebar_row_memo_']", count: 5
   end
 
   test "sidebar_memo_list moves the open memo to the top for an already-viewed memo" do
@@ -1123,7 +1216,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
   test "memos index defaults to history sidebar" do
     get memos_url
     assert_response :success
-    assert_includes response.body, "表示履歴"
+    assert_includes response.body, "まだ表示履歴がありません"
     assert_select "a.kb-sidebar-tab.is-active", text: "履歴"
   end
 

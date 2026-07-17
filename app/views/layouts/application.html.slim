@@ -72,7 +72,7 @@ html lang="ja" data-kb-theme=kb_initial_theme_id data-kb-theme-base=kb_initial_t
               span.text-sm.leading-none.tabular-nums[aria-hidden="true" data-memo-sidebar-target="toggleGlyphMobile"] ◀
               span.sr-only メモ一覧サイドバー
               span[data-memo-sidebar-target="toggleLabelMobile"] 折りたたむ
-            .flex.flex-col[data-memo-sidebar-target="body"]
+            .flex.min-h-0.flex-1.flex-col.overflow-hidden[data-memo-sidebar-target="body"]
               = render "memos/list_panel"
           button class=kb_sidebar_toggle_btn type="button" data-memo-sidebar-target="toggleButton" data-action="memo-sidebar#toggle" aria-expanded="true" aria-controls="memos_list_panel" title="メモ一覧サイドバーを折りたたむ"
             span.select-none.tracking-tighter[aria-hidden="true" data-memo-sidebar-target="toggleGlyph"] ««

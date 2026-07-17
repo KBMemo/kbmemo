@@ -30,6 +30,15 @@ class MemosController < ApplicationController
   def sidebar_memo_list
     authorize Memo, :index?
     view = params[:sidebar_view].to_s
+
+    if params[:append].present?
+      return head :not_found unless %w[history search tag directory].include?(view)
+
+      offset = [params[:offset].to_i, 0].max
+      load_sidebar_memos_page(offset: offset)
+      return render partial: "memos/sidebar_memo_list_append", layout: false
+    end
+
     return head :not_found unless %w[history search].include?(view)
 
     if view == "history" && params[:open_memo_id].present?

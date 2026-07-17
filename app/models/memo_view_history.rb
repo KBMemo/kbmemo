@@ -26,8 +26,6 @@
 #  fk_rails_...  (memo_id => memos.id)
 #
 class MemoViewHistory < ApplicationRecord
-  MAX_PER_ACCOUNT = 50
-
   HistoryList = Data.define(:memos, :viewed_at_by_memo_id)
 
   belongs_to :account
@@ -51,7 +49,6 @@ class MemoViewHistory < ApplicationRecord
       entry.viewed_at = Time.current
       entry.view_sequence = next_seq
       entry.save!
-      trim_old_entries(account_id)
     end
   end
 
@@ -65,7 +62,6 @@ class MemoViewHistory < ApplicationRecord
 
     rows = where(account_id: account.id)
       .order(view_sequence: :desc)
-      .limit(MAX_PER_ACCOUNT)
       .pluck(:memo_id, :viewed_at)
     return empty if rows.empty?
 
@@ -73,10 +69,5 @@ class MemoViewHistory < ApplicationRecord
     viewed_at_by_memo_id = rows.to_h
     memos = scope.where(id: memo_ids).in_order_of(:id, memo_ids)
     HistoryList.new(memos: memos, viewed_at_by_memo_id: viewed_at_by_memo_id)
-  end
-
-  def self.trim_old_entries(account_id)
-    ids_to_keep = where(account_id: account_id).order(view_sequence: :desc).limit(MAX_PER_ACCOUNT).pluck(:id)
-    where(account_id: account_id).where.not(id: ids_to_keep).delete_all
   end
 end

@@ -282,6 +282,7 @@ html[data-kb-theme-base="minimal"] {
 
   .kb-workspace-panel-max {
     max-height: calc(100vh - var(--kb-workspace-offset));
+    min-height: 0;
   }
 
   .kb-ai-sidebar-region {

@@ -197,13 +197,13 @@ export default class extends Controller {
     const md = window.matchMedia("(min-width: 768px)").matches
 
     if (md) {
-      this.shellTarget.style.maxHeight = ""
       const maxPx = this._maxWidth()
       if (this._collapsed) {
         this.shellTarget.style.flexBasis = "0"
         this.shellTarget.style.width = "0"
         this.shellTarget.style.minWidth = "0"
         this.shellTarget.style.maxWidth = "0"
+        this.shellTarget.style.maxHeight = ""
         this.shellTarget.style.borderWidth = "0"
         this.shellTarget.style.overflow = "hidden"
         if (this.hasBodyTarget) this.bodyTarget.classList.add("hidden")
@@ -217,7 +217,8 @@ export default class extends Controller {
         this.shellTarget.style.minWidth = ""
         this.shellTarget.style.maxWidth = `${maxPx}px`
         this.shellTarget.style.borderWidth = ""
-        this.shellTarget.style.overflow = ""
+        this.shellTarget.style.overflow = "hidden"
+        this._applyShellMaxHeight()
         if (this.hasBodyTarget) this.bodyTarget.classList.remove("hidden")
         if (this.hasResizerTarget) {
           this.resizerTarget.classList.remove("pointer-events-none", "opacity-40")
@@ -235,7 +236,7 @@ export default class extends Controller {
         if (this.hasBodyTarget) this.bodyTarget.classList.add("hidden")
       } else {
         this.shellTarget.style.borderWidth = ""
-        this.shellTarget.style.overflow = ""
+        this.shellTarget.style.overflow = "hidden"
         this.shellTarget.style.maxHeight = "min(42vh, 360px)"
         if (this.hasBodyTarget) this.bodyTarget.classList.remove("hidden")
       }
@@ -247,6 +248,19 @@ export default class extends Controller {
     this._updateToggleUi()
     this._updateResizerA11y()
     this._positionToggleButton()
+  }
+
+  // サイドバー下端がビューポート外に出て最終行が欠けるのを防ぐ
+  _applyShellMaxHeight() {
+    if (!this.hasShellTarget) return
+
+    const top = this.shellTarget.getBoundingClientRect().top
+    const available = Math.floor(window.innerHeight - top)
+    if (available > 0) {
+      this.shellTarget.style.maxHeight = `${available}px`
+    } else {
+      this.shellTarget.style.maxHeight = ""
+    }
   }
 
   _positionToggleButton() {

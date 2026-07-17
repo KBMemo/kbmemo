@@ -1,15 +1,23 @@
-#memo_sidebar_memo_list_container
+ruby:
+  list_data = { controller: "memo-sidebar-memo-list" }
+  if @memos&.any?
+    list_data.merge!(
+      memo_sidebar_memo_list_url_value: sidebar_memo_list_memos_path,
+      memo_sidebar_memo_list_offset_value: @sidebar_memo_list_next_offset,
+      memo_sidebar_memo_list_has_more_value: @sidebar_memos_has_more,
+      memo_sidebar_memo_list_total_value: @all_memos_total_count,
+      memo_sidebar_memo_list_scope_total_value: @sidebar_memos_scope_total_count,
+      memo_sidebar_memo_list_params_value: memo_sidebar_list_fetch_params.to_json
+    )
+  end
+= tag.div id: "memo_sidebar_memo_list_container", data: list_data do
   - if @memos&.any?
+    p#memo_sidebar_list_count.mb-2.px-3.pt-2.text-xs.kb-text-secondary data-total-count=@all_memos_total_count data-scope-total-count=@sidebar_memos_scope_total_count = memo_sidebar_list_count_text
     ul#memo_sidebar_memo_list class="kb-divide-y" data-history-memo-ids=memo_sidebar_history_memo_ids
-      - @memos.each do |memo|
-        li.flex.min-h-0.min-w-0 id=dom_id(memo, :sidebar_row)
-          - nav_q = memo_sidebar_nav_query
-          - if @sidebar_view == "directory"
-            = link_to memo_sidebar_memo_main_href(memo), class: "#{memo_sidebar_memo_list_row_classes(memo.id)} min-w-0 flex-1 px-2 py-3 text-left text-inherit no-underline kb-focus-ring-inset", draggable: "false" do
-              = render "memos/list_panel_memo_row_inner", memo: memo, timestamp: memo_list_timestamp(memo)
-          - else
-            = link_to memo_sidebar_memo_main_href(memo), class: "#{memo_sidebar_memo_list_row_classes(memo.id)} min-w-0 flex-1 px-2 py-3 text-left text-inherit no-underline kb-focus-ring-inset", draggable: "false" do
-              = render "memos/list_panel_memo_row_inner", memo: memo, timestamp: memo_list_timestamp(memo)
+      = render "memos/sidebar_memo_list_rows", memos: @memos
+      - if @sidebar_memos_has_more && @sidebar_memo_list_next_offset < @sidebar_memos_scope_total_count
+        li#memo_sidebar_memo_list_sentinel.min-h-px.py-0.flex.min-w-0.justify-center.text-xs.kb-text-muted aria-hidden="true" data-memo-sidebar-memo-list-target="sentinel"
+          span data-memo-sidebar-memo-list-target="sentinelLabel"
   - else
     .px-3.py-8.text-center.text-sm.kb-text-muted
       - if @sidebar_view == "search"
