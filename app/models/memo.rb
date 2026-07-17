@@ -45,6 +45,9 @@ class Memo < ApplicationRecord
   include MemoGoogleCalendar
 
   TITLE_PLACEHOLDER = " - 未入力 - ".freeze
+  NYOY_MEMO_WEBHOOK_UPSERT_ATTRIBUTES = %w[
+    body file_committed_at memo_group_id properties slug title visibility
+  ].freeze
 
   belongs_to :memo_directory
   belongs_to :account
@@ -137,6 +140,8 @@ class Memo < ApplicationRecord
   after_commit :reindex_outgoing_wiki_links, on: %i[create update], if: :memo_wiki_links_need_outgoing_reindex?
   after_commit :reindex_inbound_wiki_links, on: :update, if: :memo_wiki_links_need_inbound_reindex?
   after_commit :enqueue_memo_embedding_index, on: %i[create update], if: :memo_embedding_index_needed?
+  after_commit :enqueue_nyoy_memo_upsert_webhook, on: %i[create update], if: :nyoy_memo_webhook_upsert_needed?
+  after_destroy_commit :enqueue_nyoy_memo_delete_webhook, if: :nyoy_memo_webhook_delete_needed?
 
   # 保存時のスラッグ（パス用）。空は nil。MemoRepository のファイル名と揃える。
   def self.normalize_slug_fragment(value)
@@ -397,5 +402,40 @@ class Memo < ApplicationRecord
 
   def enqueue_memo_embedding_index
     MemoEmbeddingIndexJob.perform_later(id)
+  end
+
+  def nyoy_memo_webhook_upsert_needed?
+    return false unless file_committed_at.present?
+    return false unless NyoyMemoWebhook::Client.configured?
+
+    (previous_changes.keys & NYOY_MEMO_WEBHOOK_UPSERT_ATTRIBUTES).any?
+  end
+
+  def nyoy_memo_webhook_delete_needed?
+    uid.present? && account_id.present? && NyoyMemoWebhook::Client.configured?
+  end
+
+  def enqueue_nyoy_memo_upsert_webhook
+    NyoyMemoWebhookJob.perform_later(
+      event_id: SecureRandom.uuid,
+      event_type: previous_changes.key?("id") ? "memo.created" : "memo.updated",
+      account_id: account_id,
+      memo_uid: uid,
+      memo_id: id,
+      memo_updated_at: updated_at,
+      occurred_at: Time.current
+    )
+  end
+
+  def enqueue_nyoy_memo_delete_webhook
+    NyoyMemoWebhookJob.perform_later(
+      event_id: SecureRandom.uuid,
+      event_type: "memo.deleted",
+      account_id: account_id,
+      memo_uid: uid,
+      memo_id: id,
+      memo_updated_at: updated_at,
+      occurred_at: Time.current
+    )
   end
 end

@@ -49,6 +49,29 @@
 ラフ案（ドラフト 1〜4）の生成・プレビューと、ドラフト選択後の仕上げ（`refine_image`）まで in-app で動作する。
 詳細は link:chat-agent-roadmap.adoc#image-refine-flow[chat-agent-roadmap.adoc §12]。
 
+== memo RAG webhook
+
+Nyoy 側の export ベース RAG を最新化するため、徒然はメモの作成・更新・削除を webhook で通知できる。
+送信は `NyoyMemoWebhookJob` が担当し、Memo callback はジョブ投入だけを行う。
+
+設定:
+
+* `NYOY_MEMO_WEBHOOK_ENABLED=true`
+* `NYOY_MEMO_WEBHOOK_URL=https://nyoy.kbmemo.net/webhooks/kbmemo/memos`
+* `NYOY_MEMO_WEBHOOK_SECRET=...`
+
+送信条件:
+
+* `file_committed_at` があるメモの `body` / `title` / `slug` / `visibility` / `properties` / `memo_group_id` / `file_committed_at` 変更
+* メモ削除
+* webhook 未設定時はジョブを投入しない
+
+署名:
+
+* `X-KBMemo-Webhook-Timestamp`
+* `X-KBMemo-Signature: sha256=<hmac>`
+* 署名対象は `<timestamp>.<raw JSON body>`
+
 == stdio（ローカル開発）
 
 如意を clone している場合:
