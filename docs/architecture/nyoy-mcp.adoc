@@ -53,6 +53,7 @@
 
 Nyoy 側の export ベース RAG を最新化するため、徒然はメモの作成・更新・削除を webhook で通知できる。
 送信は `NyoyMemoWebhookJob` が担当し、Memo callback はジョブ投入だけを行う。
+本番有効化手順は Nyoy 側 link:../../localai/nyoy/docs/memo-rag-webhook-production-runbook.md[Memo RAG Webhook 本番有効化 Runbook] を参照。
 
 設定:
 
