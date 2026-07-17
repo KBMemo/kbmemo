@@ -28,6 +28,64 @@ class Api::V1::MemosControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ @memo.id ], body.fetch("memos").map { |row| row["id"] }
   end
 
+  test "index excludes drafts by default and includes them when requested" do
+    draft = Memo.create!(
+      account: @account,
+      memo_directory: @memo.memo_directory,
+      title: "Draft API memo",
+      body: "= Draft",
+      file_committed_at: nil
+    )
+
+    get api_v1_memos_path, headers: auth_headers
+
+    assert_response :success
+    ids = JSON.parse(response.body).fetch("memos").map { |row| row["id"] }
+    assert_not_includes ids, draft.id
+
+    get api_v1_memos_path, params: { include_drafts: true }, headers: auth_headers
+
+    assert_response :success
+    ids = JSON.parse(response.body).fetch("memos").map { |row| row["id"] }
+    assert_includes ids, draft.id
+  end
+
+  test "index only returns group memos visible to token account" do
+    visible = Memo.create!(
+      account: accounts(:one),
+      memo_directory: memo_directories(:work),
+      title: "Alpha shared API memo",
+      body: "= Alpha shared",
+      visibility: :group_read,
+      memo_group: memo_groups(:alpha),
+      file_committed_at: Time.current
+    )
+    hidden = Memo.create!(
+      account: accounts(:two),
+      memo_directory: memo_directories(:home_u_two),
+      title: "Beta private API memo",
+      body: "= Beta shared",
+      visibility: :group_read,
+      memo_group: memo_groups(:beta),
+      file_committed_at: Time.current
+    )
+    token = accounts(:two).generate_clip_api_token!
+
+    get api_v1_memos_path, headers: auth_headers(token: token)
+
+    assert_response :success
+    ids = JSON.parse(response.body).fetch("memos").map { |row| row["id"] }
+    assert_includes ids, visible.id
+    assert_includes ids, hidden.id
+
+    get api_v1_memos_path, headers: auth_headers
+
+    assert_response :success
+    ids = JSON.parse(response.body).fetch("memos").map { |row| row["id"] }
+    assert_includes ids, visible.id
+    assert_not_includes ids, hidden.id
+  end
+
   test "show returns memo by uid" do
     get api_v1_memo_path(@memo.uid), headers: auth_headers
 
@@ -174,9 +232,9 @@ class Api::V1::MemosControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def auth_headers
+  def auth_headers(token: @token)
     {
-      "Authorization" => "Bearer #{@token}",
+      "Authorization" => "Bearer #{token}",
       "Accept" => "application/json",
       "Content-Type" => "application/json"
     }

@@ -29,6 +29,64 @@ class Api::V1::Memos::ExportControllerTest < ActionDispatch::IntegrationTest
     assert_empty JSON.parse(response.body).fetch("memos")
   end
 
+  test "export excludes drafts by default and includes them when requested" do
+    draft = Memo.create!(
+      account: @account,
+      memo_directory: @memo.memo_directory,
+      title: "Draft export memo",
+      body: "= Draft",
+      file_committed_at: nil
+    )
+
+    get export_api_v1_memos_path, headers: auth_headers
+
+    assert_response :success
+    uids = JSON.parse(response.body).fetch("memos").map { |row| row["uid"] }
+    assert_not_includes uids, draft.uid
+
+    get export_api_v1_memos_path, params: { include_drafts: true }, headers: auth_headers
+
+    assert_response :success
+    uids = JSON.parse(response.body).fetch("memos").map { |row| row["uid"] }
+    assert_includes uids, draft.uid
+  end
+
+  test "export only returns group memos visible to token account" do
+    visible = Memo.create!(
+      account: accounts(:one),
+      memo_directory: memo_directories(:work),
+      title: "Alpha export memo",
+      body: "= Alpha shared",
+      visibility: :group_read,
+      memo_group: memo_groups(:alpha),
+      file_committed_at: Time.current
+    )
+    hidden = Memo.create!(
+      account: accounts(:two),
+      memo_directory: memo_directories(:home_u_two),
+      title: "Beta export memo",
+      body: "= Beta shared",
+      visibility: :group_read,
+      memo_group: memo_groups(:beta),
+      file_committed_at: Time.current
+    )
+    token = accounts(:two).generate_clip_api_token!
+
+    get export_api_v1_memos_path, headers: auth_headers(token: token)
+
+    assert_response :success
+    uids = JSON.parse(response.body).fetch("memos").map { |row| row["uid"] }
+    assert_includes uids, visible.uid
+    assert_includes uids, hidden.uid
+
+    get export_api_v1_memos_path, headers: auth_headers
+
+    assert_response :success
+    uids = JSON.parse(response.body).fetch("memos").map { |row| row["uid"] }
+    assert_includes uids, visible.uid
+    assert_not_includes uids, hidden.uid
+  end
+
   test "export deletions returns deleted memo tombstones" do
     deleted_uid = @memo.uid
     @memo.destroy!
@@ -103,9 +161,9 @@ class Api::V1::Memos::ExportControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def auth_headers
+  def auth_headers(token: @token)
     {
-      "Authorization" => "Bearer #{@token}",
+      "Authorization" => "Bearer #{token}",
       "Accept" => "application/json"
     }
   end
