@@ -64,7 +64,7 @@ module AgentChat
 
     def merge_image_generation_result!(conversation_id:, generation_id:, image_urls:, status: nil, show_url: nil)
       urls = Array(image_urls).map(&:to_s).reject(&:blank?)
-      return nil if urls.empty? || generation_id.blank?
+      return nil if generation_id.blank?
 
       conversation = find_conversation(conversation_id)
       return nil unless conversation
@@ -77,9 +77,14 @@ module AgentChat
 
       metadata = message.metadata.deep_dup
       metadata["mcp"] ||= {}
-      metadata["mcp"]["image_urls"] = (
-        Array(metadata.dig("mcp", "image_urls")).map(&:to_s) + urls
-      ).reject(&:blank?).uniq
+      existing_status = metadata.dig("mcp", "image_generation_watch", "status").to_s
+      replace_drafts = existing_status == "awaiting_selection" && status.to_s != "awaiting_selection"
+      if urls.any?
+        previous_urls = Array(metadata.dig("mcp", "image_urls")).map(&:to_s)
+        existing_urls = replace_drafts ? [] : previous_urls
+        incoming_urls = replace_drafts ? urls - previous_urls : urls
+        metadata["mcp"]["image_urls"] = (existing_urls + incoming_urls).reject(&:blank?).uniq
+      end
       metadata["mcp"]["image_generation_watch"] ||= {}
       metadata["mcp"]["image_generation_watch"]["id"] = generation_id
       metadata["mcp"]["image_generation_watch"]["status"] = status if status.present?

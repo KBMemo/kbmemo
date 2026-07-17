@@ -859,7 +859,12 @@ export default class extends Controller {
     const existing = Array.isArray(entry.generated_images) ? entry.generated_images : []
     const urls = Array.isArray(data.image_urls) ? data.image_urls.map(String).filter(Boolean) : []
     if (urls.length > 0) {
-      entry.generated_images = [ ...existing, ...urls ]
+      const previousStatus = String(entry.image_generation_watch?.status || "").toLowerCase()
+      const nextStatus = String(data.status || previousStatus).toLowerCase()
+      const replaceDrafts = previousStatus === "awaiting_selection" && nextStatus !== "awaiting_selection"
+      const base = replaceDrafts ? [] : existing
+
+      entry.generated_images = [ ...base, ...urls ]
         .filter((value, idx, array) => array.indexOf(value) === idx)
     }
 

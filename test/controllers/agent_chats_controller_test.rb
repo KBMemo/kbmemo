@@ -177,7 +177,6 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_equal [
-        "https://nyoy.example/draft.png",
         "https://nyoy.example/rails/active_storage/final.png"
       ], message.reload.metadata.dig("mcp", "image_urls")
       assert_equal "completed", message.metadata.dig("mcp", "image_generation_watch", "status")

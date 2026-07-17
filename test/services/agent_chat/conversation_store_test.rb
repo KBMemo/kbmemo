@@ -90,12 +90,39 @@ class AgentChatConversationStoreTest < ActiveSupport::TestCase
     assert_equal message.id, updated.id
     message.reload
     assert_equal [
-      "https://nyoy.example/draft.png",
       "https://nyoy.example/final.png"
     ], message.metadata.dig("mcp", "image_urls")
     assert_equal "completed", message.metadata.dig("mcp", "image_generation_watch", "status")
     assert_equal "https://nyoy.example/image_generations/42",
       message.metadata.dig("mcp", "image_generation_watch", "show_url")
+  end
+
+  test "merge_image_generation_result persists status without image urls" do
+    conversation = @account.agent_chat_conversations.create!
+    message = conversation.messages.create!(
+      role: "assistant",
+      content: "ラフ案です",
+      intent: "image_generation",
+      model_role: "main",
+      metadata: {
+        "mcp" => {
+          "image_urls" => [ "https://nyoy.example/draft.png" ],
+          "image_generation_watch" => { "id" => 42, "status" => "awaiting_selection" }
+        }
+      }
+    )
+
+    updated = @store.merge_image_generation_result!(
+      conversation_id: conversation.id,
+      generation_id: 42,
+      image_urls: [],
+      status: "refining"
+    )
+
+    assert_equal message.id, updated.id
+    message.reload
+    assert_equal [ "https://nyoy.example/draft.png" ], message.metadata.dig("mcp", "image_urls")
+    assert_equal "refining", message.metadata.dig("mcp", "image_generation_watch", "status")
   end
 
   test "list_recent returns conversations newest first" do

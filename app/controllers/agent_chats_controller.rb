@@ -407,7 +407,6 @@ class AgentChatsController < ApplicationController
 
   def persist_image_generation_result!(status)
     return if params[:conversation_id].blank?
-    return if status[:image_urls].blank?
 
     conversation_store.merge_image_generation_result!(
       conversation_id: params[:conversation_id],
@@ -419,8 +418,6 @@ class AgentChatsController < ApplicationController
   end
 
   def persist_image_generation_status!(conversation:, status:)
-    return if status[:image_urls].blank?
-
     conversation_store.merge_image_generation_result!(
       conversation_id: conversation.id,
       generation_id: status[:id],

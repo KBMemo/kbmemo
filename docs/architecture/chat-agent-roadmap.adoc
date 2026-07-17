@@ -435,7 +435,7 @@ generate_image
 
 |Agent Chat UI
 |ラフ案の `<img>` プレビュー、draft ごとの **仕上げ** ボタン、`image_generation_watch` によるクライアントポーリング
-|仕上げ後の画像は同じ応答内に追加表示する。draft を非表示にする履歴更新は未実装
+|仕上げ後の画像は同じ応答内でラフ案を置き換えて表示する
 
 |会話永続化
 |`mcp.image_urls` / `image_generation_watch` を metadata に保存。polling / refine の完了画像 URL は `conversation_id` 付き status API で同じ assistant message に merge 保存する
