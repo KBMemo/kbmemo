@@ -59,7 +59,7 @@ class MemoAiChatTest < ActiveSupport::TestCase
     account.update!(openai_api_key: "sk-test")
     byok = fake_client(reply: "== BYOK reply")
 
-    Chat::ModelRegistry.stub(:for, ->(_role) { raise KeyError, "base_url 未設定" }) do
+    Chat::ModelRegistry.stub(:for, ->(*) { raise KeyError, "base_url 未設定" }) do
       result = MemoAiChat.new(
         account: account,
         memo: memos(:one),

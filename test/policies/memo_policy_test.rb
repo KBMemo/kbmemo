@@ -62,7 +62,7 @@ class MemoPolicyTest < ActiveSupport::TestCase
 
   test "system space memo can only be updated by admin" do
     m = memos(:one)
-    m.update!(memo_directory: memo_directories(:system_docs))
+    m.update_column(:memo_directory_id, memo_directories(:system_docs).id)
 
     assert MemoPolicy.new(accounts(:one), m).update?
     assert_not MemoPolicy.new(accounts(:two), m).update?
@@ -70,7 +70,7 @@ class MemoPolicyTest < ActiveSupport::TestCase
 
   test "admin can destroy system space memo" do
     m = memos(:one)
-    m.update!(memo_directory: memo_directories(:system_docs))
+    m.update_column(:memo_directory_id, memo_directories(:system_docs).id)
 
     assert MemoPolicy.new(accounts(:one), m).destroy?
     assert_not MemoPolicy.new(accounts(:two), m).destroy?

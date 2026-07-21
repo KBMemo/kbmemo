@@ -506,7 +506,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     m = memos(:one)
     original = m.memo_directory_id
     work = memo_directories(:work)
-    patch draft_memo_url(m), params: { memo: { memo_directory_id: work.id } }, as: :json
+    patch draft_memo_url(m), params: { memo: { body: m.body, memo_directory_id: work.id } }, as: :json
     assert_response :success
     assert_equal original, m.reload.memo_directory_id
   end
@@ -561,11 +561,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "memo-body-editor"
     assert_includes response.body, wiki_completions_memos_path(format: :json)
     assert_includes response.body, wiki_link_labels_memos_path(format: :json)
-    assert_select '[data-controller~="memo-directory-dnd"]'
+    assert_select '[data-controller~="memo-directory-dnd"]', count: 0
     assert_includes response.body, "memo-draft#preventSubmit"
     assert_includes response.body, "memo-draft#suppressEnterSubmit"
-    assert_select "button.memo-directory-nav-summary a", count: 0
-    assert_select "button.memo-directory-nav-summary + .memo-directory-nav-row"
     assert_select "img.kb-avatar[loading='eager'][fetchpriority='low'][width='28'][height='28']"
     assert_includes response.body, "memo_slug_field"
     assert_match(/data-memo[-_]draft[-_]tag[-_]catalog[-_]value=.*Ideas/, response.body)
@@ -893,7 +891,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.media_type, "vnd.turbo-stream.html"
     assert_includes response.body, "memo_title_field"
     assert_includes response.body, "memo_slug_field"
-    assert_includes response.body, "memo_directory_field"
+    assert_includes response.body, "memos_list_panel"
   end
 
   test "draft turbo stream keeps memos_list_panel id so repeated saves refresh sidebar" do
@@ -983,18 +981,18 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "directory sidebar no longer shows drag hint" do
-    get memos_url(memo_directory_id: memo_directories(:work).id)
+    get memos_url(sidebar_view: "directory", memo_directory_id: memo_directories(:work).id)
     assert_response :success
     assert_not_includes response.body, "memo-directory-move-hint"
-    assert_not_includes response.body, "memo-directory-dnd"
+    assert_includes response.body, "memo-directory-dnd"
   end
 
   test "directory sidebar shows disclosure controls on top-level buckets" do
-    get memos_url
+    get memos_url(sidebar_view: "directory")
     assert_response :success
 
     %w[Home Share Public System].each do |label|
-      assert_select "#memos_list_panel a span", text: label
+      assert_select "#memos_list_panel a", text: label
       assert_select "#memos_list_panel [data-memo-directory-nav-branch][data-memo-directory-nav-open='true'] > button[aria-label='#{label} の子ディレクトリを開閉']"
     end
     assert_select "#memos_list_panel [data-memo-directory-nav-branch] > button.memo-directory-nav-summary + .memo-directory-nav-row"
@@ -1052,7 +1050,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_difference("Memo.count", -1) do
       delete memo_path(memo, memo_directory_id: work.id)
     end
-    assert_redirected_to memos_path(memo_directory_id: work.id)
+    assert_redirected_to memos_path(sidebar_view: "directory", memo_directory_id: work.id)
   end
 
   test "edit disables image insert when memo not committed to git" do
@@ -1127,11 +1125,10 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
-  test "edit opens sidebar directory from directory field label" do
+  test "edit omits the immutable directory field" do
     get edit_memo_url(memos(:one))
     assert_response :success
-    assert_select "#memo_directory_field button[data-memo-directory-sidebar-open-target='button'][data-memo-directory-parent-picker-target='pathLabel']"
-    assert_includes response.body, "memo-directory-sidebar-open"
+    assert_select "#memo_directory_field", count: 0
     assert_not_includes response.body, "panel-left-open"
   end
 
@@ -1252,7 +1249,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
       href = links.first["href"]
       assert_match %r{/memos/#{memo.id}/edit}, href
       assert_includes href, "sidebar_view=directory"
-      assert_not_includes href, "memo_directory_id=#{dir.id}"
+      assert_includes href, "memo_directory_id=#{dir.id}"
     end
   end
 

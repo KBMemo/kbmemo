@@ -169,6 +169,7 @@ class MemoDirectoriesControllerTest < ActionDispatch::IntegrationTest
     post memo_directories_url,
       params: {
         dialog: "1",
+        sidebar_view: "directory",
         nav_open_directory_ids: [public_dir.id],
         memo_directory: { path_segment: "sidebar-child", label: "Sidebar child", parent_id: parent.id }
       },
@@ -177,7 +178,8 @@ class MemoDirectoriesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.media_type, "text/vnd.turbo-stream.html"
     assert_includes response.body, 'target="memos_list_panel"'
     assert_includes response.body, "Sidebar child"
-    assert_includes response.body, %(data-memo-directory-id="#{public_dir.id}" open)
+    assert_includes response.body,
+      %(data-memo-directory-id="#{public_dir.id}" data-memo-directory-nav-branch="" data-memo-directory-nav-open="true")
     assert MemoDirectory.find_by(full_path: "home/u-1/sidebar-child")
   end
 end
