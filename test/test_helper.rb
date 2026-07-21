@@ -3,6 +3,15 @@ require_relative "../config/environment"
 require "rails/test_help"
 require "fileutils"
 
+# Vite Ruby's build mutex is process-local. Build once before Rails forks test
+# workers so they never race while replacing the shared test manifest.
+FileUtils.mkdir_p(Rails.root.join("tmp"))
+File.open(Rails.root.join("tmp", "vite-test-build.lock"), "w") do |lock|
+  lock.flock(File::LOCK_EX)
+  raise "Vite test assets failed to build" unless ViteRuby.commands.build
+end
+ViteRuby.commands.manifest.refresh
+
 unless Object.method_defined?(:stub)
   class Object
     def stub(name, replacement)

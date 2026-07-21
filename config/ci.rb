@@ -2,6 +2,7 @@
 
 CI.run do
   step "Setup", "bin/setup --skip-server"
+  step "Setup: JavaScript", "npm ci"
 
   step "Style: Ruby", "bin/rubocop"
 
