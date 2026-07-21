@@ -6,7 +6,7 @@ module Api
 
     def create
       unless clip_payload_present?
-        render json: { errors: ["html または plain が必要です。"] }, status: :unprocessable_entity
+        render json: { errors: [ "html または plain が必要です。" ] }, status: :unprocessable_entity
         return
       end
 
@@ -28,7 +28,7 @@ module Api
         directory: memo.memo_directory.full_path
       }, status: :created
     rescue ClipCreator::Error => e
-      render json: { errors: [e.message] }, status: :unprocessable_entity
+      render json: { errors: [ e.message ] }, status: :unprocessable_entity
     end
 
     def options

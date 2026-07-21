@@ -10,7 +10,7 @@ class ClipAsciidocProcessorTest < ActiveSupport::TestCase
   test "unwraps blockquote and converts html to asciidoc" do
     html = '<blockquote cite="https://example.com/a"><p><strong>Clip</strong></p></blockquote>'
 
-    with_image_importer('<p><strong>Clip</strong></p>') do
+    with_image_importer("<p><strong>Clip</strong></p>") do
       with_pandoc_convert("*Clip*") do
         result = ClipAsciidocProcessor.call(html: html, memo: @memo, source_url: "https://example.com/a")
         assert_equal "*Clip*", result

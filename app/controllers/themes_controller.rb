@@ -42,9 +42,9 @@ class ThemesController < ApplicationController
         :label,
         :base_theme,
         { variables: {} },
-        { rules: [:selector, { properties: {} }] }
+        { rules: [ :selector, { properties: {} } ] }
       ],
-      custom_skins: [:id, :label, :css]
+      custom_skins: [ :id, :label, :css ]
     )
   end
 

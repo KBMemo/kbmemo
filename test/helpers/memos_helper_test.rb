@@ -137,7 +137,7 @@ class MemosHelperTest < ActionView::TestCase
     html = memo_html(memo.body, source_memo: memo)
 
     assert_equal 2, memo.properties["checkboxes"].size
-    assert_includes html, 'data-memo-checklist-id'
+    assert_includes html, "data-memo-checklist-id"
   end
 
   test "memo_html renders diagram macro via cached svg" do
@@ -398,14 +398,14 @@ class MemosHelperTest < ActionView::TestCase
   end
 
   test "memo_directory_tree_select_option_pairs exclude_root omits root id" do
-    dirs = [memo_directories(:root), memo_directories(:home)]
+    dirs = [ memo_directories(:root), memo_directories(:home) ]
     pairs = memo_directory_tree_select_option_pairs(dirs, exclude_root: true)
     assert_not_includes pairs.map(&:last), memo_directories(:root).id
     assert_includes pairs.map(&:last), memo_directories(:home).id
   end
 
   test "memo_directory_nav_details_open respects nav_open_directory_ids" do
-    @nav_open_directory_ids = [memo_directories(:public).id]
+    @nav_open_directory_ids = [ memo_directories(:public).id ]
     @current_memo_directory = memo_directories(:root)
 
     assert memo_directory_nav_details_open?(memo_directories(:public))
@@ -428,7 +428,7 @@ class MemosHelperTest < ActionView::TestCase
   end
 
   test "memo_directory_tree_select_option_pairs can label root row for parent picker" do
-    dirs = [memo_directories(:root), memo_directories(:home)]
+    dirs = [ memo_directories(:root), memo_directories(:home) ]
     pairs = memo_directory_tree_select_option_pairs(dirs, exclude_root: false, root_option_label: "（最上位）")
     root_id = memo_directories(:root).id
     root_label = pairs.find { |_l, id| id == root_id }&.first

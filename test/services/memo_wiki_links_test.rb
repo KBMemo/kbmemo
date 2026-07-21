@@ -6,7 +6,7 @@ class MemoWikiLinksTest < ActiveSupport::TestCase
   setup do
     @one = memos(:one)
     @two = memos(:two)
-    @scope = Memo.where(id: [@one.id, @two.id])
+    @scope = Memo.where(id: [ @one.id, @two.id ])
   end
 
   test "substitute resolves title in same directory to asciidoc link" do
@@ -88,7 +88,7 @@ class MemoWikiLinksTest < ActiveSupport::TestCase
     assert_includes out, "memo-wiki-broken"
     assert_includes out, "kb-wiki-broken-0"
     assert_includes out, "Missing memo"
-    assert_equal [{ target: "Missing memo", label: "Missing memo" }], linker.broken_links
+    assert_equal [ { target: "Missing memo", label: "Missing memo" } ], linker.broken_links
   end
 
   test "derive_title_from_target uses target not display label" do
@@ -108,7 +108,7 @@ class MemoWikiLinksTest < ActiveSupport::TestCase
     linker = linker(source: @one)
     out = linker.substitute(body)
     assert_includes out, "short label"
-    assert_equal [{ target: "Real Title", label: "short label" }], linker.broken_links
+    assert_equal [ { target: "Real Title", label: "short label" } ], linker.broken_links
   end
 
   test "substitute resolves directory full_path and slug" do

@@ -13,7 +13,7 @@ class MemoWikiLinkIndexTest < ActiveSupport::TestCase
     @one.update_columns(body: "See [[#{@two.title}]]")
     MemoWikiLinkIndex.rebuild_for(@one)
 
-    assert_equal [@two.id], @one.outgoing_wiki_links.pluck(:target_memo_id)
+    assert_equal [ @two.id ], @one.outgoing_wiki_links.pluck(:target_memo_id)
   end
 
   test "rebuild_for replaces stale edges" do
@@ -31,33 +31,33 @@ class MemoWikiLinkIndexTest < ActiveSupport::TestCase
 
     @two.update!(title: "Renamed target")
 
-    assert_equal [@two.id], @one.reload.outgoing_wiki_links.pluck(:target_memo_id)
+    assert_equal [ @two.id ], @one.reload.outgoing_wiki_links.pluck(:target_memo_id)
   end
 
   test "memo after_commit rebuilds outgoing links on body save" do
     @one.update!(body: "See [[#{@two.title}]]")
 
-    assert_equal [@two.id], @one.outgoing_wiki_links.pluck(:target_memo_id)
+    assert_equal [ @two.id ], @one.outgoing_wiki_links.pluck(:target_memo_id)
   end
 
   test "rebuild_for resolves uid-based href to target id" do
     @one.update_columns(body: "See link:/memos/#{@two.uid}[other]")
     MemoWikiLinkIndex.rebuild_for(@one)
 
-    assert_equal [@two.id], @one.outgoing_wiki_links.pluck(:target_memo_id)
+    assert_equal [ @two.id ], @one.outgoing_wiki_links.pluck(:target_memo_id)
   end
 
   test "rebuild_for still resolves numeric id href" do
     @one.update_columns(body: "See link:/memos/#{@two.id}[other]")
     MemoWikiLinkIndex.rebuild_for(@one)
 
-    assert_equal [@two.id], @one.outgoing_wiki_links.pluck(:target_memo_id)
+    assert_equal [ @two.id ], @one.outgoing_wiki_links.pluck(:target_memo_id)
   end
 
   test "rebuild_inbound_for finds sources linking by uid href" do
     @one.update_columns(body: "See link:/memos/#{@two.uid}[other]")
     MemoWikiLinkIndex.rebuild_inbound_for(@two)
 
-    assert_equal [@two.id], @one.reload.outgoing_wiki_links.pluck(:target_memo_id)
+    assert_equal [ @two.id ], @one.reload.outgoing_wiki_links.pluck(:target_memo_id)
   end
 end

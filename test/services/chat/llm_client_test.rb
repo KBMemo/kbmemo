@@ -121,4 +121,3 @@ module Chat
     end
   end
 end
-

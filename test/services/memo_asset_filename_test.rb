@@ -16,7 +16,7 @@ class MemoAssetFilenameTest < ActiveSupport::TestCase
 
   test "strips path components and forbidden characters" do
     assert_equal "evil.png", MemoAssetFilename.sanitize("../../evil.png")
-    assert_equal "a_b.png", MemoAssetFilename.sanitize('a<b>.png')
+    assert_equal "a_b.png", MemoAssetFilename.sanitize("a<b>.png")
     assert_equal "file_1.png", MemoAssetFilename.sanitize("file[1].png")
   end
 

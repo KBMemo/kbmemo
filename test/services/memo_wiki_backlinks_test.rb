@@ -6,7 +6,7 @@ class MemoWikiBacklinksTest < ActiveSupport::TestCase
   setup do
     @one = memos(:one)
     @two = memos(:two)
-    @scope = Memo.where(id: [@one.id, @two.id])
+    @scope = Memo.where(id: [ @one.id, @two.id ])
     MemoWikiLink.delete_all
   end
 
@@ -15,7 +15,7 @@ class MemoWikiBacklinksTest < ActiveSupport::TestCase
     MemoWikiLinkIndex.rebuild_for(@one)
 
     backlinks = resolver.call
-    assert_equal [@one], backlinks
+    assert_equal [ @one ], backlinks
   end
 
   test "finds memo linking by global slug" do
@@ -23,7 +23,7 @@ class MemoWikiBacklinksTest < ActiveSupport::TestCase
     MemoWikiLinkIndex.rebuild_for(@one)
 
     backlinks = resolver.call
-    assert_equal [@one], backlinks
+    assert_equal [ @one ], backlinks
   end
 
   test "finds memo linking by legacy stem slug" do
@@ -31,7 +31,7 @@ class MemoWikiBacklinksTest < ActiveSupport::TestCase
     MemoWikiLinkIndex.rebuild_for(@one)
 
     backlinks = resolver.call
-    assert_equal [@one], backlinks
+    assert_equal [ @one ], backlinks
   end
 
   test "finds memo linking by directory path slug" do
@@ -41,7 +41,7 @@ class MemoWikiBacklinksTest < ActiveSupport::TestCase
     MemoWikiLinkIndex.rebuild_for(@one)
 
     backlinks = resolver.call
-    assert_equal [@one], backlinks
+    assert_equal [ @one ], backlinks
   end
 
   test "finds memo linking by link:/memos/id href" do
@@ -49,7 +49,7 @@ class MemoWikiBacklinksTest < ActiveSupport::TestCase
     MemoWikiLinkIndex.rebuild_for(@one)
 
     backlinks = resolver.call
-    assert_equal [@one], backlinks
+    assert_equal [ @one ], backlinks
   end
 
   test "ignores wiki links inside fenced code blocks" do
@@ -104,9 +104,9 @@ class MemoWikiBacklinksTest < ActiveSupport::TestCase
     MemoWikiLinkIndex.rebuild_for(older)
     MemoWikiLinkIndex.rebuild_for(newer)
 
-    scope = Memo.where(id: [older.id, newer.id, @two.id])
+    scope = Memo.where(id: [ older.id, newer.id, @two.id ])
     backlinks = MemoWikiBacklinks.new(target_memo: @two, scope: scope).call
-    assert_equal [newer, older], backlinks
+    assert_equal [ newer, older ], backlinks
   end
 
   private

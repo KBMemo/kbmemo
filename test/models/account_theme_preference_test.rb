@@ -19,7 +19,7 @@ class AccountThemePreferenceTest < ActiveSupport::TestCase
           "label" => "Mine",
           "base_theme" => "dark",
           "variables" => { "--kb-bg-page" => "#000000" },
-          "rules" => [{ "selector" => "[data-theme-slot=\"memo-body\"]", "properties" => { "color" => "#fff" } }]
+          "rules" => [ { "selector" => "[data-theme-slot=\"memo-body\"]", "properties" => { "color" => "#fff" } } ]
         }
       ]
     )

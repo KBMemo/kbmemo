@@ -25,7 +25,7 @@ module Chat
       client.define_singleton_method(:rpc_request) do |**|
         {
           "result" => {
-            "content" => [{ "type" => "text", "text" => JSON.generate({ "results" => [] }) }]
+            "content" => [ { "type" => "text", "text" => JSON.generate({ "results" => [] }) } ]
           }
         }
       end
@@ -40,7 +40,7 @@ module Chat
         {
           "result" => {
             "isError" => true,
-            "content" => [{ "type" => "text", "text" => "budget exceeded" }]
+            "content" => [ { "type" => "text", "text" => "budget exceeded" } ]
           }
         }
       end

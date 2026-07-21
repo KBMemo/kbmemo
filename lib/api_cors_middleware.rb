@@ -22,7 +22,7 @@ class ApiCorsMiddleware
 
     status, headers, body = @app.call(env)
     apply_cors_headers!(headers)
-    [status, headers, body]
+    [ status, headers, body ]
   end
 
   private
@@ -45,6 +45,6 @@ class ApiCorsMiddleware
       "Access-Control-Allow-Headers" => ALLOW_HEADERS,
       "Access-Control-Max-Age" => MAX_AGE
     }
-    [status, headers, body]
+    [ status, headers, body ]
   end
 end

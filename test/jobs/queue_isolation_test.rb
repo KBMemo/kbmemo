@@ -10,6 +10,6 @@ class QueueIsolationTest < ActiveSupport::TestCase
       NyoyMemoWebhookJob
     ]
 
-    assert_equal ["kbmemo_site"], job_classes.map(&:queue_name).uniq
+    assert_equal [ "kbmemo_site" ], job_classes.map(&:queue_name).uniq
   end
 end

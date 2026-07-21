@@ -34,7 +34,7 @@ class MemosController < ApplicationController
     if params[:append].present?
       return head :not_found unless %w[history search tag directory].include?(view)
 
-      offset = [params[:offset].to_i, 0].max
+      offset = [ params[:offset].to_i, 0 ].max
       load_sidebar_memos_page(offset: offset)
       return render partial: "memos/sidebar_memo_list_append", layout: false
     end
@@ -128,7 +128,7 @@ class MemosController < ApplicationController
     if params[:sidebar_view] == "tag" && params[:tag_id].blank? && Tag.exists?
       first = Tag.order(:name).first
       redirect_to memos_path(sidebar_view: "tag", tag_id: first.id)
-      return
+      nil
     end
   end
 
@@ -650,7 +650,7 @@ class MemosController < ApplicationController
 
     parsed = YAML.safe_load(
       raw.to_s,
-      permitted_classes: [Symbol, Date, Time],
+      permitted_classes: [ Symbol, Date, Time ],
       permitted_symbols: [],
       aliases: true
     )

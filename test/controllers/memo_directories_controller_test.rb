@@ -118,7 +118,7 @@ class MemoDirectoriesControllerTest < ActionDispatch::IntegrationTest
         params: {
           sidebar: "1",
           current_memo_directory_id: target.id,
-          nav_open_directory_ids: [parent.id]
+          nav_open_directory_ids: [ parent.id ]
         },
         as: :turbo_stream)
     end
@@ -138,7 +138,7 @@ class MemoDirectoriesControllerTest < ActionDispatch::IntegrationTest
       params: {
         sidebar: "1",
         current_memo_directory_id: keep.id,
-        nav_open_directory_ids: [parent.id]
+        nav_open_directory_ids: [ parent.id ]
       },
       as: :turbo_stream)
 
@@ -170,7 +170,7 @@ class MemoDirectoriesControllerTest < ActionDispatch::IntegrationTest
       params: {
         dialog: "1",
         sidebar_view: "directory",
-        nav_open_directory_ids: [public_dir.id],
+        nav_open_directory_ids: [ public_dir.id ],
         memo_directory: { path_segment: "sidebar-child", label: "Sidebar child", parent_id: parent.id }
       },
       as: :turbo_stream

@@ -194,7 +194,7 @@ module ApplicationHelper
   end
 
   def kb_underline_input(extra = "")
-    ["kb-underline-input", extra].reject(&:blank?).join(" ")
+    [ "kb-underline-input", extra ].reject(&:blank?).join(" ")
   end
 
   def kb_auth_field_classes(error: false)
@@ -246,7 +246,7 @@ module ApplicationHelper
   end
 
   def kb_icon_btn(extra = "")
-    ["kb-icon-btn", extra, kb_focus_ring].reject(&:blank?).join(" ")
+    [ "kb-icon-btn", extra, kb_focus_ring ].reject(&:blank?).join(" ")
   end
 
   def kb_resizer
@@ -254,7 +254,7 @@ module ApplicationHelper
   end
 
   def kb_sidebar_toggle_btn
-    ["kb-sidebar-toggle-btn", kb_focus_ring].join(" ")
+    [ "kb-sidebar-toggle-btn", kb_focus_ring ].join(" ")
   end
 
   def kb_toolbar_btn_sm

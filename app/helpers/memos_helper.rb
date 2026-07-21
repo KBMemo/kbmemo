@@ -40,14 +40,14 @@ module MemosHelper
   def memo_sidebar_link_classes(key)
     base = "kb-sidebar-link #{kb_focus_ring}"
     active = memo_sidebar_selected?(key) ? "is-active" : ""
-    [base, active].join(" ")
+    [ base, active ].join(" ")
   end
 
   # メモ一覧の行（グリップ＋リンク）用。左ボーダーで選択中を示す。
   def memo_sidebar_memo_list_row_classes(memo_id)
     base = "kb-sidebar-row"
     active = memo_sidebar_selected?(memo_id) ? "is-active" : ""
-    [base, active].join(" ")
+    [ base, active ].join(" ")
   end
 
   # 一覧のメモ行: ドラフト表示中は編集、確定のみ show へ（サイドバー表示モードをクエリで維持）
@@ -87,9 +87,9 @@ module MemosHelper
       q = { sidebar_view: "directory" }
       dir = if defined?(@current_memo_directory) && @current_memo_directory && !@current_memo_directory.root?
               @current_memo_directory
-            elsif memo.memo_directory && !memo.memo_directory.root?
+      elsif memo.memo_directory && !memo.memo_directory.root?
               memo.memo_directory
-            end
+      end
       q[:memo_directory_id] = dir.id if dir
       return memo_sidebar_open_memo_path(memo, q)
     end
@@ -140,7 +140,7 @@ module MemosHelper
   def memo_sidebar_view_tab_classes(mode)
     base = "kb-sidebar-tab #{kb_focus_ring}"
     active = defined?(@sidebar_view) && @sidebar_view == mode
-    [base, active ? "is-active" : nil].compact.join(" ")
+    [ base, active ? "is-active" : nil ].compact.join(" ")
   end
 
   # 一覧左アイコン
@@ -201,9 +201,9 @@ module MemosHelper
     dirs.each do |d|
       pid = if d.parent_id.present? && ids.include?(d.parent_id)
               d.parent_id
-            else
+      else
               root&.id
-            end
+      end
       h[pid] << d
     end
     h.transform_values! { |a| a.sort_by(&:full_path) }
@@ -288,7 +288,7 @@ module MemosHelper
     pairs = []
     visit = lambda do |node, depth|
       text = "#{indent_units * depth}#{label_for.call(node)}"
-      pairs << [text, node.id]
+      pairs << [ text, node.id ]
       (by_parent[node.id] || []).sort_by(&:full_path).each { |ch| visit.call(ch, depth + 1) }
     end
 
@@ -298,7 +298,7 @@ module MemosHelper
       visit.call(root, 0)
     else
       dirs.sort_by(&:full_path).each do |d|
-        pairs << [label_for.call(d), d.id]
+        pairs << [ label_for.call(d), d.id ]
       end
     end
 
@@ -309,14 +309,14 @@ module MemosHelper
     base = "kb-sidebar-nav #{kb_focus_ring}"
     active = defined?(@sidebar_view) && @sidebar_view == "directory" &&
       defined?(@current_memo_directory) && @current_memo_directory&.id == directory.id
-    [base, active ? "is-active" : nil].compact.join(" ")
+    [ base, active ? "is-active" : nil ].compact.join(" ")
   end
 
   def memo_tag_nav_link_classes(tag)
     base = "kb-sidebar-nav #{kb_focus_ring}"
     active = defined?(@sidebar_view) && @sidebar_view == "tag" &&
       defined?(@current_tag) && @current_tag&.id == tag.id
-    [base, active ? "is-active" : nil].compact.join(" ")
+    [ base, active ? "is-active" : nil ].compact.join(" ")
   end
 
   # Wiki リンク [[full_path/slug]] の path 部分（slug のみのときは slug だけ）
@@ -453,7 +453,7 @@ module MemosHelper
 
       button = Nokogiri::XML::Node.new("button", fragment)
       button["type"] = "button"
-      button["class"] = (span["class"].to_s.split + ["memo-wiki-create-link"]).uniq.join(" ")
+      button["class"] = (span["class"].to_s.split + [ "memo-wiki-create-link" ]).uniq.join(" ")
       button["data-wiki-target"] = link[:target]
       button["data-wiki-title"] = title
       button["data-action"] = "memo-wiki-create#create"
@@ -743,5 +743,4 @@ module MemosHelper
       "font-mono text-sm leading-relaxed resize-y"
     ].join(" ")
   end
-
 end

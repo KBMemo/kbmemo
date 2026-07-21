@@ -67,9 +67,9 @@ class MemoViewHistoryTest < ActiveSupport::TestCase
       MemoViewHistory.record!(account: @account, memo: @two)
     end
 
-    scope = Memo.where(id: [@one.id, @two.id])
+    scope = Memo.where(id: [ @one.id, @two.id ])
     recent = MemoViewHistory.recent_memos_for(@account, scope: scope)
-    assert_equal [@two, @one], recent.to_a
+    assert_equal [ @two, @one ], recent.to_a
   end
 
   test "recent_memos_for orders by view_sequence when viewed_at is identical" do
@@ -84,9 +84,9 @@ class MemoViewHistoryTest < ActiveSupport::TestCase
     assert_equal one_entry.viewed_at, two_entry.viewed_at
     assert_operator one_entry.view_sequence, :>, two_entry.view_sequence
 
-    scope = Memo.where(id: [@one.id, @two.id])
+    scope = Memo.where(id: [ @one.id, @two.id ])
     recent = MemoViewHistory.recent_memos_for(@account, scope: scope)
-    assert_equal [@one, @two], recent.to_a
+    assert_equal [ @one, @two ], recent.to_a
   end
 
   test "recent_history preserves relative order when reopening an older memo" do
@@ -97,7 +97,7 @@ class MemoViewHistoryTest < ActiveSupport::TestCase
       account: @account,
       file_committed_at: Time.current
     )
-    scope = Memo.where(id: [@one.id, @two.id, third.id])
+    scope = Memo.where(id: [ @one.id, @two.id, third.id ])
 
     travel_to Time.zone.parse("2026-01-01 12:00:00") do
       MemoViewHistory.record!(account: @account, memo: @one)
@@ -109,7 +109,7 @@ class MemoViewHistoryTest < ActiveSupport::TestCase
       MemoViewHistory.record!(account: @account, memo: @one)
 
       recent = MemoViewHistory.recent_memos_for(@account, scope: scope)
-      assert_equal [@one, third, @two], recent.to_a
+      assert_equal [ @one, third, @two ], recent.to_a
     end
   end
 
@@ -128,7 +128,7 @@ class MemoViewHistoryTest < ActiveSupport::TestCase
       account: @account,
       file_committed_at: Time.current
     )
-    scope = Memo.where(id: [@one.id, @two.id, memo_c.id, memo_d.id])
+    scope = Memo.where(id: [ @one.id, @two.id, memo_c.id, memo_d.id ])
 
     travel_to Time.zone.parse("2026-01-01 12:00:00") do
       MemoViewHistory.record!(account: @account, memo: memo_d)
@@ -142,7 +142,7 @@ class MemoViewHistoryTest < ActiveSupport::TestCase
       MemoViewHistory.record!(account: @account, memo: memo_c)
 
       recent = MemoViewHistory.recent_memos_for(@account, scope: scope)
-      assert_equal ["Memo C", "First memo", "Second memo", "Memo D"], recent.map(&:title)
+      assert_equal [ "Memo C", "First memo", "Second memo", "Memo D" ], recent.map(&:title)
     end
   end
 end

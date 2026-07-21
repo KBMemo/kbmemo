@@ -259,7 +259,7 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     notebook = notebooks(:one)
     parent = notebook_memos(:one_one)
     parent_memo = parent.memo
-    parent_memo.tags = [Tag.resolve_label!("InheritedTag")]
+    parent_memo.tags = [ Tag.resolve_label!("InheritedTag") ]
 
     assert_difference -> { notebook.notebook_memos.where(parent_id: parent.id).count }, 1 do
       post create_blank_notebook_notebook_memos_url(notebook), params: { parent_id: parent.id }
@@ -269,7 +269,7 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_equal parent.id, child.parent_id
     expected_dir = MemoDirectory::UserSpace.date_directory(child.memo.account_id, child.memo.created_at)
     assert_equal expected_dir.id, child.memo.memo_directory_id
-    assert_equal ["InheritedTag"], child.memo.tags.map(&:name)
+    assert_equal [ "InheritedTag" ], child.memo.tags.map(&:name)
     assert_redirected_to edit_memo_path(child.memo_id)
   end
 

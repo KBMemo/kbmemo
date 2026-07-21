@@ -14,7 +14,7 @@ class GoogleCalendar::SyncTest < ActiveSupport::TestCase
 
   test "creates memo for new event" do
     event = build_event(id: "evt-new", summary: "New meeting", etag: "e1")
-    client = fake_client([event])
+    client = fake_client([ event ])
 
     with_credentials do
       result = GoogleCalendar::Sync.call(account: @account, client: client)
@@ -30,7 +30,7 @@ class GoogleCalendar::SyncTest < ActiveSupport::TestCase
 
   test "skips unchanged event" do
     event = build_event(id: "evt-skip", summary: "Same", etag: "same")
-    client = fake_client([event])
+    client = fake_client([ event ])
 
     with_credentials do
       GoogleCalendar::Sync.call(account: @account, client: client)
@@ -42,14 +42,14 @@ class GoogleCalendar::SyncTest < ActiveSupport::TestCase
 
   test "deletes memo for cancelled event" do
     event = build_event(id: "evt-del", summary: "Gone", etag: "e1")
-    client = fake_client([event])
+    client = fake_client([ event ])
 
     with_credentials do
       GoogleCalendar::Sync.call(account: @account, client: client)
     end
 
     cancelled = build_event(id: "evt-del", status: "cancelled", etag: "e2")
-    client = fake_client([cancelled])
+    client = fake_client([ cancelled ])
 
     with_credentials do
       result = GoogleCalendar::Sync.call(account: @account, client: client)
@@ -68,7 +68,7 @@ class GoogleCalendar::SyncTest < ActiveSupport::TestCase
       ends: Google::Apis::CalendarV3::EventDateTime.new(date_time: Time.zone.parse("2026-06-03 11:00:00")),
       recurrence: [ "RRULE:FREQ=WEEKLY;BYDAY=WE" ]
     )
-    client = fake_client([event])
+    client = fake_client([ event ])
 
     with_credentials do
       result = GoogleCalendar::Sync.call(account: @account, client: client)
@@ -89,7 +89,7 @@ class GoogleCalendar::SyncTest < ActiveSupport::TestCase
       ends: Google::Apis::CalendarV3::EventDateTime.new(date_time: Time.zone.parse("2026-06-03 11:00:00")),
       recurrence: [ "RRULE:FREQ=WEEKLY;BYDAY=WE" ]
     )
-    with_credentials { GoogleCalendar::Sync.call(account: @account, client: fake_client([master])) }
+    with_credentials { GoogleCalendar::Sync.call(account: @account, client: fake_client([ master ])) }
 
     cancelled = Google::Apis::CalendarV3::Event.new(
       id: "evt-weekly_20260610",
@@ -100,7 +100,7 @@ class GoogleCalendar::SyncTest < ActiveSupport::TestCase
     )
 
     with_credentials do
-      result = GoogleCalendar::Sync.call(account: @account, client: fake_client([cancelled]))
+      result = GoogleCalendar::Sync.call(account: @account, client: fake_client([ cancelled ]))
       assert_equal 1, result.updated
     end
 

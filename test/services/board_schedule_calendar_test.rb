@@ -20,7 +20,7 @@ class BoardScheduleCalendarTest < ActiveSupport::TestCase
     )
 
     assert_includes calendar.dates_with_items, Date.new(2026, 5, 15)
-    assert_equal [@memo], calendar.list_items
+    assert_equal [ @memo ], calendar.list_items
     assert_operator calendar.weeks.size, :>=, 4
   end
 
@@ -35,7 +35,7 @@ class BoardScheduleCalendarTest < ActiveSupport::TestCase
       )
 
       assert_equal Date.new(2026, 5, 20), calendar.selected_day
-      assert_equal [@memo], calendar.list_items
+      assert_equal [ @memo ], calendar.list_items
     end
   end
 
@@ -117,7 +117,7 @@ class BoardScheduleCalendarTest < ActiveSupport::TestCase
 
     assert calendar.month_view?
     assert_equal 1, calendar.list_groups.size
-    assert_equal [@memo], calendar.list_groups.first[:memos]
+    assert_equal [ @memo ], calendar.list_groups.first[:memos]
   end
 
   test "invalid view falls back to day" do

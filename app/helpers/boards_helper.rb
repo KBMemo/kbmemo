@@ -100,7 +100,7 @@ module BoardsHelper
   end
 
   def board_schedule_day_cell_classes(calendar, day)
-    classes = ["kb-board-schedule-day", "kb-calendar-day"]
+    classes = [ "kb-board-schedule-day", "kb-calendar-day" ]
     classes << "kb-text-subtle" unless calendar.in_month?(day)
     classes << "is-today" if calendar.today?(day)
     classes << "is-selected" if calendar.selected?(day)

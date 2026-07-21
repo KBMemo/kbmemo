@@ -52,7 +52,7 @@ class MemosControllerChecklistTest < ActionDispatch::IntegrationTest
     get memo_path(@memo)
     assert_response :success
     assert_includes response.body, 'data-controller="memo-checklist"'
-    assert_includes response.body, 'data-memo-checklist-id'
+    assert_includes response.body, "data-memo-checklist-id"
   end
 
   test "checklist_toggle updates memo and returns turbo stream" do

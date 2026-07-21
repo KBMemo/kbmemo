@@ -21,14 +21,14 @@ module AvatarsHelper
     return "".html_safe unless account
 
     label = account.display_name
-    px = [[size.to_i * 2, 512].min, 1].max
+    px = [ [ size.to_i * 2, 512 ].min, 1 ].max
     url = gravatar_url_for(account, pixel_size: px)
     return "".html_safe if url.blank?
 
     options = {
       alt: "#{label}のアバター",
       title: label,
-      class: ["kb-avatar", extra_class].compact.join(" "),
+      class: [ "kb-avatar", extra_class ].compact.join(" "),
       width: size,
       height: size,
       loading: loading,

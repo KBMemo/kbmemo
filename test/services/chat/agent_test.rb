@@ -175,7 +175,7 @@ module Chat
       client = Object.new
       client.define_singleton_method(:configured?) { true }
       client.define_singleton_method(:call_tool) do |name:, arguments:|
-        { "styles" => [{ "id" => "watercolor" }] }
+        { "styles" => [ { "id" => "watercolor" } ] }
       end
       mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
 
@@ -199,7 +199,7 @@ module Chat
       client = Object.new
       client.define_singleton_method(:configured?) { true }
       client.define_singleton_method(:call_tool) do |name:, arguments:|
-        { "results" => [{ "title" => "News" }] }
+        { "results" => [ { "title" => "News" } ] }
       end
       mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
 
@@ -250,7 +250,7 @@ module Chat
       client = Object.new
       client.define_singleton_method(:configured?) { true }
       client.define_singleton_method(:call_tool) do |name:, arguments:|
-        { "results" => [{ "title" => name }] }
+        { "results" => [ { "title" => name } ] }
       end
       mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
 
@@ -311,7 +311,7 @@ module Chat
       client = Object.new
       client.define_singleton_method(:configured?) { true }
       client.define_singleton_method(:call_tool) do |name:, arguments:|
-        { "results" => [{ "title" => "News" }] }
+        { "results" => [ { "title" => "News" } ] }
       end
       mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
 
@@ -379,7 +379,7 @@ module Chat
       client = Object.new
       client.define_singleton_method(:configured?) { true }
       client.define_singleton_method(:call_tool) do |name:, arguments:|
-        { "results" => [{ "title" => "Product info" }] }
+        { "results" => [ { "title" => "Product info" } ] }
       end
       mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
 
@@ -424,7 +424,7 @@ module Chat
       client = Object.new
       client.define_singleton_method(:configured?) { true }
       client.define_singleton_method(:call_tool) do |name:, arguments:|
-        { "results" => [{ "title" => name }] }
+        { "results" => [ { "title" => name } ] }
       end
       mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
 
@@ -587,7 +587,7 @@ module Chat
       client.define_singleton_method(:configured?) { true }
       client.define_singleton_method(:list_tools) { [] }
       client.define_singleton_method(:call_tool) do |name:, arguments:|
-        { "memos" => [{ "title" => "Export memo" }] }
+        { "memos" => [ { "title" => "Export memo" } ] }
       end
       mcp_runner = Chat::Tools::NyoyMcpRunner.new(client: client)
 
@@ -616,9 +616,9 @@ module Chat
       client.define_singleton_method(:call_tool) do |name:, arguments:|
         case name.to_s
         when "web_search"
-          { "results" => [{ "title" => "News" }] }
+          { "results" => [ { "title" => "News" } ] }
         when "recall_memos"
-          { "memos" => [{ "title" => "Memo" }] }
+          { "memos" => [ { "title" => "Memo" } ] }
         else
           {}
         end

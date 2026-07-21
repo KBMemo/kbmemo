@@ -167,15 +167,15 @@ class MemoDirectory < ApplicationRecord
 
   # 自分と配下ディレクトリの id（親候補から除外する用）
   def subtree_directory_ids
-    return [id] unless persisted?
+    return [ id ] unless persisted?
 
-    [id] + children.flat_map(&:subtree_directory_ids)
+    [ id ] + children.flat_map(&:subtree_directory_ids)
   end
 
   # 親と full_path を更新した直後に、子孫の full_path を再計算して保存する
   # （古い full_path の昇順で処理し、常に親より先に子が来ないようにする）
   def cascade_path_refresh!
-    self.class.where(id: subtree_directory_ids - [id]).order(:full_path).find_each do |node|
+    self.class.where(id: subtree_directory_ids - [ id ]).order(:full_path).find_each do |node|
       node.save!
     end
   end

@@ -25,7 +25,7 @@ class MemoDirectoriesController < ApplicationController
     if dialog_request?
       @lock_parent = @memo_directory.parent.present?
       render partial: "dialog_form", layout: false
-      return
+      nil
     end
   end
 
@@ -78,7 +78,7 @@ class MemoDirectoriesController < ApplicationController
     prepare_parent_options
     if dialog_request?
       render partial: "dialog_form", layout: false
-      return
+      nil
     end
   end
 

@@ -169,7 +169,7 @@ module Kbmemo
       def sqlite_table?(table)
         @sqlite.get_first_value(
           "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
-          [table]
+          [ table ]
         )
       end
 

@@ -55,7 +55,7 @@ class MemoAdocIncludes
 
     content = path.read(encoding: "UTF-8")
     body = KbmemoDocs::AdocSource.embedded_body(content)
-    expand_text(body, depth: depth + 1, stack: stack.merge([canonical]))
+    expand_text(body, depth: depth + 1, stack: stack.merge([ canonical ]))
   end
 
   def resolve_path(target)

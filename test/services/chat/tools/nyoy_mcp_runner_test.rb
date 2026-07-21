@@ -7,7 +7,7 @@ module Chat
     class NyoyMcpRunnerTest < ActiveSupport::TestCase
       test "runs web_search with user text" do
         client = stub_client(
-          "web_search" => { "results" => [{ "title" => "A" }] }
+          "web_search" => { "results" => [ { "title" => "A" } ] }
         )
         runner = NyoyMcpRunner.new(client: client)
 
@@ -64,7 +64,7 @@ module Chat
             "page_id" => "page-abc"
           },
           "search_fetched_page" => {
-            "excerpts" => [{ "text" => "matched section" }]
+            "excerpts" => [ { "text" => "matched section" } ]
           }
         )
         runner = NyoyMcpRunner.new(client: client)
@@ -201,7 +201,7 @@ module Chat
 
       test "runs list_prompt_styles with empty arguments" do
         client = stub_client(
-          "list_prompt_styles" => { "styles" => [{ "id" => "anime" }] }
+          "list_prompt_styles" => { "styles" => [ { "id" => "anime" } ] }
         )
         runner = NyoyMcpRunner.new(client: client)
 
@@ -213,8 +213,8 @@ module Chat
 
       test "runs search_memos and recall_memos with query text" do
         client = stub_client(
-          "search_memos" => { "memos" => [{ "title" => "Memo A" }] },
-          "recall_memos" => { "memos" => [{ "title" => "Recall B" }] }
+          "search_memos" => { "memos" => [ { "title" => "Memo A" } ] },
+          "recall_memos" => { "memos" => [ { "title" => "Recall B" } ] }
         )
         runner = NyoyMcpRunner.new(client: client)
 

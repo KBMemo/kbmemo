@@ -530,7 +530,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
   test "wiki_link_labels returns display labels for targets" do
     two = memos(:two)
     get wiki_link_labels_memos_url,
-      params: { memo_id: memos(:one).id, targets: [two.slug, "Second memo", "Missing"] },
+      params: { memo_id: memos(:one).id, targets: [ two.slug, "Second memo", "Missing" ] },
       as: :json
     assert_response :success
     body = JSON.parse(response.body)
@@ -965,8 +965,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='memo[memo_group_id]'] option[value='']", text: "（なし）"
     assert_select "select[name='memo[memo_group_id]'] option[selected][value]:not([value=''])", count: 0
     assert_match(/data-turbo[-_]cache="false"/, response.body)
-    assert_includes response.body, 'data-memo-draft-create-url-value'
-    assert_includes response.body, 'data-memo-draft-initial-form-value'
+    assert_includes response.body, "data-memo-draft-create-url-value"
+    assert_includes response.body, "data-memo-draft-initial-form-value"
     assert_not_includes response.body, "data-memo_draft_create_url_value"
     assert_select ".memo-draft-shell[data-controller~='memo-draft']"
     assert_select ".memo-draft-shell [data-memo-draft-target='formActionsChrome']"
@@ -1029,7 +1029,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     work = memo_directories(:work)
     memo.update!(memo_directory: work)
     tag = tags(:one)
-    memo.tags = [tag]
+    memo.tags = [ tag ]
 
     assert_difference("Memo.count", -1) do
       delete memo_path(memo, sidebar_view: "tag", tag_id: tag.id),
