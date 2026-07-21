@@ -15,7 +15,7 @@ usage() {
 Usage: bin/deploy [options]
 
 Pull the latest code, install dependencies, migrate, precompile assets,
-and restart the kbmemo systemd service (production server).
+and restart the kbmemo systemd user service (production server).
 
 Options:
   -b, --branch BRANCH   git fetch/pull this branch (default: current branch)
@@ -133,7 +133,7 @@ fi
 
 if [[ "${SKIP_RESTART}" -eq 0 ]]; then
   step "restart ${SYSTEMD_UNIT}"
-  run sudo systemctl restart "${SYSTEMD_UNIT}"
+  run systemctl --user restart "${SYSTEMD_UNIT}"
 
   step "health check ${HEALTH_URL}"
   if [[ "${DRY_RUN}" -eq 1 ]]; then
@@ -146,7 +146,7 @@ if [[ "${SKIP_RESTART}" -eq 0 ]]; then
       fi
       if [[ "${attempt}" -eq 5 ]]; then
         echo "health check failed after restart: ${HEALTH_URL}" >&2
-        echo "check: sudo journalctl -u ${SYSTEMD_UNIT} -n 50 --no-pager" >&2
+        echo "check: journalctl --user -u ${SYSTEMD_UNIT} -n 50 --no-pager" >&2
         exit 1
       fi
       sleep 2

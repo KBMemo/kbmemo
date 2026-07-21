@@ -355,7 +355,7 @@ cd /home/kensei/sites/kbmemo
 chmod 750 start.sh   # git pull 後、実行権限が無ければ
 ----
 
-`/etc/systemd/system/kbmemo.service` の例です。
+`~/.config/systemd/user/kbmemo.service` の例です。
 
 [source,ini]
 ----
@@ -365,8 +365,6 @@ After=network.target
 
 [Service]
 Type=simple
-User=kensei
-Group=kensei
 WorkingDirectory=/home/kensei/sites/kbmemo
 
 ExecStart=/home/kensei/sites/kbmemo/start.sh
@@ -376,14 +374,14 @@ StandardOutput=journal
 StandardError=journal
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 ----
 
 [source,bash]
 ----
-sudo systemctl daemon-reload
-sudo systemctl enable --now kbmemo
-sudo systemctl status kbmemo
+systemctl --user daemon-reload
+systemctl --user enable --now kbmemo
+systemctl --user status kbmemo
 curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3007/up
 ----
 
@@ -550,7 +548,7 @@ TSUZURA_PUBLIC_URL=https://media.kbmemo.net
 KBMEMO_TSUZURA_INTERNAL_SECRET=…  # credentials tsuzura.internal_secret と同一
 ----
 
-* **Mixed Content:** KBMemo ページは `TSUZURA_PUBLIC_URL=https://media.kbmemo.net` 必須（`http://localhost:3008` の署名 URL を本文に保存しない）。変更後は `sudo systemctl restart kbmemo`。
+* **Mixed Content:** KBMemo ページは `TSUZURA_PUBLIC_URL=https://media.kbmemo.net` 必須（`http://localhost:3008` の署名 URL を本文に保存しない）。変更後は `systemctl --user restart kbmemo`。
 * **メモ編集ピッカー:** ログイン済みで `POST /internal/tsuzura/sign_urls` が **200** であること（422 の多くは CSRF — ページ再読込で meta 同期）。
 
 kbmemo-media 側（`.env.production` 例）:
@@ -563,7 +561,7 @@ KBMEMO_HOME_URL=https://kbmemo.net
 TSUZURA_CORS_ORIGINS=https://kbmemo.net,https://www.kbmemo.net
 ----
 
-未ログインで `media.kbmemo.net` を開くと `KBMEMO_LOGIN_URL` へリダイレクト。変更後は `sudo systemctl restart tsuzura`。
+未ログインで `media.kbmemo.net` を開くと `KBMEMO_LOGIN_URL` へリダイレクト。変更後は `systemctl --user restart kbmemo-media`。
 
 === Tsuzura systemd
 
@@ -586,8 +584,6 @@ After=network.target
 
 [Service]
 Type=simple
-User=kensei
-Group=kensei
 WorkingDirectory=/home/kensei/sites/kbmemo-media
 
 ExecStart=/home/kensei/sites/kbmemo-media/start.sh
@@ -597,13 +593,13 @@ StandardOutput=journal
 StandardError=journal
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 ----
 
 [source,bash]
 ----
-sudo systemctl daemon-reload
-sudo systemctl enable --now tsuzura
+systemctl --user daemon-reload
+systemctl --user enable --now kbmemo-media
 curl -fsS http://127.0.0.1:3008/up
 ----
 
@@ -618,8 +614,7 @@ bin/deploy
 ----
 
 * ヘルスチェック既定: `https://media.kbmemo.net/up`
-* 環境変数: `TSUZURA_SYSTEMD_UNIT`（既定 `tsuzura`）、`TSUZURA_HEALTH_URL`、`TSUZURA_GIT_REMOTE`
-* sudoers 例（任意）: `kensei ALL=(root) NOPASSWD: /bin/systemctl restart tsuzura, /bin/systemctl status tsuzura`
+* 環境変数: `TSUZURA_SYSTEMD_UNIT`（既定 `kbmemo-media`）、`TSUZURA_HEALTH_URL`、`TSUZURA_GIT_REMOTE`
 
 === `/cable` の確認
 
@@ -643,7 +638,7 @@ docker compose -f docker-compose.kroki.yml up -d
 curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8001/health
 ----
 
-`.env.production` の `KROKI_URL=http://127.0.0.1:8001` と一致させ、`sudo systemctl restart kbmemo` します。
+`.env.production` の `KROKI_URL=http://127.0.0.1:8001` と一致させ、`systemctl --user restart kbmemo` します。
 
 [[logging-journal]]
 == ログの参照（journal）
@@ -663,11 +658,11 @@ config.logger = ActiveSupport::TaggedLogging.logger(STDOUT)
 |===
 |目的 |コマンド
 
-|リアルタイム追跡 |`sudo journalctl -u kbmemo -f`
-|直近 N 行 |`sudo journalctl -u kbmemo -n 200 --no-pager`
-|今日分 |`sudo journalctl -u kbmemo --since today`
-|エラー優先 |`sudo journalctl -u kbmemo -p err..alert`
-|起動直後の失敗 |`sudo journalctl -u kbmemo -b -n 100`
+|リアルタイム追跡 |`journalctl --user -u kbmemo -f`
+|直近 N 行 |`journalctl --user -u kbmemo -n 200 --no-pager`
+|今日分 |`journalctl --user -u kbmemo --since today`
+|エラー優先 |`journalctl --user -u kbmemo -p err..alert`
+|起動直後の失敗 |`journalctl --user -u kbmemo -b -n 100`
 |===
 
 `kbmemo` は systemd ユニット名です。`StandardOutput=journal` / `StandardError=journal` をユニットに書いておくと明示的です（上記例に含む）。
@@ -710,16 +705,7 @@ bin/deploy --branch main
 [source,bash]
 ----
 bin/deploy --skip-restart
-sudo systemctl restart kbmemo
-----
-
-初回のみ、`kensei` ユーザーがパスワードなしで再起動できるよう sudoers を設定すると便利です（任意）:
-
-[source,bash]
-----
-sudo visudo -f /etc/sudoers.d/kbmemo-deploy
-# 次の 1 行を追加:
-# kensei ALL=(root) NOPASSWD: /bin/systemctl restart kbmemo, /bin/systemctl status kbmemo
+systemctl --user restart kbmemo
 ----
 
 手動で同等の作業を行う場合:
@@ -736,7 +722,7 @@ bundle exec rails db:migrate
 bundle exec rails assets:precompile
 
 chmod 750 start.sh   # 必要なら
-sudo systemctl restart kbmemo
+systemctl --user restart kbmemo
 curl -fsS https://kbmemo.net/up
 ----
 
@@ -775,9 +761,9 @@ PostgreSQL は `pg_dump` / `pg_dumpall` でバックアップする（メンテ�
 |操作 |コマンド
 
 |更新デプロイ |`cd /home/kensei/sites/kbmemo && bin/deploy`
-|起動 / 停止 / 再起動 |`sudo systemctl start|stop|restart kbmemo`
-|状態 |`sudo systemctl status kbmemo`
-|アプリログ（追跡） |`sudo journalctl -u kbmemo -f`
+|起動 / 停止 / 再起動 |`systemctl --user start|stop|restart kbmemo`
+|状態 |`systemctl --user status kbmemo`
+|アプリログ（追跡） |`journalctl --user -u kbmemo -f`
 |Rails コンソール |`cd /home/kensei/sites/kbmemo && set -a && source .env.production && set +a && bundle exec rails console`
 |nginx ログ |`tail -f /var/log/nginx/kbmemo.net.error.log`
 |===
@@ -789,7 +775,7 @@ PostgreSQL は `pg_dump` / `pg_dumpall` でバックアップする（メンテ�
 |症状 |対処
 
 |`log/production.log` が無い |正常。<<logging-journal>> を参照
-|502 Bad Gateway |`systemctl status kbmemo`、`journalctl -u kbmemo -n 50`、`curl http://127.0.0.1:3007/up`
+|502 Bad Gateway |`systemctl --user status kbmemo`、`journalctl --user -u kbmemo -n 50`、`curl http://127.0.0.1:3007/up`
 |WebSocket / Turbo が更新されない |nginx に `map $http_upgrade` と `location /cable` があるか、`curl -i -N … https://kbmemo.net/cable` で `101` になるか確認
 |Blocked host |`production.rb` の `config.hosts`
 |リダイレクトループ |`assume_ssl` / `force_ssl` と nginx の `X-Forwarded-Proto`
