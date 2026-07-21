@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class GoogleCalendarSyncJob < ApplicationJob
-  queue_as :default
+  queue_as :kbmemo_site
 
   def perform(account_id)
     account = Account.find_by(id: account_id)

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class NyoyMemoWebhookJob < ApplicationJob
-  queue_as :default
+  queue_as :kbmemo_site
 
   def perform(event_type:, account_id:, memo_uid:, memo_id: nil, memo_updated_at: nil, occurred_at: nil, event_id: nil)
     payload = {

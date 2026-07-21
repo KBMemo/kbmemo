@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class MemoEmbeddingIndexJob < ApplicationJob
-  queue_as :default
+  queue_as :kbmemo_site
 
   def perform(memo_id)
     memo = Memo.find_by(id: memo_id)
