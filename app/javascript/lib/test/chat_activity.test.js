@@ -41,7 +41,8 @@ describe("chat_activity", () => {
   it("renders running activity with default steps", () => {
     const panel = buildChatActivity({ running: true, elapsedMs: 500 })
     expect(panel.classList.contains("kb-ai-chat-activity-running")).toBe(true)
-    expect(panel.querySelectorAll(".kb-ai-chat-step")).toHaveLength(4)
+    expect(panel.querySelectorAll(".kb-ai-chat-step")).toHaveLength(5)
+    expect(panel.textContent).toContain("画像解析")
     expect(panel.textContent).toContain("処理中")
   })
 })
