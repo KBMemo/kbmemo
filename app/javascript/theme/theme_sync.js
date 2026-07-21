@@ -1,4 +1,4 @@
-import { csrfFetchHeaders, getCsrfToken } from "@kbmemo/adoc-kbmemo"
+import { csrfFetchHeaders, getCsrfToken } from "../lib/csrf_fetch.js"
 import { THEME_CHANGE_EVENT } from "./theme.js"
 import { SKIN_CHANGE_EVENT } from "./memo_skins.js"
 import { DEFAULT_SKIN_ID, loadThemeStorage, saveThemeStorage } from "./theme_storage.js"

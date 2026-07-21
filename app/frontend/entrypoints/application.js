@@ -2,7 +2,7 @@ import "../styles/application.css"
 
 import "../../javascript/trusted_types_default_policy.js"
 import "@hotwired/turbo-rails"
-import { csrfFetchHeaders } from "@kbmemo/adoc-kbmemo"
+import { csrfFetchHeaders } from "../../javascript/lib/csrf_fetch.js"
 import "../../javascript/controllers"
 import { initUserInvalidAriaSync } from "../../javascript/forms/user_invalid_aria.js"
 import { highlightMemoBodies } from "../../javascript/memo_body_highlight.js"

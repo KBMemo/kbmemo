@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { useDebounce } from "stimulus-use"
-import { csrfFetchHeaders, getCsrfToken } from "@kbmemo/adoc-kbmemo"
+import { csrfFetchHeaders, getCsrfToken } from "../lib/csrf_fetch.js"
 
 const TITLE_PLACEHOLDER = " - 未入力 - "
 

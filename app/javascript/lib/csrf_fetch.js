@@ -1,4 +1,4 @@
-import { csrfFetchHeaders, getCsrfToken } from "@kbmemo/adoc-kbmemo"
+import { csrfFetchHeaders, getCsrfToken } from "../../../packages/adoc-kbmemo/hostConfig.js"
 
 export { getCsrfToken, csrfFetchHeaders }
 
