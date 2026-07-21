@@ -57,6 +57,7 @@
     "svgedit": "^7.4.1"
   },
   "overrides": {
+    "esbuild": "0.28.1",
     "jspdf": "4.2.1"
   }
 }
