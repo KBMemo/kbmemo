@@ -10,6 +10,7 @@ class ProfilesController < ApplicationController
     if @account.update(profile_params)
       redirect_to edit_profile_path, notice: "プロフィールを保存しました。"
     else
+      prepare_profile_edit
       render :edit, status: :unprocessable_entity
     end
   end
@@ -30,7 +31,10 @@ class ProfilesController < ApplicationController
 
   def create_web_clip_token
     @account = rodauth.rails_account
-    @revealed_web_clip_token = @account.generate_web_clip_token!
+    @web_clip_token, @revealed_web_clip_token = WebClipToken.issue!(
+      account: @account,
+      name: params[:web_clip_token_name]
+    )
     prepare_profile_edit
     flash.now[:notice] = "Web クリップトークンを発行しました。下の枠内に表示されます（再表示できません）。"
     render :edit
@@ -38,7 +42,7 @@ class ProfilesController < ApplicationController
 
   def destroy_web_clip_token
     @account = rodauth.rails_account
-    @account.revoke_web_clip_token!
+    @account.web_clip_tokens.find(params[:token_id]).destroy!
     redirect_to edit_profile_path, notice: "Web クリップトークンを無効化しました。"
   end
 
@@ -60,6 +64,7 @@ class ProfilesController < ApplicationController
 
   def prepare_profile_edit
     @account ||= rodauth.rails_account
+    @web_clip_tokens = @account.web_clip_tokens.order(created_at: :desc, id: :desc)
     @google_calendar_callback_url = google_calendar_callback_url(
       host: request.host,
       port: google_calendar_callback_port,

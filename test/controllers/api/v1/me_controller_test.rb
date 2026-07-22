@@ -28,7 +28,7 @@ class Api::V1::MeControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "web clip token cannot access account api" do
-    @token = @account.generate_web_clip_token!
+    _record, @token = WebClipToken.issue!(account: @account)
 
     get api_v1_me_path, headers: auth_headers
 

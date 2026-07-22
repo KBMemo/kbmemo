@@ -142,15 +142,8 @@ section.mt-10#web-clip-token data-controller=(@revealed_web_clip_token.present? 
     | ブックマークレットから選択範囲を保存するための専用トークンです。
     code.kb-code-inline POST /api/clips
     |  以外の API には使用できません。
-  - if @account.web_clip_token_configured?
-    p.mt-2.text-xs.kb-status-success
-      | 設定済み（先頭:
-      code.kb-code-inline = @account.web_clip_token_prefix
-      | ）
-    - if @account.web_clip_token_created_at
-      p.mt-1.text-xs.kb-text-muted
-        | 発行日時:
-        = l(@account.web_clip_token_created_at, format: :long)
+  - if @web_clip_tokens.any?
+    p.mt-2.text-xs.kb-status-success = "#{@web_clip_tokens.size} 件のトークンが有効です"
   - else
     p.mt-2.text-xs.kb-status-warning 未設定 — ブックマークレットから保存できません
 
@@ -159,12 +152,25 @@ section.mt-10#web-clip-token data-controller=(@revealed_web_clip_token.present? 
       p.text-sm.font-medium 発行したトークン（再表示できません）
       code.mt-2.block.overflow-x-auto.rounded.kb-chrome-panel.px-3.py-2.text-xs.kb-text-primary = @revealed_web_clip_token
 
-  .mt-4.flex.flex-wrap.gap-3
-    = button_to "トークンを発行", web_clip_token_profile_path, method: :post, class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }, form: { data: { turbo: false, turbo_confirm: "既存のトークンは無効になります。続行しますか？" } }
-    - if @account.web_clip_token_configured?
-      = button_to "トークンを無効化", web_clip_token_profile_path, method: :delete, class: "kb-chrome-btn-secondary kb-btn-md", form: { data: { turbo_confirm: "ブックマークレットから保存できなくなります。続行しますか？" } }
+  = form_with url: web_clip_tokens_profile_path, method: :post, class: "mt-4 flex flex-wrap items-end gap-3", data: { turbo: false } do |form|
+    .min-w-64
+      = form.label :web_clip_token_name, "端末名（任意）", class: kb_label
+      = form.text_field :web_clip_token_name, maxlength: 80, placeholder: "例: 自宅 Chrome", class: kb_field_input_classes
+    = form.submit "新しいトークンを発行", class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
 
-  = render "profiles/clip_bookmarklet_setup", base_url: request.base_url, revealed_token: @revealed_web_clip_token, token_configured: @account.web_clip_token_configured?
+  - if @web_clip_tokens.any?
+    ul.mt-4.divide-y.kb-border-subtle
+      - @web_clip_tokens.each do |token|
+        li.flex.flex-wrap.items-center.justify-between.gap-3.py-3
+          div
+            p.text-sm.font-medium.kb-text-primary = token.name.presence || "名称なし"
+            p.mt-1.text-xs.kb-text-muted
+              code.kb-code-inline = token.token_prefix
+              |  ・
+              = l(token.created_at, format: :long)
+          = button_to "無効化", web_clip_token_profile_path(token_id: token.id), method: :delete, class: "kb-chrome-btn-secondary kb-btn-sm", form: { data: { turbo_confirm: "この端末のWeb クリップトークンを無効化しますか？" } }
+
+  = render "profiles/clip_bookmarklet_setup", base_url: request.base_url, revealed_token: @revealed_web_clip_token, token_configured: @web_clip_tokens.any?
 
 section.mt-10#tsuzura-cli-token data-controller=(@revealed_tsuzura_api_token.present? ? "scroll-into-view" : nil) tabindex=(@revealed_tsuzura_api_token.present? ? "-1" : nil)
   h2 class=kb_section_title Tsuzura CLI トークン

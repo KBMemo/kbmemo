@@ -66,23 +66,37 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_not account.reload.api_token_configured?
   end
 
-  test "signed-in user can generate and revoke web clip token" do
+  test "signed-in user can generate and revoke one web clip token" do
     account = accounts(:one)
-    assert_not account.web_clip_token_configured?
+    assert_empty account.web_clip_tokens
 
-    post web_clip_token_profile_url
+    post web_clip_tokens_profile_url, params: { web_clip_token_name: "自宅 Chrome" }
 
     assert_response :success
-    assert account.reload.web_clip_token_configured?
+    token = account.web_clip_tokens.sole
+    assert_equal "自宅 Chrome", token.name
     assert_match(/kbmemo_clip_/, response.body)
     assert_includes response.body, "clip-bookmarklet-setup"
     assert_includes response.body, "kbmemo に保存"
     assert_includes response.body, "javascript:"
     assert_select "section#web-clip-token[data-controller~='scroll-into-view'][tabindex='-1']"
 
-    delete web_clip_token_profile_url
+    delete web_clip_token_profile_url(token_id: token.id)
     assert_redirected_to edit_profile_path
-    assert_not account.reload.web_clip_token_configured?
+    assert_empty account.web_clip_tokens.reload
+  end
+
+  test "issuing another web clip token keeps existing browser token active" do
+    account = accounts(:one)
+    existing, = WebClipToken.issue!(account: account, name: "既存 Chrome")
+
+    post web_clip_tokens_profile_url, params: { web_clip_token_name: "新しい Firefox" }
+
+    assert_response :success
+    assert_equal 2, account.web_clip_tokens.reload.count
+    assert account.web_clip_tokens.exists?(existing.id)
+    assert_includes response.body, "既存 Chrome"
+    assert_includes response.body, "新しい Firefox"
   end
 
   test "signed-in user can generate and reveal tsuzura api token" do

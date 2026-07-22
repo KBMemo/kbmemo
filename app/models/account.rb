@@ -21,16 +21,12 @@
 #  tsuzura_api_token_created_at  :datetime
 #  tsuzura_api_token_digest      :string
 #  tsuzura_api_token_prefix      :string
-#  web_clip_token_created_at     :datetime
-#  web_clip_token_digest         :string
-#  web_clip_token_prefix         :string
 #
 # Indexes
 #
 #  index_accounts_on_api_token_digest          (api_token_digest) UNIQUE
 #  index_accounts_on_email                     (email) UNIQUE WHERE (status = ANY (ARRAY[1, 2]))
 #  index_accounts_on_tsuzura_api_token_digest  (tsuzura_api_token_digest) UNIQUE
-#  index_accounts_on_web_clip_token_digest     (web_clip_token_digest) UNIQUE
 #
 class Account < ApplicationRecord
   include Rodauth::Rails.model
@@ -50,6 +46,7 @@ class Account < ApplicationRecord
   has_many :memo_group_memberships, dependent: :destroy
   has_many :memo_groups, through: :memo_group_memberships
   has_many :agent_chat_conversations, dependent: :destroy
+  has_many :web_clip_tokens, dependent: :destroy
 
   after_create_commit :provision_memo_directory_user_space
 
@@ -84,35 +81,6 @@ class Account < ApplicationRecord
     return nil if digest.blank?
 
     find_by(api_token_digest: digest)
-  end
-
-  def web_clip_token_configured?
-    web_clip_token_digest.present?
-  end
-
-  def generate_web_clip_token!
-    raw = "kbmemo_clip_#{SecureRandom.urlsafe_base64(32)}"
-    update!(
-      web_clip_token_digest: self.class.digest_token(raw),
-      web_clip_token_prefix: raw[0, 20],
-      web_clip_token_created_at: Time.current
-    )
-    raw
-  end
-
-  def revoke_web_clip_token!
-    update!(
-      web_clip_token_digest: nil,
-      web_clip_token_prefix: nil,
-      web_clip_token_created_at: nil
-    )
-  end
-
-  def self.find_by_web_clip_token(token)
-    digest = digest_token(token)
-    return nil if digest.blank?
-
-    find_by(web_clip_token_digest: digest)
   end
 
   def self.digest_token(token)

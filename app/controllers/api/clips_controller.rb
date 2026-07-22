@@ -40,7 +40,7 @@ module Api
 
     def authenticate_clip_token!
       token = bearer_token
-      @current_account = Account.find_by_web_clip_token(token) || Account.find_by_api_token(token)
+      @current_account = WebClipToken.authenticate(token)&.account || Account.find_by_api_token(token)
       return if @current_account
 
       render json: { error: "認証に失敗しました。" }, status: :unauthorized

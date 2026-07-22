@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_003000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgroonga"
@@ -58,13 +58,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_003000) do
     t.datetime "tsuzura_api_token_created_at"
     t.string "tsuzura_api_token_digest"
     t.string "tsuzura_api_token_prefix"
-    t.datetime "web_clip_token_created_at"
-    t.string "web_clip_token_digest"
-    t.string "web_clip_token_prefix"
     t.index ["api_token_digest"], name: "index_accounts_on_api_token_digest", unique: true
     t.index ["email"], name: "index_accounts_on_email", unique: true, where: "(status = ANY (ARRAY[1, 2]))"
     t.index ["tsuzura_api_token_digest"], name: "index_accounts_on_tsuzura_api_token_digest", unique: true
-    t.index ["web_clip_token_digest"], name: "index_accounts_on_web_clip_token_digest", unique: true
   end
 
   create_table "active_storage_attachments", force: :cascade do |t|
@@ -330,6 +326,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_003000) do
     t.index ["owner_account_id"], name: "index_tsuzura_media_items_on_owner_account_id"
   end
 
+  create_table "web_clip_tokens", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.datetime "created_at", null: false
+    t.string "name"
+    t.string "token_digest", null: false
+    t.string "token_prefix", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_web_clip_tokens_on_account_id"
+    t.index ["token_digest"], name: "index_web_clip_tokens_on_token_digest", unique: true
+  end
+
   add_foreign_key "account_login_change_keys", "accounts", column: "id"
   add_foreign_key "account_password_reset_keys", "accounts", column: "id"
   add_foreign_key "account_remember_keys", "accounts", column: "id"
@@ -364,4 +371,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_003000) do
   add_foreign_key "notebooks", "accounts"
   add_foreign_key "tsuzura_album_items", "tsuzura_albums", column: "album_id"
   add_foreign_key "tsuzura_album_items", "tsuzura_media_items", column: "media_item_id"
+  add_foreign_key "web_clip_tokens", "accounts"
 end

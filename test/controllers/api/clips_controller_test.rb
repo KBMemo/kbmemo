@@ -6,7 +6,7 @@ class Api::ClipsControllerTest < ActionDispatch::IntegrationTest
   setup do
     sign_out
     @account = accounts(:one)
-    @token = @account.generate_web_clip_token!
+    _record, @token = WebClipToken.issue!(account: @account, name: "Test browser")
   end
 
   test "create clip with bearer token saves memo under clippings directory" do
