@@ -62,6 +62,14 @@
 - AsciiDoc passthrough は表示・preview の変換直前に制限する。DB 上の source を破壊的に書き換えない。詳細は `docs/architecture/memo-adoc-passthrough-restriction.adoc`。
 - 方針と syntax 対応状況は `docs/architecture/memo-body-editor-roadmap.adoc` と `docs/architecture/asciidoc-syntax-coverage-roadmap.adoc` を参照する。
 
+### AdocForge との統合方針
+
+- 当面は徒然で使い勝手の改善と実運用検証を先行する。ただし、AsciiDoc の解析、編集、補完、ハイライト、preview、WYSIWYG などの汎用機能は AdocForge にも同等の機能を取り込む前提で設計する。
+- 汎用ロジックを Rails、Stimulus、徒然の DOM、保存 API、theme class に直接依存させない。徒然固有の接続は adapter / controller に置き、AdocForge へ移せる境界を維持する。
+- 機能の区切りごとに徒然側の実装と知見を AdocForge へ反映し、公開 API、test、documentation、playground を更新する。徒然だけに汎用機能を長期間 fork した状態で残さない。
+- AdocForge 側で必要な機能が揃い、npm package の安定版を公開した段階で、徒然の `@kbmemo/adoc-*` workspace package 利用を `@adocforge/*` package 利用へ切り替える。
+- 切り替えは一括置換を前提にせず、対応する AdocForge API、bundle size、browser test、既存メモの互換性を確認しながら段階的に行う。移行完了後、重複する `packages/adoc-*` は互換 adapter を除いて廃止する。
+
 ## API と外部連携
 
 - アカウント API トークンは `/api/v1/*` 用。Web クリップトークンは `POST /api/clips` 専用で、複数発行・個別失効できる。用途の異なる token を流用しない。
