@@ -5,8 +5,8 @@ module Api
     class BaseController < Api::BaseController
       private
 
-      def authenticate_clip_api_token!
-        @current_account = Account.find_by_clip_api_token(bearer_token)
+      def authenticate_api_token!
+        @current_account = Account.find_by_api_token(bearer_token)
         return if @current_account
 
         render_api_error(code: "unauthorized", message: "認証に失敗しました。", status: :unauthorized)

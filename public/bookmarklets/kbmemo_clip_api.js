@@ -41,14 +41,14 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
 
   if (!baseOrigin || !apiToken) {
     window.alert(
-      'kbmemo の URL と API トークンが設定されていません。プロフィールからブックマークレットを取り直してください。'
+      'kbmemo の URL と Web クリップトークンが設定されていません。プロフィールからブックマークレットを取り直してください。'
     )
     return
   }
 
-  if (!/^kbmemo_/.test(apiToken)) {
+  if (!/^kbmemo_clip_/.test(apiToken)) {
     window.alert(
-      'API トークンが正しくありません。プロフィールでトークンを再発行してブックマークレットを取り直してください。'
+      'Web クリップトークンが正しくありません。プロフィールでトークンを再発行してブックマークレットを取り直してください。'
     )
     return
   }

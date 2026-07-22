@@ -69,6 +69,9 @@
             openLink.rel = 'noopener'
             openLink.className = 'primary'
             openLink.textContent = 'メモを開く'
+            openLink.addEventListener('click', () => {
+              window.setTimeout(() => window.close(), 0)
+            })
             actions.appendChild(openLink)
           }
 
@@ -93,8 +96,8 @@
           if (!event.data || event.data.type !== CLIP) return
 
           const token = (event.data.token || '').trim()
-          if (!/^kbmemo_/.test(token)) {
-            setStatus('API トークンが無効です。')
+          if (!/^kbmemo_clip_/.test(token)) {
+            setStatus('Web クリップトークンが無効です。')
             window.opener.postMessage(
               { type: CLIP_DONE, ok: false, error: 'invalid token' },
               '*'

@@ -5,14 +5,14 @@ module Api
     include Pundit::Authorization
     include Rails.application.routes.url_helpers
 
-    before_action :authenticate_clip_api_token!
+    before_action :authenticate_api_token!
 
     rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
     private
 
-    def authenticate_clip_api_token!
-      @current_account = Account.find_by_clip_api_token(bearer_token)
+    def authenticate_api_token!
+      @current_account = Account.find_by_api_token(bearer_token)
       return if @current_account
 
       render json: { error: "認証に失敗しました。" }, status: :unauthorized

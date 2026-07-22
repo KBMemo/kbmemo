@@ -6,7 +6,7 @@ class Api::ClipsControllerTest < ActionDispatch::IntegrationTest
   setup do
     sign_out
     @account = accounts(:one)
-    @token = @account.generate_clip_api_token!
+    @token = @account.generate_web_clip_token!
   end
 
   test "create clip with bearer token saves memo under clippings directory" do
@@ -42,6 +42,14 @@ class Api::ClipsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unauthorized
     assert_equal "*", response.headers["Access-Control-Allow-Origin"]
+  end
+
+  test "account api token can also create a clip" do
+    @token = @account.generate_api_token!
+
+    post api_clips_path, params: { plain: "clip body" }, headers: auth_headers
+
+    assert_response :created
   end
 
   test "create clip without html or plain returns unprocessable entity" do

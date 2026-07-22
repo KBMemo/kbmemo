@@ -4,10 +4,10 @@
 #
 #  id                            :bigint           not null, primary key
 #  admin                         :boolean          default(FALSE), not null
+#  api_token_created_at          :datetime
+#  api_token_digest              :string
+#  api_token_prefix              :string
 #  chat_server_settings          :jsonb            not null
-#  clip_api_token_created_at     :datetime
-#  clip_api_token_digest         :string
-#  clip_api_token_prefix         :string
 #  email                         :string           not null
 #  google_calendar_meta          :json             not null
 #  google_calendar_refresh_token :text
@@ -21,12 +21,16 @@
 #  tsuzura_api_token_created_at  :datetime
 #  tsuzura_api_token_digest      :string
 #  tsuzura_api_token_prefix      :string
+#  web_clip_token_created_at     :datetime
+#  web_clip_token_digest         :string
+#  web_clip_token_prefix         :string
 #
 # Indexes
 #
-#  index_accounts_on_clip_api_token_digest     (clip_api_token_digest) UNIQUE
+#  index_accounts_on_api_token_digest          (api_token_digest) UNIQUE
 #  index_accounts_on_email                     (email) UNIQUE WHERE (status = ANY (ARRAY[1, 2]))
 #  index_accounts_on_tsuzura_api_token_digest  (tsuzura_api_token_digest) UNIQUE
+#  index_accounts_on_web_clip_token_digest     (web_clip_token_digest) UNIQUE
 #
 class Account < ApplicationRecord
   include Rodauth::Rails.model
@@ -53,40 +57,67 @@ class Account < ApplicationRecord
     openai_api_key.present?
   end
 
-  def clip_api_token_configured?
-    clip_api_token_digest.present?
+  def api_token_configured?
+    api_token_digest.present?
   end
 
-  def generate_clip_api_token!
+  def generate_api_token!
     raw = "kbmemo_#{SecureRandom.urlsafe_base64(32)}"
     update!(
-      clip_api_token_digest: self.class.digest_clip_api_token(raw),
-      clip_api_token_prefix: raw[0, 16],
-      clip_api_token_created_at: Time.current
+      api_token_digest: self.class.digest_token(raw),
+      api_token_prefix: raw[0, 16],
+      api_token_created_at: Time.current
     )
     raw
   end
 
-  def revoke_clip_api_token!
+  def revoke_api_token!
     update!(
-      clip_api_token_digest: nil,
-      clip_api_token_prefix: nil,
-      clip_api_token_created_at: nil
+      api_token_digest: nil,
+      api_token_prefix: nil,
+      api_token_created_at: nil
     )
   end
 
-  def self.find_by_clip_api_token(token)
-    digest = digest_clip_api_token(token)
+  def self.find_by_api_token(token)
+    digest = digest_token(token)
     return nil if digest.blank?
 
-    find_by(clip_api_token_digest: digest)
+    find_by(api_token_digest: digest)
   end
 
-  def self.digest_clip_api_token(token)
-    value = token.to_s.strip
-    return nil if value.blank?
+  def web_clip_token_configured?
+    web_clip_token_digest.present?
+  end
 
-    Digest::SHA256.hexdigest(value)
+  def generate_web_clip_token!
+    raw = "kbmemo_clip_#{SecureRandom.urlsafe_base64(32)}"
+    update!(
+      web_clip_token_digest: self.class.digest_token(raw),
+      web_clip_token_prefix: raw[0, 20],
+      web_clip_token_created_at: Time.current
+    )
+    raw
+  end
+
+  def revoke_web_clip_token!
+    update!(
+      web_clip_token_digest: nil,
+      web_clip_token_prefix: nil,
+      web_clip_token_created_at: nil
+    )
+  end
+
+  def self.find_by_web_clip_token(token)
+    digest = digest_token(token)
+    return nil if digest.blank?
+
+    find_by(web_clip_token_digest: digest)
+  end
+
+  def self.digest_token(token)
+    value = token.to_s.strip
+    Digest::SHA256.hexdigest(value) if value.present?
   end
 
   def tsuzura_api_token_configured?

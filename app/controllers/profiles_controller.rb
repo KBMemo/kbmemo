@@ -14,18 +14,32 @@ class ProfilesController < ApplicationController
     end
   end
 
-  def create_clip_api_token
+  def create_api_token
     @account = rodauth.rails_account
-    @revealed_clip_api_token = @account.generate_clip_api_token!
+    @revealed_api_token = @account.generate_api_token!
     prepare_profile_edit
-    flash.now[:notice] = "クリップ API トークンを発行しました。下の枠内に表示されます（再表示できません）。"
+    flash.now[:notice] = "アカウント API トークンを発行しました。下の枠内に表示されます（再表示できません）。"
     render :edit
   end
 
-  def destroy_clip_api_token
+  def destroy_api_token
     @account = rodauth.rails_account
-    @account.revoke_clip_api_token!
-    redirect_to edit_profile_path, notice: "クリップ API トークンを無効化しました。"
+    @account.revoke_api_token!
+    redirect_to edit_profile_path, notice: "アカウント API トークンを無効化しました。"
+  end
+
+  def create_web_clip_token
+    @account = rodauth.rails_account
+    @revealed_web_clip_token = @account.generate_web_clip_token!
+    prepare_profile_edit
+    flash.now[:notice] = "Web クリップトークンを発行しました。下の枠内に表示されます（再表示できません）。"
+    render :edit
+  end
+
+  def destroy_web_clip_token
+    @account = rodauth.rails_account
+    @account.revoke_web_clip_token!
+    redirect_to edit_profile_path, notice: "Web クリップトークンを無効化しました。"
   end
 
   def create_tsuzura_api_token

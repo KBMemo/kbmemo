@@ -50,24 +50,39 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "clip-bookmarklet-api-token"
   end
 
-  test "signed-in user can generate and revoke clip api token" do
+  test "signed-in user can generate and revoke account api token" do
     account = accounts(:one)
-    assert_not account.clip_api_token_configured?
+    assert_not account.api_token_configured?
 
-    post clip_api_token_profile_url
+    post api_token_profile_url
     assert_response :success
-    assert account.reload.clip_api_token_configured?
+    assert account.reload.api_token_configured?
     assert_match(/kbmemo_/, response.body)
+    assert_select "section#account-api-token[data-controller~='scroll-into-view'][tabindex='-1']"
+    assert_no_match(/scrollIntoView/, response.body)
+
+    delete api_token_profile_url
+    assert_redirected_to edit_profile_path
+    assert_not account.reload.api_token_configured?
+  end
+
+  test "signed-in user can generate and revoke web clip token" do
+    account = accounts(:one)
+    assert_not account.web_clip_token_configured?
+
+    post web_clip_token_profile_url
+
+    assert_response :success
+    assert account.reload.web_clip_token_configured?
+    assert_match(/kbmemo_clip_/, response.body)
     assert_includes response.body, "clip-bookmarklet-setup"
     assert_includes response.body, "kbmemo に保存"
     assert_includes response.body, "javascript:"
-    assert_not_includes response.body, 'id="clip-bookmarklet-api-token"'
-    assert_select "section#clip-api-token[data-controller~='scroll-into-view'][tabindex='-1']"
-    assert_no_match(/scrollIntoView/, response.body)
+    assert_select "section#web-clip-token[data-controller~='scroll-into-view'][tabindex='-1']"
 
-    delete clip_api_token_profile_url
+    delete web_clip_token_profile_url
     assert_redirected_to edit_profile_path
-    assert_not account.reload.clip_api_token_configured?
+    assert_not account.reload.web_clip_token_configured?
   end
 
   test "signed-in user can generate and reveal tsuzura api token" do

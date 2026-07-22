@@ -6,7 +6,7 @@ class Api::V1::Memos::ExportControllerTest < ActionDispatch::IntegrationTest
   setup do
     sign_out
     @account = accounts(:one)
-    @token = @account.generate_clip_api_token!
+    @token = @account.generate_api_token!
     @memo = memos(:one)
   end
 
@@ -70,7 +70,7 @@ class Api::V1::Memos::ExportControllerTest < ActionDispatch::IntegrationTest
       memo_group: memo_groups(:beta),
       file_committed_at: Time.current
     )
-    token = accounts(:two).generate_clip_api_token!
+    token = accounts(:two).generate_api_token!
 
     get export_api_v1_memos_path, headers: auth_headers(token: token)
 

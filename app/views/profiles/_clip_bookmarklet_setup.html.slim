@@ -10,7 +10,7 @@ ruby:
 .mt-8.rounded-lg.kb-chrome-panel.p-4 data-controller="clip-bookmarklet-setup" data-clip-bookmarklet-setup-default-base-url-value=setup_base_url data-clip-bookmarklet-setup-revealed-token-value=(revealed_token.to_s) data-clip-bookmarklet-setup-token-configured-value=(token_configured ? "true" : "false")
   h3.text-sm.font-semibold.kb-text-primary Web クリップ ブックマークレット
   p.mt-1.text-sm.kb-text-secondary
-    | Web ページで選択した範囲を kbmemo へ保存します。クリップ API トークンを発行したら、下のリンクをブックマークバーへドラッグしてください（URL やトークンの手入力は不要です）。GitHub など CSP が厳しいサイトではポップアップが開きます。
+    | Web ページで選択した範囲を kbmemo へ保存します。Web クリップトークンを発行したら、下のリンクをブックマークバーへドラッグしてください（URL やトークンの手入力は不要です）。GitHub など CSP が厳しいサイトではポップアップが開きます。
 
   - if revealed_token.present?
     p.mt-2.text-xs.kb-status-warning

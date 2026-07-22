@@ -6,10 +6,10 @@
 #
 #  id                            :bigint           not null, primary key
 #  admin                         :boolean          default(FALSE), not null
+#  api_token_created_at          :datetime
+#  api_token_digest              :string
+#  api_token_prefix              :string
 #  chat_server_settings          :jsonb            not null
-#  clip_api_token_created_at     :datetime
-#  clip_api_token_digest         :string
-#  clip_api_token_prefix         :string
 #  email                         :string           not null
 #  google_calendar_meta          :json             not null
 #  google_calendar_refresh_token :text
@@ -23,12 +23,16 @@
 #  tsuzura_api_token_created_at  :datetime
 #  tsuzura_api_token_digest      :string
 #  tsuzura_api_token_prefix      :string
+#  web_clip_token_created_at     :datetime
+#  web_clip_token_digest         :string
+#  web_clip_token_prefix         :string
 #
 # Indexes
 #
-#  index_accounts_on_clip_api_token_digest     (clip_api_token_digest) UNIQUE
+#  index_accounts_on_api_token_digest          (api_token_digest) UNIQUE
 #  index_accounts_on_email                     (email) UNIQUE WHERE (status = ANY (ARRAY[1, 2]))
 #  index_accounts_on_tsuzura_api_token_digest  (tsuzura_api_token_digest) UNIQUE
+#  index_accounts_on_web_clip_token_digest     (web_clip_token_digest) UNIQUE
 #
 require "test_helper"
 
@@ -56,5 +60,18 @@ class AccountTest < ActiveSupport::TestCase
     a.nickname = "x" * 41
     assert_not a.valid?
     assert_includes a.errors[:nickname], "is too long (maximum is 40 characters)"
+  end
+
+  test "account and web clip tokens are independent" do
+    account = accounts(:one)
+    api_token = account.generate_api_token!
+    web_clip_token = account.generate_web_clip_token!
+
+    assert api_token.start_with?("kbmemo_")
+    assert web_clip_token.start_with?("kbmemo_clip_")
+    assert_equal account, Account.find_by_api_token(api_token)
+    assert_equal account, Account.find_by_web_clip_token(web_clip_token)
+    assert_nil Account.find_by_api_token(web_clip_token)
+    assert_nil Account.find_by_web_clip_token(api_token)
   end
 end

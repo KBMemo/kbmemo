@@ -630,7 +630,7 @@ Phase 1 は「<<rodauth-shared>>」に確定。以下は全体像。
 
 === 外部 API
 
-* KBMemo `clip_api_token` と同型の **Tsuzura CLI トークン**（`account.tsuzura_api_token_*` 等 — Phase 1 は CLI 用のみ）
+* KBMemo `api_token` と同型の **Tsuzura CLI トークン**（`account.tsuzura_api_token_*` 等 — Phase 1 は CLI 用のみ）
 * スコープ: upload / read / album_manage
 
 == ストレージ・非機能要件
@@ -805,7 +805,7 @@ sign_urls（JSON+CSRF）、TSUZURA_PUBLIC_URL、kbmemo-media bin/deploy。
 
 * `app/services/memo_assets.rb` — 小物アップロードの先例
 * `app/policies/memo_policy.rb` — 共有モデル
-* `app/models/account.rb` — `clip_api_token` パターン
+* `app/models/account.rb` — `api_token` パターン
 * `app/services/clip_asciidoc_processor.rb` — 外部 → メモ取り込み
 * link:google-calendar-sync.adoc[google-calendar-sync.adoc] — OAuth・別サービス sync の構成
 

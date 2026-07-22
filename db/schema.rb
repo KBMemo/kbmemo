@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_17_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_003000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgroonga"
@@ -41,10 +41,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_17_120000) do
 
   create_table "accounts", force: :cascade do |t|
     t.boolean "admin", default: false, null: false
+    t.datetime "api_token_created_at"
+    t.string "api_token_digest"
+    t.string "api_token_prefix"
     t.jsonb "chat_server_settings", default: {}, null: false
-    t.datetime "clip_api_token_created_at"
-    t.string "clip_api_token_digest"
-    t.string "clip_api_token_prefix"
     t.string "email", null: false
     t.json "google_calendar_meta", default: {}, null: false
     t.text "google_calendar_refresh_token"
@@ -58,9 +58,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_17_120000) do
     t.datetime "tsuzura_api_token_created_at"
     t.string "tsuzura_api_token_digest"
     t.string "tsuzura_api_token_prefix"
-    t.index ["clip_api_token_digest"], name: "index_accounts_on_clip_api_token_digest", unique: true
+    t.datetime "web_clip_token_created_at"
+    t.string "web_clip_token_digest"
+    t.string "web_clip_token_prefix"
+    t.index ["api_token_digest"], name: "index_accounts_on_api_token_digest", unique: true
     t.index ["email"], name: "index_accounts_on_email", unique: true, where: "(status = ANY (ARRAY[1, 2]))"
     t.index ["tsuzura_api_token_digest"], name: "index_accounts_on_tsuzura_api_token_digest", unique: true
+    t.index ["web_clip_token_digest"], name: "index_accounts_on_web_clip_token_digest", unique: true
   end
 
   create_table "active_storage_attachments", force: :cascade do |t|

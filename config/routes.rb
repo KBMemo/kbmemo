@@ -41,8 +41,10 @@ Rails.application.routes.draw do
   end
 
   resource :profile, only: %i[edit update] do
-    post :clip_api_token, action: :create_clip_api_token
-    delete :clip_api_token, action: :destroy_clip_api_token
+    post :api_token, action: :create_api_token
+    delete :api_token, action: :destroy_api_token
+    post :web_clip_token, action: :create_web_clip_token
+    delete :web_clip_token, action: :destroy_web_clip_token
     post :tsuzura_api_token, action: :create_tsuzura_api_token
     delete :tsuzura_api_token, action: :destroy_tsuzura_api_token
   end

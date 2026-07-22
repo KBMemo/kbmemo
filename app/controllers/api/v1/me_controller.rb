@@ -7,7 +7,7 @@ module Api
         render json: {
           id: @current_account.id,
           email: @current_account.email,
-          token_type: "clip_api_token",
+          token_type: "account_api_token",
           scopes: []
         }
       end

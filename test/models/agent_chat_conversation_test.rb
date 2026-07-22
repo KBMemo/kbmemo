@@ -1,5 +1,27 @@
 # frozen_string_literal: true
 
+# == Schema Information
+#
+# Table name: agent_chat_conversations
+#
+#  id         :bigint           not null, primary key
+#  title      :string
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#  account_id :bigint           not null
+#  memo_id    :bigint
+#
+# Indexes
+#
+#  index_agent_chat_conversations_on_account_id                 (account_id)
+#  index_agent_chat_conversations_on_account_id_and_updated_at  (account_id,updated_at)
+#  index_agent_chat_conversations_on_memo_id                    (memo_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (account_id => accounts.id)
+#  fk_rails_...  (memo_id => memos.id)
+#
 require "test_helper"
 
 class AgentChatConversationTest < ActiveSupport::TestCase

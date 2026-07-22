@@ -132,7 +132,7 @@
 
     <h2>API 直保存（おすすめ）</h2>
     <p class="note">
-      選択範囲を <code>home/u-&lt;id&gt;/clippings</code> に直接保存します。プロフィールで発行したクリップ API トークンが必要です。GitHub など
+      選択範囲を <code>home/u-&lt;id&gt;/clippings</code> に直接保存します。プロフィールで発行した Web クリップトークンが必要です。GitHub など
       <code>connect-src</code>
       が厳しいサイトでは、kbmemo の relay ページをポップアップで開いて保存します（ポップアップを許可してください）。
     </p>
@@ -144,17 +144,17 @@
         <p>末尾の <code>/</code> は不要です。</p>
       </div>
       <div class="field">
-        <label for="kbmemo-api-token">クリップ API トークン</label>
+        <label for="kbmemo-api-token">Web クリップトークン</label>
         <input
           id="kbmemo-api-token"
           class="mono"
           type="password"
-          placeholder="kbmemo_…"
+          placeholder="kbmemo_clip_…"
           autocomplete="off"
         />
         <p>
           <a href="/profile/edit">プロフィール</a>
-          で発行した <code>kbmemo_...</code> をそのまま貼り付けてください（ページ URL や
+          で発行した <code>kbmemo_clip_...</code> をそのまま貼り付けてください（ページ URL や
           <code>/bookmarklets/index.html</code> ではありません）。
         </p>
         <p id="kbmemo-token-error" class="text-xs text-red-700 hidden"></p>
@@ -218,7 +218,7 @@
     <script>
       ;(() => {
         const STORAGE_BASE = 'kbmemo_clip_base_url'
-        const STORAGE_TOKEN = 'kbmemo_clip_api_token'
+        const STORAGE_TOKEN = 'kbmemo_web_clip_token'
 
         const baseInput = document.getElementById('kbmemo-base-url')
         const tokenInput = document.getElementById('kbmemo-api-token')
@@ -252,7 +252,7 @@
           return ''
         }
 
-        const TOKEN_RE = /^kbmemo_[A-Za-z0-9_-]+$/
+        const TOKEN_RE = /^kbmemo_clip_[A-Za-z0-9_-]+$/
 
         function buildApiBookmarklet(template, baseUrl, token) {
           const code = template
@@ -262,9 +262,9 @@
         }
 
         function validateToken(token) {
-          if (!token) return 'API トークンを入力してください。'
+          if (!token) return 'Web クリップトークンを入力してください。'
           if (!TOKEN_RE.test(token)) {
-            return 'API トークンはプロフィールで発行した kbmemo_... を入力してください。'
+            return 'Web クリップトークンはプロフィールで発行した kbmemo_clip_... を入力してください。'
           }
           return ''
         }
@@ -300,7 +300,7 @@
           } else {
             apiLink.href = '#'
             apiLink.classList.add('disabled')
-            apiLink.title = baseMessage || tokenMessage || 'kbmemo URL と API トークンを入力してください'
+            apiLink.title = baseMessage || tokenMessage || 'kbmemo URL と Web クリップトークンを入力してください'
           }
         }
 

@@ -2,7 +2,8 @@
 
 module Api
   class ClipsController < BaseController
-    skip_before_action :authenticate_clip_api_token!, only: :options
+    skip_before_action :authenticate_api_token!
+    before_action :authenticate_clip_token!, except: :options
 
     def create
       unless clip_payload_present?
@@ -36,6 +37,14 @@ module Api
     end
 
     private
+
+    def authenticate_clip_token!
+      token = bearer_token
+      @current_account = Account.find_by_web_clip_token(token) || Account.find_by_api_token(token)
+      return if @current_account
+
+      render json: { error: "認証に失敗しました。" }, status: :unauthorized
+    end
 
     def clip_params
       params.permit(:html, :url, :title, :plain)

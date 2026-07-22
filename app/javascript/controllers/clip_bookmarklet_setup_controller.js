@@ -1,8 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
 
 const STORAGE_BASE = "kbmemo_clip_base_url"
-const STORAGE_TOKEN = "kbmemo_clip_api_token"
-const TOKEN_RE = /^kbmemo_[A-Za-z0-9_-]+$/
+const STORAGE_TOKEN = "kbmemo_web_clip_token"
+const LEGACY_STORAGE_TOKEN = "kbmemo_clip_api_token"
+const TOKEN_RE = /^kbmemo_clip_[A-Za-z0-9_-]+$/
 
 // プロフィール: 発行直後のトークン埋め込み、または localStorage のトークンで API ブックマークレットを有効化。
 export default class extends Controller {
@@ -23,6 +24,7 @@ export default class extends Controller {
     const revealed = this.revealedTokenValue?.trim()
     if (revealed) {
       localStorage.setItem(STORAGE_TOKEN, revealed)
+      localStorage.removeItem(LEGACY_STORAGE_TOKEN)
     }
 
     const baseUrl = this.resolveBaseUrl()
