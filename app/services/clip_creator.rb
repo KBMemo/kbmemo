@@ -17,6 +17,7 @@ class ClipCreator
     directory = MemoDirectory::UserSpace.clippings_directory(@account)
     memo = Memo.new(account: @account, memo_directory: directory)
     memo.properties = clip_properties(metadata)
+    WebClipTagging.apply!(memo)
     apply_title!(memo, metadata)
     memo.save!
 
