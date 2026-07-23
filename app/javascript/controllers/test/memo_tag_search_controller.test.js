@@ -29,6 +29,7 @@ beforeEach(async () => {
         <button type="button" class="hidden" data-memo-tag-search-target="option" data-tag-id="42" data-tag-name="AI" data-action="click->memo-tag-search#select">AI</button>
         <button type="button" class="hidden" data-memo-tag-search-target="option" data-tag-id="84" data-tag-name="Ａi" data-action="click->memo-tag-search#select">Ａi</button>
         <button type="button" class="hidden" data-memo-tag-search-target="option" data-tag-id="126" data-tag-name="Ruby" data-action="click->memo-tag-search#select">Ruby</button>
+        <button type="button" class="hidden" data-memo-tag-search-target="option" data-tag-id="168" data-tag-name="雲" data-action="click->memo-tag-search#select">雲</button>
       </div>
     </search>
   `
@@ -63,6 +64,18 @@ describe("memo-tag-search", () => {
     expect(input.value).toBe("Ａi")
     expect(document.querySelector("input[type='hidden']").value).toBe("84")
     expect(requestSubmit).toHaveBeenCalledOnce()
+  })
+
+  it("shows only matching Japanese candidates", () => {
+    const input = document.querySelector("input[type='search']")
+    input.value = "雲"
+    input.dispatchEvent(new Event("input"))
+
+    const visibleNames = Array.from(document.querySelectorAll("[data-memo-tag-search-target='option']"))
+      .filter((option) => !option.classList.contains("hidden"))
+      .map((option) => option.dataset.tagName)
+
+    expect(visibleNames).toEqual(["雲"])
   })
 
   it("clears the selected tag and submits the empty filter", () => {

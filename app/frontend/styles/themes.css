@@ -1722,6 +1722,10 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   cursor: pointer;
 }
 
+.kb-tag-search-option.hidden {
+  display: none;
+}
+
 .kb-tag-search-option:hover,
 .kb-tag-search-option.is-active {
   background: var(--kb-bg-muted);
