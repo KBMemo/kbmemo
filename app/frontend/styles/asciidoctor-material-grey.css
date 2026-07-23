@@ -36,12 +36,12 @@
 .memo-body {
   font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
   color: var(--mg-text);
-  line-height: 1.6;
-  font-size: 1.0625rem;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 .memo-body p {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
 }
 
 /* [.lead] 段落 */
@@ -524,8 +524,8 @@
 .memo-body .hdlist > table {
   font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
   color: var(--mg-text);
-  line-height: 1.6;
-  margin: 0 0 1.25em;
+  line-height: 1.5;
+  margin: 0 0 1rem;
 }
 
 .memo-body .ulist > ul,
@@ -557,7 +557,21 @@
 
 .memo-body .ulist > ul > li > p,
 .memo-body .olist > ol > li > p {
-  margin: 0 0 0.625em;
+  margin: 0;
+}
+
+.memo-body .ulist > ul > li > p:not(:last-child),
+.memo-body .olist > ol > li > p:not(:last-child) {
+  margin-bottom: 0.5rem;
+}
+
+.memo-body .ulist > ul > li > p + p,
+.memo-body .olist > ol > li > p + p {
+  margin-top: 1.25rem;
+}
+
+.memo-body :is(.ulist, .olist) li > :is(.ulist, .olist) > :is(ul, ol) {
+  margin-bottom: 0;
 }
 
 /* 定義リスト（term:: desc）— 垂直 .dlist */
