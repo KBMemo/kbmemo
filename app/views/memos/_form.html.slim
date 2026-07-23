@@ -51,15 +51,19 @@ ruby:
     div
       = render "title_field", memo: memo
   
-    div
-      = render "visibility_field", memo: memo, f: f
-  
-    .flex.items-start.gap-3
-      = label_tag "memo_properties_yaml", "プロパティ", class: "pt-1 text-sm font-medium kb-text-primary whitespace-nowrap"
-      .min-w-0.flex-1
-        = text_area_tag "memo[properties_yaml]", memo_properties_yaml_value(memo), rows: 4, placeholder: "priority: 1\nlabels:\n  - ideas", class: memo_form_underline_properties_textarea(memo), data: { memo_draft_target: "propertiesYaml", action: "input->memo-draft#propertiesInput compositionend->memo-draft#propertiesInput" }, aria: kb_field_error_aria(memo, :properties_yaml)
-        - if memo.errors[:properties_yaml].any?
-          p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(memo, :properties_yaml) = memo.errors[:properties_yaml].first
+    .kb-form-disclosure-row
+      details.kb-form-disclosure open=(memo.errors[:visibility].any? || memo.errors[:memo_group_id].any?)
+        summary.kb-form-disclosure-summary 共有設定
+        .kb-form-disclosure-panel
+          = render "visibility_field", memo: memo, f: f
+
+      details.kb-form-disclosure open=memo.errors[:properties_yaml].any?
+        summary.kb-form-disclosure-summary プロパティ
+        .kb-form-disclosure-panel
+          = label_tag "memo_properties_yaml", "プロパティ（YAML）", class: "sr-only"
+          = text_area_tag "memo[properties_yaml]", memo_properties_yaml_value(memo), rows: 4, placeholder: "priority: 1\nlabels:\n  - ideas", class: memo_form_underline_properties_textarea(memo), data: { memo_draft_target: "propertiesYaml", action: "input->memo-draft#propertiesInput compositionend->memo-draft#propertiesInput" }, aria: kb_field_error_aria(memo, :properties_yaml)
+          - if memo.errors[:properties_yaml].any?
+            p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(memo, :properties_yaml) = memo.errors[:properties_yaml].first
   
     = render "tag_field", memo: memo
   

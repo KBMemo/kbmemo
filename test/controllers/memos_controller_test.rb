@@ -603,6 +603,13 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "memo-draft#suppressEnterSubmit"
     assert_select ".memo-edit-author", count: 0
     assert_not_includes response.body, "memo_slug_field"
+    assert_select ".kb-form-disclosure-row > details.kb-form-disclosure", count: 2
+    assert_select "details.kb-form-disclosure:not([open])", count: 2
+    assert_select "details.kb-form-disclosure summary", text: "共有設定"
+    assert_select "details.kb-form-disclosure summary", text: "プロパティ"
+    assert_select "details.kb-form-disclosure select[name='memo[visibility]']"
+    assert_select "details.kb-form-disclosure select[name='memo[memo_group_id]']"
+    assert_select "details.kb-form-disclosure textarea[name='memo[properties_yaml]']"
     assert_match(/data-memo[-_]draft[-_]tag[-_]catalog[-_]value=.*Ideas/, response.body)
     assert_select '[data-controller*="memo-body-editor"]'
     assert_select "[data-memo-body-editor-wiki-completions-url-value]"

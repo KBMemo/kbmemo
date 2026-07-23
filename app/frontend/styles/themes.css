@@ -1731,6 +1731,40 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   color: var(--kb-text-primary);
 }
 
+.kb-form-disclosure-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.kb-form-disclosure {
+  min-width: 0;
+  border-bottom: 1px solid var(--kb-border);
+}
+
+.kb-form-disclosure-summary {
+  padding: 0.45rem 0;
+  color: var(--kb-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.kb-form-disclosure-summary:hover {
+  color: var(--kb-text-primary);
+}
+
+.kb-form-disclosure-panel {
+  padding: 0.35rem 0 0.75rem;
+}
+
+@media (max-width: 40rem) {
+  .kb-form-disclosure-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+
 .kb-field-inline::placeholder {
   color: var(--kb-text-subtle);
 }
