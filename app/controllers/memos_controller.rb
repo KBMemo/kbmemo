@@ -318,11 +318,6 @@ class MemosController < ApplicationController
               partial: "memos/title_field",
               locals: { memo: @memo }
             ),
-            turbo_stream.replace(
-              "memo_slug_field",
-              partial: "memos/slug_field",
-              locals: { memo: @memo }
-            ),
             turbo_stream.replace("memos_list_panel", partial: "memos/list_panel")
           ]
           if @memo.display_as_draft? != display_as_draft_before ||
@@ -606,24 +601,24 @@ class MemosController < ApplicationController
 
   def memo_params
     params.require(:memo).permit(
-      :title, :body, :slug, :title_manual, :slug_manual, :properties_yaml,
+      :title, :body, :title_manual, :properties_yaml,
       :visibility, :memo_group_id
     )
   end
 
   def draft_params
-    params.require(:memo).permit(:body, :title, :title_manual, :slug, :slug_manual, :tag_list, :properties_yaml)
+    params.require(:memo).permit(:body, :title, :title_manual, :tag_list, :properties_yaml)
   end
 
   # raw_params は通常の request.params か、draft 用に構築した Parameters（キー :memo）
   def assign_memo_fields(memo, raw_params = nil)
     raw_params ||= params
     src = raw_params.require(:memo).permit(
-      :title, :body, :slug, :title_manual, :slug_manual, :tag_list, :properties_yaml,
+      :title, :body, :title_manual, :tag_list, :properties_yaml,
       :visibility, :memo_group_id
     )
     memo.assign_attributes(
-      src.slice(:title, :body, :slug, :title_manual, :slug_manual, :visibility, :memo_group_id)
+      src.slice(:title, :body, :title_manual, :visibility, :memo_group_id)
     )
     memo.assign_tags_from_list(src[:tag_list]) if src.key?(:tag_list)
 

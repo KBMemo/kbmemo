@@ -26,8 +26,6 @@ export default class extends Controller {
     "body",
     "title",
     "titleManualFlag",
-    "slug",
-    "slugManualFlag",
     "tagList",
     "tagInput",
     "tagPills",
@@ -55,7 +53,6 @@ export default class extends Controller {
     this._creating = false
     this._formInteracted = false
     this._persistChain = Promise.resolve()
-    this._slugTouched = false
     this._tabId = crypto.randomUUID()
     this._pendingRemoteBody = null
     this._lastSavedBody = this.hasBodyTarget ? this.bodyTarget.value : null
@@ -76,7 +73,6 @@ export default class extends Controller {
     queueMicrotask(() => {
       if (this.isNewMemoForm()) return
       this.syncTitleFromBodyIfBlank()
-      this.syncSlugFromTitleIfBlank()
       this.hydrateTagSuggestionsCatalog()
       this.renderTagPillsFromHiddenIfPresent()
     })
@@ -195,7 +191,6 @@ export default class extends Controller {
       this.titleManualFlagTarget.value = "1"
     }
     this.autosaveDraft()
-    this.maybeSyncSlugFromTitle()
   }
 
   // タイトルを空のまま離れたら、本文追従の派生タイトルを表示へ反映する。
@@ -214,7 +209,6 @@ export default class extends Controller {
     if (this.titleTarget.value !== display) {
       this.titleTarget.value = display
       this.autosaveDraft()
-      void this.maybeSyncSlugFromTitle()
     }
   }
 
@@ -231,33 +225,6 @@ export default class extends Controller {
           this.titleManualFlagTarget.value = "0"
         }
         this.titleTarget.value = this.derivedTitle(this.bodyTarget.value)
-      }
-    }
-    this.autosaveDraft()
-    this.maybeSyncSlugFromTitle()
-  }
-
-  slugFocus() {
-    if (this.fileCommittedValue) return
-    this._slugTouched = true
-  }
-
-  slugInput(event) {
-    if (ifComposing(event)) return
-    if (this.fileCommittedValue) {
-      this.autosaveDraft()
-      return
-    }
-    const trimmed = this.slugTarget.value.trim()
-    if (trimmed === "") {
-      this._slugTouched = false
-      if (this.hasSlugManualFlagTarget) {
-        this.slugManualFlagTarget.value = "0"
-      }
-    } else {
-      this._slugTouched = true
-      if (this.hasSlugManualFlagTarget) {
-        this.slugManualFlagTarget.value = "1"
       }
     }
     this.autosaveDraft()
@@ -523,13 +490,6 @@ export default class extends Controller {
       this.hasTitleManualFlagTarget ? this.titleManualFlagTarget : null,
       initial.title_manual ?? "0"
     )
-    this.setFieldValue(this.hasSlugTarget ? this.slugTarget : null, initial.slug ?? "")
-    this.setFieldValue(
-      this.hasSlugManualFlagTarget ? this.slugManualFlagTarget : null,
-      initial.slug_manual ?? "0"
-    )
-    this._slugTouched = false
-
     const body = initial.body ?? ""
     if (this.hasBodyTarget) {
       this.bodyTarget.value = body
@@ -556,30 +516,6 @@ export default class extends Controller {
     if (this.hasTagPillsTarget) this.tagPillsTarget.replaceChildren()
   }
 
-  maybeSyncSlugFromTitle() {
-    if (this.fileCommittedValue) return
-    if (this._slugTouched) return
-    if (!this.hasSlugTarget || !this.hasTitleTarget) return
-    if (this.hasSlugManualFlagTarget && this.slugManualFlagTarget.value === "1") return
-    if (this.hasSlugManualFlagTarget) {
-      this.slugManualFlagTarget.value = "0"
-    }
-    this.autosaveDraft()
-  }
-
-  syncSlugFromTitleIfBlank() {
-    if (this.fileCommittedValue) return
-    if (this._slugTouched) return
-    if (!this.hasSlugTarget || !this.hasTitleTarget) return
-    if (this.hasSlugManualFlagTarget && this.slugManualFlagTarget.value === "1") return
-    if (this.slugTarget.value.trim() !== "") return
-
-    if (this.hasSlugManualFlagTarget) {
-      this.slugManualFlagTarget.value = "0"
-    }
-    this.autosaveDraft()
-  }
-
   syncTitleFromBodyIfBlank() {
     if (!this.hasTitleTarget || !this.hasBodyTarget) return
     if (!(this.hasDraftUrlValue && this.draftUrlValue)) return
@@ -597,7 +533,6 @@ export default class extends Controller {
       this.titleManualFlagTarget.value = "0"
     }
     this.autosaveDraft()
-    void this.maybeSyncSlugFromTitle()
   }
 
   // 入力由来の自動保存（デバウンス）
@@ -660,9 +595,6 @@ export default class extends Controller {
     if (Object.prototype.hasOwnProperty.call(merged, "title")) {
       merged.title = this.normalizeOutgoingTitle(merged.title)
     }
-    if (Object.prototype.hasOwnProperty.call(merged, "slug_manual")) {
-      merged.slug_manual = !!merged.slug_manual
-    }
     return { memo: merged }
   }
 
@@ -672,10 +604,6 @@ export default class extends Controller {
     if (this.hasTitleTarget) memo.title = this.titleTarget.value
     memo.title_manual = !!(
       this.hasTitleManualFlagTarget && this.titleManualFlagTarget.value === "1"
-    )
-    if (this.hasSlugTarget) memo.slug = this.slugTarget.value
-    memo.slug_manual = !!(
-      this.hasSlugManualFlagTarget && this.slugManualFlagTarget.value === "1"
     )
     if (this.hasPropertiesYamlTarget) {
       memo.properties_yaml = this.propertiesYamlTarget.value
@@ -872,17 +800,6 @@ export default class extends Controller {
   }
 
   applyDraftServerPayload(data) {
-    // slug を編集中（フォーカス中）は確定値で上書きしない。入力中のカーソル干渉を避ける。
-    if (
-      Object.prototype.hasOwnProperty.call(data, "slug") &&
-      this.hasSlugTarget &&
-      document.activeElement !== this.slugTarget
-    ) {
-      this.slugTarget.value = data.slug ?? ""
-    }
-    if (typeof data.slug_manual === "boolean" && this.hasSlugManualFlagTarget) {
-      this.slugManualFlagTarget.value = data.slug_manual ? "1" : "0"
-    }
     if (typeof data.file_committed === "boolean") {
       this.fileCommittedValue = data.file_committed
     }

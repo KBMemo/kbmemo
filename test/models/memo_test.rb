@@ -148,6 +148,11 @@ class MemoTest < ActiveSupport::TestCase
     assert_nil Memo.derived_slug_from_title("")
   end
 
+  test "derived_slug_from_title limits the generated stem to 16 characters" do
+    assert_equal "abcdefghijklmnop", Memo.derived_slug_from_title("ABCDEFGHIJKLMNOPQRST")
+    assert_equal "very-long-title", Memo.derived_slug_from_title("Very long title continued")
+  end
+
   test "derived_slug_from_title uses MeCab romaji for Japanese when available" do
     m = memos(:one)
     slug = Memo.derived_slug_from_title("はじめに", m)

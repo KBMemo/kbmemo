@@ -15,14 +15,12 @@ ruby:
   unless memo.persisted?
     form_data[:memo_draft_initial_form_value] = {
       title: "",
-      slug: "",
       body: "",
       properties_yaml: "",
       tag_list: "",
       visibility: memo.visibility,
       memo_group_id: memo.memo_group_id.to_s,
-      title_manual: "0",
-      slug_manual: "0"
+      title_manual: "0"
     }.to_json
   end
 
@@ -53,9 +51,6 @@ ruby:
     div
       = render "title_field", memo: memo
   
-    div
-      = render "slug_field", memo: memo
-
     div
       = render "visibility_field", memo: memo, f: f
   

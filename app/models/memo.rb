@@ -115,6 +115,7 @@ class Memo < ApplicationRecord
 
   # ULID（Crockford Base32, 26 桁・大文字）。クライアント生成可能な安定識別子。
   UID_FORMAT = /\A[0-9A-HJKMNP-TV-Z]{26}\z/
+  AUTO_SLUG_STEM_MAX_LENGTH = 16
   # スラッグ末尾の識別子サフィックス。レガシーの数値 id（-42）または ULID（-{ulid}）。
   # normalize_slug_fragment で小文字化されるため大文字小文字を問わない。
   SLUG_TRAILING_ID = /-(?:\d+|[0-9A-HJKMNP-TV-Z]{26})\z/i
@@ -244,19 +245,23 @@ class Memo < ApplicationRecord
     if title_includes_japanese_script?(t)
       romaji = MemoMecabRomaji.romaji_slug_from(t)
       seg = normalize_slug_fragment(romaji) if romaji.present?
-      return seg if seg.present?
+      return truncate_auto_slug_stem(seg) if seg.present?
 
       return "memo"
     end
 
     seg = t.parameterize(separator: "-").presence
-    return seg if seg.present?
+    return truncate_auto_slug_stem(seg) if seg.present?
 
     romaji = MemoMecabRomaji.romaji_slug_from(t)
     seg = normalize_slug_fragment(romaji) if romaji.present?
-    return seg if seg.present?
+    return truncate_auto_slug_stem(seg) if seg.present?
 
     "memo"
+  end
+
+  def self.truncate_auto_slug_stem(value)
+    value.to_s.first(AUTO_SLUG_STEM_MAX_LENGTH).sub(/-+\z/, "").presence || "memo"
   end
 
   def self.title_includes_japanese_script?(text)

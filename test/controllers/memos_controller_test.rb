@@ -602,7 +602,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "memo-draft#preventSubmit"
     assert_includes response.body, "memo-draft#suppressEnterSubmit"
     assert_select ".memo-edit-author", count: 0
-    assert_includes response.body, "memo_slug_field"
+    assert_not_includes response.body, "memo_slug_field"
     assert_match(/data-memo[-_]draft[-_]tag[-_]catalog[-_]value=.*Ideas/, response.body)
     assert_select '[data-controller*="memo-body-editor"]'
     assert_select "[data-memo-body-editor-wiki-completions-url-value]"
@@ -637,8 +637,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Ui smoke/, response.body)
   end
 
-  test "draft saves all fields without validations" do
+  test "draft saves editable fields without accepting a manual slug" do
     memo = memos(:one)
+    original_slug = memo.slug
     patch draft_memo_url(memo),
       params: {
         memo: {
@@ -654,8 +655,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     memo.reload
     assert_equal "= Draft title\n\nBody.", memo.body
     assert_equal "Draft title", memo.title
-    # 一度コミット済み（file_committed_at あり）のメモは、明示指定した slug を優先して保持する。
-    assert_equal memo_global_slug("draft-slug", memo), memo.slug
+    assert_equal original_slug, memo.slug
     assert_equal({ "k" => 1 }, memo.properties)
     assert_includes memo.tags.map(&:name), "draft-tag"
     assert_not memo.title_manual
@@ -927,7 +927,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.media_type, "vnd.turbo-stream.html"
     assert_includes response.body, "memo_title_field"
-    assert_includes response.body, "memo_slug_field"
+    assert_not_includes response.body, "memo_slug_field"
     assert_includes response.body, "memos_list_panel"
   end
 
@@ -944,16 +944,17 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'id="memos_list_panel"'
   end
 
-  test "draft json returns normalized slug" do
+  test "draft ignores manually supplied slug" do
     memo = memos(:one)
+    original_slug = memo.slug
     patch draft_memo_url(memo),
       params: { memo: { slug: "  WEIRD SLUG!!  ", title: "Fixed", title_manual: true, slug_manual: true } },
       as: :json
     assert_response :success
     memo.reload
-    assert_equal memo_global_slug("weird-slug", memo), memo.slug
+    assert_equal original_slug, memo.slug
     body = JSON.parse(response.body)
-    assert_equal memo_global_slug("weird-slug", memo), body["slug"]
+    assert_equal original_slug, body["slug"]
   end
 
   test "draft json returns saved_at for multi-tab sync" do
@@ -994,7 +995,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     get new_memo_url
     assert_response :success
     assert_select "input#memo_title[value='']"
-    assert_select "input#memo_slug[value='']"
+    assert_select "input#memo_slug", count: 0
     assert_select "textarea#memo_body", text: ""
     assert_select "textarea[name='memo[properties_yaml]']", text: ""
     assert_select "input[name='memo[tag_list]'][value='']"
@@ -1010,8 +1011,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "form#new_memo_form [data-memo-draft-target='formActionsChrome']", count: 0
     assert_select "summary[aria-label='タイトル同期の説明'][aria-describedby='memo-title-hint']"
     assert_select "#memo-title-hint", text: /本文1行目/
-    assert_select "summary[aria-label='スラッグ同期の説明'][aria-describedby='memo-slug-hint']"
-    assert_select "#memo-slug-hint", text: /タイトルと同期/
+    assert_select "summary[aria-label='スラッグ同期の説明']", count: 0
     assert_select "summary[aria-label='公開範囲の説明'][aria-describedby='memo-visibility-hint']"
     assert_select "#memo-visibility-hint", text: /共有グループ/
     assert_select "button[aria-label='Wiki リンクの説明を表示'][aria-controls='memo-wiki-link-hint'][aria-expanded='false']"
