@@ -30,6 +30,73 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
     return new URL('/bookmarklets/relay.html', baseOrigin).href
   }
 
+  function chooseFullPageMode(callback) {
+    var dialog = document.createElement('dialog')
+    var form = document.createElement('form')
+    var message = document.createElement('p')
+    var actions = document.createElement('div')
+    var choices = [
+      { label: '本文抽出', value: 'article' },
+      { label: 'サマリー', value: 'summary' },
+      { label: 'キャンセル', value: 'cancel' },
+    ]
+
+    dialog.setAttribute('aria-label', 'ページ全体の保存方法')
+    Object.assign(dialog.style, {
+      background: '#fff',
+      border: '1px solid #c7c7c7',
+      borderRadius: '8px',
+      boxShadow: '0 16px 40px rgba(0, 0, 0, 0.24)',
+      color: '#222',
+      font: '16px/1.5 system-ui, sans-serif',
+      maxWidth: 'calc(100vw - 32px)',
+      padding: '20px',
+    })
+
+    form.method = 'dialog'
+    message.textContent = '選択範囲がありません。ページ全体の保存方法を選んでください。'
+    Object.assign(message.style, { margin: '0 0 16px' })
+    Object.assign(actions.style, {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '8px',
+      justifyContent: 'flex-end',
+    })
+
+    choices.forEach(function (choice) {
+      var button = document.createElement('button')
+      button.type = 'submit'
+      button.value = choice.value
+      button.textContent = choice.label
+      Object.assign(button.style, {
+        background: choice.value === 'article' ? '#2563eb' : '#f3f4f6',
+        border: '1px solid ' + (choice.value === 'article' ? '#2563eb' : '#b8b8b8'),
+        borderRadius: '6px',
+        color: choice.value === 'article' ? '#fff' : '#222',
+        cursor: 'pointer',
+        font: 'inherit',
+        padding: '8px 14px',
+      })
+      actions.appendChild(button)
+    })
+
+    form.appendChild(message)
+    form.appendChild(actions)
+    dialog.appendChild(form)
+    document.body.appendChild(dialog)
+
+    dialog.addEventListener(
+      'close',
+      function () {
+        var mode = dialog.returnValue
+        dialog.remove()
+        callback(mode === 'article' || mode === 'summary' ? mode : null)
+      },
+      { once: true }
+    )
+    dialog.showModal()
+  }
+
   var baseOrigin = resolveBaseOrigin(baseUrl)
   apiToken = stripQuotes(apiToken)
 
@@ -50,35 +117,17 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
   var pageUrl = window.location.href
   var pageTitle = document.title
   var selection = window.getSelection()
-  var mode = 'selection'
-  var html
-  var plain
-
   if (!selection || selection.isCollapsed) {
-    var choice = window.prompt(
-      '選択範囲がありません。ページ全体の保存方法を選んでください。\\n\\n1: 本文抽出\\n2: サマリー\\n\\nキャンセルで中止します。',
-      '1'
-    )
-    if (choice === null) return
-
-    choice = choice.trim()
-    if (choice === '1' || choice === '本文抽出') {
-      mode = 'article'
-    } else if (choice === '2' || choice === 'サマリー') {
-      mode = 'summary'
-    } else {
-      window.alert('1（本文抽出）または 2（サマリー）を入力してください。')
-      return
-    }
-
-    html = document.documentElement.outerHTML
-    plain = ''
+    chooseFullPageMode(function (mode) {
+      if (!mode) return
+      saveClip(document.documentElement.outerHTML, '', mode)
+    })
   } else {
     var range = selection.getRangeAt(0)
     var wrapper = document.createElement('div')
     wrapper.appendChild(range.cloneContents())
     var metadata = JSON.stringify({ url: pageUrl, title: pageTitle })
-    html =
+    var html =
       '<!--kbmemo:' +
       metadata +
       '-->' +
@@ -87,76 +136,78 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
       '">' +
       wrapper.innerHTML +
       '</blockquote>'
-    plain = selection.toString()
+    saveClip(html, selection.toString(), 'selection')
   }
 
-  if (new Blob([html]).size > 5 * 1024 * 1024) {
-    window.alert('ページのHTMLが5MBを超えているため保存できません。範囲を選択して保存してください。')
-    return
-  }
-
-  var clipPayload = {
-    type: CLIP,
-    token: apiToken,
-    html: html,
-    url: pageUrl,
-    title: pageTitle,
-    plain: plain,
-    mode: mode,
-  }
-
-  var popup = window.open(
-    relayPageUrl(baseOrigin),
-    'kbmemo_clip_relay',
-    'width=480,height=280'
-  )
-
-  if (!popup) {
-    window.alert(
-      'ポップアップがブロックされました。kbmemo への保存にはポップアップを許可するか、「kbmemo にコピー」ブックマークレットをお使いください。'
-    )
-    return
-  }
-
-  var finished = false
-  var timeout = window.setTimeout(function () {
-    if (finished) return
-    finished = true
-    window.removeEventListener('message', onMessage)
-    window.alert('kbmemo への接続がタイムアウトしました。')
-    try {
-      popup.close()
-    } catch (error) {
-      /* ignore */
-    }
-  }, 180000)
-
-  function onMessage(event) {
-    if (finished) return
-    if (event.source !== popup) return
-
-    var originOk = false
-    try {
-      originOk = new URL(event.origin).origin === baseOrigin
-    } catch (error) {
-      originOk = false
-    }
-    if (!originOk) return
-
-    if (event.data && event.data.type === RELAY_READY) {
-      popup.postMessage(clipPayload, baseOrigin)
+  function saveClip(html, plain, mode) {
+    if (new Blob([html]).size > 5 * 1024 * 1024) {
+      window.alert('ページのHTMLが5MBを超えているため保存できません。範囲を選択して保存してください。')
       return
     }
 
-    if (!event.data || event.data.type !== CLIP_DONE) return
+    var clipPayload = {
+      type: CLIP,
+      token: apiToken,
+      html: html,
+      url: pageUrl,
+      title: pageTitle,
+      plain: plain,
+      mode: mode,
+    }
 
-    finished = true
-    window.clearTimeout(timeout)
-    window.removeEventListener('message', onMessage)
+    var popup = window.open(
+      relayPageUrl(baseOrigin),
+      'kbmemo_clip_relay',
+      'width=480,height=280'
+    )
 
-    // Success and error feedback are shown in the relay popup (active window).
-    // Avoid alert/confirm here: Chrome suppresses them on background tabs.
+    if (!popup) {
+      window.alert(
+        'ポップアップがブロックされました。kbmemo への保存にはポップアップを許可するか、「kbmemo にコピー」ブックマークレットをお使いください。'
+      )
+      return
+    }
+
+    var finished = false
+    var timeout = window.setTimeout(function () {
+      if (finished) return
+      finished = true
+      window.removeEventListener('message', onMessage)
+      window.alert('kbmemo への接続がタイムアウトしました。')
+      try {
+        popup.close()
+      } catch (error) {
+        /* ignore */
+      }
+    }, 180000)
+
+    function onMessage(event) {
+      if (finished) return
+      if (event.source !== popup) return
+
+      var originOk = false
+      try {
+        originOk = new URL(event.origin).origin === baseOrigin
+      } catch (error) {
+        originOk = false
+      }
+      if (!originOk) return
+
+      if (event.data && event.data.type === RELAY_READY) {
+        popup.postMessage(clipPayload, baseOrigin)
+        return
+      }
+
+      if (!event.data || event.data.type !== CLIP_DONE) return
+
+      finished = true
+      window.clearTimeout(timeout)
+      window.removeEventListener('message', onMessage)
+
+      // Success and error feedback are shown in the relay popup (active window).
+      // Avoid alert/confirm here: Chrome suppresses them on background tabs.
+    }
+
+    window.addEventListener('message', onMessage)
   }
-
-  window.addEventListener('message', onMessage)
 }(__KBMEMO_BASE__, __KBMEMO_TOKEN__)

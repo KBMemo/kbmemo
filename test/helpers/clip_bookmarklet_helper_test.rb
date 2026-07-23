@@ -17,6 +17,9 @@ class ClipBookmarkletHelperTest < ActiveSupport::TestCase
     assert_not_includes decoded, "__KBMEMO_TOKEN__"
     assert_includes decoded, "本文抽出"
     assert_includes decoded, "サマリー"
+    assert_includes decoded, "キャンセル"
+    assert_includes decoded, 'createElement("dialog")'
+    assert_not_includes decoded, "window.prompt"
     assert_includes decoded, 'mode:'
     assert_includes decoded, '"summary"'
   end
