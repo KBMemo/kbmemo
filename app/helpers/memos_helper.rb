@@ -409,7 +409,7 @@ module MemosHelper
   end
 
   def memo_body_tag_options(memo)
-    opts = { class: "memo-body asciidoctor kb-card p-6", data: { theme_slot: "memo-body" } }
+    opts = { class: "memo-body asciidoctor kb-card", data: { theme_slot: "memo-body" } }
     controllers = [ "code-block-tools" ]
 
     # コードブロックのコピー／図トグル。図レンダリングは保存済みメモのみ（Kroki プロキシ）。

@@ -40,6 +40,10 @@
   line-height: 1.5;
 }
 
+.memo-body.kb-card {
+  border: 0;
+}
+
 .memo-body p {
   margin-bottom: 1rem;
 }

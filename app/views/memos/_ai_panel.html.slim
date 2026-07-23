@@ -1,10 +1,14 @@
 - account = rodauth.rails_account
+- editing = local_assigns.fetch(:editing, true)
 .memo-ai-panel.kb-ai-panel.flex.h-full.min-h-0.flex-col.overflow-hidden data-theme-slot="memo-sidebar" data-controller="memo-ai-panel" data-memo-ai-panel-chat-url-value=ai_chat_memo_path(memo, format: :json) data-memo-ai-panel-profile-url-value=edit_profile_path data-memo-ai-panel-has-api-key-value=account.openai_api_key_configured? aria-label="AI アシスタント"
   .flex.shrink-0.items-center.border-b.kb-border.px-3.py-2
-    h2.text-sm.font-semibold.kb-text-primary AI
+    h2.text-sm.font-semibold.kb-text-primary AI チャット
   .flex.min-h-0.flex-1.flex-col.gap-2.overflow-hidden.px-3.py-2
     p class="shrink-0 kb-text-2xs leading-snug kb-text-muted"
-      | 既定でローカル AI を使います。未起動時は、登録済みなら OpenAI にフォールバックします。
+      - if editing
+        | メモの執筆・推敲を支援します。既定でローカル AI を使います。
+      - else
+        | 表示中のメモ本文をコンテキストにして質問できます。既定でローカル AI を使います。
     - unless account.openai_api_key_configured?
       p class="shrink-0 kb-text-2xs leading-snug kb-text-muted"
         | OpenAI フォールバックを使うには
@@ -12,12 +16,14 @@
         | 。
     .kb-ai-messages.min-h-0.flex-1.overflow-y-auto.rounded-md.p-2 data-memo-ai-panel-target="messages"
     p.hidden.shrink-0.text-xs.kb-status-danger data-memo-ai-panel-target="error"
-    label.flex.shrink-0.items-center.gap-2.text-xs.kb-text-secondary
-      input.rounded.kb-border type="checkbox" checked=true data-memo-ai-panel-target="includeSelection"
-      | 選択範囲もコンテキストに含める
+    - if editing
+      label.flex.shrink-0.items-center.gap-2.text-xs.kb-text-secondary
+        input.rounded.kb-border type="checkbox" checked=true data-memo-ai-panel-target="includeSelection"
+        | 選択範囲もコンテキストに含める
     label.sr-only for="memo_ai_prompt" AI への指示
-    textarea#memo_ai_prompt.kb-input.kb-input-xs.w-full.shrink-0.resize-none.font-sans.leading-relaxed rows=3 autocomplete="off" placeholder="例: 次の節を AsciiDoc で追記して" data-memo-ai-panel-target="input" data-action="keydown.enter->memo-ai-panel#send:prevent"
+    textarea#memo_ai_prompt.kb-input.kb-input-xs.w-full.shrink-0.resize-none.font-sans.leading-relaxed rows=3 autocomplete="off" placeholder=(editing ? "例: 次の節を AsciiDoc で追記して" : "例: このメモの要点をまとめて") data-memo-ai-panel-target="input" data-action="keydown.enter->memo-ai-panel#send:prevent"
     .flex.shrink-0.flex-wrap.gap-2
       button.kb-chrome-btn-primary.kb-btn-xs type="button" data-theme-slot="btn-primary" data-memo-ai-panel-target="sendButton" data-action="memo-ai-panel#send" 送信
-      button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="memo-ai-panel#insertLastReply" 応答を挿入
+      - if editing
+        button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="memo-ai-panel#insertLastReply" 応答を挿入
       button.kb-toolbar-btn type="button" data-action="memo-ai-panel#clearChat" 履歴を消去

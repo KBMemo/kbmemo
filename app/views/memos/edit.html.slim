@@ -5,4 +5,4 @@
 
 - if @memo.persisted?
   - content_for :memo_ai_sidebar do
-    = render "memos/ai_panel", memo: @memo
+    = render "memos/ai_panel", memo: @memo, editing: true

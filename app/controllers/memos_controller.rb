@@ -465,7 +465,11 @@ class MemosController < ApplicationController
       ),
       turbo_stream.replace("memos_list_panel", partial: "memos/list_panel"),
       turbo_stream.replace("flash-live", partial: "shared/flash_toasts"),
-      turbo_stream.remove("memo_ai_sidebar_region")
+      turbo_stream.update(
+        "memo_ai_sidebar_panel",
+        partial: "memos/ai_panel",
+        locals: { memo: @memo, editing: false }
+      )
     ], status: status
   end
 

@@ -1429,20 +1429,22 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
 }
 
 .kb-tag-pill-link {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   border-radius: var(--kb-radius-pill);
-  padding: var(--kb-space-1) var(--kb-space-3);
-  background: var(--kb-bg-surface);
+  padding: 0.125rem 0.5rem;
+  background: var(--kb-bg-muted);
   color: var(--kb-text-secondary);
   box-shadow: 0 0 0 1px var(--kb-border);
-  font-size: var(--kb-font-size-sm);
+  font-size: var(--kb-font-size-xs);
+  line-height: 1.25rem;
   text-decoration-line: underline;
   text-decoration-color: var(--kb-border-strong);
 }
 
 .kb-tag-pill-link:hover {
   color: var(--kb-text-primary);
-  background: var(--kb-bg-subtle);
+  background: var(--kb-border);
 }
 
 .kb-viewer-body {
@@ -1893,11 +1895,13 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
 }
 
 .kb-tag-pill-link {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   border-radius: var(--kb-radius-pill);
-  padding: var(--kb-space-1) var(--kb-space-3);
-  font-size: var(--kb-font-size-sm);
-  background: var(--kb-bg-surface);
+  padding: 0.125rem 0.5rem;
+  font-size: var(--kb-font-size-xs);
+  line-height: 1.25rem;
+  background: var(--kb-bg-muted);
   color: var(--kb-text-secondary);
   text-decoration: underline;
   text-decoration-color: var(--kb-border-strong);
@@ -1905,7 +1909,7 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
 }
 
 .kb-tag-pill-link:hover {
-  background: var(--kb-bg-muted);
+  background: var(--kb-border);
   color: var(--kb-text-primary);
 }
 

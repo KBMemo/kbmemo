@@ -2,59 +2,55 @@ ruby:
   metadata_editable = policy(memo).update?
 
 = tag.div(**memo_show_content_tag_options(memo)) do
-  .mb-6.flex.flex-wrap.items-start.justify-between.gap-4
-    div.min-w-0.flex-1
-      h1.text-2xl.font-semibold.tracking-tight.break-words data-theme-slot="memo-title" = memo.title
-      .mt-3.flex.flex-wrap.items-center.gap-x-3.gap-y-2
-        = gravatar_image_tag(memo.account, size: 36, extra_class: "shrink-0", loading: "eager", fetchpriority: "low")
-        .flex.min-w-0.flex-1.flex-col.gap-1
-          p.text-sm.font-medium.kb-text-primary
-            span.sr-only 作成者
-            = memo.account.display_name
-          .flex.flex-wrap.items-center.gap-x-3.gap-y-1.text-sm.kb-text-muted
-            time datetime=memo.updated_at.iso8601
-              | 更新 #{memo.updated_at.strftime("%Y-%m-%d %H:%M")}
-            - if memo.board.present? && policy(memo.board).show?
-              span.kb-text-subtle aria-hidden="true" ·
-              span.inline-flex.min-w-0.items-center.gap-1
-                i class="h-3.5 w-3.5 shrink-0 kb-text-subtle" aria-hidden="true" data-lucide="kanban"
-                = link_to memo.board.title,
-                  board_path(memo.board),
-                  class: "min-w-0 truncate kb-inline-link",
-                  title: "カンバンボードを開く"
-            - if memo.notebook.present? && policy(memo.notebook).show?
-              span.kb-text-subtle aria-hidden="true" ·
-              span.inline-flex.min-w-0.items-center.gap-1
-                i class="h-3.5 w-3.5 shrink-0 kb-text-subtle" aria-hidden="true" data-lucide="book-open"
-                = link_to memo.notebook.title,
-                  notebook_path(memo.notebook, memo_id: memo.id),
-                  class: "min-w-0 truncate kb-inline-link",
-                  title: "ノートブックを開く"
-            - dir = memo.memo_directory
-            - if dir && !dir.root?
-              span.kb-text-subtle aria-hidden="true" ·
-              = link_to memo_directory_path_from_root_label(dir),
-                memo_path(memo, sidebar_view: "directory", memo_directory_id: dir.id),
-                class: "kb-inline-link",
-                title: "サイドバーでこの日付フォルダを表示"
-            - if memo.slug.present?
-              span.kb-text-subtle aria-hidden="true" ·
-              span.font-mono.text-xs.kb-text-secondary = memo.slug
-    .flex.flex-shrink-0.flex-wrap.items-center.gap-2
-      - if memo.docs_sync_read_only?
-        span.text-sm.kb-text-muted docs/ 同期
-      - elsif memo.google_calendar_read_only?
-        span.text-sm.kb-text-muted Google Calendar
-      - elsif memo.display_as_draft? && policy(memo).update?
-        = button_to "コミット", commit_memo_path(memo), method: :patch, title: "ファイルへ保存して、Gitに記録", class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
-        = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-secondary kb-btn-md"
-      - elsif policy(memo).update?
-        = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
-      - if policy(memo).destroy?
-        = button_to "削除", memo_path(memo), method: :delete, form: { data: { turbo_confirm: "このメモを削除しますか？" } }, class: "kb-danger-btn kb-btn-sm"
+  .mb-2
+    h1.text-2xl.font-semibold.tracking-tight.break-words data-theme-slot="memo-title" = memo.title
+    .mt-1.flex.flex-wrap.items-center.gap-x-2.gap-y-1
+      = gravatar_image_tag(memo.account, size: 32, extra_class: "shrink-0", loading: "eager", fetchpriority: "low")
+      .flex.min-w-0.flex-1.flex-col
+        div.text-sm.font-medium.kb-text-primary
+          span.sr-only 作成者
+          = memo.account.display_name
+        .flex.flex-wrap.items-center.gap-x-3.gap-y-1.text-sm.kb-text-muted
+          time datetime=memo.updated_at.iso8601
+            | 更新 #{memo.updated_at.strftime("%Y-%m-%d %H:%M")}
+          - if memo.board.present? && policy(memo.board).show?
+            span.kb-text-subtle aria-hidden="true" ·
+            span.inline-flex.min-w-0.items-center.gap-1
+              i class="h-3.5 w-3.5 shrink-0 kb-text-subtle" aria-hidden="true" data-lucide="kanban"
+              = link_to memo.board.title,
+                board_path(memo.board),
+                class: "min-w-0 truncate kb-inline-link",
+                title: "カンバンボードを開く"
+          - if memo.notebook.present? && policy(memo.notebook).show?
+            span.kb-text-subtle aria-hidden="true" ·
+            span.inline-flex.min-w-0.items-center.gap-1
+              i class="h-3.5 w-3.5 shrink-0 kb-text-subtle" aria-hidden="true" data-lucide="book-open"
+              = link_to memo.notebook.title,
+                notebook_path(memo.notebook, memo_id: memo.id),
+                class: "min-w-0 truncate kb-inline-link",
+                title: "ノートブックを開く"
+          - dir = memo.memo_directory
+          - if dir && !dir.root?
+            span.kb-text-subtle aria-hidden="true" ·
+            = link_to memo_directory_path_from_root_label(dir),
+              memo_path(memo, sidebar_view: "directory", memo_directory_id: dir.id),
+              class: "kb-inline-link",
+              title: "サイドバーでこの日付フォルダを表示"
+      .ml-auto.flex.flex-shrink-0.flex-wrap.items-center.gap-2
+        - if memo.docs_sync_read_only?
+          span.text-sm.kb-text-muted docs/ 同期
+        - elsif memo.google_calendar_read_only?
+          span.text-sm.kb-text-muted Google Calendar
+        - elsif memo.display_as_draft? && policy(memo).update?
+          = button_to "コミット", commit_memo_path(memo), method: :patch, title: "ファイルへ保存して、Gitに記録", class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
+          = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-secondary kb-btn-md"
+        - elsif policy(memo).update?
+          = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
+        - if policy(memo).destroy?
+          = button_to "削除", memo_path(memo), method: :delete, form: { data: { turbo_confirm: "このメモを削除しますか？" } }, class: "kb-danger-btn kb-btn-sm"
 
   - if memo.docs_sync_read_only?
-    .mb-4.kb-muted-bar.px-3.py-2.text-sm
+    .mb-3.kb-muted-bar.px-3.py-2.text-sm
       | このメモは Git リポジトリの
       code.font-mono.text-xs docs/
       |  から同期されています。変更は AsciiDoc を編集して
@@ -67,7 +63,7 @@ ruby:
           | ）
 
   - if memo.google_calendar_read_only?
-    .mb-4.kb-muted-bar.px-3.py-2.text-sm
+    .mb-3.kb-muted-bar.px-3.py-2.text-sm
       | このメモは Google Calendar から同期されています。KBMemo 上では閲覧のみです。変更は Google Calendar 側で行い、
       = link_to "プロフィール", edit_profile_path, class: "kb-chrome-link underline"
       |  から同期してください。
@@ -78,7 +74,7 @@ ruby:
   = render "memos/show_tags", memo: memo, editable: metadata_editable
 
   - if memo.properties.present?
-    section.mb-8.kb-card.p-4 data-controller="expandable-hint" data-expandable-hint-expanded-value="false" data-expandable-hint-expand-label-value="プロパティ全文を表示" data-expandable-hint-collapse-label-value="プロパティ全文を閉じる"
+    section.mb-4.kb-card.p-3 data-controller="expandable-hint" data-expandable-hint-expanded-value="false" data-expandable-hint-expand-label-value="プロパティ全文を表示" data-expandable-hint-collapse-label-value="プロパティ全文を閉じる"
       .flex.min-w-0.items-center.gap-2
         h2.shrink-0.text-sm.font-semibold.kb-text-primary プロパティ
         p.min-w-0.flex-1.truncate.font-mono.text-xs.kb-text-secondary title=memo_properties_summary_line(memo)

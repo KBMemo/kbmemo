@@ -698,7 +698,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, %(turbo-stream action="replace" target="memos_editor_scroll")
     assert_includes @response.body, %(turbo-stream action="replace" target="memos_list_panel")
     assert_includes @response.body, %(turbo-stream action="replace" target="flash-live")
-    assert_includes @response.body, %(turbo-stream action="remove" target="memo_ai_sidebar_region")
+    assert_includes @response.body, %(turbo-stream action="update" target="memo_ai_sidebar_panel")
     assert_includes @response.body, "Turbo commit title"
     assert_includes @response.body, "Git に記録"
     assert memo.reload.file_committed_at.present?
@@ -1180,17 +1180,21 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "バックリンク"
   end
 
-  test "show displays memo directory path in metadata" do
+  test "show displays compact memo metadata without slug" do
     memo = memos(:one)
     memo.update_columns(file_committed_at: 1.hour.ago, properties: { "priority" => 1 })
     get memo_url(memo)
     assert_response :success
     assert_includes response.body, memo.memo_directory.labeled_path_from_root
-    assert_includes response.body, memo.slug
-    assert_select "img.kb-avatar[loading='eager'][fetchpriority='low'][width='36'][height='36']"
+    assert_select "span.font-mono.text-xs.kb-text-secondary", text: memo.slug, count: 0
+    assert_select "img.kb-avatar[loading='eager'][fetchpriority='low'][width='32'][height='32']"
     assert_select "button[aria-label='プロパティ全文を表示'][aria-controls='memo-properties-panel'][aria-expanded='false']"
     assert_select "input#memo_show_directory_id_#{memo.id}", count: 0
     assert_select "a.kb-inline-link[href=?]", memo_path(memo, sidebar_view: "directory", memo_directory_id: memo.memo_directory_id)
+    assert_select "#memo_ai_sidebar_region [data-controller='memo-ai-panel']"
+    assert_select "[data-memo-ai-panel-target='includeSelection']", count: 0
+    assert_select "button[data-action='memo-ai-panel#insertLastReply']", count: 0
+    assert_select "textarea[placeholder='例: このメモの要点をまとめて']"
   end
 
   test "show shows directory path link for a viewer who cannot edit" do
@@ -1208,6 +1212,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "a[href=?]", memo_path(memo, sidebar_view: "directory", memo_directory_id: memo.memo_directory_id),
       text: memo.memo_directory.labeled_path_from_root
+    assert_select "#memo_ai_sidebar_region", count: 0
   end
 
   test "memos index defaults to history sidebar" do

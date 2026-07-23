@@ -4,3 +4,7 @@
 
 - content_for :memos_editor do
   = render "memos/show_content", memo: @memo
+
+- if policy(@memo).ai_chat?
+  - content_for :memo_ai_sidebar do
+    = render "memos/ai_panel", memo: @memo, editing: false
