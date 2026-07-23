@@ -1,15 +1,19 @@
 ruby:
   metadata_editable = policy(memo).update?
+  show_author = memo.account && memo.account_id != rodauth.rails_account&.id
 
 = tag.div(**memo_show_content_tag_options(memo)) do
   .mb-2
     h1.text-2xl.font-semibold.tracking-tight.break-words data-theme-slot="memo-title" = memo.title
     .mt-1.flex.flex-wrap.items-center.gap-x-2.gap-y-1
-      = gravatar_image_tag(memo.account, size: 32, extra_class: "shrink-0", loading: "eager", fetchpriority: "low")
+      - if show_author
+        .memo-show-author.shrink-0
+          = gravatar_image_tag(memo.account, size: 32, loading: "eager", fetchpriority: "low")
       .flex.min-w-0.flex-1.flex-col
-        div.text-sm.font-medium.kb-text-primary
-          span.sr-only 作成者
-          = memo.account.display_name
+        - if show_author
+          .memo-show-author.text-sm.font-medium.kb-text-primary
+            span.sr-only 作成者
+            = memo.account.display_name
         .flex.flex-wrap.items-center.gap-x-3.gap-y-1.text-sm.kb-text-muted
           time datetime=memo.updated_at.iso8601
             | 更新 #{memo.updated_at.strftime("%Y-%m-%d %H:%M")}

@@ -575,6 +575,22 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", notebook_path(notebook, memo_id: memo.id)
   end
 
+  test "edit shows the author only for a memo created by another user" do
+    memo = memos(:two)
+    author = accounts(:two)
+    memo.update!(
+      account: author,
+      visibility: :group_read_write,
+      memo_group: memo_groups(:alpha)
+    )
+
+    get edit_memo_url(memo)
+
+    assert_response :success
+    assert_select ".memo-edit-author", count: 1, text: /#{Regexp.escape(author.display_name)}/
+    assert_select ".memo-edit-author img.kb-avatar[width='28'][height='28']"
+  end
+
   test "edit has memo draft stimulus bindings" do
     get edit_memo_url(memos(:one))
     assert_response :success
@@ -585,7 +601,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select '[data-controller~="memo-directory-dnd"]', count: 0
     assert_includes response.body, "memo-draft#preventSubmit"
     assert_includes response.body, "memo-draft#suppressEnterSubmit"
-    assert_select "img.kb-avatar[loading='eager'][fetchpriority='low'][width='28'][height='28']"
+    assert_select ".memo-edit-author", count: 0
     assert_includes response.body, "memo_slug_field"
     assert_match(/data-memo[-_]draft[-_]tag[-_]catalog[-_]value=.*Ideas/, response.body)
     assert_select '[data-controller*="memo-body-editor"]'
@@ -1208,7 +1224,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, memo.memo_directory.labeled_path_from_root
     assert_select "span.font-mono.text-xs.kb-text-secondary", text: memo.slug, count: 0
-    assert_select "img.kb-avatar[loading='eager'][fetchpriority='low'][width='32'][height='32']"
+    assert_select ".memo-show-author", count: 0
     assert_select "button[aria-label='プロパティ全文を表示'][aria-controls='memo-properties-panel'][aria-expanded='false']"
     assert_select "input#memo_show_directory_id_#{memo.id}", count: 0
     assert_select "a.kb-inline-link[href=?]", memo_path(memo, sidebar_view: "directory", memo_directory_id: memo.memo_directory_id)
@@ -1216,6 +1232,31 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-memo-ai-panel-target='includeSelection']", count: 0
     assert_select "button[data-action='memo-ai-panel#insertLastReply']", count: 0
     assert_select "textarea[placeholder='例: このメモの要点をまとめて']"
+  end
+
+  test "show displays the author only for another user's memo" do
+    memo = memos(:one)
+    author = memo.account
+    memo.update!(visibility: :public_everyone)
+    sign_in_as(:two)
+
+    get memo_url(memo)
+
+    assert_response :success
+    assert_select ".memo-show-author", text: /#{Regexp.escape(author.display_name)}/
+    assert_select ".memo-show-author img.kb-avatar[width='32'][height='32']"
+  end
+
+  test "sidebar displays avatars only for memos created by another user" do
+    own_memo = memos(:one)
+    other_memo = memos(:two)
+    other_memo.update!(account: accounts(:two), visibility: :public_everyone)
+
+    get memos_url(sidebar_view: "directory", memo_directory_id: own_memo.memo_directory_id)
+
+    assert_response :success
+    assert_select "#sidebar_row_memo_#{own_memo.id} .memo-sidebar-author", count: 0
+    assert_select "#sidebar_row_memo_#{other_memo.id} .memo-sidebar-author img.kb-avatar[width='28'][height='28']"
   end
 
   test "show shows directory path link for a viewer who cannot edit" do
