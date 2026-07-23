@@ -2466,6 +2466,103 @@ html[data-kb-theme-base="minimal"][data-kb-skin="auto"] .memo-body.asciidoctor .
   border-color: var(--kb-border-strong);
 }
 
+.kb-dashboard-layout {
+  display: grid;
+  gap: 2rem;
+}
+
+.kb-dashboard-side {
+  display: grid;
+  align-content: start;
+  gap: 2rem;
+}
+
+.kb-dashboard-section {
+  min-width: 0;
+  border-top: 1px solid var(--kb-border-strong);
+}
+
+.kb-dashboard-section-header {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--kb-border);
+}
+
+.kb-dashboard-section-header h2 {
+  color: var(--kb-text-primary);
+  font-size: var(--kb-font-size-sm);
+  font-weight: 600;
+}
+
+.kb-dashboard-list,
+.kb-dashboard-notebooks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kb-dashboard-row {
+  display: flex;
+  min-width: 0;
+  min-height: 3.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--kb-border);
+  padding: 0.625rem 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.kb-dashboard-row:hover {
+  background: var(--kb-bg-muted);
+}
+
+.kb-dashboard-row:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--kb-border-strong) 90%, transparent);
+  outline-offset: 2px;
+}
+
+.kb-dashboard-empty {
+  border-bottom: 1px solid var(--kb-border);
+  padding: 1rem 0;
+  color: var(--kb-text-muted);
+  font-size: var(--kb-font-size-sm);
+}
+
+.kb-dashboard-date {
+  display: grid;
+  width: 3rem;
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--kb-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-dashboard-date span {
+  font-size: var(--kb-font-size-sm);
+  font-weight: 600;
+}
+
+.kb-dashboard-date small {
+  font-size: var(--kb-font-size-xs);
+}
+
+@media (min-width: 56rem) {
+  .kb-dashboard-layout {
+    grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 1fr);
+  }
+
+  .kb-dashboard-notebooks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 2rem;
+  }
+}
+
 .theme-studio-token-group + .theme-studio-token-group {
   margin-top: 0.75rem;
   padding-top: 0.75rem;

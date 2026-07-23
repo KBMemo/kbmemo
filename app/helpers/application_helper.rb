@@ -24,7 +24,8 @@ module ApplicationHelper
 
   # メモ一覧サイドバーなしで、ヘッダー・本文を広幅にする画面
   def wide_content_layout?
-    memos_wide_layout? || memos_manage_screen? || notebook_show_wide_layout? || controller.controller_path.in?(%w[memo_diagrams boards]) || theme_studio_layout?
+    memos_wide_layout? || memos_manage_screen? || notebook_show_wide_layout? ||
+      controller.controller_path.in?(%w[dashboard memo_diagrams boards]) || theme_studio_layout?
   end
 
   def theme_studio_layout?

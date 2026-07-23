@@ -1,0 +1,84 @@
+- content_for :title, "ホーム"
+
+.kb-dashboard
+  .mb-6.flex.flex-wrap.items-end.justify-between.gap-3
+    div
+      h1 class=kb_page_title ホーム
+      p.mt-1.text-sm.kb-text-secondary = "#{rodauth.rails_account.display_name} さんの最近の活動"
+    = link_to "新規メモ", new_memo_path, class: "kb-chrome-btn-primary kb-btn-sm", data: { theme_slot: "btn-primary", turbo: false }
+
+  .kb-dashboard-layout
+    section.kb-dashboard-section aria-labelledby="dashboard-latest-memos"
+      .kb-dashboard-section-header
+        h2#dashboard-latest-memos 最新のメモ
+        = link_to "すべて表示", memos_path(sidebar_view: "history"), class: "kb-chrome-link text-xs"
+      - if @overview.latest_memos.any?
+        ul.kb-dashboard-list
+          - @overview.latest_memos.each do |memo|
+            li
+              = link_to edit_memo_path(memo), class: "kb-dashboard-row", data: { turbo: false } do
+                span.min-w-0
+                  span.block.truncate.font-medium.kb-text-primary = memo.title
+                  - if memo.tags.any?
+                    span.mt-1.flex.flex-wrap.gap-1
+                      - memo.tags.first(3).each do |tag|
+                        span.kb-list-tag = tag.name
+                time.shrink-0.text-xs.kb-text-muted datetime=memo.updated_at.iso8601
+                  = l(memo.updated_at, format: :short)
+      - else
+        p.kb-dashboard-empty メモはまだありません。
+
+    .kb-dashboard-side
+      section.kb-dashboard-section aria-labelledby="dashboard-tasks"
+        .kb-dashboard-section-header
+          h2#dashboard-tasks タスク
+          = link_to "カンバン", boards_path, class: "kb-chrome-link text-xs"
+        - if @overview.tasks.any?
+          ul.kb-dashboard-list
+            - @overview.tasks.each do |memo|
+              li
+                = link_to edit_memo_path(memo), class: "kb-dashboard-row", data: { turbo: false } do
+                  span.min-w-0
+                    span.block.truncate.font-medium.kb-text-primary = memo.title
+                    span.mt-1.block.text-xs.kb-text-muted = "#{memo.board.title} · #{memo.kanban_column.name}"
+                  - if memo.scheduled_on
+                    time.shrink-0.text-xs.kb-text-muted datetime=memo.scheduled_on.iso8601
+                      = l(memo.scheduled_on, format: :short)
+        - else
+          p.kb-dashboard-empty 未完了のタスクはありません。
+
+      section.kb-dashboard-section aria-labelledby="dashboard-schedule"
+        .kb-dashboard-section-header
+          h2#dashboard-schedule 予定
+        - if @overview.schedule.any?
+          ul.kb-dashboard-list
+            - @overview.schedule.each do |entry|
+              li
+                = link_to memo_path(entry.memo), class: "kb-dashboard-row" do
+                  time.kb-dashboard-date datetime=entry.date.iso8601
+                    span = l(entry.date, format: "%m/%d")
+                    small = l(entry.date, format: "%a")
+                  span.min-w-0.flex-1
+                    span.block.truncate.font-medium.kb-text-primary = entry.memo.title
+                    - if entry.memo.board
+                      span.mt-1.block.text-xs.kb-text-muted = entry.memo.board.title
+        - else
+          p.kb-dashboard-empty 今後の予定はありません。
+
+  section.kb-dashboard-section.mt-8 aria-labelledby="dashboard-notebooks"
+    .kb-dashboard-section-header
+      h2#dashboard-notebooks 最近編集したノートブック
+      = link_to "すべて表示", notebooks_path, class: "kb-chrome-link text-xs"
+    - if @overview.recent_notebooks.any?
+      ul.kb-dashboard-notebooks
+        - @overview.recent_notebooks.each do |notebook|
+          li
+            = link_to notebook_path(notebook), class: "kb-dashboard-row" do
+              span.min-w-0
+                span.block.truncate.font-medium.kb-text-primary = notebook.title
+                - if notebook.description.present?
+                  span.mt-1.block.truncate.text-xs.kb-text-muted = notebook.description
+              time.shrink-0.text-xs.kb-text-muted datetime=notebook[:activity_at].iso8601
+                = l(notebook[:activity_at], format: :short)
+    - else
+      p.kb-dashboard-empty ノートブックはまだありません。

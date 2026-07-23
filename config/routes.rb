@@ -19,7 +19,7 @@ Rails.application.routes.draw do
   get "themes/studio", to: "themes#studio", as: :theme_studio
   resource :theme, only: %i[show update], controller: "themes", defaults: { format: :json }
 
-  root "memos#index"
+  root "dashboard#show"
 
   get "help", to: "help#show", as: :help
   get "help/:memo_slug", to: "help#show", as: :help_memo
