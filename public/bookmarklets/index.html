@@ -127,12 +127,12 @@
   <body>
     <h1>kbmemo Web クリップ</h1>
     <p class="lead">
-      Web ページの選択範囲を kbmemo へ取り込みます。クリップボード経由と API 直保存の 2 方式があります。
+      Web ページの選択範囲または本文全体を kbmemo へ取り込みます。クリップボード経由と API 直保存の 2 方式があります。
     </p>
 
     <h2>API 直保存（おすすめ）</h2>
     <p class="note">
-      選択範囲を <code>home/u-&lt;id&gt;/clippings</code> に直接保存します。プロフィールで発行した Web クリップトークンが必要です。GitHub など
+      選択範囲、抽出本文、またはサマリーを <code>home/u-&lt;id&gt;/clippings</code> に直接保存します。プロフィールで発行した Web クリップトークンが必要です。GitHub など
       <code>connect-src</code>
       が厳しいサイトでは、kbmemo の relay ページをポップアップで開いて保存します（ポップアップを許可してください）。
     </p>
@@ -170,6 +170,10 @@
       <li>ブックマークバーの「kbmemo に保存」をクリック</li>
       <li>保存完了後、必要ならメモを新しいタブで開く</li>
     </ol>
+    <p class="note">
+      選択範囲がない場合は「本文抽出」または「サマリー」を選べます。サマリーにはプロフィールの Chat サーバー設定にある
+      <code>fast_chat</code> モデルを使用します。
+    </p>
 
     <h2>クリップボード経由</h2>
     <p class="note">kbmemo エディタで Ctrl+V して貼り付ける方式です。API トークンは不要です。</p>
@@ -188,6 +192,7 @@
       <li><code>html</code> … 選択範囲 + 出典メタデータ（URL・タイトル）</li>
       <li><code>plain</code> … プレーンテキスト（HTML 変換のフォールバック）</li>
       <li><code>url</code> / <code>title</code> … ページ URL とタイトル</li>
+      <li><code>mode</code> … <code>selection</code> / <code>article</code> / <code>summary</code></li>
     </ul>
     <p>
       HTML 先頭の <code>&lt;!--kbmemo:{"url":"...","title":"..."}--&gt;</code> からメタデータを読み取り、

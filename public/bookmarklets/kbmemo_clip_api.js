@@ -30,12 +30,6 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
     return new URL('/bookmarklets/relay.html', baseOrigin).href
   }
 
-  var selection = window.getSelection()
-  if (!selection || selection.isCollapsed) {
-    window.alert('テキストを選択してから実行してください。')
-    return
-  }
-
   var baseOrigin = resolveBaseOrigin(baseUrl)
   apiToken = stripQuotes(apiToken)
 
@@ -53,23 +47,53 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
     return
   }
 
-  var range = selection.getRangeAt(0)
-  var wrapper = document.createElement('div')
-  wrapper.appendChild(range.cloneContents())
-
   var pageUrl = window.location.href
   var pageTitle = document.title
-  var metadata = JSON.stringify({ url: pageUrl, title: pageTitle })
-  var html =
-    '<!--kbmemo:' +
-    metadata +
-    '-->' +
-    '<blockquote cite="' +
-    pageUrl.replace(/"/g, '&quot;') +
-    '">' +
-    wrapper.innerHTML +
-    '</blockquote>'
-  var plain = selection.toString()
+  var selection = window.getSelection()
+  var mode = 'selection'
+  var html
+  var plain
+
+  if (!selection || selection.isCollapsed) {
+    var choice = window.prompt(
+      '選択範囲がありません。ページ全体の保存方法を選んでください。\\n\\n1: 本文抽出\\n2: サマリー\\n\\nキャンセルで中止します。',
+      '1'
+    )
+    if (choice === null) return
+
+    choice = choice.trim()
+    if (choice === '1' || choice === '本文抽出') {
+      mode = 'article'
+    } else if (choice === '2' || choice === 'サマリー') {
+      mode = 'summary'
+    } else {
+      window.alert('1（本文抽出）または 2（サマリー）を入力してください。')
+      return
+    }
+
+    html = document.documentElement.outerHTML
+    plain = ''
+  } else {
+    var range = selection.getRangeAt(0)
+    var wrapper = document.createElement('div')
+    wrapper.appendChild(range.cloneContents())
+    var metadata = JSON.stringify({ url: pageUrl, title: pageTitle })
+    html =
+      '<!--kbmemo:' +
+      metadata +
+      '-->' +
+      '<blockquote cite="' +
+      pageUrl.replace(/"/g, '&quot;') +
+      '">' +
+      wrapper.innerHTML +
+      '</blockquote>'
+    plain = selection.toString()
+  }
+
+  if (new Blob([html]).size > 5 * 1024 * 1024) {
+    window.alert('ページのHTMLが5MBを超えているため保存できません。範囲を選択して保存してください。')
+    return
+  }
 
   var clipPayload = {
     type: CLIP,
@@ -78,6 +102,7 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
     url: pageUrl,
     title: pageTitle,
     plain: plain,
+    mode: mode,
   }
 
   var popup = window.open(
@@ -104,7 +129,7 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
     } catch (error) {
       /* ignore */
     }
-  }, 60000)
+  }, 180000)
 
   function onMessage(event) {
     if (finished) return

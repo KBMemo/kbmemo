@@ -15,6 +15,10 @@ class ClipBookmarkletHelperTest < ActiveSupport::TestCase
     assert_includes decoded, "kbmemo_clip_test_token_abc"
     assert_not_includes decoded, "__KBMEMO_BASE__"
     assert_not_includes decoded, "__KBMEMO_TOKEN__"
+    assert_includes decoded, "本文抽出"
+    assert_includes decoded, "サマリー"
+    assert_includes decoded, 'mode:'
+    assert_includes decoded, '"summary"'
   end
 
   test "clipboard_bookmarklet_href is javascript url" do

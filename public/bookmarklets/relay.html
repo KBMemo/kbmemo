@@ -105,7 +105,7 @@
             return
           }
 
-          setStatus('kbmemo に送信中…')
+          setStatus(event.data.mode === 'summary' ? 'サマリーを生成中…' : 'kbmemo に送信中…')
 
           fetch('/api/clips', {
             method: 'POST',
@@ -119,6 +119,7 @@
               url: event.data.url,
               title: event.data.title,
               plain: event.data.plain,
+              mode: event.data.mode,
             }),
           })
             .then((response) =>

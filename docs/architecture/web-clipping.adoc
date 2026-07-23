@@ -8,7 +8,25 @@
 * 認証には Web クリップトークンを使う。Web クリップトークンはこの endpoint 専用で、`/api/v1/*` 用のアカウント API トークンとは分離する。
 * `ClipCreator` が HTML またはプレーンテキストを AsciiDoc に変換し、メモを作成する。
 * 保存先はアカウントごとの `home/u-{account_id}/clippings`。初回保存時にディレクトリがなければ作成する。
-* URL、元タイトル、保存日時は `source_url`、`source_title`、`clipped_at` としてメモの `properties` に保持する。
+* URL、元タイトル、保存日時、保存modeは `source_url`、`source_title`、`clipped_at`、`clip_mode` としてメモの `properties` に保持する。
+
+== 保存mode
+
+[cols="1,3",options="header"]
+|===
+|mode |動作
+
+|`selection`
+|選択範囲をそのままサーバーへ送り、AsciiDocへ変換する。従来の保存動作。
+
+|`article`
+|選択範囲がない場合に「本文抽出」を選ぶ。ページ全体のHTMLを送り、`ClipArticleExtractor` が `article` / `main` / `[role=main]` を優先してナビゲーション、ヘッダー、フッター、スクリプト等を除外してからAsciiDocへ変換する。
+
+|`summary`
+|選択範囲がない場合に「サマリー」を選ぶ。`article` と同じ本文抽出後、アカウントの Chat サーバー設定にある `fast_chat` モデルでAsciiDoc形式の要約を生成する。
+|===
+
+未選択時の選択をキャンセルした場合は何も送信しない。ページHTMLは5MBまで、要約モデルへ渡す抽出本文は48,000文字までとする。`summary` は `fast_chat` の接続先とモデルが利用可能である必要があり、接続・生成に失敗した場合はメモを保存せずエラーを返す。
 
 == 自動タグ
 
@@ -47,6 +65,8 @@ bin/rake kbmemo:clips:tag_existing
 
 * `app/controllers/api/clips_controller.rb` — Clip API
 * `app/services/clip_creator.rb` — メモ作成と本文変換の入口
+* `app/services/clip_article_extractor.rb` — ページ全体HTMLからの本文抽出
+* `app/services/clip_summarizer.rb` — `fast_chat` によるAsciiDoc要約
 * `app/services/web_clip_tagging.rb` — 自動付与と既存メモのバックフィル
 * `app/models/memo_directory/user_space.rb` — clippings ディレクトリ作成
 * `lib/tasks/kbmemo_clips.rake` — dry-run / 適用タスク

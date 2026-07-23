@@ -2,12 +2,17 @@
 
 module Api
   class ClipsController < BaseController
+    MAX_HTML_BYTES = 5.megabytes
     skip_before_action :authenticate_api_token!
     before_action :authenticate_clip_token!, except: :options
 
     def create
       unless clip_payload_present?
         render json: { errors: [ "html または plain が必要です。" ] }, status: :unprocessable_entity
+        return
+      end
+      if clip_params[:html].to_s.bytesize > MAX_HTML_BYTES
+        render json: { errors: [ "HTMLは5MB以下にしてください。" ] }, status: :content_too_large
         return
       end
 
@@ -18,7 +23,8 @@ module Api
         html: clip_params[:html],
         url: clip_params[:url],
         title: clip_params[:title],
-        plain: clip_params[:plain]
+        plain: clip_params[:plain],
+        mode: clip_params[:mode]
       ).call
 
       render json: {
@@ -28,7 +34,7 @@ module Api
         slug: memo.slug,
         directory: memo.memo_directory.full_path
       }, status: :created
-    rescue ClipCreator::Error => e
+    rescue ClipCreator::Error, ClipSummarizer::Error => e
       render json: { errors: [ e.message ] }, status: :unprocessable_entity
     end
 
@@ -47,7 +53,7 @@ module Api
     end
 
     def clip_params
-      params.permit(:html, :url, :title, :plain)
+      params.permit(:html, :url, :title, :plain, :mode)
     end
 
     def clip_payload_present?

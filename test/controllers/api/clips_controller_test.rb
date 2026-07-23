@@ -53,6 +53,70 @@ class Api::ClipsControllerTest < ActionDispatch::IntegrationTest
     assert_response :created
   end
 
+  test "article mode extracts page content before saving" do
+    html = <<~HTML
+      <html><body>
+        <nav>Global navigation</nav>
+        <article><h1>Full article</h1><p>Article body text.</p></article>
+        <footer>Footer links</footer>
+      </body></html>
+    HTML
+
+    post api_clips_path,
+      params: { html: html, mode: "article", title: "Full article", url: "https://example.com/full" },
+      headers: auth_headers
+
+    assert_response :created
+    memo = Memo.find(JSON.parse(response.body).fetch("id"))
+    assert_includes memo.body, "Article body text"
+    assert_not_includes memo.body, "Global navigation"
+    assert_not_includes memo.body, "Footer links"
+    assert_equal "article", memo.properties["clip_mode"]
+  end
+
+  test "summary mode saves generated summary" do
+    ClipSummarizer.stub(:call, "要約本文\n\n== 重要ポイント\n\n* 要点") do
+      post api_clips_path,
+        params: {
+          html: "<html><body><main><p>Long article body.</p></main></body></html>",
+          mode: "summary",
+          title: "Summary article"
+        },
+        headers: auth_headers
+    end
+
+    assert_response :created
+    memo = Memo.find(JSON.parse(response.body).fetch("id"))
+    assert_includes memo.body, "要約本文"
+    assert_equal "summary", memo.properties["clip_mode"]
+  end
+
+  test "summary failure does not leave an empty memo" do
+    before_count = @account.memos.count
+
+    ClipSummarizer.stub(:call, ->(**) { raise ClipSummarizer::Error, "model unavailable" }) do
+      post api_clips_path,
+        params: {
+          html: "<html><body><main><p>Long article body.</p></main></body></html>",
+          mode: "summary",
+          title: "Failed summary"
+        },
+        headers: auth_headers
+    end
+
+    assert_response :unprocessable_entity
+    assert_equal before_count, @account.memos.count
+  end
+
+  test "rejects an oversized page" do
+    post api_clips_path,
+      params: { html: "x" * (Api::ClipsController::MAX_HTML_BYTES + 1), mode: "article" },
+      headers: auth_headers,
+      as: :json
+
+    assert_response :content_too_large
+  end
+
   test "create clip without html or plain returns unprocessable entity" do
     post api_clips_path, params: { title: "Only title" }, headers: auth_headers
 
