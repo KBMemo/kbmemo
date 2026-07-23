@@ -52,7 +52,7 @@
 |`properties.docs_sync` 管理（KbmemoDocs sync）
 
 |`home/u-{id}/clippings`
-|Clip API（`ClipCreator`）
+|Clip API（`ClipCreator`）。作成メモには `web-clip` タグを自動付与する。詳細は link:web-clipping.adoc[Web クリップ] を参照。
 
 |`share/u-{id}/calendar`
 |Google Calendar 同期
@@ -94,3 +94,4 @@
 * `app/services/memo_directory/relocate_by_created_at.rb` — 一括再配置
 * `app/services/memo_repository.rb` — 相対パス（`full_path` ベース）
 * `lib/tasks/kbmemo_memos.rake` — 移行タスク
+* `app/services/web_clip_tagging.rb` / `lib/tasks/kbmemo_clips.rake` — Web クリップの自動タグと既存メモへの一括付与

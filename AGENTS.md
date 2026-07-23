@@ -73,6 +73,7 @@
 ## API と外部連携
 
 - アカウント API トークンは `/api/v1/*` 用。Web クリップトークンは `POST /api/clips` 専用で、複数発行・個別失効できる。用途の異なる token を流用しない。
+- Web クリップは `home/u-{id}/clippings` に保存し、`web-clip` タグを自動付与する。既存メモの確認・一括付与は `kbmemo:clips:tag_existing_preview` / `kbmemo:clips:tag_existing` を使う。
 - Tsuzura は写真・media 管理の別アプリ。連携設計は `docs/architecture/media-platform.adoc`、実装は別 repository の `kbmemo-media`。
 - development の Tsuzura endpoint は既定で `http://localhost:3008`。本番接続を試す場合だけ `TSUZURA_*` を明示する。
 - Nyoy MCP、Google Calendar、LLM server の設定は既存の account setting / credentials / service class を経由する。

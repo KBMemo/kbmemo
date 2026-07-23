@@ -1,0 +1,52 @@
+= Web クリップ
+
+この文書は、ブックマークレットの「KBMemoに保存」からメモを作成する経路と、既存クリップの保守手順をまとめる。
+
+== 保存経路
+
+* ブックマークレットは `POST /api/clips` を呼び出す。
+* 認証には Web クリップトークンを使う。Web クリップトークンはこの endpoint 専用で、`/api/v1/*` 用のアカウント API トークンとは分離する。
+* `ClipCreator` が HTML またはプレーンテキストを AsciiDoc に変換し、メモを作成する。
+* 保存先はアカウントごとの `home/u-{account_id}/clippings`。初回保存時にディレクトリがなければ作成する。
+* URL、元タイトル、保存日時は `source_url`、`source_title`、`clipped_at` としてメモの `properties` に保持する。
+
+== 自動タグ
+
+「KBMemoに保存」で作成したメモには、`WebClipTagging` が `web-clip` タグを自動付与する。
+
+`web-clip` は保存経路を表すシステム上の分類であり、サイト名や内容を表すタグとは分けて扱う。タグが既に存在する場合は再利用し、同じメモへ重複して付与しない。
+
+== 既存クリップへの一括付与
+
+対象は `home/u-{account_id}/clippings` と、その子孫ディレクトリにあるメモである。通常の日付ディレクトリや他の連携用ディレクトリは対象外。
+
+最初に dry-run で件数を確認する。
+
+[source,bash]
+----
+bin/rake kbmemo:clips:tag_existing_preview
+----
+
+出力例:
+
+[source,text]
+----
+[dry-run] scanned=120 already_tagged=20 tagged=100
+----
+
+問題がなければ適用する。
+
+[source,bash]
+----
+bin/rake kbmemo:clips:tag_existing
+----
+
+タスクは冪等である。再実行時は `web-clip` が付いているメモをスキップする。
+
+== 関連コード
+
+* `app/controllers/api/clips_controller.rb` — Clip API
+* `app/services/clip_creator.rb` — メモ作成と本文変換の入口
+* `app/services/web_clip_tagging.rb` — 自動付与と既存メモのバックフィル
+* `app/models/memo_directory/user_space.rb` — clippings ディレクトリ作成
+* `lib/tasks/kbmemo_clips.rake` — dry-run / 適用タスク
