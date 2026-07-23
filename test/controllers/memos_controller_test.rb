@@ -676,6 +676,12 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select '[data-controller~="memo-directory-dnd"]', count: 0
     assert_includes response.body, "memo-draft#preventSubmit"
     assert_includes response.body, "memo-draft#suppressEnterSubmit"
+    assert_select "[data-controller='memo-metadata-suggestions']"
+    assert_select "[data-memo-metadata-suggestions-url-value=?]",
+      metadata_suggestions_memo_path(memos(:one))
+    assert_select "#memo_title_field > button[aria-label='AIでタイトル・タグを提案']" do |buttons|
+      assert_empty buttons.first.text.strip
+    end
     assert_select ".memo-edit-author", count: 0
     assert_not_includes response.body, "memo_slug_field"
     assert_select ".kb-form-disclosure-row > details.kb-form-disclosure", count: 2

@@ -20,7 +20,7 @@ class ClipBookmarkletHelperTest < ActiveSupport::TestCase
     assert_includes decoded, "キャンセル"
     assert_includes decoded, 'createElement("dialog")'
     assert_not_includes decoded, "window.prompt"
-    assert_includes decoded, 'mode:'
+    assert_includes decoded, "mode:"
     assert_includes decoded, '"summary"'
   end
 

@@ -1,12 +1,30 @@
-div[id="memo_title_field" class="flex items-start gap-3"]
-  .flex.items-center.gap-1
-    = label_tag "memo_title", "タイトル", class: "text-sm font-medium kb-text-primary whitespace-nowrap"
-    details.relative
-      summary class=kb_hint_trigger aria-label="タイトル同期の説明" aria-describedby="memo-title-hint"
-        i[data-lucide="circle-help" class="h-4 w-4" aria-hidden="true"]
-      div#memo-title-hint class="#{kb_hint_popover} left-0 top-6"
-        | 本文1行目がタイトルに同期されます（先頭の「=」は除外）。タイトルを手動変更すると同期が止まり、空にすると再同期します。
-  .min-w-0.flex-1
-    = text_field_tag "memo[title]", memo_title_input_value(memo), id: "memo_title", autocomplete: "off", class: memo_form_underline_input, data: { memo_draft_target: "title", action: "input->memo-draft#titleInput compositionend->memo-draft#titleInput blur->memo-draft#titleBlur" }, aria: kb_field_error_aria(memo, :title)
-    - if kb_field_error?(memo, :title)
-      p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(memo, :title) = kb_field_error_message(memo, :title)
+.memo-metadata-suggestions data-controller=("memo-metadata-suggestions" if memo.persisted?) data-memo-metadata-suggestions-url-value=(metadata_suggestions_memo_path(memo) if memo.persisted?)
+  div[id="memo_title_field" class="flex items-start gap-3"]
+    .flex.items-center.gap-1
+      = label_tag "memo_title", "タイトル", class: "text-sm font-medium kb-text-primary whitespace-nowrap"
+      details.relative
+        summary class=kb_hint_trigger aria-label="タイトル同期の説明" aria-describedby="memo-title-hint"
+          i[data-lucide="circle-help" class="h-4 w-4" aria-hidden="true"]
+        div#memo-title-hint class="#{kb_hint_popover} left-0 top-6"
+          | 本文1行目がタイトルに同期されます（先頭の「=」は除外）。タイトルを手動変更すると同期が止まり、空にすると再同期します。
+    .min-w-0.flex-1
+      = text_field_tag "memo[title]", memo_title_input_value(memo), id: "memo_title", autocomplete: "off", class: memo_form_underline_input, data: { memo_draft_target: "title", action: "input->memo-draft#titleInput compositionend->memo-draft#titleInput blur->memo-draft#titleBlur" }, aria: kb_field_error_aria(memo, :title)
+      - if kb_field_error?(memo, :title)
+        p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(memo, :title) = kb_field_error_message(memo, :title)
+    - if memo.persisted?
+      button.inline-flex.h-7.w-7.shrink-0.items-center.justify-center.rounded.kb-toolbar-btn type="button" aria-label="AIでタイトル・タグを提案" title="AIでタイトル・タグを提案" data-memo-metadata-suggestions-target="button" data-action="memo-metadata-suggestions#generate"
+        i[data-lucide="wand-sparkles" class="h-4 w-4" aria-hidden="true"]
+
+  - if memo.persisted?
+    p.hidden.mt-1.text-xs.kb-text-muted role="status" aria-live="polite" data-memo-metadata-suggestions-target="status"
+    .hidden.mt-2.border-l-2.kb-border.pl-3 data-memo-metadata-suggestions-target="panel"
+      .space-y-2
+        div
+          = label_tag "memo_ai_suggested_title", "タイトル候補", class: "mb-1 block text-xs font-medium kb-text-muted"
+          = text_field_tag "memo_ai_suggested_title", "", id: "memo_ai_suggested_title", autocomplete: "off", class: memo_form_underline_input, data: { memo_metadata_suggestions_target: "title" }
+        fieldset
+          legend.mb-1.text-xs.font-medium.kb-text-muted タグ候補
+          .flex.flex-wrap.gap-x-3.gap-y-2 data-memo-metadata-suggestions-target="tags"
+        .flex.justify-end.gap-2
+          button.kb-chrome-btn-secondary.kb-btn-sm type="button" data-action="memo-metadata-suggestions#close" キャンセル
+          button.kb-chrome-btn-primary.kb-btn-sm type="button" data-action="memo-metadata-suggestions#apply" 反映

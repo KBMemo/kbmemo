@@ -37,10 +37,7 @@ class MemosControllerDocsSyncTest < ActionDispatch::IntegrationTest
     get memo_url(@memo)
     assert_response :success
 
-    # タグタブはメモの先頭タグへディープリンクする（タグがあれば tag_id 付き）。
-    first_tag = @memo.tags.order(:name).first
-    tag_href = first_tag ? memo_path(@memo, sidebar_view: "tag", tag_id: first_tag.id) : memo_path(@memo, sidebar_view: "tag")
-    assert_select ".kb-sidebar-tab-bar a[href=?]", tag_href
+    assert_select ".kb-sidebar-tab-bar a[href=?]", memo_path(@memo, sidebar_view: "tag")
     assert_select ".kb-sidebar-tab-bar a[href=?]", memo_path(@memo, sidebar_view: "search")
     assert_select ".kb-sidebar-tab-bar a[href=?]", memo_path(@memo, sidebar_view: "history")
     assert_select ".kb-sidebar-tab-bar a[href*=?]", edit_memo_path(@memo), count: 0

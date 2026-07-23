@@ -13,7 +13,22 @@ import {
   loadOpenDirectoryIds,
   syncOpenDirectoryIdsFromPanel
 } from "../../javascript/memo_directory_nav_open.js"
-import { createIcons, ArrowLeft, BookOpen, CircleHelp, Copy, Eye, GripVertical, Kanban, Link2, PanelLeftOpen, Pencil, Plus, Trash2 } from "lucide"
+import {
+  createIcons,
+  ArrowLeft,
+  BookOpen,
+  CircleHelp,
+  Copy,
+  Eye,
+  GripVertical,
+  Kanban,
+  Link2,
+  PanelLeftOpen,
+  Pencil,
+  Plus,
+  Trash2,
+  WandSparkles
+} from "lucide"
 
 if (window.Turbo?.config?.drive) {
   window.Turbo.config.drive.progressBarDelay = Number.MAX_SAFE_INTEGER
@@ -45,7 +60,8 @@ const renderLucideIcons = () => {
       PanelLeftOpen,
       Pencil,
       Plus,
-      Trash2
+      Trash2,
+      WandSparkles
     }
   })
 }

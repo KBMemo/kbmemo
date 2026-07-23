@@ -374,6 +374,31 @@ export default class extends Controller {
     this.autosaveDraft()
   }
 
+  applyMetadataSuggestion(event) {
+    const title = event.detail?.title?.trim()
+    const suggestedTags = Array.isArray(event.detail?.tags) ? event.detail.tags : []
+
+    this.markFormInteracted()
+    if (title && this.hasTitleTarget) {
+      this.titleTarget.value = title
+      if (this.hasTitleManualFlagTarget) this.titleManualFlagTarget.value = "1"
+    }
+
+    if (this.hasTagListTarget) {
+      const tags = this.parseTagList(this.tagListTarget.value)
+      const taken = new Set(tags.map((tag) => tag.toLowerCase()))
+      for (const suggested of suggestedTags) {
+        const tag = String(suggested).trim()
+        if (!tag || taken.has(tag.toLowerCase())) continue
+        tags.push(tag)
+        taken.add(tag.toLowerCase())
+      }
+      this.applyTags(tags)
+    } else {
+      this.autosaveDraft()
+    }
+  }
+
   renderTagPills(tags) {
     if (!this.hasTagPillsTarget) return
     const root = this.tagPillsTarget

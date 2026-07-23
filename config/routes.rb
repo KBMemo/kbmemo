@@ -121,6 +121,7 @@ Rails.application.routes.draw do
 
     member do
       post :ai_chat, to: "memo_ai_chats#create"
+      post :metadata_suggestions, to: "memo_metadata_suggestions#create"
       patch :draft
       patch :commit
       patch :revert_draft

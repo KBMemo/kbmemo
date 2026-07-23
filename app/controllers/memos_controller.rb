@@ -123,7 +123,6 @@ class MemosController < ApplicationController
     authorize Memo
     if params[:q].present? && params[:sidebar_view] != "search"
       redirect_to memos_path(sidebar_view: "search", q: params[:q])
-      return
     end
   end
 

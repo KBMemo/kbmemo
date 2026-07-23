@@ -1,7 +1,7 @@
 ruby:
   form_data = {
     controller: "memo-draft",
-    action: "submit->memo-draft#preventSubmit keydown->memo-draft#suppressEnterSubmit",
+    action: "submit->memo-draft#preventSubmit keydown->memo-draft#suppressEnterSubmit memo-metadata-suggestions:apply->memo-draft#applyMetadataSuggestion",
     turbo: "false"
   }
   form_data[:memo_draft_draft_url_value] = draft_memo_path(memo, memo_sidebar_nav_query) if memo.persisted?
@@ -47,7 +47,7 @@ ruby:
         div.min-w-0
           p.text-xs.kb-text-muted 作成者
           p.truncate.text-sm.font-medium.kb-text-primary = memo.account.display_name
-  
+
     div
       = render "title_field", memo: memo
   

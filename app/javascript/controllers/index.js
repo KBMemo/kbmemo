@@ -48,6 +48,7 @@ const lazyControllers = {
   "expandable-hint": () => import("./expandable_hint_controller"),
   "interaction-autoscroll": () => import("./interaction_autoscroll_controller"),
   "memo-ai-panel": () => import("./memo_ai_panel_controller"),
+  "memo-metadata-suggestions": () => import("./memo_metadata_suggestions_controller"),
   "memo-attachments": () => import("./memo_attachments_controller"),
   "memo-body-editor": () => import("./memo_body_editor_controller"),
   "memo-bulk-manage": () => import("./memo_bulk_manage_controller"),
