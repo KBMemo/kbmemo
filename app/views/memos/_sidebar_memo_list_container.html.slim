@@ -26,7 +26,10 @@ ruby:
         - else
           p 上の欄にキーワードを入力してください
       - elsif @sidebar_view == "tag"
-        p このタグのメモはまだありません
+        - if @current_tag
+          p このタグのメモはまだありません
+        - else
+          p 上の欄でタグを検索して選択してください
       - elsif @sidebar_view == "history"
         p まだ表示履歴がありません
       - elsif defined?(@current_memo_directory) && @current_memo_directory&.root?

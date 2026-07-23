@@ -104,15 +104,21 @@ module MemosHelper
   def memos_sidebar_tag_tab_path
     if (memo = memo_sidebar_open_memo)
       q = { sidebar_view: "tag" }
-      tag = memo.tags.order(:name).first
-      q[:tag_id] = tag.id if tag
+      q[:tag_id] = @current_tag.id if defined?(@current_tag) && @current_tag
       return memo_sidebar_open_memo_path(memo, q)
     end
 
-    first = Tag.order(:name).first
-    return memos_path(sidebar_view: "tag") if first.nil?
+    q = { sidebar_view: "tag" }
+    q[:tag_id] = @current_tag.id if defined?(@current_tag) && @current_tag
+    memos_path(q)
+  end
 
-    memos_path(sidebar_view: "tag", tag_id: first.id)
+  def memos_sidebar_tag_search_path
+    if (memo = memo_sidebar_open_memo)
+      memo_sidebar_open_memo_path(memo)
+    else
+      memos_path
+    end
   end
 
   def memos_sidebar_search_tab_path
@@ -309,13 +315,6 @@ module MemosHelper
     base = "kb-sidebar-nav #{kb_focus_ring}"
     active = defined?(@sidebar_view) && @sidebar_view == "directory" &&
       defined?(@current_memo_directory) && @current_memo_directory&.id == directory.id
-    [ base, active ? "is-active" : nil ].compact.join(" ")
-  end
-
-  def memo_tag_nav_link_classes(tag)
-    base = "kb-sidebar-nav #{kb_focus_ring}"
-    active = defined?(@sidebar_view) && @sidebar_view == "tag" &&
-      defined?(@current_tag) && @current_tag&.id == tag.id
     [ base, active ? "is-active" : nil ].compact.join(" ")
   end
 

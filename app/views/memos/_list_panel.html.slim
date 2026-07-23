@@ -24,11 +24,17 @@ ruby:
     - elsif @sidebar_view == "tag"
       - tags = @tags_for_nav || []
       - if tags.any?
-        ul.mb-2.space-y-0.5
-          - tags.each do |tag|
-            li
-              = link_to memos_path(sidebar_view: "tag", tag_id: tag.id), class: memo_tag_nav_link_classes(tag), draggable: "false" do
-                span.truncate = tag.name
+        search.kb-tag-search.mb-2 data-controller="memo-tag-search"
+          = form_tag memos_sidebar_tag_search_path, method: :get, class: "flex min-w-0 gap-1", data: { memo_tag_search_target: "form", action: "submit->memo-tag-search#submit" } do
+            = hidden_field_tag :sidebar_view, "tag"
+            = hidden_field_tag :tag_id, @current_tag&.id, data: { memo_tag_search_target: "tagId" }
+            = label_tag :tag_query, "タグを検索", class: "sr-only"
+            = search_field_tag :tag_query, @current_tag&.name, placeholder: "タグを検索", autocomplete: "off", role: "combobox", aria: { autocomplete: "list", controls: "memo-sidebar-tag-options", expanded: "false" }, class: memo_sidebar_search_input, data: { memo_tag_search_target: "input", action: "input->memo-tag-search#input focus->memo-tag-search#input blur->memo-tag-search#closeLater keydown->memo-tag-search#keydown" }
+            button type="button" class="kb-chrome-btn-secondary kb-btn-xs shrink-0#{' hidden' unless @current_tag}" data-memo-tag-search-target="clear" data-action="memo-tag-search#clear" クリア
+          #memo-sidebar-tag-options.kb-tag-search-options.hidden role="listbox" data-memo-tag-search-target="options"
+            - tags.each do |tag|
+              button.kb-tag-search-option type="button" role="option" data-memo-tag-search-target="option" data-tag-id=tag.id data-tag-name=tag.name data-action="mousedown->memo-tag-search#keepOpen click->memo-tag-search#select"
+                = tag.name
       - else
         p.mb-2.text-xs.kb-text-secondary タグがまだありません。メモの編集画面でタグを付けられます。
       = link_to "タグを管理…", tags_path, class: "mb-2 inline-block text-xs kb-text-secondary kb-inline-link"
@@ -48,6 +54,9 @@ ruby:
             span.ml-1.font-normal.normal-case.kb-text-subtle = "「#{h(@memo_search_query)}」"
         - elsif @sidebar_view == "search"
           p#memo_sidebar_list_heading.truncate.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted メモ一覧
+        - elsif @sidebar_view == "tag" && @current_tag
+          p#memo_sidebar_list_heading.truncate.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted
+            span.normal-case = "「#{h(@current_tag.name)}」のメモ"
         - else
           p#memo_sidebar_list_heading.truncate.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted メモ一覧
         - if @sidebar_view == "directory"

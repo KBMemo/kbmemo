@@ -433,7 +433,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "a", text: "タグ" do |links|
       href = links.first["href"]
       assert_includes href, "sidebar_view=tag"
-      assert_includes href, "tag_id=#{tag.id}"
+      assert_not_includes href, "tag_id="
     end
 
     get edit_memo_url(m, sidebar_view: "tag", tag_id: tag.id)
@@ -458,12 +458,31 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Peer private note"
   end
 
-  test "tag sidebar redirects to first tag when tag_id omitted" do
-    first = Tag.order(:name).first
-    assert first
-
+  test "tag sidebar prompts for a tag when tag_id omitted" do
     get memos_url(sidebar_view: "tag")
-    assert_redirected_to memos_url(sidebar_view: "tag", tag_id: first.id)
+    assert_response :success
+    assert_select "input#tag_query[role='combobox'][aria-controls='memo-sidebar-tag-options']"
+    assert_select "input#tag_id"
+    assert_select "#memo_sidebar_memo_list_container", text: /タグを検索して選択/
+  end
+
+  test "tag sidebar suggests only tags attached to visible memos" do
+    unused_tag = Tag.create!(name: "UnusedSidebarTag")
+    private_tag = Tag.create!(name: "PrivateSidebarTag")
+    private_memo = memos(:two)
+    private_memo.update_columns(
+      account_id: accounts(:two).id,
+      visibility: Memo.visibilities[:owner_read_write]
+    )
+    MemoTag.create!(memo: private_memo, tag: private_tag)
+
+    sign_in_as(:one)
+    get memos_url(sidebar_view: "tag")
+
+    assert_response :success
+    assert_select "#memo-sidebar-tag-options [data-tag-name=?]", tags(:one).name
+    assert_select "#memo-sidebar-tag-options [data-tag-name=?]", unused_tag.name, count: 0
+    assert_select "#memo-sidebar-tag-options [data-tag-name=?]", private_tag.name, count: 0
   end
 
   test "tag sidebar lists memos for selected tag" do
@@ -472,7 +491,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, tag.name
     assert_includes response.body, memos(:two).title
-    assert_select "#memo_sidebar_memo_list ul.list-none.p-0 li.kb-list-tag", text: tag.name
+    assert_select "input#tag_query[value=?]", tag.name
+    assert_select "input#tag_id[value=?]", tag.id.to_s
+    assert_select "#memo-sidebar-tag-options [data-tag-name=?]", tag.name
     assert_not_includes response.body, memos(:one).title
   end
 

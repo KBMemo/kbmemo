@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# メモ一覧サイドバー: ディレクトリまたはタグで絞り込み、ナビ一覧を表示
+# メモ一覧サイドバー: 履歴・検索・ディレクトリ・タグで表示対象を絞り込む
 module MemoSidebar
   extend ActiveSupport::Concern
 
@@ -8,7 +8,6 @@ module MemoSidebar
 
   included do
     before_action :set_memo_directory_nav_context
-    before_action :redirect_memo_tag_sidebar_to_memo_tag, if: :memo_show_or_edit_action?
     before_action :load_sidebar_memos_list
   end
 
@@ -33,13 +32,13 @@ module MemoSidebar
 
   private
 
-  def memo_show_or_edit_action?
-    %w[show edit].include?(action_name)
-  end
-
   def set_memo_directory_nav_context
     @memo_directories_for_nav = policy_scope(MemoDirectory).nav_ordered
-    @tags_for_nav = Tag.order(:name)
+    visible_memo_ids = policy_scope(Memo).select(:id)
+    @tags_for_nav = Tag.joins(:memo_tags)
+      .where(memo_tags: { memo_id: visible_memo_ids })
+      .distinct
+      .order(:name)
     @sidebar_view = sidebar_view_from_params
     @memo_search_query = @sidebar_view == "search" ? params[:q].to_s.strip.presence : nil
 
@@ -54,24 +53,12 @@ module MemoSidebar
       if @sidebar_view == "tag"
         if params[:tag_id].present?
           Tag.find_by(id: params[:tag_id])
-        elsif @memo&.persisted? && %w[show edit].include?(action_name)
-          @memo.tags.order(:name).first
         end
       end
 
     @nav_open_directory_ids = Array(params[:nav_open_directory_ids]).filter_map do |id|
       Integer(id, exception: false)
     end
-  end
-
-  def redirect_memo_tag_sidebar_to_memo_tag
-    return unless params[:sidebar_view] == "tag"
-    return if params[:tag_id].present?
-
-    tag = @memo.tags.order(:name).first
-    return unless tag
-
-    redirect_to helpers.memo_sidebar_open_memo_path(@memo, sidebar_view: "tag", tag_id: tag.id)
   end
 
   def load_sidebar_memos_list

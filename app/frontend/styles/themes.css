@@ -1692,6 +1692,41 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   color: var(--kb-text-primary);
 }
 
+.kb-tag-search {
+  position: relative;
+  display: block;
+}
+
+.kb-tag-search-options {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% - 0.25rem);
+  right: 0;
+  left: 0;
+  max-height: 14rem;
+  overflow-y: auto;
+  border: 1px solid var(--kb-border);
+  border-radius: var(--radius-2);
+  background: var(--kb-bg-surface);
+  box-shadow: var(--shadow-3);
+}
+
+.kb-tag-search-option {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--kb-text-primary);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.kb-tag-search-option:hover,
+.kb-tag-search-option.is-active {
+  background: var(--kb-bg-muted);
+}
+
 .kb-field-inline {
   color: var(--kb-text-primary);
 }

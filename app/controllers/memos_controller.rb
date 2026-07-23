@@ -125,11 +125,6 @@ class MemosController < ApplicationController
       redirect_to memos_path(sidebar_view: "search", q: params[:q])
       return
     end
-    if params[:sidebar_view] == "tag" && params[:tag_id].blank? && Tag.exists?
-      first = Tag.order(:name).first
-      redirect_to memos_path(sidebar_view: "tag", tag_id: first.id)
-      nil
-    end
   end
 
   def show
