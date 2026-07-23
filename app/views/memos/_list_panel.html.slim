@@ -50,7 +50,6 @@ ruby:
                 = tag.name
       - else
         p.mb-2.text-xs.kb-text-secondary タグがまだありません。メモの編集画面でタグを付けられます。
-      = link_to "タグを管理…", tags_path, class: "mb-2 inline-block text-xs kb-text-secondary kb-inline-link"
     - elsif @sidebar_view == "search"
       search.mb-2 data-controller="memo-search" data-memo-search-list-url-value=sidebar_memo_list_memos_path
         = form_tag memos_path, method: :get, class: "flex min-w-0 gap-1", data: { memo_search_target: "form", action: "submit->memo-search#submitSearch", turbo: false } do

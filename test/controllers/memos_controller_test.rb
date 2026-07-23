@@ -464,6 +464,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "input#tag_query[role='combobox'][aria-controls='memo-sidebar-tag-options']"
     assert_select "input[name='tag_ids[]']", count: 0
     assert_select "#memo_sidebar_memo_list_container", text: /タグを検索して選択/
+    assert_select "#memos_list_panel a[href=?]", tags_path, count: 0
   end
 
   test "tag sidebar suggests only tags attached to visible memos" do
