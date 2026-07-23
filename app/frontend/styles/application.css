@@ -13,6 +13,12 @@
 @import "./diagram_svg_viewer.css";
 @import "./diagram_source_viewer.css";
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 .kb-skip-link {
   position: fixed;
   top: 0.75rem;

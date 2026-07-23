@@ -255,6 +255,9 @@ html[data-kb-theme-base="minimal"] {
 
 .kb-chrome-workspace {
   --kb-workspace-offset: calc(var(--size-9) + var(--size-6) + var(--size-3));
+  position: relative;
+  max-width: 100%;
+  overflow-x: clip;
   background-color: var(--kb-bg-page);
   border-color: var(--kb-border);
 }
@@ -264,6 +267,8 @@ html[data-kb-theme-base="minimal"] {
 }
 
 .kb-ai-sidebar-region {
+  min-width: 0;
+  max-width: 100%;
   max-height: min(42vh, calc(var(--size-14) + var(--size-7) + var(--size-2)));
 }
 
@@ -1538,8 +1543,11 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
 
 .kb-sidebar-toggle-btn {
   display: none;
-  position: fixed;
+  position: sticky;
+  top: 50vh;
   z-index: 30;
+  flex-shrink: 0;
+  align-self: flex-start;
   width: 1.25rem;
   height: 2rem;
   align-items: center;
@@ -1550,6 +1558,7 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   color: var(--kb-text-subtle);
   font-size: var(--kb-font-size-md);
   line-height: 1;
+  transform: translateY(-50%);
 }
 
 @media (min-width: 768px) {

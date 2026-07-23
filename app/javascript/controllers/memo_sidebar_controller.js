@@ -30,15 +30,10 @@ export default class extends Controller {
     this._readPrefs()
     this._applyLayout()
     window.addEventListener("resize", this._onResize)
-    if (this.hasShellTarget && typeof ResizeObserver !== "undefined") {
-      this._shellResizeObserver = new ResizeObserver(() => this._positionToggleButton())
-      this._shellResizeObserver.observe(this.shellTarget)
-    }
   }
 
   disconnect() {
     window.removeEventListener("resize", this._onResize)
-    this._shellResizeObserver?.disconnect()
     if (this._dragging) {
       this._dragging = false
       this._detachDragListeners()
@@ -180,7 +175,6 @@ export default class extends Controller {
     this.shellTarget.style.width = `${this._width}px`
     this.shellTarget.style.maxWidth = `${maxPx}px`
     this._updateResizerValueA11y()
-    this._positionToggleButton()
   }
 
   _dragEnd() {
@@ -247,7 +241,6 @@ export default class extends Controller {
 
     this._updateToggleUi()
     this._updateResizerA11y()
-    this._positionToggleButton()
   }
 
   // サイドバー下端がビューポート外に出て最終行が欠けるのを防ぐ
@@ -261,26 +254,6 @@ export default class extends Controller {
     } else {
       this.shellTarget.style.maxHeight = ""
     }
-  }
-
-  _positionToggleButton() {
-    if (!this.hasToggleButtonTarget || !this.hasShellTarget) return
-
-    const btn = this.toggleButtonTarget
-    if (!window.matchMedia("(min-width: 768px)").matches) {
-      btn.style.left = ""
-      btn.style.top = ""
-      btn.style.transform = ""
-      return
-    }
-
-    const shellRect = this.shellTarget.getBoundingClientRect()
-    const resizerWidth = this.hasResizerTarget ? this.resizerTarget.offsetWidth : 0
-    const edgeX = shellRect.right + resizerWidth / 2
-
-    btn.style.left = `${edgeX}px`
-    btn.style.top = "50vh"
-    btn.style.transform = "translate(-50%, -50%)"
   }
 
   _updateToggleUi() {

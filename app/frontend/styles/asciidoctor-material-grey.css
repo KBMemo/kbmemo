@@ -34,10 +34,13 @@
 /* --- メモ表示 (.memo-body) --- */
 
 .memo-body {
+  min-width: 0;
+  max-width: 100%;
   font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
   color: var(--mg-text);
   font-size: 1rem;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .memo-body.kb-card {
@@ -477,6 +480,8 @@
 /* --- Phase 5d テーブル（メモ表示） --- */
 
 .memo-body .tableblock {
+  max-width: 100%;
+  overflow-x: auto;
   margin: 0.65em 0;
 }
 
