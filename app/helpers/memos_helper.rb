@@ -104,12 +104,14 @@ module MemosHelper
   def memos_sidebar_tag_tab_path
     if (memo = memo_sidebar_open_memo)
       q = { sidebar_view: "tag" }
-      q[:tag_id] = @current_tag.id if defined?(@current_tag) && @current_tag
+      q[:tag_ids] = @current_tags.map(&:id) if defined?(@current_tags) && @current_tags.any?
+      q[:excluded_tag_ids] = @excluded_tags.map(&:id) if defined?(@excluded_tags) && @excluded_tags.any?
       return memo_sidebar_open_memo_path(memo, q)
     end
 
     q = { sidebar_view: "tag" }
-    q[:tag_id] = @current_tag.id if defined?(@current_tag) && @current_tag
+    q[:tag_ids] = @current_tags.map(&:id) if defined?(@current_tags) && @current_tags.any?
+    q[:excluded_tag_ids] = @excluded_tags.map(&:id) if defined?(@excluded_tags) && @excluded_tags.any?
     memos_path(q)
   end
 
@@ -118,6 +120,17 @@ module MemosHelper
       memo_sidebar_open_memo_path(memo)
     else
       memos_path
+    end
+  end
+
+  def memos_sidebar_tag_filter_path(tags, excluded_tags = [])
+    query = { sidebar_view: "tag" }
+    query[:tag_ids] = Array(tags).map(&:id) if Array(tags).any?
+    query[:excluded_tag_ids] = Array(excluded_tags).map(&:id) if Array(excluded_tags).any?
+    if (memo = memo_sidebar_open_memo)
+      memo_sidebar_open_memo_path(memo, query)
+    else
+      memos_path(query)
     end
   end
 
@@ -181,8 +194,11 @@ module MemosHelper
     params = { sidebar_view: @sidebar_view }
     if @sidebar_view == "search" && @memo_search_query.present?
       params[:q] = @memo_search_query
-    elsif @sidebar_view == "tag" && @current_tag
-      params[:tag_id] = @current_tag.id
+    elsif @sidebar_view == "tag" && @current_tags.any?
+      params[:tag_ids] = @current_tags.map(&:id)
+      params[:excluded_tag_ids] = @excluded_tags.map(&:id) if @excluded_tags.any?
+    elsif @sidebar_view == "tag" && @excluded_tags.any?
+      params[:excluded_tag_ids] = @excluded_tags.map(&:id)
     elsif @sidebar_view == "directory" && @current_memo_directory && !@current_memo_directory.root?
       params[:memo_directory_id] = @current_memo_directory.id
     end

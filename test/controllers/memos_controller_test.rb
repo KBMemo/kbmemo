@@ -462,7 +462,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     get memos_url(sidebar_view: "tag")
     assert_response :success
     assert_select "input#tag_query[role='combobox'][aria-controls='memo-sidebar-tag-options']"
-    assert_select "input#tag_id"
+    assert_select "input[name='tag_ids[]']", count: 0
     assert_select "#memo_sidebar_memo_list_container", text: /タグを検索して選択/
   end
 
@@ -491,10 +491,84 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, tag.name
     assert_includes response.body, memos(:two).title
-    assert_select "input#tag_query[value=?]", tag.name
-    assert_select "input#tag_id[value=?]", tag.id.to_s
+    assert_select "input#tag_query"
+    assert_select "input[name='tag_ids[]'][value=?]", tag.id.to_s
+    assert_select "ul[aria-label='選択中のタグ']", text: /#{Regexp.escape(tag.name)}/
     assert_select "#memo-sidebar-tag-options [data-tag-name=?]", tag.name
     assert_not_includes response.body, memos(:one).title
+  end
+
+  test "tag sidebar combines multiple selected tags with AND" do
+    first = tags(:one)
+    second = tags(:two)
+    matching = memos(:one)
+    matching.tags << second
+
+    get memos_url(sidebar_view: "tag", tag_ids: [ first.id, second.id ])
+
+    assert_response :success
+    assert_includes response.body, matching.title
+    assert_not_includes response.body, memos(:two).title
+    assert_select "input[name='tag_ids[]']", count: 2
+    assert_select "ul[aria-label='選択中のタグ'] li", count: 2
+    assert_select "#memo_sidebar_list_heading", text: /#{Regexp.escape(first.name)} AND #{Regexp.escape(second.name)}/
+  end
+
+  test "tag sidebar combines included and excluded tags" do
+    included = tags(:one)
+    excluded = tags(:two)
+    matching = memos(:one)
+    excluded_memo = memos(:two)
+    excluded_memo.tags << included
+
+    get memos_url(
+      sidebar_view: "tag",
+      tag_ids: [ included.id ],
+      excluded_tag_ids: [ excluded.id ]
+    )
+
+    assert_response :success
+    assert_includes response.body, matching.title
+    assert_not_includes response.body, excluded_memo.title
+    assert_select "input[name='tag_ids[]'][value=?]", included.id.to_s
+    assert_select "input[name='excluded_tag_ids[]'][value=?]", excluded.id.to_s
+    assert_select "a.kb-list-tag-negative", text: "NOT #{excluded.name}"
+    assert_select "#memo_sidebar_list_heading", text: /#{Regexp.escape(included.name)} AND NOT #{Regexp.escape(excluded.name)}/
+  end
+
+  test "tag sidebar supports an excluded tag without an included tag" do
+    excluded = tags(:two)
+
+    get memos_url(sidebar_view: "tag", excluded_tag_ids: [ excluded.id ])
+
+    assert_response :success
+    assert_includes response.body, memos(:one).title
+    assert_not_includes response.body, memos(:two).title
+    assert_select "a.kb-list-tag-negative", text: "NOT #{excluded.name}"
+  end
+
+  test "tag sidebar append keeps multiple tag AND conditions" do
+    first = tags(:one)
+    second = tags(:two)
+    16.times do |index|
+      memo = Memo.create!(
+        title: "Multi-tag memo #{index}",
+        body: "body",
+        memo_directory: memo_directories(:work),
+        account: accounts(:one)
+      )
+      memo.tags = [ first, second ]
+    end
+
+    get sidebar_memo_list_memos_url(
+      sidebar_view: "tag",
+      tag_ids: [ first.id, second.id ],
+      append: 1,
+      offset: 15
+    )
+
+    assert_response :success
+    assert_select "li[id^='sidebar_row_memo_']", count: 1
   end
 
   test "memo list row links to edit when draft and to show when file committed" do

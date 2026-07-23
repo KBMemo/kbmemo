@@ -1,15 +1,17 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["form", "input", "tagId", "clear", "options", "option"]
+  static targets = ["form", "input", "selectedTag", "clear", "options", "option"]
 
   connect() {
     this.activeIndex = -1
   }
 
   input() {
-    this.tagIdTarget.value = ""
-    this.clearTarget.classList.toggle("hidden", this.inputTarget.value.length === 0)
+    this.clearTarget.classList.toggle(
+      "hidden",
+      this.inputTarget.value.length === 0 && this.selectedTagTargets.length === 0
+    )
     this.filterOptions()
   }
 
@@ -55,13 +57,15 @@ export default class extends Controller {
   }
 
   submit(event) {
-    if (this.inputTarget.value.length === 0 || this.tagIdTarget.value) return
+    if (this.inputTarget.value.length === 0) return
 
     const matches = this.optionTargets.filter(
-      (option) => this.normalize(option.dataset.tagName) === this.normalize(this.inputTarget.value)
+      (option) =>
+        !this.selectedTagIds.includes(option.dataset.tagId) &&
+        this.normalize(option.dataset.tagName) === this.normalize(this.inputTarget.value)
     )
     if (matches.length === 1) {
-      this.tagIdTarget.value = matches[0].dataset.tagId
+      this.addTag(matches[0])
       return
     }
 
@@ -72,7 +76,7 @@ export default class extends Controller {
 
   clear() {
     this.inputTarget.value = ""
-    this.tagIdTarget.value = ""
+    this.selectedTagTargets.forEach((input) => input.remove())
     this.inputTarget.setCustomValidity("")
     this.close()
     this.formTarget.requestSubmit()
@@ -84,7 +88,10 @@ export default class extends Controller {
     let visibleCount = 0
 
     this.optionTargets.forEach((option) => {
-      const visible = query.length > 0 && this.normalize(option.dataset.tagName).includes(query)
+      const visible =
+        query.length > 0 &&
+        !this.selectedTagIds.includes(option.dataset.tagId) &&
+        this.normalize(option.dataset.tagName).includes(query)
       option.classList.toggle("hidden", !visible)
       option.setAttribute("aria-selected", "false")
       if (visible) visibleCount += 1
@@ -96,8 +103,7 @@ export default class extends Controller {
   }
 
   choose(option) {
-    this.inputTarget.value = option.dataset.tagName
-    this.tagIdTarget.value = option.dataset.tagId
+    this.addTag(option)
     this.inputTarget.setCustomValidity("")
     this.close()
     this.formTarget.requestSubmit()
@@ -117,5 +123,22 @@ export default class extends Controller {
 
   normalize(value) {
     return value.toString().trim().normalize("NFKC").toLocaleLowerCase()
+  }
+
+  addTag(option) {
+    if (this.selectedTagIds.includes(option.dataset.tagId)) return
+
+    const input = document.createElement("input")
+    input.type = "hidden"
+    input.name = "tag_ids[]"
+    input.value = option.dataset.tagId
+    input.dataset.memoTagSearchTarget = "selectedTag"
+    input.dataset.tagId = option.dataset.tagId
+    this.formTarget.append(input)
+    this.inputTarget.value = ""
+  }
+
+  get selectedTagIds() {
+    return this.selectedTagTargets.map((input) => input.dataset.tagId || input.value)
   }
 }

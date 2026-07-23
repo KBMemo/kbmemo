@@ -15,7 +15,6 @@ beforeEach(async () => {
   document.body.innerHTML = `
     <search data-controller="memo-tag-search">
       <form data-memo-tag-search-target="form" data-action="submit->memo-tag-search#submit">
-        <input type="hidden" data-memo-tag-search-target="tagId">
         <input
           type="search"
           role="combobox"
@@ -55,14 +54,14 @@ describe("memo-tag-search", () => {
     expect(input.getAttribute("aria-expanded")).toBe("true")
   })
 
-  it("submits the selected candidate id", () => {
+  it("adds and submits the selected candidate id", () => {
     const input = document.querySelector("input[type='search']")
     input.value = "ai"
     input.dispatchEvent(new Event("input"))
     document.querySelector("[data-tag-id='84']").click()
 
-    expect(input.value).toBe("Ａi")
-    expect(document.querySelector("input[type='hidden']").value).toBe("84")
+    expect(input.value).toBe("")
+    expect(document.querySelector("input[name='tag_ids[]']").value).toBe("84")
     expect(requestSubmit).toHaveBeenCalledOnce()
   })
 
@@ -78,16 +77,37 @@ describe("memo-tag-search", () => {
     expect(visibleNames).toEqual(["雲"])
   })
 
-  it("clears the selected tag and submits the empty filter", () => {
+  it("keeps an existing tag when another tag is selected", () => {
+    const form = document.querySelector("form")
+    form.insertAdjacentHTML(
+      "afterbegin",
+      '<input type="hidden" name="tag_ids[]" value="42" data-tag-id="42" data-memo-tag-search-target="selectedTag">'
+    )
     const input = document.querySelector("input[type='search']")
-    const tagId = document.querySelector("input[type='hidden']")
     input.value = "Ruby"
-    tagId.value = "126"
+    input.dispatchEvent(new Event("input"))
+    document.querySelector("[data-tag-id='126']").click()
+
+    expect(
+      Array.from(document.querySelectorAll("input[name='tag_ids[]']")).map((field) => field.value)
+    ).toEqual(["42", "126"])
+    expect(requestSubmit).toHaveBeenCalledOnce()
+  })
+
+  it("clears all selected tags and submits the empty filter", async () => {
+    const form = document.querySelector("form")
+    form.insertAdjacentHTML(
+      "afterbegin",
+      '<input type="hidden" name="tag_ids[]" value="126" data-tag-id="126" data-memo-tag-search-target="selectedTag">'
+    )
+    await Promise.resolve()
+    const input = document.querySelector("input[type='search']")
+    input.value = "Ruby"
 
     document.querySelector("[data-memo-tag-search-target='clear']").click()
 
     expect(input.value).toBe("")
-    expect(tagId.value).toBe("")
+    expect(document.querySelectorAll("input[name='tag_ids[]']")).toHaveLength(0)
     expect(requestSubmit).toHaveBeenCalledOnce()
   })
 })

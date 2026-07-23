@@ -19,8 +19,8 @@ module MemoSidebar
       h[:q] = @memo_search_query if @memo_search_query.present?
     elsif @sidebar_view == "tag"
       h[:sidebar_view] = "tag"
-      tid = (@current_tag&.id || params[:tag_id]).presence
-      h[:tag_id] = tid if tid
+      h[:tag_ids] = @current_tags.map(&:id) if @current_tags.any?
+      h[:excluded_tag_ids] = @excluded_tags.map(&:id) if @excluded_tags.any?
     elsif @sidebar_view == "history"
       h[:sidebar_view] = "history"
     elsif @sidebar_view == "directory"
@@ -49,12 +49,27 @@ module MemoSidebar
         MemoDirectory.root
       end
 
-    @current_tag =
-      if @sidebar_view == "tag"
-        if params[:tag_id].present?
-          Tag.find_by(id: params[:tag_id])
-        end
+    requested_tag_ids = (Array(params[:tag_ids]) + [ params[:tag_id] ]).filter_map do |id|
+      Integer(id, exception: false)
+    end.uniq
+    @current_tags =
+      if @sidebar_view == "tag" && requested_tag_ids.any?
+        @tags_for_nav.where(id: requested_tag_ids).to_a.sort_by { |tag| requested_tag_ids.index(tag.id) }
+      else
+        []
       end
+    requested_excluded_tag_ids = Array(params[:excluded_tag_ids]).filter_map do |id|
+      Integer(id, exception: false)
+    end.uniq - @current_tags.map(&:id)
+    @excluded_tags =
+      if @sidebar_view == "tag" && requested_excluded_tag_ids.any?
+        @tags_for_nav.where(id: requested_excluded_tag_ids).to_a.sort_by do |tag|
+          requested_excluded_tag_ids.index(tag.id)
+        end
+      else
+        []
+      end
+    @current_tag = @current_tags.first
 
     @nav_open_directory_ids = Array(params[:nav_open_directory_ids]).filter_map do |id|
       Integer(id, exception: false)
@@ -81,9 +96,23 @@ module MemoSidebar
     when "search"
       @memo_search_query.present? ? base.search_text(@memo_search_query) : base.none
     when "tag"
-      if @current_tag
-        ids = policy_scope(Memo).joins(:memo_tags).where(memo_tags: { tag_id: @current_tag.id }).distinct.pluck(:id)
-        base.where(id: ids)
+      if @current_tags.any? || @excluded_tags.any?
+        filtered = base
+        tag_ids = @current_tags.map(&:id)
+        if tag_ids.any?
+          matching_ids = policy_scope(Memo)
+            .joins(:memo_tags)
+            .where(memo_tags: { tag_id: tag_ids })
+            .group("memos.id")
+            .having("COUNT(DISTINCT memo_tags.tag_id) = ?", tag_ids.size)
+            .select(:id)
+          filtered = filtered.where(id: matching_ids)
+        end
+        if @excluded_tags.any?
+          excluded_ids = MemoTag.where(tag_id: @excluded_tags.map(&:id)).select(:memo_id)
+          filtered = filtered.where.not(id: excluded_ids)
+        end
+        filtered
       else
         base.none
       end

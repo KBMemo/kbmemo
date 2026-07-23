@@ -86,7 +86,11 @@ export default class extends Controller {
 
     const params = new URLSearchParams({ append: "1", offset: String(this.offsetValue) })
     for (const [key, value] of Object.entries(this.paramsValue || {})) {
-      if (value != null && value !== "") params.set(key, String(value))
+      if (Array.isArray(value)) {
+        value.forEach((item) => params.append(`${key}[]`, String(item)))
+      } else if (value != null && value !== "") {
+        params.set(key, String(value))
+      }
     }
 
     try {

@@ -2078,6 +2078,27 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   font-size: 0.6875rem;
 }
 
+.kb-list-tag-negative {
+  background: var(--kb-text-primary);
+  color: var(--kb-bg-surface);
+}
+
+.kb-tag-condition {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.kb-tag-condition-remove {
+  padding: 0.125rem 0.25rem;
+  color: var(--kb-text-subtle);
+  font-size: 0.6875rem;
+  text-decoration: none;
+}
+
+.kb-tag-condition-remove:hover {
+  color: var(--kb-text-primary);
+}
+
 .kb-list-tag-more {
   color: var(--kb-text-subtle);
   font-size: 0.6875rem;

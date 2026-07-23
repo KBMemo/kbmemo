@@ -26,8 +26,8 @@ ruby:
         - else
           p 上の欄にキーワードを入力してください
       - elsif @sidebar_view == "tag"
-        - if @current_tag
-          p このタグのメモはまだありません
+        - if @current_tags.any? || @excluded_tags.any?
+          p タグ条件に一致するメモはありません
         - else
           p 上の欄でタグを検索して選択してください
       - elsif @sidebar_view == "history"
