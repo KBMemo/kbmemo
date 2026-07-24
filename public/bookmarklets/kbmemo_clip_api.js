@@ -77,6 +77,26 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
         font: 'inherit',
         padding: '8px 14px',
       })
+      button.style.setProperty(
+        'background-color',
+        choice.value === 'article' ? '#2563eb' : '#f3f4f6',
+        'important'
+      )
+      button.style.setProperty(
+        'border-color',
+        choice.value === 'article' ? '#2563eb' : '#b8b8b8',
+        'important'
+      )
+      button.style.setProperty(
+        'color',
+        choice.value === 'article' ? '#fff' : '#222',
+        'important'
+      )
+      button.style.setProperty(
+        '-webkit-text-fill-color',
+        choice.value === 'article' ? '#fff' : '#222',
+        'important'
+      )
       actions.appendChild(button)
     })
 

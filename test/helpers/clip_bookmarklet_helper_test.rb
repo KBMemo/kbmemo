@@ -22,6 +22,9 @@ class ClipBookmarkletHelperTest < ActiveSupport::TestCase
     assert_not_includes decoded, "window.prompt"
     assert_includes decoded, "mode:"
     assert_includes decoded, '"summary"'
+    assert_includes decoded, 'setProperty("color"'
+    assert_includes decoded, '"important"'
+    assert_includes decoded, '"-webkit-text-fill-color"'
   end
 
   test "clipboard_bookmarklet_href is javascript url" do

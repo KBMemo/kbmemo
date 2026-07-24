@@ -55,6 +55,15 @@
           if (statusEl) statusEl.textContent = text
         }
 
+        function notifyOpener(message) {
+          try {
+            if (!window.opener || window.opener.closed) return
+            window.opener.postMessage(message, '*')
+          } catch (_error) {
+            // The clip is still complete if the source page closed or severed its opener.
+          }
+        }
+
         function showSuccessActions(data) {
           setStatus('kbmemo に保存しました。')
 
@@ -89,7 +98,7 @@
           return
         }
 
-        window.opener.postMessage({ type: RELAY_READY }, '*')
+        notifyOpener({ type: RELAY_READY })
 
         window.addEventListener('message', (event) => {
           if (event.source !== window.opener) return
@@ -98,10 +107,7 @@
           const token = (event.data.token || '').trim()
           if (!/^kbmemo_clip_/.test(token)) {
             setStatus('Web クリップトークンが無効です。')
-            window.opener.postMessage(
-              { type: CLIP_DONE, ok: false, error: 'invalid token' },
-              '*'
-            )
+            notifyOpener({ type: CLIP_DONE, ok: false, error: 'invalid token' })
             return
           }
 
@@ -138,19 +144,13 @@
                 throw new Error(msg)
               }
 
-              window.opener.postMessage(
-                { type: CLIP_DONE, ok: true, data: result.data },
-                '*'
-              )
+              notifyOpener({ type: CLIP_DONE, ok: true, data: result.data })
               showSuccessActions(result.data)
             })
             .catch((error) => {
               const message = error && error.message ? error.message : String(error)
               setStatus('保存に失敗しました: ' + message)
-              window.opener.postMessage(
-                { type: CLIP_DONE, ok: false, error: message },
-                '*'
-              )
+              notifyOpener({ type: CLIP_DONE, ok: false, error: message })
             })
         })
       })()
