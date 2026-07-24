@@ -15,6 +15,7 @@ export default class extends Controller {
 
   static values = {
     chatUrl: String,
+    modelOptionsUrl: String,
     profileUrl: String,
     hasApiKey: Boolean
   }
@@ -23,6 +24,7 @@ export default class extends Controller {
     this.history = []
     this.sending = false
     this.restoreModelRole()
+    void this.refreshModelOptions()
     this.renderMessages()
     this.updateSendState()
   }
@@ -33,6 +35,33 @@ export default class extends Controller {
       localStorage.setItem(MODEL_ROLE_STORAGE_KEY, this.modelRoleTarget.value)
     } catch {
       // Storage can be unavailable in privacy-restricted browser contexts.
+    }
+  }
+
+  async refreshModelOptions() {
+    if (!this.hasModelRoleTarget || !this.hasModelOptionsUrlValue) return
+
+    const selected = this.savedModelRole() || this.modelRoleTarget.value
+    try {
+      const res = await fetch(this.modelOptionsUrlValue, {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" }
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !Array.isArray(data.options) || data.options.length === 0) return
+
+      this.modelRoleTarget.replaceChildren(
+        ...data.options.map((entry) => {
+          const option = document.createElement("option")
+          option.value = String(entry.role)
+          option.textContent = `${entry.label} · ${entry.model}`
+          return option
+        })
+      )
+      const available = [...this.modelRoleTarget.options].some((option) => option.value === selected)
+      if (available) this.modelRoleTarget.value = selected
+    } catch {
+      // Keep server-rendered options when refresh is unavailable.
     }
   }
 
@@ -209,14 +238,17 @@ export default class extends Controller {
 
   restoreModelRole() {
     if (!this.hasModelRoleTarget) return
-    let saved = ""
-    try {
-      saved = localStorage.getItem(MODEL_ROLE_STORAGE_KEY) || ""
-    } catch {
-      return
-    }
+    const saved = this.savedModelRole()
     const available = [...this.modelRoleTarget.options].some((option) => option.value === saved)
     if (available) this.modelRoleTarget.value = saved
+  }
+
+  savedModelRole() {
+    try {
+      return localStorage.getItem(MODEL_ROLE_STORAGE_KEY) || ""
+    } catch {
+      return ""
+    }
   }
 
   showError(message, options = {}) {

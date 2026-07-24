@@ -33,6 +33,7 @@ Rails.application.routes.draw do
   end
 
   resource :chat_server, only: %i[show update], controller: "chat_servers" do
+    get :model_options
     post :health_check
     post :list_models
   end

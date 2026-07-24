@@ -66,6 +66,23 @@ class ChatServersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "model_options returns current memo assist model names" do
+    account = accounts(:one)
+    account.update_chat_server_settings!(
+      "roles" => {
+        "main" => { "base_url" => "http://main.test", "model" => "new-main" },
+        "fast_chat" => { "base_url" => "http://fast.test", "model" => "new-fast" }
+      }
+    )
+
+    get model_options_chat_server_url, as: :json
+
+    assert_response :success
+    options = JSON.parse(response.body).fetch("options").index_by { |entry| entry["role"] }
+    assert_equal "new-main", options.dig("main", "model")
+    assert_equal "new-fast", options.dig("fast_chat", "model")
+  end
+
   test "health_check passes form role overrides to server health" do
     captured = nil
     original = Chat::ServerHealth.method(:check_all)

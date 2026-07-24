@@ -8,16 +8,9 @@ section.mt-8
     | ヘッダーやメモディレクトリの表示に使います。空にするとメールアドレスが表示されます。
 
 section.mt-10
-  h2 class=kb_section_title ローカル Chat サーバー
-  p.mt-1.text-sm.kb-text-secondary
-    | AI チャット・メモアシストの llama-server 接続先 URL です。
-  .mt-3
-    = link_to "Chat サーバー設定", chat_server_path, class: "kb-chrome-btn-secondary kb-btn-md"
-
-section.mt-10
   h2 class=kb_section_title OpenAI API キー（BYOK）
   p.mt-1.text-sm.kb-text-secondary
-    | メモ編集の AI サイドパネル用です。キーは暗号化して保存し、OpenAI API 呼び出し時のみサーバーから送信します。
+    | ローカル AI に接続できない場合のフォールバック用です。キーは暗号化して保存し、OpenAI API 呼び出し時のみサーバーから送信します。
   p.mt-1.text-xs.kb-text-muted
     | 本文は OpenAI に送信されます。機密メモでは利用を控えてください。
 
@@ -39,7 +32,7 @@ section.mt-10
     - if @account.openai_api_key_configured?
       p.mt-1.text-xs.kb-status-success 設定済み（再入力すると上書きします）
     - else
-      p.mt-1.text-xs.kb-status-warning 未設定 — AI パネルは利用できません
+      p.mt-1.text-xs.kb-text-muted 未設定 — ローカル AI のみ使用します
     = f.password_field :openai_api_key, class: "#{kb_field_input_classes} max-w-md font-mono", autocomplete: "off", placeholder: "sk-…", aria: kb_field_error_aria(@account, :openai_api_key, describedby: "account-openai-api-key-help")
     - if kb_field_error?(@account, :openai_api_key)
       p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(@account, :openai_api_key) = kb_field_error_message(@account, :openai_api_key)

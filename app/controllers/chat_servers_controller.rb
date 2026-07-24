@@ -40,6 +40,22 @@ class ChatServersController < ApplicationController
     }
   end
 
+  def model_options
+    authorize :chat_server, :model_options?
+
+    options = MemoAiChat::MODEL_ROLES.filter_map do |role|
+      config = Chat::ModelRegistry.for(role, account: rodauth.rails_account)
+      {
+        role: role,
+        label: MemoAiChat::MODEL_ROLE_LABELS.fetch(role),
+        model: config.model
+      }
+    rescue KeyError
+      nil
+    end
+    render json: { options: options }
+  end
+
   def list_models
     authorize :chat_server, :list_models?
 
