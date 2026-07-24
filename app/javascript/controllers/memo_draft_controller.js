@@ -254,7 +254,8 @@ export default class extends Controller {
     if (!Array.isArray(names) || names.length === 0) return
 
     const input = this.tagInputTarget
-    const dl = input.list
+    const listId = input.dataset.tagSuggestionsList
+    const dl = listId ? document.getElementById(listId) : null
     if (!dl) return
 
     const taken = new Set(this.parseTagList(this.tagListTarget.value).map((t) => t.toLowerCase()))
@@ -289,6 +290,7 @@ export default class extends Controller {
 
   tagInputInput(event) {
     if (ifComposing(event)) return
+    this.syncTagSuggestionsList()
     if (event.inputType === "insertReplacementText") {
       queueMicrotask(() => this.commitTagInput())
     }
@@ -302,11 +304,21 @@ export default class extends Controller {
     const tags = this.parseTagList(this.tagListTarget.value)
     if (tags.some((t) => t.toLowerCase() === raw.toLowerCase())) {
       this.tagInputTarget.value = ""
+      this.syncTagSuggestionsList()
       return
     }
     tags.push(raw)
     this.applyTags(tags)
     this.tagInputTarget.value = ""
+    this.syncTagSuggestionsList()
+  }
+
+  syncTagSuggestionsList() {
+    if (!this.hasTagInputTarget) return
+    const input = this.tagInputTarget
+    const listId = input.dataset.tagSuggestionsList
+    if (input.value.trim() && listId) input.setAttribute("list", listId)
+    else input.removeAttribute("list")
   }
 
   removeTagFromParam(event) {

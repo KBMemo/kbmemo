@@ -49,6 +49,7 @@ export default class extends Controller {
 
   tagInputInput(event) {
     if (ifComposing(event)) return
+    this.syncTagSuggestionsList()
     if (event.inputType === "insertReplacementText") {
       queueMicrotask(() => this.commitTagInput())
     }
@@ -62,11 +63,21 @@ export default class extends Controller {
     const tags = this.parseTagList(this.tagListTarget.value)
     if (tags.some((t) => t.toLowerCase() === raw.toLowerCase())) {
       this.tagInputTarget.value = ""
+      this.syncTagSuggestionsList()
       return
     }
     tags.push(raw)
     this.tagInputTarget.value = ""
+    this.syncTagSuggestionsList()
     void this.applyTags(tags)
+  }
+
+  syncTagSuggestionsList() {
+    if (!this.hasTagInputTarget) return
+    const input = this.tagInputTarget
+    const listId = input.dataset.tagSuggestionsList
+    if (input.value.trim() && listId) input.setAttribute("list", listId)
+    else input.removeAttribute("list")
   }
 
   removeTagFromParam(event) {

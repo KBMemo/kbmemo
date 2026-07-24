@@ -14,7 +14,7 @@ ruby:
       == all_tag_names.to_json
     div class=kb_tag_input_row
       div.flex.flex-wrap.items-center.gap-2 data-memo-draft-target="tagPills"
-      = text_field_tag "memo_tag_input_visible", "", id: "memo_tag_input_visible", autocomplete: "off", placeholder: "タグを入力", list: list_id, class: memo_form_tag_input_inline, data: { memo_draft_target: "tagInput", action: "keydown->memo-draft#tagInputKeydown change->memo-draft#tagInputChange input->memo-draft#tagInputInput" }
+      = text_field_tag "memo_tag_input_visible", "", id: "memo_tag_input_visible", autocomplete: "off", placeholder: "タグを入力", class: memo_form_tag_input_inline, data: { memo_draft_target: "tagInput", tag_suggestions_list: list_id, action: "keydown->memo-draft#tagInputKeydown change->memo-draft#tagInputChange input->memo-draft#tagInputInput" }
     datalist id=list_id
       - datalist_names.each do |name|
         option value=name

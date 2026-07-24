@@ -1419,7 +1419,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "#memo_ai_sidebar_region [data-controller='memo-ai-panel']"
     assert_select "[data-memo-ai-panel-target='includeSelection']", count: 0
     assert_select "button[data-action='memo-ai-panel#insertLastReply']", count: 0
-    assert_select "textarea[placeholder='例: このメモの要点をまとめて']"
+    assert_select "textarea[placeholder='例: このメモの要点をまとめて（Ctrl+Enter で送信）']"
   end
 
   test "show displays the author only for another user's memo" do
