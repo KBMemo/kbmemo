@@ -20,6 +20,8 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     get root_url
 
     assert_select "#management-menu" do
+      assert_select "a[href=?]", chat_server_path, text: "Chat サーバー設定"
+      assert_select "a[href=?]", nyoy_mcp_path, text: "Nyoy MCP 設定"
       assert_select "a[href=?]", tags_path, text: "タグ管理"
       assert_select "a[href=?]", memo_templates_path, text: "テンプレート管理"
       assert_select "a[href=?]", admin_root_path, text: "アカウント管理"
@@ -34,6 +36,8 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     get root_url
 
     assert_select "#management-menu" do
+      assert_select "a[href=?]", chat_server_path, text: "Chat サーバー設定"
+      assert_select "a[href=?]", nyoy_mcp_path, text: "Nyoy MCP 設定"
       assert_select "a[href=?]", tags_path, text: "タグ管理"
       assert_select "a[href=?]", memo_templates_path, text: "テンプレート管理"
       assert_select "a[href=?]", admin_root_path, count: 0

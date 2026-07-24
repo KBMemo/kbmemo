@@ -26,6 +26,8 @@ class DashboardTest < ApplicationSystemTestCase
     click_button "管理"
 
     within "#management-menu" do
+      assert_link "Chat サーバー設定"
+      assert_link "Nyoy MCP 設定"
       assert_link "タグ管理"
       assert_link "テンプレート管理"
       assert_link "アカウント管理"

@@ -15,6 +15,8 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "agent-chat"
     assert_includes response.body, "AI チャット"
     assert_includes response.body, "Nyoy MCP"
+    assert_select "header.mb-4 a[href=?]", chat_server_path, count: 0
+    assert_select "header.mb-4 a[href=?]", nyoy_mcp_path, count: 0
   end
 
   test "show restores persisted conversation messages" do
