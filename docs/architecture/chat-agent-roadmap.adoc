@@ -269,10 +269,11 @@ Phase 3–7 の横断ツールは **Nyoy MCP へ委譲**し、徒然 in-app で�
 
 決定（§10.2）どおり、まずメモ編集サイドパネルをローカルモデル対応へ拡張した（汎用エージェント画面は後続）。
 
-* **バックエンド選択**: `MemoAiChat` は既定でローカル `main` モデル（`ModelRegistry.for(:main)`）を使い、`Chat::LlmClient::ConnectionError`（サーバ未起動・タイムアウト）時のみ登録済み OpenAI キー（BYOK）へフォールバック。BYOK も同じ `Chat::LlmClient` 経由に統一し、`OpenaiChatCompletion` は撤去。
+* **モデル用途選択**: `MemoAiChat` は `main` / `fast_chat` の許可リストから用途を受け取り、`ModelRegistry.for(role)` でアカウントの用途設定を解決する。任意のモデル名や接続先をリクエストから直接指定させず、モデル用途と接続管理の境界を維持する。既定は `main`。
+* **バックエンド選択**: 選択したローカルモデルで `Chat::LlmClient::ConnectionError`（サーバ未起動・タイムアウト）が発生した場合のみ、登録済み OpenAI キー（BYOK）の `gpt-4o-mini` へフォールバック。BYOK も同じ `Chat::LlmClient` 経由に統一し、`OpenaiChatCompletion` は撤去。
 * **接続エラーの識別**: `Chat::LlmClient::ConnectionError < Error` を追加。API エラー（4xx/5xx）とネットワーク障害を区別し、フォールバック判定に使う。
 * **コントローラ**: `MemoAiChatsController` は OpenAI キー必須の事前チェックを廃止（ローカルはキー不要）。`Chat::LlmClient::Error` を 422＋`settings_url` で返す。
-* **UI**: `_ai_panel` は「既定でローカル AI、未起動時は OpenAI にフォールバック」を明記。`memo-ai-panel` Stimulus はキー未設定でも送信可能にし、応答ごとに使用バックエンド（`ローカル` / `OpenAI`）バッジを表示。応答 JSON に `backend` を追加。
+* **UI**: `_ai_panel` はアカウントで設定済みの `main` / `fast_chat` を実モデル名付きで表示し、選択をブラウザの `localStorage` に保存する。これは端末・ブラウザ単位の表示設定であり、アカウント設定やメモには保存しない。`memo-ai-panel` Stimulus はキー未設定でも送信可能にし、応答ごとに実際に使用したモデル名を表示する。ローカル障害で BYOK に切り替わった場合は `gpt-4o-mini` と表示する。応答 JSON は `backend`、`model_role`、`model` を返す。
 * メモパネルは執筆特化（AsciiDoc 出力）の system prompt を維持し、intent ルーティングは通さない（汎用 `Chat::Agent` は独立画面で活用予定）。
 
 === Phase 5a 実装メモ（完了）
