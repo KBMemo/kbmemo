@@ -5,6 +5,15 @@ require "test_helper"
 class MemoAiChatsControllerTest < ActionDispatch::IntegrationTest
   test "create returns reply and backend" do
     memo = memos(:one)
+    hidden_tag = Tag.create!(name: "PrivateTag")
+    hidden_memo = Memo.create!(
+      title: "Private memo",
+      body: "secret",
+      account: accounts(:two),
+      memo_directory: memo_directories(:home_u_two),
+      visibility: :owner_read_write
+    )
+    hidden_memo.tags << hidden_tag
     captured = nil
 
     fake = Object.new
@@ -37,6 +46,8 @@ class MemoAiChatsControllerTest < ActionDispatch::IntegrationTest
       assert_equal "local", body["backend"]
       assert_equal "fast-model", body["model"]
       assert_equal "fast_chat", captured[:model_role]
+      assert_includes captured[:existing_tags], "Ideas"
+      refute_includes captured[:existing_tags], "PrivateTag"
     ensure
       MemoAiChat.define_singleton_method(:new, original_new)
     end

@@ -7,6 +7,7 @@
 class MemoAiChat
   MAX_BODY_CHARS = 12_000
   MAX_HISTORY = 12
+  MAX_EXISTING_TAGS = 200
   MODEL_ROLES = %i[main fast_chat].freeze
   MODEL_ROLE_LABELS = {
     main: "Main",
@@ -16,12 +17,13 @@ class MemoAiChat
   OPENAI_BASE_URL = "https://api.openai.com"
   OPENAI_MODEL = "gpt-4o-mini"
 
-  def initialize(account:, memo:, messages:, selection: nil, model_role: :main,
+  def initialize(account:, memo:, messages:, selection: nil, model_role: :main, existing_tags: [],
     local_client: nil, byok_client: nil)
     @account = account
     @memo = memo
     @messages = Array(messages)
     @selection = selection.to_s.strip.presence
+    @existing_tags = normalize_tags(existing_tags).first(MAX_EXISTING_TAGS)
     @model_role = model_role.to_s.to_sym
     raise ArgumentError, "未対応のモデル用途です。" unless MODEL_ROLES.include?(@model_role)
 
@@ -100,6 +102,9 @@ class MemoAiChat
       "ユーザーがメモ本文に貼り付けられるよう、返答は AsciiDoc のプレーン文字列のみにしてください（Markdown は使わない）。",
       "見出しは `=` レベル、リストは `.` または `*`、強調は `*bold*`、リンクは `https://…[表示名]` または Wiki リンク `[[メモタイトル]]` / `[[タイトル|表示名]]` を使ってください。",
       "コードブロックが必要なら `[source]` または四連バッククォートを使ってください。",
+      "タグの追加・変更を依頼された場合は、SNS向けのハッシュタグではなく、徒然のメモ分類用タグとして提案してください。",
+      "既存タグに意味が合うものがあれば表記を完全に一致させて優先し、タグ名に `#` を付けないでください。",
+      "タグだけを求められた場合は、説明を付けずタグ名だけを簡潔に提示してください。",
       "説明や前置きは最小限にし、依頼に対する本文案を中心に書いてください。"
     ]
 
@@ -107,6 +112,11 @@ class MemoAiChat
     parts << "現在のメモタイトル: #{@memo.title}"
     parts << "メモ本文（抜粋）:"
     parts << truncate_body(@memo.body.to_s)
+    parts << ""
+    parts << "現在のタグ:"
+    parts << (@memo.tags.pluck(:name).presence&.join(", ") || "（なし）")
+    parts << "既存タグ一覧（利用頻度順）:"
+    parts << (@existing_tags.presence&.join(", ") || "（なし）")
 
     if @selection
       parts << ""
@@ -133,5 +143,12 @@ class MemoAiChat
     return body if body.length <= MAX_BODY_CHARS
 
     "#{body[0, MAX_BODY_CHARS]}\n\n…（以降 #{body.length - MAX_BODY_CHARS} 文字省略）"
+  end
+
+  def normalize_tags(tags)
+    Array(tags).filter_map do |tag|
+      value = tag.to_s.strip.delete_prefix("#")
+      value.presence
+    end.uniq(&:downcase)
   end
 end

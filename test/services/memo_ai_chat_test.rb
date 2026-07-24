@@ -25,6 +25,7 @@ class MemoAiChatTest < ActiveSupport::TestCase
       memo: memo,
       messages: [ { role: "user", content: "続きを書いて" } ],
       selection: "Hello",
+      existing_tags: [ "Ideas", "Work" ],
       local_client: local
     ).call
 
@@ -36,6 +37,10 @@ class MemoAiChatTest < ActiveSupport::TestCase
     assert_includes captured.first[:content], "AI Test Memo"
     assert_includes captured.first[:content], "Hello"
     assert_includes captured.first[:content], "ユーザーがエディタで選択"
+    assert_includes captured.first[:content], "現在のタグ:"
+    assert_includes captured.first[:content], "既存タグ一覧（利用頻度順）:"
+    assert_includes captured.first[:content], "Ideas, Work"
+    assert_includes captured.first[:content], "SNS向けのハッシュタグではなく"
   end
 
   test "call falls back to BYOK when local is unreachable" do

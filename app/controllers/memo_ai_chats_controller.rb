@@ -12,7 +12,8 @@ class MemoAiChatsController < ApplicationController
       memo: @memo,
       messages: chat_messages_param,
       selection: params[:selection],
-      model_role: model_role_param
+      model_role: model_role_param,
+      existing_tags: existing_tag_names
     ).call
 
     render json: result
@@ -40,5 +41,15 @@ class MemoAiChatsController < ApplicationController
       h = entry.is_a?(ActionController::Parameters) ? entry : ActionController::Parameters.new(entry)
       h.permit(:role, :content).to_h.symbolize_keys.presence
     end
+  end
+
+  def existing_tag_names
+    visible_memo_ids = policy_scope(Memo).select(:id)
+    Tag.joins(:memo_tags)
+      .where(memo_tags: { memo_id: visible_memo_ids })
+      .group(:id)
+      .order(Arel.sql("COUNT(memo_tags.id) DESC"), :name)
+      .limit(MemoAiChat::MAX_EXISTING_TAGS)
+      .pluck(:name)
   end
 end
