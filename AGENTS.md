@@ -30,9 +30,11 @@
 ## CSS と View
 
 - Tailwind の runtime、compiler、設定ファイルはない。Tailwind の導入を前提にしない。
-- `themes.css` の semantic token（`--kb-*`）と既存 component class（`kb-*`）を優先する。色や状態表現を view ごとに直接定義しない。
-- `utility-compat.css` は、過去の utility class を通常 CSS として明示的に実装した互換レイヤー。未定義 class を追加した場合は `npm run check:utility-compat` で検出する。
-- 新しい UI は既存 class の組み合わせで表現し、共通化する価値がある見た目・状態だけを `themes.css` などへ追加する。
+- Open Props の size、font、radius、shadow token を基礎値として使い、`themes.css` の semantic token（`--kb-*`）をアプリ固有の意味と theme 差分の境界にする。色や状態表現を view ごとに直接定義しない。
+- `utility-compat.css` は、過去の utility class を通常 CSS として明示的に実装した互換レイヤーであり、新規 UI の標準 API ではない。未定義 class を追加した場合は `npm run check:utility-compat` で検出する。
+- utility 風 class の全面一括置換は行わない。画面や component を変更するとき、その変更範囲にあるレイアウト・余白・状態表現を、用途が分かる既存または新規の component class（`kb-*`）へ段階的に移す。
+- component class は Open Props / `--kb-*` token を参照し、view の DOM 構造とUI上の責務に対応する名前を付ける。単一値を置き換えただけの新しい utility class は増やさない。
+- 変更後に不要になった `utility-compat.css` の定義は、利用箇所を検索し、system test と `npm run check:utility-compat` を確認してから削除する。
 - theme は `data-kb-theme` / `data-kb-theme-base`、本文 skin は `data-kb-skin` で切り替える。light 固定の色を持ち込まない。
 - Slim のドット記法は単純な class に限る。記号を含む class や動的 class は `class="..."` または `class=` を使う。
 - アイコンだけの button には `aria-label` を付け、通常時の枠を消しても `:focus-visible` のフォーカス表示は残す。
