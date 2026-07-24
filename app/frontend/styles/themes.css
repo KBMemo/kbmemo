@@ -1667,6 +1667,44 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   background: var(--kb-bg-subtle);
 }
 
+.kb-sidebar-create-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+}
+
+.kb-sidebar-create-row .kb-sidebar-link {
+  display: flex;
+  align-items: center;
+}
+
+.kb-sidebar-template-trigger {
+  min-block-size: 100%;
+  border: 0;
+  border-left: 1px solid var(--kb-border);
+  background: transparent;
+  padding: var(--kb-space-2) var(--kb-space-3);
+  color: var(--kb-text-secondary);
+  font: inherit;
+  white-space: nowrap;
+}
+
+.kb-sidebar-template-trigger:hover:not(:disabled) {
+  background: var(--kb-bg-subtle);
+  color: var(--kb-text-primary);
+}
+
+.kb-sidebar-template-trigger:disabled {
+  cursor: not-allowed;
+  color: var(--kb-text-subtle);
+}
+
+.kb-sidebar-template-menu {
+  min-inline-size: 12rem;
+  max-inline-size: min(20rem, calc(100vw - 2rem));
+  max-block-size: min(24rem, 60vh);
+}
+
 .kb-sidebar-row.is-active {
   border-left-color: var(--kb-accent);
   background: var(--kb-bg-muted);

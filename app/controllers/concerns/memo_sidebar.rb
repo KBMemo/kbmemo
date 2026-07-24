@@ -34,6 +34,7 @@ module MemoSidebar
 
   def set_memo_directory_nav_context
     @memo_directories_for_nav = policy_scope(MemoDirectory).nav_ordered
+    @sidebar_memo_templates = policy_scope(MemoTemplate).order(:name)
     visible_memo_ids = policy_scope(Memo).select(:id)
     @tags_for_nav = Tag.joins(:memo_tags)
       .where(memo_tags: { memo_id: visible_memo_ids })

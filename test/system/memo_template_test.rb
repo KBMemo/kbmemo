@@ -9,7 +9,11 @@ class MemoTemplateTest < ApplicationSystemTestCase
 
   test "applies a template to the new memo form" do
     travel_to Time.zone.local(2026, 7, 24, 12, 0, 0) do
-      visit new_memo_path(template_id: memo_templates(:daily).id)
+      visit memos_path
+      click_button "Templateから作成"
+      within "#memo-template-create-menu" do
+        click_link memo_templates(:daily).name
+      end
     end
 
     assert_equal "Daily 2026-07-24", find("#memo_title").value

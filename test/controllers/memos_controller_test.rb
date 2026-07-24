@@ -1111,8 +1111,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select "select[name='template_id'] option[selected][value=?]",
-      memo_templates(:daily).id.to_s
+    assert_select "select[name='template_id']", count: 0
     assert_select "input#memo_title[value='Daily 2026-07-24']"
     assert_select "textarea#memo_body", text: /Daily 2026-07-24/
     assert_select "input[name='memo[tag_list]'][value='diary, 2026-07-24']"
@@ -1129,6 +1128,19 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     get new_memo_url(template_id: memo_templates(:other).id)
 
     assert_response :not_found
+  end
+
+  test "sidebar offers owned templates for new memos" do
+    get memos_url
+
+    assert_response :success
+    assert_select "#memos_list_panel a", text: "+新規"
+    assert_select "#memo-template-create-trigger", text: /Templateから作成/
+    assert_select "#memo-template-create-menu" do
+      assert_select "a[href=?]", new_memo_path(template_id: memo_templates(:daily).id),
+        text: memo_templates(:daily).name
+      assert_select "a[href=?]", new_memo_path(template_id: memo_templates(:other).id), count: 0
+    end
   end
 
   test "directory sidebar no longer shows drag hint" do

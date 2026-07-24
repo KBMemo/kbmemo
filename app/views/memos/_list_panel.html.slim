@@ -75,8 +75,20 @@ ruby:
         - if @sidebar_view == "directory"
           .flex.shrink-0.items-center.gap-1
             = link_to "管理", manage_memos_path(memo_directory_id: (@current_memo_directory&.root? ? nil : @current_memo_directory&.id)), class: "text-xs kb-text-secondary kb-inline-link", title: "メモ管理画面を開く", data: { turbo: false }
-    = link_to new_memo_path, class: memo_sidebar_link_classes(:new), data: { turbo: false } do
-      span.mr-1.kb-text-muted +
-      span 新規メモ
+    .kb-sidebar-create-row
+      = link_to new_memo_path, class: memo_sidebar_link_classes(:new), data: { turbo: false } do
+        span +新規
+      - if @sidebar_memo_templates.any?
+        .relative data-controller="user-menu"
+          button#memo-template-create-trigger.kb-sidebar-template-trigger.inline-flex.items-center.gap-1 type="button" data-user-menu-target="button" data-action="user-menu#toggle" aria-expanded="false" aria-haspopup="true"
+            span Templateから作成
+            svg.h-4.w-4.flex-shrink-0.kb-text-muted xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"
+              path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"
+          #memo-template-create-menu.kb-menu-panel.kb-sidebar-template-menu.absolute.right-0.top-full.z-50.mt-1.hidden.overflow-y-auto.rounded-md.py-1.text-sm data-user-menu-target="panel" role="menu"
+            - @sidebar_memo_templates.each do |template|
+              = link_to template.name, new_memo_path(template_id: template.id), class: "kb-menu-item block truncate px-3 py-2", role: "menuitem", title: template.name, data: { turbo: false }
+      - else
+        button.kb-sidebar-template-trigger type="button" disabled=true title="利用できるテンプレートがありません"
+          | Templateから作成
   #memo_sidebar_memo_list_scroll.min-h-0.flex-1.overflow-y-auto.pb-4
     = render "memos/sidebar_memo_list_container"

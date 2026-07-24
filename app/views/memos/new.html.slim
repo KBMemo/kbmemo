@@ -1,12 +1,4 @@
 - content_for :title, "新規メモ"
 
 - content_for :memos_editor do
-  - if @memo_templates.any?
-    = form_with url: new_memo_path, method: :get, class: "mb-4 flex flex-wrap items-end gap-2", data: { turbo: false } do |form|
-      .min-w-64.flex-1
-        = form.label :template_id, "テンプレート", class: kb_label
-        = form.collection_select :template_id, @memo_templates, :id, :name,
-          { include_blank: "テンプレートなし", selected: @selected_memo_template&.id },
-          { class: kb_field_input_classes }
-      = form.submit "適用", class: "kb-chrome-btn-secondary kb-btn-md"
   = render "form", memo: @memo, initial_tag_list: @initial_tag_list
