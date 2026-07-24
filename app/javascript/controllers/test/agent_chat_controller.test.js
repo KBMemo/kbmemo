@@ -85,3 +85,15 @@ describe("AgentChatController keyboard send", () => {
     expect(controller.send).toHaveBeenCalledOnce()
   })
 })
+
+describe("AgentChatController initial memo reference", () => {
+  it("reads references embedded by the server", () => {
+    const controller = controllerInstance()
+    const script = document.createElement("script")
+    script.textContent = JSON.stringify([ { id: 1, title: "設計メモ" } ])
+    controller.hasInitialMemoReferencesJsonTarget = true
+    controller.initialMemoReferencesJsonTarget = script
+
+    expect(controller.readInitialMemoReferences()).toEqual([ { id: 1, title: "設計メモ" } ])
+  })
+})

@@ -66,6 +66,30 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'data-agent-chat-conversation-id-value=""'
   end
 
+  test "show starts a new chat with a visible memo reference" do
+    get agent_chat_url(new: 1, memo_reference_id: memos(:one).id)
+
+    assert_response :success
+    assert_select "script[data-agent-chat-target='initialMemoReferencesJson']", text: /First memo/
+    assert_includes response.body, '"id":'
+  end
+
+  test "show ignores a memo reference outside the visible scope" do
+    hidden = Memo.create!(
+      title: "Hidden reference",
+      body: "secret",
+      account: accounts(:two),
+      memo_directory: memo_directories(:home_u_two),
+      visibility: :owner_read_write
+    )
+
+    get agent_chat_url(new: 1, memo_reference_id: hidden.id)
+
+    assert_response :success
+    assert_select "script[data-agent-chat-target='initialMemoReferencesJson']", text: /\[\]/
+    refute_includes response.body, "Hidden reference"
+  end
+
   test "nyoy_tools returns tool list" do
     original = Chat::NyoyMcpClient.instance_method(:list_tools)
     original_url = ENV["NYOY_MCP_URL"]

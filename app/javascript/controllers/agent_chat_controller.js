@@ -21,6 +21,7 @@ export default class extends Controller {
     "sendButton",
     "error",
     "initialMessagesJson",
+    "initialMemoReferencesJson",
     "mcpToolsPanel",
     "mcpToolsButton",
     "mcpToolsList",
@@ -72,7 +73,7 @@ export default class extends Controller {
     this.nyoyTools = []
     this.enabledMcpTools = this.readEnabledMcpTools()
     this.pendingAttachments = []
-    this.pendingMemoReferences = []
+    this.pendingMemoReferences = this.readInitialMemoReferences()
     this.memoSearchResults = []
     this.memoSelectedIds = new Set()
     this.memoSearchTimer = null
@@ -87,8 +88,10 @@ export default class extends Controller {
     this.imageGenerationWatchIndex = null
     this.unsubscribeCable = subscribeAgentChat((event) => this.receivedCable(event))
     this.renderMessages()
+    this.renderMemoReferenceList()
     this.updateSendState()
     this.initialMessagesJsonTarget?.remove()
+    this.initialMemoReferencesJsonTarget?.remove()
     this.resumeImageGenerationWatches()
     if (this.nyoyConfiguredValue && this.nyoyToolsUrlValue) {
       this.fetchNyoyTools()
@@ -108,6 +111,19 @@ export default class extends Controller {
 
     try {
       const raw = this.initialMessagesJsonTarget.textContent?.trim()
+      if (!raw) return []
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+
+  readInitialMemoReferences() {
+    if (!this.hasInitialMemoReferencesJsonTarget) return []
+
+    try {
+      const raw = this.initialMemoReferencesJsonTarget.textContent?.trim()
       if (!raw) return []
       const parsed = JSON.parse(raw)
       return Array.isArray(parsed) ? parsed : []

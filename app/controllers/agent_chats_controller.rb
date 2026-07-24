@@ -16,6 +16,10 @@ class AgentChatsController < ApplicationController
     @new_chat = ActiveModel::Type::Boolean.new.cast(params[:new])
     @initial_messages = store.ui_messages(@conversation)
     @conversation_id = @conversation&.id
+    @initial_memo_references = AgentChat::MemoReferences.resolve(
+      scope: policy_scope(Memo),
+      ids: [ params[:memo_reference_id] ]
+    ).map(&:as_json)
     @nyoy_mcp_configured = Chat::NyoyMcpConfig.configured?(account: account)
   end
 

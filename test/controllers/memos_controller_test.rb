@@ -1420,6 +1420,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-memo-ai-panel-target='includeSelection']", count: 0
     assert_select "button[data-action='memo-ai-panel#insertLastReply']", count: 0
     assert_select "textarea[placeholder='例: このメモの要点をまとめて（Ctrl+Enter で送信）']"
+    assert_select "a[href=?]", agent_chat_path(new: 1, memo_reference_id: memo.id), text: "AIチャット"
   end
 
   test "show displays the author only for another user's memo" do
