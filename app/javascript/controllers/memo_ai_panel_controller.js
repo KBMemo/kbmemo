@@ -38,6 +38,15 @@ export default class extends Controller {
     }
   }
 
+  sendOnEnter(event) {
+    if (event.key !== "Enter") return
+    if (!event.ctrlKey && !event.metaKey) return
+    if (event.isComposing || event.keyCode === 229) return
+
+    event.preventDefault()
+    this.send(event)
+  }
+
   async refreshModelOptions() {
     if (!this.hasModelRoleTarget || !this.hasModelOptionsUrlValue) return
 

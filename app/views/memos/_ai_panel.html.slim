@@ -27,7 +27,7 @@
         input.rounded.kb-border type="checkbox" checked=true data-memo-ai-panel-target="includeSelection"
         | 選択範囲もコンテキストに含める
     label.sr-only for="memo_ai_prompt" AI への指示
-    textarea#memo_ai_prompt.kb-input.kb-input-xs.w-full.shrink-0.resize-none.font-sans.leading-relaxed rows=3 autocomplete="off" placeholder=(editing ? "例: 次の節を AsciiDoc で追記して" : "例: このメモの要点をまとめて") data-memo-ai-panel-target="input" data-action="keydown.enter->memo-ai-panel#send:prevent"
+    textarea#memo_ai_prompt.kb-input.kb-input-xs.w-full.shrink-0.resize-none.font-sans.leading-relaxed rows=3 autocomplete="off" placeholder=(editing ? "例: 次の節を AsciiDoc で追記して（Ctrl+Enter で送信）" : "例: このメモの要点をまとめて（Ctrl+Enter で送信）") data-memo-ai-panel-target="input" data-action="keydown->memo-ai-panel#sendOnEnter"
     .flex.shrink-0.flex-wrap.gap-2
       button.kb-chrome-btn-primary.kb-btn-xs type="button" data-theme-slot="btn-primary" data-memo-ai-panel-target="sendButton" data-action="memo-ai-panel#send" 送信
       - if editing

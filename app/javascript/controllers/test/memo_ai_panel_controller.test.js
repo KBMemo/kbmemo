@@ -20,7 +20,7 @@ async function mount({ modelOptions = false } = {}) {
       </select>
       <div data-memo-ai-panel-target="messages"></div>
       <p class="hidden" data-memo-ai-panel-target="error"></p>
-      <textarea data-memo-ai-panel-target="input"></textarea>
+      <textarea data-memo-ai-panel-target="input" data-action="keydown->memo-ai-panel#sendOnEnter"></textarea>
       <button type="button" data-memo-ai-panel-target="sendButton" data-action="memo-ai-panel#send">送信</button>
     </section>
   `
@@ -95,5 +95,23 @@ describe("memo-ai-panel", () => {
 
     expect(document.querySelector("select").value).toBe("fast_chat")
     expect(document.querySelector("select").textContent).not.toContain("small-model")
+  })
+
+  it("sends with Ctrl+Enter but keeps plain Enter for newlines", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ reply: "Response", backend: "local", model: "model" })
+    })))
+    await mount()
+    const textarea = document.querySelector("textarea")
+    textarea.value = "Hello"
+
+    textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))
+    expect(fetch).not.toHaveBeenCalled()
+
+    textarea.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true })
+    )
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce())
   })
 })

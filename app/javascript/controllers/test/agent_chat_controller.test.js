@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import AgentChatController from "../agent_chat_controller.js"
 
 function controllerInstance() {
@@ -67,5 +67,21 @@ describe("AgentChatController memo references", () => {
     list.querySelector("button").click()
     expect(controller.pendingMemoReferences).toEqual([])
     expect(list.textContent).toBe("")
+  })
+})
+
+describe("AgentChatController keyboard send", () => {
+  it("only sends on Ctrl or Command plus Enter outside IME composition", () => {
+    const controller = controllerInstance()
+    controller.send = vi.fn()
+
+    controller.sendOnEnter(new KeyboardEvent("keydown", { key: "Enter" }))
+    controller.sendOnEnter(
+      new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, isComposing: true })
+    )
+    expect(controller.send).not.toHaveBeenCalled()
+
+    controller.sendOnEnter(new KeyboardEvent("keydown", { key: "Enter", metaKey: true }))
+    expect(controller.send).toHaveBeenCalledOnce()
   })
 })
