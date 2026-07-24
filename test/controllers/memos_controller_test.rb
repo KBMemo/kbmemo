@@ -1077,6 +1077,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "#memo_form_actions button", text: "削除", count: 0
     assert_select "#memo_form_actions button[data-memo-commit='true'].hidden", count: 1
     assert_select ".memo-draft-shell [data-memo-draft-target='formActionsChrome'].hidden"
+    assert_select "#memo_ai_sidebar_region"
+    assert_select "#memo_ai_sidebar_panel .memo-ai-panel[aria-label='AI アシスタント']"
+    assert_select "#new_memo_ai_prompt[disabled]"
   end
 
   test "new memo form renders empty title and disables turbo cache" do
@@ -1128,6 +1131,65 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     get new_memo_url(template_id: memo_templates(:other).id)
 
     assert_response :not_found
+  end
+
+  test "template with an existing title offers to open it or create another" do
+    existing = Memo.create!(
+      title: "Daily 2026-07-24",
+      body: "Existing",
+      memo_directory: memo_directories(:work),
+      account: accounts(:one)
+    )
+
+    travel_to Time.zone.local(2026, 7, 24, 12, 0, 0) do
+      get new_memo_url(template_id: memo_templates(:daily).id)
+    end
+
+    assert_response :success
+    assert_select "#template-duplicate-title", text: "同じタイトルのメモがあります"
+    assert_select "a[href=?]", memo_path(existing), text: "既存のメモを開く"
+    assert_select "a[href=?]",
+      new_memo_path(template_id: memo_templates(:daily).id, duplicate: "create"),
+      text: "追加作成"
+    assert_select "form#new_memo_form", count: 0
+  end
+
+  test "duplicate create choice opens another memo form" do
+    Memo.create!(
+      title: "Daily 2026-07-24",
+      body: "Existing",
+      memo_directory: memo_directories(:work),
+      account: accounts(:one)
+    )
+
+    travel_to Time.zone.local(2026, 7, 24, 12, 0, 0) do
+      get new_memo_url(
+        template_id: memo_templates(:daily).id,
+        duplicate: "create"
+      )
+    end
+
+    assert_response :success
+    assert_select "form#new_memo_form"
+    assert_select "input#memo_title[value='Daily 2026-07-24']"
+    assert_select "#template-duplicate-title", count: 0
+  end
+
+  test "another account memo with the same title does not trigger duplicate choice" do
+    Memo.create!(
+      title: "Daily 2026-07-24",
+      body: "Other account",
+      memo_directory: memo_directories(:home_u_two),
+      account: accounts(:two)
+    )
+
+    travel_to Time.zone.local(2026, 7, 24, 12, 0, 0) do
+      get new_memo_url(template_id: memo_templates(:daily).id)
+    end
+
+    assert_response :success
+    assert_select "form#new_memo_form"
+    assert_select "#template-duplicate-title", count: 0
   end
 
   test "sidebar offers owned templates for new memos" do

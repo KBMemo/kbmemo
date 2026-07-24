@@ -163,6 +163,12 @@ class MemosController < ApplicationController
       body: rendered.body
     )
     @initial_tag_list = rendered.tag_list
+    return if params[:duplicate].to_s == "create" || rendered.title.blank?
+
+    @existing_template_memo = policy_scope(Memo)
+      .where(account_id: rodauth.rails_account.id, title: rendered.title)
+      .order(updated_at: :desc, id: :desc)
+      .first
   end
 
   def edit

@@ -1,4 +1,10 @@
 - content_for :title, "新規メモ"
 
 - content_for :memos_editor do
-  = render "form", memo: @memo, initial_tag_list: @initial_tag_list
+  - if @existing_template_memo
+    = render "template_duplicate_choice"
+  - else
+    = render "form", memo: @memo, initial_tag_list: @initial_tag_list
+
+- content_for :memo_ai_sidebar do
+  = render "memos/new_ai_panel"
