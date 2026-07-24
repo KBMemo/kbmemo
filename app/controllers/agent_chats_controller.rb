@@ -34,6 +34,18 @@ class AgentChatsController < ApplicationController
     render json: { tools: [], configured: true, error: e.message }, status: :unprocessable_entity
   end
 
+  def memo_references
+    authorize :agent_chat, :memo_references?
+
+    query = params[:q].to_s.strip
+    scope = policy_scope(Memo).order(updated_at: :desc)
+    scope = scope.search_text(query) if query.present?
+    memos = scope.limit(20)
+    render json: {
+      memos: memos.map { |memo| { id: memo.id, title: memo.title, updated_at: memo.updated_at.iso8601 } }
+    }
+  end
+
   def upload_image
     authorize :agent_chat, :upload_image?
 
@@ -104,6 +116,10 @@ class AgentChatsController < ApplicationController
     store = conversation_store
     conversation = store.find_or_create_conversation!(conversation_id: params[:conversation_id])
     image_attachments = AgentChat::ImageAttachments.normalize(image_attachments_param)
+    memo_references = AgentChat::MemoReferences.resolve(
+      scope: policy_scope(Memo),
+      ids: params[:memo_reference_ids]
+    )
     user_text = last_user_text_from_params
     user_text = "（画像を添付）" if user_text.blank? && image_attachments.any?
     turn_id = params[:turn_id].presence || SecureRandom.uuid
@@ -121,7 +137,11 @@ class AgentChatsController < ApplicationController
       turn_id: turn_id
     )
 
-    store.append_user_message!(conversation, content: user_text)
+    store.append_user_message!(
+      conversation,
+      content: user_text,
+      memo_references: memo_references.map(&:as_json)
+    )
 
     if (refine_request = natural_language_refine_request(conversation:, user_text: user_text))
       payload = handle_natural_language_refine!(
@@ -141,6 +161,7 @@ class AgentChatsController < ApplicationController
       broadcaster: broadcaster,
       enabled_mcp_tools: enabled_mcp_tools_param,
       image_attachments: AgentChat::ImageAttachments.as_json(image_attachments),
+      memo_references: memo_references,
       tsuzura_cookie_header: request.headers["Cookie"]
     )
 

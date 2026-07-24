@@ -52,3 +52,20 @@ describe("AgentChatController image generation state", () => {
     ])
   })
 })
+
+describe("AgentChatController memo references", () => {
+  it("renders removable pending reference chips", () => {
+    const controller = controllerInstance()
+    const list = document.createElement("div")
+    controller.pendingMemoReferences = [ { id: 1, title: "設計メモ" } ]
+    controller.hasMemoReferenceListTarget = true
+    controller.memoReferenceListTarget = list
+
+    controller.renderMemoReferenceList()
+
+    expect(list.textContent).toContain("設計メモ")
+    list.querySelector("button").click()
+    expect(controller.pendingMemoReferences).toEqual([])
+    expect(list.textContent).toBe("")
+  })
+})

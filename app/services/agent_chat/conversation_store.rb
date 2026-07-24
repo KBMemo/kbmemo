@@ -43,8 +43,10 @@ module AgentChat
       conversation.messages.ordered.map(&:as_ui_entry)
     end
 
-    def append_user_message!(conversation, content:)
-      conversation.messages.create!(role: "user", content: content, metadata: {})
+    def append_user_message!(conversation, content:, memo_references: [])
+      metadata = {}
+      metadata["memo_references"] = memo_references if memo_references.present?
+      conversation.messages.create!(role: "user", content: content, metadata: metadata)
       conversation.assign_title_from!(content)
       conversation.touch
       conversation

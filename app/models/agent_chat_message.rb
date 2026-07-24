@@ -64,6 +64,9 @@ class AgentChatMessage < ApplicationRecord
 
   def as_ui_entry
     entry = { role: role, content: content.to_s }
+    if role == "user" && metadata["memo_references"].present?
+      entry[:memo_references] = metadata["memo_references"]
+    end
     if assistant?
       if metadata["trace"].present?
         entry[:activity] = metadata["trace"]

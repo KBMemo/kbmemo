@@ -1,0 +1,36 @@
+# frozen_string_literal: true
+
+module AgentChat
+  class MemoReferences
+    MAX_COUNT = 5
+    MAX_BODY_CHARS = 12_000
+    MAX_TOTAL_CHARS = 30_000
+
+    Reference = Data.define(:id, :title, :body) do
+      def as_json
+        { id: id, title: title }
+      end
+    end
+
+    def self.resolve(scope:, ids:)
+      normalized_ids = Array(ids).filter_map { |id| Integer(id, exception: false) }.uniq.first(MAX_COUNT)
+      by_id = scope.where(id: normalized_ids).index_by(&:id)
+      remaining = MAX_TOTAL_CHARS
+
+      normalized_ids.filter_map do |id|
+        memo = by_id[id]
+        next unless memo
+
+        body = memo.body.to_s.first([ MAX_BODY_CHARS, remaining ].min)
+        remaining -= body.length
+        Reference.new(id: memo.id, title: memo.title, body: body)
+      end
+    end
+
+    def self.context_text(references)
+      Array(references).map.with_index(1) do |reference, index|
+        "参照メモ #{index}: #{reference.title}\n#{reference.body.presence || '（本文なし）'}"
+      end.join("\n\n---\n\n")
+    end
+  end
+end

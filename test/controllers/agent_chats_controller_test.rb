@@ -88,6 +88,56 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "memo_references searches only visible memos" do
+    hidden = Memo.create!(
+      title: "Secret reference",
+      body: "private",
+      account: accounts(:two),
+      memo_directory: memo_directories(:home_u_two),
+      visibility: :owner_read_write
+    )
+
+    get memo_references_agent_chat_url, params: { q: "memo" }, as: :json
+
+    assert_response :success
+    ids = JSON.parse(response.body).fetch("memos").pluck("id")
+    assert_includes ids, memos(:one).id
+    refute_includes ids, hidden.id
+  end
+
+  test "create resolves and persists memo references" do
+    captured = {}
+    fake_result = Chat::Agent::Result.new(
+      reply: "ok", intent: "conversation", classification: nil, model_role: :fast_chat,
+      escalated: false, tools: [], pending_tools: false, rag: nil
+    )
+    original_new = Chat::Agent.method(:new)
+    begin
+      Chat::Agent.define_singleton_method(:new) do |**_kwargs|
+        Object.new.tap do |agent|
+          agent.define_singleton_method(:call) do |**kwargs|
+            captured.replace(kwargs)
+            fake_result
+          end
+        end
+      end
+
+      post agent_chat_url,
+        params: {
+          messages: [ { role: "user", content: "このメモを要約して" } ],
+          memo_reference_ids: [ memos(:one).id ]
+        },
+        as: :json
+
+      assert_response :success
+      assert_equal [ memos(:one).id ], captured[:memo_references].map(&:id)
+      conversation = AgentChatConversation.find(JSON.parse(response.body)["conversation_id"])
+      assert_equal "First memo", conversation.messages.ordered.first.metadata.dig("memo_references", 0, "title")
+    ensure
+      Chat::Agent.define_singleton_method(:new, original_new)
+    end
+  end
+
   test "refine_image_generation calls nyoy refine_image and returns normalized status" do
     calls = []
     client = Object.new

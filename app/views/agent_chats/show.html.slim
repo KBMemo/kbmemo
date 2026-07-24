@@ -12,8 +12,7 @@
         = link_to "Chat サーバー設定", chat_server_path, class: "kb-chrome-link underline"
         span.mx-2.kb-text-muted ·
         = link_to "Nyoy MCP 設定", nyoy_mcp_path, class: "kb-chrome-link underline"
-
-    .agent-chat-panel.kb-ai-panel.kb-chrome-panel.flex.min-h-0.flex-1.flex-col.overflow-hidden.rounded-lg.border.px-3.py-3 data-controller="agent-chat" data-agent-chat-chat-url-value=agent_chat_path(format: :json) data-agent-chat-new-chat-url-value=agent_chat_path(new: 1) data-agent-chat-settings-url-value=chat_server_path data-agent-chat-nyoy-mcp-url-value=nyoy_mcp_path data-agent-chat-image-generation-url-template-value=image_generation_agent_chat_path("__ID__", format: :json) data-agent-chat-refine-image-generation-url-template-value=refine_image_generation_agent_chat_path("__ID__", format: :json) data-agent-chat-upload-image-url-value=upload_image_agent_chat_path(format: :json) data-agent-chat-tsuzura-albums-url-value=internal_tsuzura_albums_path(format: :json) data-agent-chat-tsuzura-album-url-template-value=internal_tsuzura_album_path("__ID__", format: :json) data-agent-chat-nyoy-tools-url-value=nyoy_tools_agent_chat_path(format: :json) data-agent-chat-nyoy-configured-value=(@nyoy_mcp_configured ? "true" : "false") data-agent-chat-conversation-id-value=(@conversation_id || "") aria-label="AI チャット"
+    .agent-chat-panel.kb-ai-panel.kb-chrome-panel.flex.min-h-0.flex-1.flex-col.overflow-hidden.rounded-lg.border.px-3.py-3 data-controller="agent-chat" data-agent-chat-chat-url-value=agent_chat_path(format: :json) data-agent-chat-new-chat-url-value=agent_chat_path(new: 1) data-agent-chat-settings-url-value=chat_server_path data-agent-chat-nyoy-mcp-url-value=nyoy_mcp_path data-agent-chat-image-generation-url-template-value=image_generation_agent_chat_path("__ID__", format: :json) data-agent-chat-refine-image-generation-url-template-value=refine_image_generation_agent_chat_path("__ID__", format: :json) data-agent-chat-upload-image-url-value=upload_image_agent_chat_path(format: :json) data-agent-chat-tsuzura-albums-url-value=internal_tsuzura_albums_path(format: :json) data-agent-chat-tsuzura-album-url-template-value=internal_tsuzura_album_path("__ID__", format: :json) data-agent-chat-memo-references-url-value=memo_references_agent_chat_path(format: :json) data-agent-chat-nyoy-tools-url-value=nyoy_tools_agent_chat_path(format: :json) data-agent-chat-nyoy-configured-value=(@nyoy_mcp_configured ? "true" : "false") data-agent-chat-conversation-id-value=(@conversation_id || "") aria-label="AI チャット"
       script type="application/json" data-agent-chat-target="initialMessagesJson"
         = raw (@initial_messages || []).to_json
       .kb-ai-messages.min-h-0.flex-1.overflow-y-auto.rounded-md.p-2 data-agent-chat-target="messages"
@@ -37,8 +36,10 @@
             | 画像を添付
             input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple=true data-agent-chat-target="fileInput" data-action="change->agent-chat#addFiles"
           button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#openTsuzuraPicker" 葛籠から選ぶ
+          button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#openMemoPicker" メモを参照
         p.hidden.text-xs.kb-status-danger data-agent-chat-target="attachmentError"
         .flex.flex-wrap.gap-2 data-agent-chat-target="attachmentList"
+        .flex.flex-wrap.gap-2 data-agent-chat-target="memoReferenceList"
       dialog.agent-chat-tsuzura-dialog.rounded-lg.border.kb-chrome-panel.p-0.backdrop:bg-black/40 data-agent-chat-target="tsuzuraDialog"
         .flex.flex-col class="max-h-[min(70dvh,32rem)] w-[min(92vw,28rem)]"
           .flex.items-center.justify-between.border-b.kb-border.px-3.py-2
@@ -51,6 +52,19 @@
           .flex.justify-end.gap-2.border-t.kb-border.px-3.py-2
             button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#closeTsuzuraPicker" キャンセル
             button.kb-chrome-btn-primary.kb-btn-xs type="button" data-theme-slot="btn-primary" data-action="agent-chat#confirmTsuzuraSelection" disabled=true data-agent-chat-target="tsuzuraConfirmButton" 添付に追加
+      dialog.agent-chat-memo-dialog.rounded-lg.border.kb-chrome-panel.p-0.backdrop:bg-black/40 data-agent-chat-target="memoDialog" aria-labelledby="agent-chat-memo-dialog-title"
+        .flex.flex-col class="max-h-[min(70dvh,32rem)] w-[min(92vw,32rem)]"
+          .flex.items-center.justify-between.border-b.kb-border.px-3.py-2
+            h2#agent-chat-memo-dialog-title.text-sm.font-medium.kb-text-primary 参照するメモを選ぶ
+            button.kb-toolbar-btn type="button" data-action="agent-chat#closeMemoPicker" aria-label="閉じる" ×
+          .p-3
+            label.sr-only for="agent_chat_memo_search" メモを検索
+            input#agent_chat_memo_search.kb-input.kb-input-sm.w-full type="search" placeholder="タイトル・本文で検索" autocomplete="off" data-agent-chat-target="memoSearch" data-action="input->agent-chat#searchMemos"
+          p.px-3.pb-2.text-xs.kb-text-muted data-agent-chat-target="memoStatus"
+          .min-h-0.flex-1.overflow-y-auto.border-t.kb-border data-agent-chat-target="memoResults"
+          .flex.justify-end.gap-2.border-t.kb-border.px-3.py-2
+            button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#closeMemoPicker" キャンセル
+            button.kb-chrome-btn-primary.kb-btn-xs type="button" data-theme-slot="btn-primary" data-action="agent-chat#confirmMemoSelection" disabled=true data-agent-chat-target="memoConfirmButton" 参照に追加
       label.sr-only for="agent_chat_prompt" AI へのメッセージ
       textarea#agent_chat_prompt.kb-input.w-full.shrink-0.resize-none.font-sans.leading-relaxed rows=4 autocomplete="off" placeholder="例: メモを検索して RAG の設定を教えて（Ctrl+Enter で送信）" data-agent-chat-target="input" data-action="keydown->agent-chat#sendOnEnter"
       .mt-2.flex.shrink-0.flex-wrap.gap-2

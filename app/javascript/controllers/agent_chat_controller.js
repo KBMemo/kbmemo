@@ -32,7 +32,13 @@ export default class extends Controller {
     "tsuzuraAlbumList",
     "tsuzuraMediaList",
     "tsuzuraStatus",
-    "tsuzuraConfirmButton"
+    "tsuzuraConfirmButton",
+    "memoDialog",
+    "memoSearch",
+    "memoStatus",
+    "memoResults",
+    "memoConfirmButton",
+    "memoReferenceList"
   ]
 
   static values = {
@@ -47,7 +53,8 @@ export default class extends Controller {
     nyoyConfigured: Boolean,
     uploadImageUrl: String,
     tsuzuraAlbumsUrl: String,
-    tsuzuraAlbumUrlTemplate: String
+    tsuzuraAlbumUrlTemplate: String,
+    memoReferencesUrl: String
   }
 
   static storageKey = "agent_chat_enabled_mcp_tools"
@@ -65,6 +72,10 @@ export default class extends Controller {
     this.nyoyTools = []
     this.enabledMcpTools = this.readEnabledMcpTools()
     this.pendingAttachments = []
+    this.pendingMemoReferences = []
+    this.memoSearchResults = []
+    this.memoSelectedIds = new Set()
+    this.memoSearchTimer = null
     this.tsuzuraSelectedIds = new Set()
     this.sending = false
     this.activityTracker = null
@@ -85,6 +96,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    if (this.memoSearchTimer) window.clearTimeout(this.memoSearchTimer)
     this.stopImageGenerationWatch()
     this.stopActivityTracker()
     this.unsubscribeCable?.()
@@ -335,11 +347,15 @@ export default class extends Controller {
     if (this.sending) return
 
     const text = this.inputTarget?.value?.trim() || ""
-    if (!text && this.pendingAttachments.length === 0) return
+    if (!text && this.pendingAttachments.length === 0 && this.pendingMemoReferences.length === 0) return
 
     const attachments = this.pendingAttachments.map((entry) => ({
       tsuzura_media_id: entry.tsuzura_media_id,
       filename: entry.filename
+    }))
+    const memoReferences = this.pendingMemoReferences.map((entry) => ({
+      id: entry.id,
+      title: entry.title
     }))
 
     this.clearError()
@@ -348,12 +364,15 @@ export default class extends Controller {
     this.syncEnabledMcpTools()
     this.history.push({
       role: "user",
-      content: text || "（画像を添付）",
-      attachments
+      content: text || (attachments.length > 0 ? "（画像を添付）" : "（参照メモについて回答）"),
+      attachments,
+      memo_references: memoReferences
     })
     if (this.inputTarget) this.inputTarget.value = ""
     this.pendingAttachments = []
+    this.pendingMemoReferences = []
     this.renderAttachmentList()
+    this.renderMemoReferenceList()
     this.renderMessages()
     this.sending = true
     this.updateSendState()
@@ -374,7 +393,8 @@ export default class extends Controller {
           conversation_id: this.conversationIdValue || null,
           turn_id: turnId,
           enabled_mcp_tools: this.enabledMcpTools,
-          attachments
+          attachments,
+          memo_reference_ids: memoReferences.map((entry) => entry.id)
         }))
       })
 
@@ -525,7 +545,9 @@ export default class extends Controller {
     this.history = []
     this.conversationIdValue = ""
     this.pendingAttachments = []
+    this.pendingMemoReferences = []
     this.renderAttachmentList()
+    this.renderMemoReferenceList()
     this.activeTurnId = null
     this.stopActivityTracker()
     this.renderMessages()
@@ -593,6 +615,9 @@ export default class extends Controller {
       if (Array.isArray(entry.attachments) && entry.attachments.length > 0) {
         bubble.append(document.createElement("br"))
         bubble.append(this.renderAttachmentPreview(entry.attachments))
+      }
+      if (Array.isArray(entry.memo_references) && entry.memo_references.length > 0) {
+        bubble.append(this.renderMemoReferencePreview(entry.memo_references))
       }
       wrapper.append(bubble)
       return wrapper
@@ -1127,6 +1152,140 @@ export default class extends Controller {
       wrap.append(chip)
     })
     return wrap
+  }
+
+  async openMemoPicker(event) {
+    event?.preventDefault()
+    if (!this.hasMemoDialogTarget) return
+
+    this.memoSelectedIds = new Set(this.pendingMemoReferences.map((entry) => String(entry.id)))
+    this.memoDialogTarget.showModal()
+    await this.loadMemoReferences("")
+    this.memoSearchTarget?.focus()
+  }
+
+  closeMemoPicker(event) {
+    event?.preventDefault()
+    this.memoDialogTarget?.close()
+  }
+
+  searchMemos() {
+    if (this.memoSearchTimer) window.clearTimeout(this.memoSearchTimer)
+    this.memoSearchTimer = window.setTimeout(() => {
+      void this.loadMemoReferences(this.memoSearchTarget?.value || "")
+    }, 200)
+  }
+
+  async loadMemoReferences(query) {
+    if (!this.memoReferencesUrlValue) return
+    this.setMemoStatus("メモを読み込み中…")
+    const url = new URL(this.memoReferencesUrlValue, window.location.origin)
+    if (query.trim()) url.searchParams.set("q", query.trim())
+
+    try {
+      const res = await fetch(url.toString(), {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" }
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        this.setMemoStatus(data.error || "メモを取得できませんでした。")
+        return
+      }
+      this.memoSearchResults = Array.isArray(data.memos) ? data.memos : []
+      this.renderMemoResults()
+      this.setMemoStatus(
+        this.memoSearchResults.length > 0
+          ? "参照するメモを5件まで選択できます。"
+          : "該当するメモがありません。"
+      )
+    } catch {
+      this.setMemoStatus("メモを取得できませんでした。")
+    }
+  }
+
+  renderMemoResults() {
+    if (!this.hasMemoResultsTarget) return
+    this.memoResultsTarget.replaceChildren()
+
+    for (const memo of this.memoSearchResults) {
+      const row = document.createElement("label")
+      row.className = "flex items-center gap-2 border-b kb-border px-3 py-2 text-sm kb-hover-row"
+      const checkbox = document.createElement("input")
+      checkbox.type = "checkbox"
+      checkbox.value = String(memo.id)
+      checkbox.checked = this.memoSelectedIds.has(String(memo.id))
+      checkbox.disabled = !checkbox.checked && this.memoSelectedIds.size >= 5
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) this.memoSelectedIds.add(checkbox.value)
+        else this.memoSelectedIds.delete(checkbox.value)
+        this.renderMemoResults()
+        this.syncMemoConfirmButton()
+      })
+      const title = document.createElement("span")
+      title.textContent = memo.title || "（無題）"
+      row.append(checkbox, title)
+      this.memoResultsTarget.append(row)
+    }
+    this.syncMemoConfirmButton()
+  }
+
+  syncMemoConfirmButton() {
+    if (this.hasMemoConfirmButtonTarget) {
+      this.memoConfirmButtonTarget.disabled = this.memoSelectedIds.size === 0
+    }
+  }
+
+  confirmMemoSelection(event) {
+    event?.preventDefault()
+    const known = new Map([
+      ...this.pendingMemoReferences,
+      ...this.memoSearchResults
+    ].map((entry) => [ String(entry.id), entry ]))
+    this.pendingMemoReferences = [...this.memoSelectedIds]
+      .map((id) => known.get(id))
+      .filter(Boolean)
+      .slice(0, 5)
+    this.renderMemoReferenceList()
+    this.closeMemoPicker()
+  }
+
+  renderMemoReferenceList() {
+    if (!this.hasMemoReferenceListTarget) return
+    this.memoReferenceListTarget.replaceChildren()
+    this.pendingMemoReferences.forEach((reference, index) => {
+      const chip = document.createElement("div")
+      chip.className = "inline-flex items-center gap-2 rounded-md border kb-border px-2 py-1 text-xs"
+      const label = document.createElement("span")
+      label.textContent = reference.title || "（無題）"
+      const remove = document.createElement("button")
+      remove.type = "button"
+      remove.className = "kb-toolbar-btn px-1"
+      remove.setAttribute("aria-label", "参照メモを削除")
+      remove.textContent = "×"
+      remove.addEventListener("click", () => {
+        this.pendingMemoReferences.splice(index, 1)
+        this.renderMemoReferenceList()
+      })
+      chip.append(label, remove)
+      this.memoReferenceListTarget.append(chip)
+    })
+  }
+
+  renderMemoReferencePreview(references) {
+    const wrap = document.createElement("div")
+    wrap.className = "mt-2 flex flex-wrap gap-2"
+    references.forEach((reference) => {
+      const chip = document.createElement("span")
+      chip.className = "inline-block rounded border kb-border px-2 py-1 text-xs"
+      chip.textContent = `参照: ${reference.title || "（無題）"}`
+      wrap.append(chip)
+    })
+    return wrap
+  }
+
+  setMemoStatus(message) {
+    if (this.hasMemoStatusTarget) this.memoStatusTarget.textContent = message
   }
 
   async openTsuzuraPicker(event) {

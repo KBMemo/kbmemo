@@ -56,12 +56,13 @@ module Chat
     # @param enabled_mcp_tools [Array<String>, nil] ユーザーが有効化した Nyoy MCP ツール名
     # @param image_attachments [Array<Hash>, nil] analyze_image 向け tsuzura_media_id
     def call(messages:, system_prompt: nil, account: nil, broadcaster: nil, enabled_mcp_tools: nil,
-             image_attachments: nil, tsuzura_cookie_header: nil)
+             image_attachments: nil, memo_references: nil, tsuzura_cookie_header: nil)
       @account = account
       @broadcaster = broadcaster
       @tsuzura_cookie_header = tsuzura_cookie_header.to_s
       @enabled_mcp_tools = normalize_enabled_mcp_tools(enabled_mcp_tools)
       @image_attachments = AgentChat::ImageAttachments.normalize(image_attachments)
+      @memo_references = Array(memo_references)
       @image_analysis_result = nil
       @interaction_log = Chat::AgentInteractionLog.new(broadcaster: broadcaster)
       trace = Chat::AgentTrace.new(broadcaster: broadcaster && TraceBroadcaster.new(broadcaster))
@@ -434,6 +435,14 @@ module Chat
           Chat::Prompts::RAG_ANSWER,
           "検索結果:",
           rag_result.context_text
+        ].join("\n\n")
+      end
+      if @memo_references.any?
+        effective = [
+          effective,
+          "ユーザーが明示的に参照へ追加したメモ:",
+          AgentChat::MemoReferences.context_text(@memo_references),
+          "参照メモを根拠として扱い、記載のない内容を推測で補わないでください。"
         ].join("\n\n")
       end
       if image_analysis_result&.context_text.present?
