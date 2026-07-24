@@ -1,6 +1,6 @@
-.memo-ai-panel.kb-ai-panel.flex.h-full.min-h-0.flex-col.overflow-hidden data-theme-slot="memo-sidebar" aria-label="AI アシスタント"
+.memo-ai-panel.kb-ai-panel.flex.h-full.min-h-0.flex-col.overflow-hidden data-theme-slot="memo-sidebar" aria-label="メモアシスト"
   .kb-memo-ai-header
-    h2.text-sm.font-semibold.kb-text-primary AI チャット
+    h2.text-sm.font-semibold.kb-text-primary メモアシスト
     = label_tag "new_memo_ai_model_role", "使用モデル", class: "sr-only"
     = select_tag "new_memo_ai_model_role",
       options_for_select(memo_ai_model_options(rodauth.rails_account), "main"),

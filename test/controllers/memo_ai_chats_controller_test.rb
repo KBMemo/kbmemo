@@ -97,7 +97,7 @@ class MemoAiChatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "memo-ai-panel"
     assert_includes response.body, "memo-ai-sidebar"
-    assert_includes response.body, "AI アシスタント"
+    assert_includes response.body, "メモアシスト"
     assert_select "select#memo_ai_model_role[data-memo-ai-panel-target='modelRole']" do
       assert_select "option[value='main']", text: /Main.*gemma-4-e4b/
       assert_select "option[value='fast_chat']", text: /Fast chat.*gemma-4-e4b/
