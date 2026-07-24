@@ -272,6 +272,24 @@ html[data-kb-theme-base="minimal"] {
   max-height: min(42vh, calc(var(--size-14) + var(--size-7) + var(--size-2)));
 }
 
+.kb-memo-ai-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--kb-space-2);
+  border-bottom: 1px solid var(--kb-border);
+  padding: var(--kb-space-2) var(--kb-space-3);
+}
+
+.kb-memo-ai-model-select {
+  min-width: 0;
+  max-width: 11rem;
+  font-family: var(--kb-font-mono);
+  font-size: var(--kb-font-size-xs);
+  text-overflow: ellipsis;
+}
+
 .kb-sidebar-width-transition {
   transition-property: width;
 }

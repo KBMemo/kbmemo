@@ -28,7 +28,10 @@ class MemoAiChatTest < ActiveSupport::TestCase
       local_client: local
     ).call
 
-    assert_equal({ reply: "== Reply", backend: :local }, result)
+    assert_equal "== Reply", result[:reply]
+    assert_equal :local, result[:backend]
+    assert_equal :main, result[:model_role]
+    assert_equal account.chat_server_model(:main), result[:model]
     assert_equal "system", captured.first[:role]
     assert_includes captured.first[:content], "AI Test Memo"
     assert_includes captured.first[:content], "Hello"
@@ -51,7 +54,10 @@ class MemoAiChatTest < ActiveSupport::TestCase
       byok_client: byok
     ).call
 
-    assert_equal({ reply: "== BYOK reply", backend: :openai }, result)
+    assert_equal "== BYOK reply", result[:reply]
+    assert_equal :openai, result[:backend]
+    assert_equal :main, result[:model_role]
+    assert_equal MemoAiChat::OPENAI_MODEL, result[:model]
   end
 
   test "call falls back to BYOK when local registry is misconfigured" do
@@ -84,5 +90,29 @@ class MemoAiChatTest < ActiveSupport::TestCase
       ).call
     end
     assert_includes error.message, "API キー"
+  end
+
+  test "call uses an allowed selected model role" do
+    result = MemoAiChat.new(
+      account: accounts(:one),
+      memo: memos(:one),
+      messages: [ { role: "user", content: "hi" } ],
+      model_role: :fast_chat,
+      local_client: fake_client
+    ).call
+
+    assert_equal :fast_chat, result[:model_role]
+    assert_equal accounts(:one).chat_server_model(:fast_chat), result[:model]
+  end
+
+  test "initialize rejects an unknown model role" do
+    assert_raises(ArgumentError) do
+      MemoAiChat.new(
+        account: accounts(:one),
+        memo: memos(:one),
+        messages: [],
+        model_role: :arbitrary
+      )
+    end
   end
 end

@@ -6,6 +6,16 @@ module MemosHelper
     "owner_read_write" => "自分のみ読み書き"
   }.freeze
 
+  def memo_ai_model_options(account)
+    MemoAiChat::MODEL_ROLES.filter_map do |role|
+      config = Chat::ModelRegistry.for(role, account: account)
+      label = MemoAiChat::MODEL_ROLE_LABELS.fetch(role)
+      [ "#{label} · #{config.model}", role.to_s ]
+    rescue KeyError
+      nil
+    end
+  end
+
   def memo_directories_for_select
     policy_scope(MemoDirectory).nav_ordered
   end

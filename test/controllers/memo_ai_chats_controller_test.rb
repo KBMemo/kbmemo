@@ -5,22 +5,38 @@ require "test_helper"
 class MemoAiChatsControllerTest < ActionDispatch::IntegrationTest
   test "create returns reply and backend" do
     memo = memos(:one)
+    captured = nil
 
     fake = Object.new
-    fake.define_singleton_method(:call) { { reply: "== AI section\n\nContent", backend: :local } }
+    fake.define_singleton_method(:call) do
+      {
+        reply: "== AI section\n\nContent",
+        backend: :local,
+        model_role: :fast_chat,
+        model: "fast-model"
+      }
+    end
 
     original_new = MemoAiChat.method(:new)
     begin
-      MemoAiChat.define_singleton_method(:new) { |**_kwargs| fake }
+      MemoAiChat.define_singleton_method(:new) do |**kwargs|
+        captured = kwargs
+        fake
+      end
 
       post ai_chat_memo_url(memo),
-        params: { messages: [ { role: "user", content: "見出しを追加" } ] },
+        params: {
+          messages: [ { role: "user", content: "見出しを追加" } ],
+          model_role: "fast_chat"
+        },
         as: :json
 
       assert_response :success
       body = JSON.parse(response.body)
       assert_equal "== AI section\n\nContent", body["reply"]
       assert_equal "local", body["backend"]
+      assert_equal "fast-model", body["model"]
+      assert_equal "fast_chat", captured[:model_role]
     ensure
       MemoAiChat.define_singleton_method(:new, original_new)
     end
@@ -64,11 +80,27 @@ class MemoAiChatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  test "create rejects an unsupported model role" do
+    post ai_chat_memo_url(memos(:one)),
+      params: {
+        messages: [ { role: "user", content: "hi" } ],
+        model_role: "arbitrary"
+      },
+      as: :json
+
+    assert_response :unprocessable_entity
+    assert_includes response.parsed_body["error"], "未対応"
+  end
+
   test "edit page includes ai panel" do
     get edit_memo_url(memos(:one))
     assert_response :success
     assert_includes response.body, "memo-ai-panel"
     assert_includes response.body, "memo-ai-sidebar"
     assert_includes response.body, "AI アシスタント"
+    assert_select "select#memo_ai_model_role[data-memo-ai-panel-target='modelRole']" do
+      assert_select "option[value='main']", text: /Main.*gemma-4-e4b/
+      assert_select "option[value='fast_chat']", text: /Fast chat.*gemma-4-e4b/
+    end
   end
 end

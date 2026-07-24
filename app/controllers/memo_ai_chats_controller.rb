@@ -11,10 +11,13 @@ class MemoAiChatsController < ApplicationController
       account: rodauth.rails_account,
       memo: @memo,
       messages: chat_messages_param,
-      selection: params[:selection]
+      selection: params[:selection],
+      model_role: model_role_param
     ).call
 
     render json: result
+  rescue ArgumentError => e
+    render json: { error: e.message }, status: :unprocessable_entity
   rescue Chat::LlmClient::ConnectionError => e
     render json: { error: e.message, settings_url: chat_server_path }, status: :unprocessable_entity
   rescue Chat::LlmClient::Error => e
@@ -22,6 +25,10 @@ class MemoAiChatsController < ApplicationController
   end
 
   private
+
+  def model_role_param
+    params[:model_role].presence || :main
+  end
 
   def chat_messages_param
     raw = params[:messages]

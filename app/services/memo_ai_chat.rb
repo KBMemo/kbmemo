@@ -7,24 +7,33 @@
 class MemoAiChat
   MAX_BODY_CHARS = 12_000
   MAX_HISTORY = 12
+  MODEL_ROLES = %i[main fast_chat].freeze
+  MODEL_ROLE_LABELS = {
+    main: "Main",
+    fast_chat: "Fast chat"
+  }.freeze
 
   OPENAI_BASE_URL = "https://api.openai.com"
   OPENAI_MODEL = "gpt-4o-mini"
 
-  def initialize(account:, memo:, messages:, selection: nil, local_client: nil, byok_client: nil)
+  def initialize(account:, memo:, messages:, selection: nil, model_role: :main,
+    local_client: nil, byok_client: nil)
     @account = account
     @memo = memo
     @messages = Array(messages)
     @selection = selection.to_s.strip.presence
+    @model_role = model_role.to_s.to_sym
+    raise ArgumentError, "未対応のモデル用途です。" unless MODEL_ROLES.include?(@model_role)
+
     @local_client = local_client
     @byok_client = byok_client
   end
 
-  # @return [Hash] { reply: String, backend: Symbol }
+  # @return [Hash] { reply: String, backend: Symbol, model_role: Symbol, model: String }
   def call
     messages = build_messages
-    reply, backend = generate(messages)
-    { reply: reply, backend: backend }
+    reply, backend, model = generate(messages)
+    { reply: reply, backend: backend, model_role: @model_role, model: model }
   end
 
   private
@@ -39,7 +48,7 @@ class MemoAiChat
     end
 
     begin
-      [ client.chat(messages), :local ]
+      [ client.chat(messages), :local, local_model ]
     rescue Chat::LlmClient::ConnectionError => e
       fallback_or_raise(messages, e)
     end
@@ -48,11 +57,19 @@ class MemoAiChat
   def fallback_or_raise(messages, cause)
     raise unavailable_error(cause) unless byok_available?
 
-    [ byok_client.chat(messages), :openai ]
+    [ byok_client.chat(messages), :openai, OPENAI_MODEL ]
   end
 
   def local_client
-    @local_client ||= Chat::ModelRegistry.for(:main, account: @account).build_client
+    @local_client ||= local_config.build_client
+  end
+
+  def local_model
+    local_config.model
+  end
+
+  def local_config
+    @local_config ||= Chat::ModelRegistry.for(@model_role, account: @account)
   end
 
   def byok_available?

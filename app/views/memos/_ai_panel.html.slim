@@ -1,8 +1,14 @@
 - account = rodauth.rails_account
 - editing = local_assigns.fetch(:editing, true)
 .memo-ai-panel.kb-ai-panel.flex.h-full.min-h-0.flex-col.overflow-hidden data-theme-slot="memo-sidebar" data-controller="memo-ai-panel" data-memo-ai-panel-chat-url-value=ai_chat_memo_path(memo, format: :json) data-memo-ai-panel-profile-url-value=edit_profile_path data-memo-ai-panel-has-api-key-value=account.openai_api_key_configured? aria-label="AI アシスタント"
-  .flex.shrink-0.items-center.border-b.kb-border.px-3.py-2
+  .kb-memo-ai-header
     h2.text-sm.font-semibold.kb-text-primary AI チャット
+    = label_tag "memo_ai_model_role", "使用モデル", class: "sr-only"
+    = select_tag "memo_ai_model_role",
+      options_for_select(memo_ai_model_options(account), "main"),
+      class: "kb-input kb-input-xs kb-memo-ai-model-select",
+      data: { memo_ai_panel_target: "modelRole", action: "change->memo-ai-panel#modelRoleChanged" },
+      aria: { label: "使用モデル" }
   .flex.min-h-0.flex-1.flex-col.gap-2.overflow-hidden.px-3.py-2
     p class="shrink-0 kb-text-2xs leading-snug kb-text-muted"
       - if editing

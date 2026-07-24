@@ -1,0 +1,76 @@
+// @vitest-environment happy-dom
+
+import { Application } from "@hotwired/stimulus"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import MemoAiPanelController from "../memo_ai_panel_controller.js"
+
+let application
+
+async function mount() {
+  document.head.innerHTML = '<meta name="csrf-token" content="test-token">'
+  document.body.innerHTML = `
+    <section
+      data-controller="memo-ai-panel"
+      data-memo-ai-panel-chat-url-value="/memos/1/ai_chat"
+    >
+      <select data-memo-ai-panel-target="modelRole" data-action="change->memo-ai-panel#modelRoleChanged">
+        <option value="main">Main · large-model</option>
+        <option value="fast_chat">Fast chat · small-model</option>
+      </select>
+      <div data-memo-ai-panel-target="messages"></div>
+      <p class="hidden" data-memo-ai-panel-target="error"></p>
+      <textarea data-memo-ai-panel-target="input"></textarea>
+      <button type="button" data-memo-ai-panel-target="sendButton" data-action="memo-ai-panel#send">送信</button>
+    </section>
+  `
+  application = Application.start()
+  application.register("memo-ai-panel", MemoAiPanelController)
+  await vi.waitFor(() => {
+    expect(document.querySelector("[data-memo-ai-panel-target='messages']").textContent).not.toBe("")
+  })
+}
+
+beforeEach(() => {
+  localStorage.clear()
+})
+
+afterEach(() => {
+  application?.stop()
+  vi.unstubAllGlobals()
+  document.body.replaceChildren()
+})
+
+describe("memo-ai-panel", () => {
+  it("sends the selected model role and displays the returned model", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (_url, options) => ({
+      ok: true,
+      json: async () => ({
+        reply: "Response",
+        backend: "local",
+        model_role: "fast_chat",
+        model: "small-model"
+      }),
+      requestBody: options.body
+    })))
+    await mount()
+
+    const select = document.querySelector("select")
+    select.value = "fast_chat"
+    select.dispatchEvent(new Event("change", { bubbles: true }))
+    document.querySelector("textarea").value = "Hello"
+    document.querySelector("button").click()
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce())
+    const body = JSON.parse(fetch.mock.calls[0][1].body)
+    expect(body.model_role).toBe("fast_chat")
+    await vi.waitFor(() => expect(document.body.textContent).toContain("small-model"))
+    expect(localStorage.getItem("kbmemo_memo_ai_model_role_v1")).toBe("fast_chat")
+  })
+
+  it("restores a previously selected available role", async () => {
+    localStorage.setItem("kbmemo_memo_ai_model_role_v1", "fast_chat")
+    await mount()
+
+    expect(document.querySelector("select").value).toBe("fast_chat")
+  })
+})

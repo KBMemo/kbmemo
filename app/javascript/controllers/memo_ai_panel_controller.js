@@ -1,8 +1,17 @@
 import { Controller } from "@hotwired/stimulus"
 import { appendChatMarkdown } from "../lib/chat_markdown"
 
+const MODEL_ROLE_STORAGE_KEY = "kbmemo_memo_ai_model_role_v1"
+
 export default class extends Controller {
-  static targets = ["messages", "input", "sendButton", "error", "includeSelection"]
+  static targets = [
+    "messages",
+    "input",
+    "sendButton",
+    "error",
+    "includeSelection",
+    "modelRole"
+  ]
 
   static values = {
     chatUrl: String,
@@ -13,8 +22,18 @@ export default class extends Controller {
   connect() {
     this.history = []
     this.sending = false
+    this.restoreModelRole()
     this.renderMessages()
     this.updateSendState()
+  }
+
+  modelRoleChanged() {
+    if (!this.hasModelRoleTarget) return
+    try {
+      localStorage.setItem(MODEL_ROLE_STORAGE_KEY, this.modelRoleTarget.value)
+    } catch {
+      // Storage can be unavailable in privacy-restricted browser contexts.
+    }
   }
 
   async send(event) {
@@ -48,7 +67,8 @@ export default class extends Controller {
         },
         body: JSON.stringify({
           messages: this.history,
-          selection: selection || null
+          selection: selection || null,
+          model_role: this.selectedModelRole()
         })
       })
 
@@ -67,7 +87,12 @@ export default class extends Controller {
         return
       }
 
-      this.history.push({ role: "assistant", content: reply, backend: data.backend })
+      this.history.push({
+        role: "assistant",
+        content: reply,
+        backend: data.backend,
+        model: data.model
+      })
       this.renderMessages()
     } catch {
       this.showError("AI との通信に失敗しました。")
@@ -141,10 +166,12 @@ export default class extends Controller {
     label.className = "mb-0.5 kb-ai-message-label font-medium uppercase tracking-wide kb-text-muted"
     label.textContent = isUser ? "あなた" : "AI"
 
-    if (!isUser && entry.backend) {
+    if (!isUser && (entry.model || entry.backend)) {
       const badge = document.createElement("span")
       badge.className = "ml-1 normal-case kb-text-muted"
-      badge.textContent = entry.backend === "openai" ? "· OpenAI" : "· ローカル"
+      badge.textContent = entry.model
+        ? `· ${entry.model}`
+        : entry.backend === "openai" ? "· OpenAI" : "· ローカル"
       label.append(badge)
     }
 
@@ -174,6 +201,22 @@ export default class extends Controller {
     if (!this.hasSendButtonTarget) return
     this.sendButtonTarget.disabled = this.sending
     this.sendButtonTarget.textContent = this.sending ? "送信中…" : "送信"
+  }
+
+  selectedModelRole() {
+    return this.hasModelRoleTarget ? this.modelRoleTarget.value : "main"
+  }
+
+  restoreModelRole() {
+    if (!this.hasModelRoleTarget) return
+    let saved = ""
+    try {
+      saved = localStorage.getItem(MODEL_ROLE_STORAGE_KEY) || ""
+    } catch {
+      return
+    }
+    const available = [...this.modelRoleTarget.options].some((option) => option.value === saved)
+    if (available) this.modelRoleTarget.value = saved
   }
 
   showError(message, options = {}) {
