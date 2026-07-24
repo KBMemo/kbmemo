@@ -7,6 +7,9 @@ import { application } from "./application"
 import FlashNoticeController from "./flash_notice_controller"
 application.register("flash-notice", FlashNoticeController)
 
+import ExternalLinksController from "./external_links_controller"
+application.register("external-links", ExternalLinksController)
+
 import HelloController from "./hello_controller"
 application.register("hello", HelloController)
 

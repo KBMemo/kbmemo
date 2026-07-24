@@ -22,7 +22,7 @@ html lang="ja" data-kb-theme=kb_initial_theme_id data-kb-theme-base=kb_initial_t
     = vite_javascript_tag "application"
     script#kbmemo-account-theme-json type="application/json"
       = raw json_escape(kb_account_theme_json)
-  body.kb-chrome-body.min-h-screen data-theme-slot="app-body" data-controller="flash-notice"
+  body.kb-chrome-body.min-h-screen data-theme-slot="app-body" data-controller="flash-notice external-links"
     a.kb-skip-link href="#main-content" 本文へスキップ
     header.kb-chrome-header data-theme-slot="app-header"
       nav.mx-auto.flex.w-full.flex-wrap.items-center.justify-between.gap-3.px-4.py-3 class=content_max_width_class
