@@ -36,10 +36,8 @@ html lang="ja" data-kb-theme=kb_initial_theme_id data-kb-theme-base=kb_initial_t
           = render "layouts/nav_notebooks_menu"
           - if HelpNotebook.find
             = link_to "ヘルプ", help_path, class: "kb-chrome-link"
-          = link_to "タグ管理", tags_path, class: "kb-chrome-link"
           = link_to "テーマ", theme_studio_path, class: "kb-chrome-link"
-          - if rodauth.rails_account&.admin?
-            = link_to "管理", admin_root_path, class: "kb-chrome-link"
+          = render "layouts/nav_management_menu"
           - if rodauth.rails_account
             .relative[data-controller="user-menu"]
               button.kb-header-menu-trigger.inline-flex.max-w-56.items-center.gap-1.text-left.font-medium[type="button" data-user-menu-target="button" data-action="user-menu#toggle" aria-expanded="false" aria-haspopup="true" title=(rodauth.rails_account.email)]
@@ -49,7 +47,6 @@ html lang="ja" data-kb-theme=kb_initial_theme_id data-kb-theme-base=kb_initial_t
                   path[stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"]
               .kb-menu-panel.absolute.right-0.top-full.z-50.mt-1.hidden.min-w-48.rounded-md.py-1.text-sm[data-user-menu-target="panel" role="menu"]
                 = link_to "プロフィール", edit_profile_path, class: "kb-menu-item block px-3 py-2", role: "menuitem"
-                = link_to "メモテンプレート", memo_templates_path, class: "kb-menu-item block px-3 py-2", role: "menuitem"
                 = link_to "パスワード変更", rodauth.change_password_path, class: "kb-menu-item block px-3 py-2", role: "menuitem"
                 .px-3.py-2 role="none"
                   label.flex.items-center.justify-between.gap-3.kb-text-primary

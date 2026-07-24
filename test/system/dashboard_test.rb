@@ -19,4 +19,21 @@ class DashboardTest < ApplicationSystemTestCase
     page.current_window.resize_to(390, 844)
     assert page.evaluate_script("document.documentElement.scrollWidth <= window.innerWidth")
   end
+
+  test "opens the management menu" do
+    visit root_path
+
+    click_button "管理"
+
+    within "#management-menu" do
+      assert_link "タグ管理"
+      assert_link "テンプレート管理"
+      assert_link "アカウント管理"
+    end
+    assert_equal "true", find("#management-menu-trigger")["aria-expanded"]
+    menu_width = page.evaluate_script(
+      "document.querySelector('#management-menu').getBoundingClientRect().width"
+    )
+    assert_operator menu_width, :>=, 192
+  end
 end

@@ -420,6 +420,10 @@ html[data-kb-theme-base="minimal"] {
   max-height: min(var(--size-15), 70vh);
 }
 
+.kb-management-menu-panel {
+  min-inline-size: 12rem;
+}
+
 .kb-flash-stack {
   width: min(calc(100% - var(--size-6)), var(--size-content-2));
 }
