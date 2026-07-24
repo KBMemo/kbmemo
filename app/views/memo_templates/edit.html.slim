@@ -1,0 +1,6 @@
+- content_for :title, "編集 · #{@memo_template.name}"
+
+.mb-6
+  h1 class=kb_page_title メモテンプレートを編集
+
+= render "form", memo_template: @memo_template

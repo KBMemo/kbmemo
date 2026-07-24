@@ -43,6 +43,7 @@ class Account < ApplicationRecord
   before_validation :normalize_nickname
 
   has_many :memos, dependent: :restrict_with_exception
+  has_many :memo_templates, dependent: :destroy
   has_many :memo_group_memberships, dependent: :destroy
   has_many :memo_groups, through: :memo_group_memberships
   has_many :agent_chat_conversations, dependent: :destroy

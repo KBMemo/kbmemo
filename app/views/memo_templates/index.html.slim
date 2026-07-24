@@ -1,0 +1,30 @@
+- content_for :title, "メモテンプレート"
+
+.mb-6.flex.flex-wrap.items-end.justify-between.gap-3
+  h1 class=kb_page_title メモテンプレート
+  = link_to "新規テンプレート", new_memo_template_path, class: "kb-chrome-btn-primary kb-btn-sm", data: { theme_slot: "btn-primary" }
+
+- if @memo_templates.any?
+  .overflow-x-auto
+    table class=kb_table
+      thead class=kb_table_head
+        tr
+          th.py-2.pr-3 テンプレート名
+          th.py-2.pr-3 タイトル雛形
+          th.py-2.pr-3 タグ
+          th.py-2.pr-3 更新日時
+          th.py-2
+      tbody
+        - @memo_templates.each do |template|
+          tr
+            td.py-2.pr-3
+              = link_to template.name, edit_memo_template_path(template), class: kb_link_table
+            td.py-2.pr-3.kb-text-secondary = truncate(template.title_template, length: 48)
+            td.py-2.pr-3.kb-text-secondary = truncate(template.tag_list, length: 36)
+            td.py-2.pr-3.kb-text-secondary = l(template.updated_at, format: :short)
+            td.py-2.text-right
+              = link_to "編集", edit_memo_template_path(template), class: "kb-chrome-link"
+              = " · "
+              = button_to "削除", memo_template_path(template), method: :delete, form: { data: { turbo_confirm: "「#{template.name}」を削除しますか？" } }, class: "inline kb-danger-action"
+- else
+  p.text-sm.kb-text-muted メモテンプレートはまだありません。

@@ -234,8 +234,6 @@ export default class extends Controller {
     ])
 
     const textarea = this.fieldTarget
-    const isNewMemo = !this.memoIdValue
-    if (isNewMemo) textarea.value = ""
 
     this._onResetBody = (event) => {
       const body = event.detail?.body ?? ""
@@ -332,8 +330,7 @@ export default class extends Controller {
       ".cm-completionDetail": { color: "#71717a", fontStyle: "normal" }
     })
 
-    if (isNewMemo) textarea.value = ""
-    const startDoc = isNewMemo ? "" : textarea.value
+    const startDoc = textarea.value
     const editorHost = this
     const asciidocExts = await kbmemoEditor.loadAsciidocExtensions({ EditorView })
     this._webPasteHandler = editorChrome.createWebPasteHandler({

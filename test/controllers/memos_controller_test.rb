@@ -1105,6 +1105,32 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "button[aria-label='Wiki リンクの説明を表示'][aria-controls='memo-wiki-link-hint'][aria-expanded='false']"
   end
 
+  test "new memo form applies an owned template with the creation date macro" do
+    travel_to Time.zone.local(2026, 7, 24, 12, 0, 0) do
+      get new_memo_url(template_id: memo_templates(:daily).id)
+    end
+
+    assert_response :success
+    assert_select "select[name='template_id'] option[selected][value=?]",
+      memo_templates(:daily).id.to_s
+    assert_select "input#memo_title[value='Daily 2026-07-24']"
+    assert_select "textarea#memo_body", text: /Daily 2026-07-24/
+    assert_select "input[name='memo[tag_list]'][value='diary, 2026-07-24']"
+    assert_select ".memo-draft-shell" do |shells|
+      initial = JSON.parse(shells.first["data-memo-draft-initial-form-value"])
+      assert_equal "Daily 2026-07-24", initial["title"]
+      assert_includes initial["body"], "= Daily 2026-07-24"
+      assert_equal "diary, 2026-07-24", initial["tag_list"]
+      assert_equal "1", initial["title_manual"]
+    end
+  end
+
+  test "new memo form cannot apply another account template" do
+    get new_memo_url(template_id: memo_templates(:other).id)
+
+    assert_response :not_found
+  end
+
   test "directory sidebar no longer shows drag hint" do
     get memos_url(sidebar_view: "directory", memo_directory_id: memo_directories(:work).id)
     assert_response :success

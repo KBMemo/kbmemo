@@ -2,6 +2,7 @@ class MemosController < ApplicationController
   prepend_before_action :record_memo_view_history, only: %i[show edit]
   prepend_before_action :set_memo, only: %i[show edit update destroy draft commit revert_draft checklist_toggle update_directory update_tags render_diagram]
   before_action :set_memo_groups_for_form, only: %i[new create edit update]
+  before_action :set_memo_templates_for_new, only: %i[new create]
   include MemoSidebar
 
   after_action :verify_authorized
@@ -152,6 +153,16 @@ class MemosController < ApplicationController
   def new
     @memo = Memo.new(account: rodauth.rails_account)
     authorize @memo
+    return if params[:template_id].blank?
+
+    @selected_memo_template = @memo_templates.find(params[:template_id])
+    rendered = MemoTemplateRenderer.new(template: @selected_memo_template).call
+    @memo.assign_attributes(
+      title: rendered.title,
+      title_manual: rendered.title.present?,
+      body: rendered.body
+    )
+    @initial_tag_list = rendered.tag_list
   end
 
   def edit
@@ -561,6 +572,10 @@ class MemosController < ApplicationController
 
   def set_memo_groups_for_form
     @memo_groups_for_form = MemoGroup.for_account(rodauth.rails_account.id).order(:name)
+  end
+
+  def set_memo_templates_for_new
+    @memo_templates = policy_scope(MemoTemplate).order(:name)
   end
 
   def set_memo

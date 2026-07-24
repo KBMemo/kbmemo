@@ -1,0 +1,47 @@
+# == Schema Information
+#
+# Table name: memo_templates
+#
+#  id             :bigint           not null, primary key
+#  body_template  :text             default(""), not null
+#  name           :string           not null
+#  tag_list       :text             default(""), not null
+#  title_template :string           default(""), not null
+#  created_at     :datetime         not null
+#  updated_at     :datetime         not null
+#  account_id     :bigint           not null
+#
+# Indexes
+#
+#  index_memo_templates_on_account_id           (account_id)
+#  index_memo_templates_on_account_id_and_name  (account_id,name) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (account_id => accounts.id)
+#
+#  id             :bigint           not null, primary key
+#  account_id     :bigint           not null
+#  body_template  :text             default(""), not null
+#  name           :string           not null
+#  tag_list       :text             default(""), not null
+#  title_template :string           default(""), not null
+#  created_at     :datetime         not null
+#  updated_at     :datetime         not null
+
+daily:
+  account_id: 1
+  name: Daily note
+  title_template: Daily {{created_on}}
+  body_template: |
+    = Daily {{created_on}}
+
+    == Notes
+  tag_list: diary, {{created_on}}
+
+other:
+  account_id: 2
+  name: Private template
+  title_template: Private
+  body_template: Secret
+  tag_list: private

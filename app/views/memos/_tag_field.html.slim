@@ -1,13 +1,15 @@
 ruby:
   all_tag_names = memo_tag_names_for_datalist
-  taken_lower = memo.tags.map { |t| t.name.downcase }
+  initial_tag_list = local_assigns.fetch(:initial_tag_list, memo.tags.map(&:name).join(", ")).to_s
+  initial_tag_names = initial_tag_list.split(/[,，]/).map(&:strip).reject(&:blank?)
+  taken_lower = initial_tag_names.map(&:downcase)
   datalist_names = all_tag_names.reject { |n| taken_lower.include?(n.downcase) }
   list_id = "memo_tag_suggestions_#{memo.persisted? ? memo.id : 'new'}"
 
 .flex.items-start.gap-3
   = label_tag "memo_tag_input_visible", "タグ", class: "pt-0.5 text-sm font-medium kb-text-primary whitespace-nowrap"
   .min-w-0.flex-1
-    = hidden_field_tag "memo[tag_list]", memo.tags.map(&:name).join(", "), data: { memo_draft_target: "tagList" }
+    = hidden_field_tag "memo[tag_list]", initial_tag_list, data: { memo_draft_target: "tagList" }
     script type="application/json" data-memo-draft-target="tagSuggestionsJson"
       == all_tag_names.to_json
     div class=kb_tag_input_row

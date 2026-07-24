@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_24_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgroonga"
@@ -195,6 +195,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_010000) do
     t.index ["tag_id"], name: "index_memo_tags_on_tag_id"
   end
 
+  create_table "memo_templates", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.text "body_template", default: "", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.text "tag_list", default: "", null: false
+    t.string "title_template", default: "", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_memo_templates_on_account_id_and_name", unique: true
+    t.index ["account_id"], name: "index_memo_templates_on_account_id"
+  end
+
   create_table "memo_view_histories", force: :cascade do |t|
     t.integer "account_id", null: false
     t.datetime "created_at", null: false
@@ -356,6 +368,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_010000) do
   add_foreign_key "memo_group_memberships", "memo_groups"
   add_foreign_key "memo_tags", "memos"
   add_foreign_key "memo_tags", "tags"
+  add_foreign_key "memo_templates", "accounts"
   add_foreign_key "memo_view_histories", "accounts"
   add_foreign_key "memo_view_histories", "memos"
   add_foreign_key "memo_wiki_links", "memos", column: "source_memo_id", on_delete: :cascade

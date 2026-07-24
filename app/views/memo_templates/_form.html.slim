@@ -1,0 +1,35 @@
+= form_with model: memo_template, class: "space-y-5" do |form|
+  - if memo_template.errors.any?
+    .kb-alert.kb-alert-danger
+      p.font-medium 保存できませんでした。
+      ul.mt-2.list-inside.list-disc.space-y-1
+        - memo_template.errors.full_messages.each do |message|
+          li = message
+
+  div
+    = form.label :name, "テンプレート名", class: kb_label
+    = form.text_field :name, required: true, maxlength: 100, autocomplete: "off", class: kb_field_input_classes
+
+  div
+    = form.label :title_template, "タイトル雛形", class: kb_label
+    = form.text_field :title_template, maxlength: 500, autocomplete: "off", class: kb_field_input_classes
+
+  div
+    = form.label :body_template, "本文雛形（AsciiDoc）", class: kb_label
+    = form.text_area :body_template, rows: 14, class: "#{kb_field_input_classes} font-mono", spellcheck: "false"
+
+  div
+    = form.label :tag_list, "タグ雛形（カンマ区切り）", class: kb_label
+    = form.text_field :tag_list, autocomplete: "off", list: "memo-template-tag-suggestions", class: kb_field_input_classes
+    datalist#memo-template-tag-suggestions
+      - memo_tag_names_for_datalist.each do |name|
+        option value=name
+
+  .border-t.kb-border.pt-3
+    p.text-xs.kb-text-muted
+      | 作成日マクロ:
+      code.kb-code-inline = MemoTemplateRenderer::CREATED_ON_MACRO
+
+  .flex.flex-wrap.justify-end.gap-2
+    = link_to "キャンセル", memo_templates_path, class: "kb-chrome-btn-secondary kb-btn-md"
+    = form.submit "保存", class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }

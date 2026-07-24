@@ -65,6 +65,7 @@ Rails.application.routes.draw do
   end
 
   resources :memo_directories, except: [ :show ]
+  resources :memo_templates, except: :show
 
   resources :tags, only: %i[index edit update destroy] do
     collection do

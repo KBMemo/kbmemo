@@ -13,14 +13,15 @@ ruby:
   form_data[:memo_draft_tag_catalog_value] = memo_tag_catalog_for_pills.to_json
   memo_edit_form_id = memo.persisted? ? dom_id(memo, :edit_form) : "new_memo_form"
   unless memo.persisted?
+    initial_tag_list = local_assigns.fetch(:initial_tag_list, "").to_s
     form_data[:memo_draft_initial_form_value] = {
-      title: "",
-      body: "",
+      title: memo_title_input_value(memo),
+      body: memo.body.to_s,
       properties_yaml: "",
-      tag_list: "",
+      tag_list: initial_tag_list,
       visibility: memo.visibility,
       memo_group_id: memo.memo_group_id.to_s,
-      title_manual: "0"
+      title_manual: memo.title_manual? ? "1" : "0"
     }.to_json
   end
 
@@ -65,7 +66,7 @@ ruby:
           - if memo.errors[:properties_yaml].any?
             p.mt-1.text-sm.kb-status-danger id=kb_field_error_id(memo, :properties_yaml) = memo.errors[:properties_yaml].first
   
-    = render "tag_field", memo: memo
+    = render "tag_field", memo: memo, initial_tag_list: local_assigns[:initial_tag_list]
   
     div data-controller="expandable-hint" data-expandable-hint-expanded-value="false" data-expandable-hint-expand-label-value="Wiki リンクの説明を表示" data-expandable-hint-collapse-label-value="Wiki リンクの説明を閉じる"
       .mb-1.flex.w-full.items-center.gap-1

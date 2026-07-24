@@ -538,7 +538,7 @@ export default class extends Controller {
       memoGroup.value = initial.memo_group_id ?? ""
     }
 
-    if (this.hasTagPillsTarget) this.tagPillsTarget.replaceChildren()
+    this.renderTagPillsFromHiddenIfPresent()
   }
 
   syncTitleFromBodyIfBlank() {
