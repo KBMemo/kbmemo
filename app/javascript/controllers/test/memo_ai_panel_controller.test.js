@@ -27,7 +27,10 @@ async function mount({ modelOptions = false } = {}) {
   application = Application.start()
   application.register("memo-ai-panel", MemoAiPanelController)
   await vi.waitFor(() => {
-    expect(document.querySelector("[data-memo-ai-panel-target='messages']").textContent).not.toBe("")
+    const element = document.querySelector("[data-controller='memo-ai-panel']")
+    expect(
+      application.getControllerForElementAndIdentifier(element, "memo-ai-panel")
+    ).not.toBeNull()
   })
 }
 

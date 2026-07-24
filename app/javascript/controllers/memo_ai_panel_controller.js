@@ -172,13 +172,7 @@ export default class extends Controller {
 
     this.messagesTarget.replaceChildren()
 
-    if (this.history.length === 0) {
-      const empty = document.createElement("p")
-      empty.className = "text-xs kb-text-muted"
-      empty.textContent = "メモの執筆・推敲を手伝います。既定でローカル AI を使います。"
-      this.messagesTarget.append(empty)
-      return
-    }
+    if (this.history.length === 0) return
 
     for (const entry of this.history) {
       this.messagesTarget.append(this.messageNode(entry))
