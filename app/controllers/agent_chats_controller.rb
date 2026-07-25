@@ -70,9 +70,15 @@ class AgentChatsController < ApplicationController
     images = AgentChat::MemoImages.list(
       scope: policy_scope(Memo),
       query: params[:q].to_s.strip,
-      memo_ids: memo_image_ids_param
+      memo_ids: memo_image_ids_param,
+      cursor: params[:cursor]
     )
-    render json: { images: images.map(&:as_json) }
+    render json: {
+      images: images.entries.map(&:as_json),
+      next_cursor: images.next_cursor
+    }
+  rescue AgentChat::MemoImages::InvalidCursor => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def upload_memo_image

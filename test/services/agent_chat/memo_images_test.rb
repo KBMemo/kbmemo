@@ -14,9 +14,11 @@ module AgentChat
       @repo.write_asset!(@memo, filename: "photo.png", io: StringIO.new("PNG"))
       @repo.write_asset!(@memo, filename: "diagrams/flow.mmd", io: StringIO.new("graph TD"))
 
-      entries = MemoImages.list(scope: Memo.where(id: @memo.id), query: "", repo: @repo)
+      page = MemoImages.list(scope: Memo.where(id: @memo.id), query: "", repo: @repo)
+      entries = page.entries
 
       assert_equal [ "photo.png" ], entries.map(&:relative_path)
+      assert_nil page.next_cursor
       json = entries.first.as_json
       assert_equal @memo.id, json[:memo_id]
       assert_equal @memo.memo_directory.labeled_path_from_root, json[:directory]
@@ -29,14 +31,74 @@ module AgentChat
       @repo.write_asset!(@memo, filename: "selected.png", io: StringIO.new("PNG"))
       @repo.write_asset!(other, filename: "other.png", io: StringIO.new("PNG"))
 
-      entries = MemoImages.list(
+      page = MemoImages.list(
         scope: Memo.where(id: [ @memo.id, other.id ]),
         query: "",
         memo_ids: [ @memo.id ],
         repo: @repo
       )
 
-      assert_equal [ "selected.png" ], entries.map(&:relative_path)
+      assert_equal [ "selected.png" ], page.entries.map(&:relative_path)
+    end
+
+    test "paginates images with an opaque cursor without duplicates" do
+      35.times do |index|
+        @repo.write_asset!(
+          @memo,
+          filename: format("photo-%02d.png", index),
+          io: StringIO.new("PNG")
+        )
+      end
+
+      first = MemoImages.list(scope: Memo.where(id: @memo.id), query: "", repo: @repo)
+      second = MemoImages.list(
+        scope: Memo.where(id: @memo.id),
+        query: "",
+        cursor: first.next_cursor,
+        repo: @repo
+      )
+
+      assert_equal 30, first.entries.size
+      assert first.next_cursor.present?
+      assert_equal 5, second.entries.size
+      assert_nil second.next_cursor
+      paths = first.entries.map(&:relative_path) + second.entries.map(&:relative_path)
+      assert_equal 35, paths.uniq.size
+      assert_equal format("photo-%02d.png", 0), paths.first
+      assert_equal format("photo-%02d.png", 34), paths.last
+    end
+
+    test "rejects a cursor when search filters change" do
+      31.times do |index|
+        @repo.write_asset!(
+          @memo,
+          filename: format("filter-%02d.png", index),
+          io: StringIO.new("PNG")
+        )
+      end
+      first = MemoImages.list(scope: Memo.where(id: @memo.id), query: "", repo: @repo)
+
+      error = assert_raises(MemoImages::InvalidCursor) do
+        MemoImages.list(
+          scope: Memo.where(id: @memo.id),
+          query: "changed",
+          cursor: first.next_cursor,
+          repo: @repo
+        )
+      end
+
+      assert_includes error.message, "検索条件"
+    end
+
+    test "rejects a tampered cursor" do
+      assert_raises(MemoImages::InvalidCursor) do
+        MemoImages.list(
+          scope: Memo.where(id: @memo.id),
+          query: "",
+          cursor: "invalid",
+          repo: @repo
+        )
+      end
     end
 
     test "rejects a path outside the memo assets directory" do

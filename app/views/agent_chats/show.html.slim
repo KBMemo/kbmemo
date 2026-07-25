@@ -79,6 +79,8 @@
             input#agent_chat_memo_image_search.kb-input.kb-input-sm.w-full type="search" placeholder="メモのタイトル・本文で検索" autocomplete="off" data-agent-chat-target="memoImageSearch" data-action="input->agent-chat#searchMemoImages"
           p.px-3.pb-2.text-xs.kb-text-muted data-agent-chat-target="memoImageStatus"
           .min-h-0.flex-1.overflow-y-auto.border-t.kb-border data-agent-chat-target="memoImageResults"
+          .hidden.justify-center.border-t.kb-border.px-3.py-2 data-agent-chat-target="memoImageLoadMoreWrap"
+            button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#loadMoreMemoImages" data-agent-chat-target="memoImageLoadMoreButton" さらに読み込む
           .flex.justify-end.gap-2.border-t.kb-border.px-3.py-2
             button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#closeMemoImagePicker" キャンセル
             button.kb-chrome-btn-primary.kb-btn-xs type="button" data-theme-slot="btn-primary" data-action="agent-chat#confirmMemoImageSelection" disabled=true data-agent-chat-target="memoImageConfirmButton" 添付に追加

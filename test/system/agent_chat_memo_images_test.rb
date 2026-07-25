@@ -101,6 +101,56 @@ class AgentChatMemoImagesTest < ApplicationSystemTestCase
     end
   end
 
+  test "loads the next image page while preserving selections" do
+    entry_class = Struct.new(:payload) do
+      def as_json
+        payload
+      end
+    end
+    build_entry = lambda do |index|
+      entry_class.new(
+        {
+          memo_id: @first.id,
+          memo_title: @first.title,
+          directory: @first.memo_directory.labeled_path_from_root,
+          filename: format("page-image-%02d.png", index),
+          relative_path: format("page-image-%02d.png", index),
+          preview_url: asset_memo_path(@first, format("page-image-%02d.png", index)),
+          updated_at: @first.updated_at.iso8601
+        }
+      )
+    end
+    first_page = AgentChat::MemoImages::Page.new(
+      entries: 30.times.map { |index| build_entry.call(index) },
+      next_cursor: "next-page"
+    )
+    second_page = AgentChat::MemoImages::Page.new(
+      entries: 5.times.map { |index| build_entry.call(index + 30) },
+      next_cursor: nil
+    )
+    original = AgentChat::MemoImages.method(:list)
+    AgentChat::MemoImages.define_singleton_method(:list) do |cursor:, **_kwargs|
+      cursor.present? ? second_page : first_page
+    end
+
+    visit agent_chat_path
+    click_button "メモから選ぶ"
+    within "[data-agent-chat-target='memoImageResults']" do
+      find("label", text: "page-image-00.png").find("input[type='checkbox']").check
+      assert_selector "label", count: 30
+    end
+    click_button "さらに読み込む"
+
+    within "[data-agent-chat-target='memoImageResults']" do
+      assert_selector "label", count: 35
+      assert find("label", text: "page-image-00.png").find("input[type='checkbox']").checked?
+      assert_text "page-image-34.png"
+    end
+    assert_no_button "さらに読み込む"
+  ensure
+    AgentChat::MemoImages.define_singleton_method(:list, original)
+  end
+
   private
 
   def prepare_memo_with_image(memo, slug:, filename:)

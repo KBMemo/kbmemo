@@ -168,6 +168,16 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     images = response.parsed_body.fetch("images")
     assert images.any? { |image| image["memo_id"] == visible.id && image["filename"] == "visible.png" }
     refute images.any? { |image| image["memo_id"] == hidden.id }
+    assert_nil response.parsed_body["next_cursor"]
+  end
+
+  test "memo_images rejects an invalid cursor" do
+    get memo_images_agent_chat_url,
+      params: { cursor: "invalid" },
+      as: :json
+
+    assert_response :unprocessable_entity
+    assert_includes response.parsed_body["error"], "カーソル"
   end
 
   test "memo_images limits results to referenced memo ids" do

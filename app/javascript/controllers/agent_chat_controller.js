@@ -47,7 +47,9 @@ export default class extends Controller {
     "memoImageResults",
     "memoImageConfirmButton",
     "memoImageDialogTitle",
-    "referenceMemoImageButton"
+    "referenceMemoImageButton",
+    "memoImageLoadMoreWrap",
+    "memoImageLoadMoreButton"
   ]
 
   static values = {
@@ -94,6 +96,7 @@ export default class extends Controller {
     this.memoImageSelections = new Map()
     this.memoImageSearchTimer = null
     this.memoImageReferenceOnly = false
+    this.memoImageNextCursor = null
     this.sending = false
     this.activityTracker = null
     this.streamPanel = null
@@ -1454,11 +1457,18 @@ export default class extends Controller {
     }, 200)
   }
 
-  async loadMemoImages(query) {
+  async loadMemoImages(query, { append = false } = {}) {
     if (!this.memoImagesUrlValue) return
+    if (!append) {
+      this.memoImageNextCursor = null
+      this.syncMemoImageLoadMoreButton()
+    }
     this.setMemoImageStatus("画像を読み込み中…")
     const url = new URL(this.memoImagesUrlValue, window.location.origin)
     if (query.trim()) url.searchParams.set("q", query.trim())
+    if (append && this.memoImageNextCursor) {
+      url.searchParams.set("cursor", this.memoImageNextCursor)
+    }
     if (this.memoImageReferenceOnly) {
       url.searchParams.set(
         "memo_ids",
@@ -1473,8 +1483,13 @@ export default class extends Controller {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error)
-      this.memoImageResults = Array.isArray(data.images) ? data.images : []
+      const incoming = Array.isArray(data.images) ? data.images : []
+      this.memoImageResults = append
+        ? this.mergeMemoImageResults(this.memoImageResults, incoming)
+        : incoming
+      this.memoImageNextCursor = data.next_cursor || null
       this.renderMemoImageResults()
+      this.syncMemoImageLoadMoreButton()
       if (this.memoImageSelections.size > 0) {
         this.updateMemoImageStatus()
       } else {
@@ -1485,6 +1500,29 @@ export default class extends Controller {
     } catch {
       this.setMemoImageStatus("メモの画像を取得できませんでした。")
     }
+  }
+
+  async loadMoreMemoImages(event) {
+    event?.preventDefault()
+    if (!this.memoImageNextCursor || !this.hasMemoImageLoadMoreButtonTarget) return
+
+    this.memoImageLoadMoreButtonTarget.disabled = true
+    await this.loadMemoImages(this.memoImageSearchTarget?.value || "", { append: true })
+    this.memoImageLoadMoreButtonTarget.disabled = false
+  }
+
+  mergeMemoImageResults(current, incoming) {
+    const byKey = new Map(current.map((image) => [this.memoImageKey(image), image]))
+    incoming.forEach((image) => byKey.set(this.memoImageKey(image), image))
+    return [...byKey.values()]
+  }
+
+  syncMemoImageLoadMoreButton() {
+    if (!this.hasMemoImageLoadMoreWrapTarget) return
+
+    const hasMore = Boolean(this.memoImageNextCursor)
+    this.memoImageLoadMoreWrapTarget.classList.toggle("hidden", !hasMore)
+    this.memoImageLoadMoreWrapTarget.classList.toggle("flex", hasMore)
   }
 
   renderMemoImageResults() {
