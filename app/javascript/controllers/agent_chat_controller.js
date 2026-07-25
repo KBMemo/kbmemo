@@ -39,7 +39,8 @@ export default class extends Controller {
     "memoStatus",
     "memoResults",
     "memoConfirmButton",
-    "memoReferenceList"
+    "memoReferenceList",
+    "memoReferenceCount"
   ]
 
   static values = {
@@ -632,9 +633,6 @@ export default class extends Controller {
       if (Array.isArray(entry.attachments) && entry.attachments.length > 0) {
         bubble.append(document.createElement("br"))
         bubble.append(this.renderAttachmentPreview(entry.attachments))
-      }
-      if (Array.isArray(entry.memo_references) && entry.memo_references.length > 0) {
-        bubble.append(this.renderMemoReferencePreview(entry.memo_references))
       }
       wrapper.append(bubble)
       return wrapper
@@ -1271,6 +1269,9 @@ export default class extends Controller {
   renderMemoReferenceList() {
     if (!this.hasMemoReferenceListTarget) return
     this.memoReferenceListTarget.replaceChildren()
+    if (this.hasMemoReferenceCountTarget) {
+      this.memoReferenceCountTarget.textContent = `${this.pendingMemoReferences.length} / 5`
+    }
     this.pendingMemoReferences.forEach((reference, index) => {
       const chip = document.createElement("div")
       chip.className = "inline-flex items-center gap-2 rounded-md border kb-border px-2 py-1 text-xs"
@@ -1288,18 +1289,6 @@ export default class extends Controller {
       chip.append(label, remove)
       this.memoReferenceListTarget.append(chip)
     })
-  }
-
-  renderMemoReferencePreview(references) {
-    const wrap = document.createElement("div")
-    wrap.className = "mt-2 flex flex-wrap gap-2"
-    references.forEach((reference) => {
-      const chip = document.createElement("span")
-      chip.className = "inline-block rounded border kb-border px-2 py-1 text-xs"
-      chip.append("参照: ", this.memoReferenceLabelNode(reference))
-      wrap.append(chip)
-    })
-    return wrap
   }
 
   memoReferenceLabelNode(reference) {

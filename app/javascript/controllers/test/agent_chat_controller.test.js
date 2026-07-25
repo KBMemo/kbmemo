@@ -61,16 +61,21 @@ describe("AgentChatController memo references", () => {
   it("renders removable pending reference chips", () => {
     const controller = controllerInstance()
     const list = document.createElement("div")
+    const count = document.createElement("span")
     controller.pendingMemoReferences = [ { id: 1, title: "設計メモ" } ]
     controller.hasMemoReferenceListTarget = true
     controller.memoReferenceListTarget = list
+    controller.hasMemoReferenceCountTarget = true
+    controller.memoReferenceCountTarget = count
 
     controller.renderMemoReferenceList()
 
     expect(list.textContent).toContain("設計メモ")
+    expect(count.textContent).toBe("1 / 5")
     list.querySelector("button").click()
     expect(controller.pendingMemoReferences).toEqual([])
     expect(list.textContent).toBe("")
+    expect(count.textContent).toBe("0 / 5")
   })
 
   it("links a reference title to the memo in a new tab", () => {

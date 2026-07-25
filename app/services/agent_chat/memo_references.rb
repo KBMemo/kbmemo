@@ -28,9 +28,15 @@ module AgentChat
     end
 
     def self.context_text(references)
-      Array(references).map.with_index(1) do |reference, index|
-        "参照メモ #{index}: #{reference.title}\n#{reference.body.presence || '（本文なし）'}"
-      end.join("\n\n---\n\n")
+      JSON.generate(
+        Array(references).map do |reference|
+          {
+            id: reference.id,
+            title: reference.title,
+            content: reference.body.presence || "（本文なし）"
+          }
+        end
+      )
     end
   end
 end

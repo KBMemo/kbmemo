@@ -22,12 +22,13 @@ module AgentChat
       assert_operator references.sum { |reference| reference.body.length }, :<=, MemoReferences::MAX_TOTAL_CHARS
     end
 
-    test "context_text labels each memo" do
+    test "context_text serializes memo content as JSON data" do
       references = MemoReferences.resolve(scope: Memo.all, ids: [ memos(:one).id ])
 
-      text = MemoReferences.context_text(references)
-      assert_includes text, "参照メモ 1: First memo"
-      assert_includes text, "= Hello"
+      data = JSON.parse(MemoReferences.context_text(references))
+      assert_equal memos(:one).id, data.first["id"]
+      assert_equal "First memo", data.first["title"]
+      assert_equal "= Hello", data.first["content"]
     end
   end
 end

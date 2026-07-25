@@ -30,13 +30,17 @@
           .hidden data-agent-chat-target="mcpToolsList"
       .agent-chat-attachments.shrink-0.mt-2.space-y-2
         .flex.flex-wrap.items-center.gap-2
+          span.text-xs.kb-text-muted 画像
           label.kb-chrome-btn-secondary.kb-btn-xs.cursor-pointer
             | 画像を添付
             input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple=true data-agent-chat-target="fileInput" data-action="change->agent-chat#addFiles"
           button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#openTsuzuraPicker" 葛籠から選ぶ
-          button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#openMemoPicker" メモを参照
         p.hidden.text-xs.kb-status-danger data-agent-chat-target="attachmentError"
         .flex.flex-wrap.gap-2 data-agent-chat-target="attachmentList"
+        .flex.flex-wrap.items-center.gap-2
+          span.text-xs.kb-text-muted この会話の参照メモ
+          span.text-xs.kb-text-muted data-agent-chat-target="memoReferenceCount" 0 / 5
+          button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#openMemoPicker" メモを参照
         .flex.flex-wrap.gap-2 data-agent-chat-target="memoReferenceList"
       dialog.agent-chat-tsuzura-dialog.rounded-lg.border.kb-chrome-panel.p-0.backdrop:bg-black/40 data-agent-chat-target="tsuzuraDialog"
         .flex.flex-col class="max-h-[min(70dvh,32rem)] w-[min(92vw,28rem)]"
