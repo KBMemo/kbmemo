@@ -142,6 +142,35 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     refute_includes ids, hidden.id
   end
 
+  test "update_memo_references immediately persists visible references" do
+    conversation = accounts(:one).agent_chat_conversations.create!
+
+    patch memo_references_agent_chat_url,
+      params: {
+        conversation_id: conversation.id,
+        memo_reference_ids: [ memos(:two).id ]
+      },
+      as: :json
+
+    assert_response :success
+    assert_equal [ memos(:two).id ], conversation.reload.memo_reference_ids
+    assert_equal "Second memo", response.parsed_body.dig("memo_references", 0, "title")
+  end
+
+  test "update_memo_references rejects another account conversation" do
+    conversation = accounts(:two).agent_chat_conversations.create!
+
+    patch memo_references_agent_chat_url,
+      params: {
+        conversation_id: conversation.id,
+        memo_reference_ids: [ memos(:one).id ]
+      },
+      as: :json
+
+    assert_response :not_found
+    assert_empty conversation.reload.memo_reference_ids
+  end
+
   test "create resolves and persists memo references" do
     captured = {}
     fake_result = Chat::Agent::Result.new(

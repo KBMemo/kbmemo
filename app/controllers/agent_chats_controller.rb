@@ -55,6 +55,23 @@ class AgentChatsController < ApplicationController
     }
   end
 
+  def update_memo_references
+    authorize :agent_chat, :update_memo_references?
+
+    conversation = conversation_store.find_conversation(params[:conversation_id])
+    unless conversation
+      render json: { error: "会話が見つかりません。" }, status: :not_found
+      return
+    end
+
+    references = AgentChat::MemoReferences.resolve(
+      scope: policy_scope(Memo),
+      ids: params[:memo_reference_ids]
+    )
+    conversation_store.replace_memo_references!(conversation, references)
+    render json: { memo_references: references.map(&:as_json) }
+  end
+
   def upload_image
     authorize :agent_chat, :upload_image?
 

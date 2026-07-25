@@ -10,6 +10,7 @@ class AgentChatPolicy < ApplicationPolicy
   alias destroy? show?
   alias nyoy_tools? show?
   alias memo_references? show?
+  alias update_memo_references? show?
   alias upload_image? show?
   alias image_generation_status? show?
   alias refine_image_generation? show?

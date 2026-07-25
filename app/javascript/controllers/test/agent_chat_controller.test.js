@@ -1,10 +1,14 @@
 // @vitest-environment happy-dom
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import AgentChatController from "../agent_chat_controller.js"
 
 function controllerInstance() {
   return Object.create(AgentChatController.prototype)
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe("AgentChatController image generation state", () => {
   it("replaces draft images with final images after refinement completes", () => {
@@ -110,5 +114,32 @@ describe("AgentChatController initial memo reference", () => {
     controller.initialMemoReferencesJsonTarget = script
 
     expect(controller.readInitialMemoReferences()).toEqual([ { id: 1, title: "設計メモ" } ])
+  })
+})
+
+describe("AgentChatController reference persistence", () => {
+  it("patches references for an existing conversation", async () => {
+    const controller = controllerInstance()
+    controller.conversationIdValue = "9"
+    controller.memoReferencesUrlValue = "/agent_chat/memo_references"
+    controller.pendingMemoReferences = [ { id: 42, title: "設計メモ" } ]
+    controller.memoReferenceSyncVersion = 0
+    controller.renderMemoReferenceList = vi.fn()
+    controller.showError = vi.fn()
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        memo_references: [ { id: 42, title: "設計メモ" } ]
+      })
+    })))
+
+    await controller.persistMemoReferences()
+
+    expect(fetch).toHaveBeenCalledOnce()
+    const [url, options] = fetch.mock.calls[0]
+    expect(url).toBe("/agent_chat/memo_references")
+    expect(options.method).toBe("PATCH")
+    expect(JSON.parse(options.body).memo_reference_ids).toEqual([ 42 ])
+    expect(controller.showError).not.toHaveBeenCalled()
   })
 })

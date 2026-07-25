@@ -27,6 +27,7 @@ Rails.application.routes.draw do
   resource :agent_chat, only: %i[show create destroy], controller: "agent_chats" do
     get :nyoy_tools
     get :memo_references
+    patch :memo_references, action: :update_memo_references
     post :upload_image
     get "image_generations/:id", action: :image_generation_status, as: :image_generation
     post "image_generations/:id/refine", action: :refine_image_generation, as: :refine_image_generation

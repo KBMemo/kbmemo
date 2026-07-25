@@ -78,6 +78,7 @@ export default class extends Controller {
     this.memoSearchResults = []
     this.memoSelectedIds = new Set()
     this.memoSearchTimer = null
+    this.memoReferenceSyncVersion = 0
     this.tsuzuraSelectedIds = new Set()
     this.sending = false
     this.activityTracker = null
@@ -1264,6 +1265,7 @@ export default class extends Controller {
       .slice(0, 5)
     this.renderMemoReferenceList()
     this.closeMemoPicker()
+    void this.persistMemoReferences()
   }
 
   renderMemoReferenceList() {
@@ -1281,6 +1283,7 @@ export default class extends Controller {
       remove.addEventListener("click", () => {
         this.pendingMemoReferences.splice(index, 1)
         this.renderMemoReferenceList()
+        void this.persistMemoReferences()
       })
       chip.append(label, remove)
       this.memoReferenceListTarget.append(chip)
@@ -1321,6 +1324,37 @@ export default class extends Controller {
   memoReferenceUrl(id) {
     if (!id || !this.hasMemoUrlTemplateValue) return null
     return this.memoUrlTemplateValue.replace("__ID__", encodeURIComponent(String(id)))
+  }
+
+  async persistMemoReferences() {
+    if (!this.conversationIdValue || !this.memoReferencesUrlValue) return
+
+    const version = ++this.memoReferenceSyncVersion
+    try {
+      const res = await fetch(this.memoReferencesUrlValue, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: jsonRequestHeaders(),
+        body: JSON.stringify(withAuthenticityToken({
+          conversation_id: this.conversationIdValue,
+          memo_reference_ids: this.pendingMemoReferences.map((entry) => entry.id)
+        }))
+      })
+      const data = await res.json().catch(() => ({}))
+      if (version !== this.memoReferenceSyncVersion) return
+      if (!res.ok) {
+        this.showError(data.error || "参照メモを保存できませんでした。")
+        return
+      }
+      if (Array.isArray(data.memo_references)) {
+        this.pendingMemoReferences = data.memo_references
+        this.renderMemoReferenceList()
+      }
+    } catch {
+      if (version === this.memoReferenceSyncVersion) {
+        this.showError("参照メモを保存できませんでした。")
+      }
+    }
   }
 
   setMemoStatus(message) {
