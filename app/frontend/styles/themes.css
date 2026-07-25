@@ -1989,6 +1989,15 @@ html.notebook-memo-tree-dragging [data-notebook-memo-row] .kb-notebook-tree-row-
   cursor: not-allowed;
 }
 
+.kb-form-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+}
+
 .kb-table thead {
   border-bottom: 1px solid var(--kb-border);
 }

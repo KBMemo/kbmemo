@@ -937,6 +937,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     get edit_memo_url(memo)
     assert_response :success
     assert_includes response.body, "ドラフトを破棄"
+    assert_select "#memo_form_actions button[aria-label='ドラフトを破棄'][title='ドラフトを破棄'] i[data-lucide='rotate-ccw']"
   end
 
   test "edit hides revert draft button until autosave marks memo as draft" do
@@ -947,6 +948,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     get edit_memo_url(memo)
     assert_response :success
     assert_select "#memo_form_actions button[data-memo-draft-target='discardDraftButton'].hidden"
+    assert_select "#memo_form_actions a[aria-label='表示'][title='表示'] i[data-lucide='eye']"
 
     patch draft_memo_url(memo),
       params: { memo: { body: "= Changed\n\nx" } },
@@ -1005,7 +1007,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
       assert_select "button", text: "削除", count: 0
     end
     assert_select "#memo_form_actions button[data-memo-commit='true'][form='#{form_id}']", text: "コミット"
+    assert_select "#memo_form_actions button[data-memo-commit='true'][aria-label='コミット'][title='コミット'] i[data-lucide='git-commit-horizontal']"
     assert_select "#memo_form_actions button", text: "削除"
+    assert_select "#memo_form_actions button[aria-label='削除'][title='削除'] i[data-lucide='trash-2']"
     assert_select "#memo_form_actions input[name='_method'][value='delete']"
   end
 
@@ -1078,6 +1082,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[data-memo-body-editor-target='imageInput']", count: 0
     assert_select "#memo_form_actions button", text: "削除", count: 0
     assert_select "#memo_form_actions button[data-memo-commit='true'].hidden", count: 1
+    assert_select "#memo_form_actions button[data-memo-commit='true'][aria-label='コミット'][title='コミット'] i[data-lucide='git-commit-horizontal']"
     assert_select ".memo-draft-shell [data-memo-draft-target='formActionsChrome'].hidden"
     assert_select "#memo_ai_sidebar_region"
     assert_select "#memo_ai_sidebar_panel .memo-ai-panel[aria-label='メモアシスト']"
