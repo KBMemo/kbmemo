@@ -51,7 +51,14 @@ class AgentChatsController < ApplicationController
     scope = scope.search_text(query) if query.present?
     memos = scope.limit(20)
     render json: {
-      memos: memos.map { |memo| { id: memo.id, title: memo.title, updated_at: memo.updated_at.iso8601 } }
+      memos: memos.map do |memo|
+        {
+          id: memo.id,
+          title: memo.title,
+          body_chars: memo.body.to_s.length,
+          updated_at: memo.updated_at.iso8601
+        }
+      end
     }
   end
 

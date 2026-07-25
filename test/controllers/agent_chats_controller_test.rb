@@ -140,6 +140,8 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     ids = JSON.parse(response.body).fetch("memos").pluck("id")
     assert_includes ids, memos(:one).id
     refute_includes ids, hidden.id
+    first = response.parsed_body.fetch("memos").find { |memo| memo["id"] == memos(:one).id }
+    assert_equal memos(:one).body.length, first["body_chars"]
   end
 
   test "update_memo_references immediately persists visible references" do

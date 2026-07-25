@@ -1276,6 +1276,12 @@ export default class extends Controller {
       const chip = document.createElement("div")
       chip.className = "inline-flex items-center gap-2 rounded-md border kb-border px-2 py-1 text-xs"
       const label = this.memoReferenceLabelNode(reference)
+      const usage = document.createElement("span")
+      usage.className = "kb-text-muted"
+      usage.textContent = this.memoReferenceUsageLabel(reference, index)
+      if (usage.textContent.includes("一部")) {
+        usage.title = "参照上限により本文の一部だけをAIへ渡します"
+      }
       const remove = document.createElement("button")
       remove.type = "button"
       remove.className = "kb-toolbar-btn px-1"
@@ -1286,7 +1292,7 @@ export default class extends Controller {
         this.renderMemoReferenceList()
         void this.persistMemoReferences()
       })
-      chip.append(label, remove)
+      chip.append(label, usage, remove)
       this.memoReferenceListTarget.append(chip)
     })
   }
@@ -1313,6 +1319,19 @@ export default class extends Controller {
   memoReferenceUrl(id) {
     if (!id || !this.hasMemoUrlTemplateValue) return null
     return this.memoUrlTemplateValue.replace("__ID__", encodeURIComponent(String(id)))
+  }
+
+  memoReferenceUsageLabel(reference, index) {
+    const total = Math.max(0, Number(reference.body_chars) || 0)
+    const usedBefore = this.pendingMemoReferences
+      .slice(0, index)
+      .reduce((sum, entry) => sum + Math.min(Math.max(0, Number(entry.body_chars) || 0), 12000), 0)
+    const remaining = Math.max(0, 30000 - usedBefore)
+    const included = Math.min(total, 12000, remaining)
+    const format = (value) => new Intl.NumberFormat("ja-JP").format(value)
+    return included < total
+      ? `${format(included)} / ${format(total)}文字・一部`
+      : `${format(total)}文字`
   }
 
   async persistMemoReferences() {

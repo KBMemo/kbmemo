@@ -148,3 +148,21 @@ describe("AgentChatController reference persistence", () => {
     expect(controller.showError).not.toHaveBeenCalled()
   })
 })
+
+describe("AgentChatController reference usage", () => {
+  it("shows per-memo and total truncation", () => {
+    const controller = controllerInstance()
+    controller.pendingMemoReferences = [
+      { id: 1, body_chars: 20000 },
+      { id: 2, body_chars: 15000 },
+      { id: 3, body_chars: 10000 }
+    ]
+
+    expect(controller.memoReferenceUsageLabel(controller.pendingMemoReferences[0], 0))
+      .toBe("12,000 / 20,000文字・一部")
+    expect(controller.memoReferenceUsageLabel(controller.pendingMemoReferences[1], 1))
+      .toBe("12,000 / 15,000文字・一部")
+    expect(controller.memoReferenceUsageLabel(controller.pendingMemoReferences[2], 2))
+      .toBe("6,000 / 10,000文字・一部")
+  })
+})

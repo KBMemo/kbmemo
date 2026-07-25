@@ -58,9 +58,9 @@ class AgentChatConversationStoreTest < ActiveSupport::TestCase
   test "replace memo references stores a bounded unique id list" do
     conversation = @account.agent_chat_conversations.create!
     references = [
-      AgentChat::MemoReferences::Reference.new(id: memos(:one).id, title: "One", body: ""),
-      AgentChat::MemoReferences::Reference.new(id: memos(:one).id, title: "One", body: ""),
-      AgentChat::MemoReferences::Reference.new(id: memos(:two).id, title: "Two", body: "")
+      AgentChat::MemoReferences::Reference.new(id: memos(:one).id, title: "One", body: "", body_chars: 0),
+      AgentChat::MemoReferences::Reference.new(id: memos(:one).id, title: "One", body: "", body_chars: 0),
+      AgentChat::MemoReferences::Reference.new(id: memos(:two).id, title: "Two", body: "", body_chars: 0)
     ]
 
     @store.replace_memo_references!(conversation, references)

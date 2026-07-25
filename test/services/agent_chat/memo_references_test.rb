@@ -12,6 +12,7 @@ module AgentChat
 
       assert_equal [ memos(:one).id ], references.map(&:id)
       assert_equal "First memo", references.first.title
+      assert_equal memos(:one).body.length, references.first.body_chars
     end
 
     test "resolve limits count and total body size" do

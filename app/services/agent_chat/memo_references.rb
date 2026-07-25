@@ -6,9 +6,9 @@ module AgentChat
     MAX_BODY_CHARS = 12_000
     MAX_TOTAL_CHARS = 30_000
 
-    Reference = Data.define(:id, :title, :body) do
+    Reference = Data.define(:id, :title, :body, :body_chars) do
       def as_json
-        { id: id, title: title }
+        { id: id, title: title, body_chars: body_chars }
       end
     end
 
@@ -21,9 +21,10 @@ module AgentChat
         memo = by_id[id]
         next unless memo
 
-        body = memo.body.to_s.first([ MAX_BODY_CHARS, remaining ].min)
+        full_body = memo.body.to_s
+        body = full_body.first([ MAX_BODY_CHARS, remaining ].min)
         remaining -= body.length
-        Reference.new(id: memo.id, title: memo.title, body: body)
+        Reference.new(id: memo.id, title: memo.title, body: body, body_chars: full_body.length)
       end
     end
 
