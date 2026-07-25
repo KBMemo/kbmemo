@@ -57,6 +57,33 @@ class AgentChatMemoImagesTest < ApplicationSystemTestCase
     assert_text "persisted-photo.jpg"
   end
 
+  test "adds a selected memo image to the pending chat attachments" do
+    result = AgentChat::TsuzuraUpload::Result.new(
+      tsuzura_media_id: "01JABCDEFGHJKMNPQRSTVWXYZ0",
+      filename: "first.png"
+    )
+    original = AgentChat::MemoImages.method(:upload)
+    AgentChat::MemoImages.define_singleton_method(:upload) do |**_kwargs|
+      result
+    end
+
+    visit agent_chat_path
+    click_button "メモから選ぶ"
+
+    within "[data-agent-chat-target='memoImageResults']" do
+      find("label", text: "first.png").find("input[type='checkbox']").check
+    end
+    click_button "添付に追加"
+
+    assert_no_selector "dialog[data-agent-chat-target='memoImageDialog'][open]"
+    within "[data-agent-chat-target='attachmentList']" do
+      assert_text "first.png"
+      assert_selector "button[aria-label='添付を削除']"
+    end
+  ensure
+    AgentChat::MemoImages.define_singleton_method(:upload, original)
+  end
+
   private
 
   def prepare_memo_with_image(memo, slug:, filename:)
