@@ -1602,6 +1602,9 @@ export default class extends Controller {
     this.memoImageConfirmButtonTarget.disabled = true
     this.setMemoImageStatus("選択した画像を添付しています…")
     this.clearAttachmentError()
+    const failedSelections = new Map()
+    const errors = []
+    let addedCount = 0
     for (const image of selected) {
       try {
         const res = await fetch(this.uploadMemoImageUrlValue, {
@@ -1618,11 +1621,22 @@ export default class extends Controller {
         if (!this.pendingAttachments.some((entry) => entry.tsuzura_media_id === data.tsuzura_media_id)) {
           this.pendingAttachments.push(data)
         }
+        addedCount += 1
       } catch (error) {
-        this.showAttachmentError(error.message || "画像を添付できませんでした。")
+        failedSelections.set(this.memoImageKey(image), image)
+        errors.push(error.message || "画像を添付できませんでした。")
       }
     }
     this.renderAttachmentList()
+    this.memoImageSelections = failedSelections
+    if (failedSelections.size > 0) {
+      this.renderMemoImageResults()
+      this.setMemoImageStatus(
+        `${addedCount}件を添付し、${failedSelections.size}件に失敗しました。失敗した画像を再試行できます。`
+      )
+      this.showAttachmentError([...new Set(errors)].join(" / "))
+      return
+    }
     this.closeMemoImagePicker()
   }
 

@@ -201,6 +201,53 @@ class AgentChatMemoImagesTest < ApplicationSystemTestCase
     AgentChat::MemoImages.define_singleton_method(:list, original)
   end
 
+  test "keeps only failed memo image uploads selected for retry" do
+    attempts = Hash.new(0)
+    original = AgentChat::MemoImages.method(:upload)
+    AgentChat::MemoImages.define_singleton_method(:upload) do |relative_path:, **_kwargs|
+      attempts[relative_path] += 1
+      if relative_path == "second.png" && attempts[relative_path] == 1
+        raise AgentChat::TsuzuraUpload::Error, "一時的なエラー"
+      end
+
+      AgentChat::TsuzuraUpload::Result.new(
+        tsuzura_media_id: relative_path == "first.png" ? "01JABCDEFGHJKMNPQRSTVWXYZ0" : "01JABCDEFGHJKMNPQRSTVWXYZ1",
+        filename: relative_path
+      )
+    end
+
+    visit agent_chat_path
+    click_button "メモから選ぶ"
+    within "[data-agent-chat-target='memoImageResults']" do
+      find("label", text: "first.png").find("input[type='checkbox']").check
+      find("label", text: "second.png").find("input[type='checkbox']").check
+    end
+    click_button "添付に追加"
+
+    assert_selector "dialog[data-agent-chat-target='memoImageDialog'][open]"
+    assert_text "1件を添付し、1件に失敗しました。"
+    within "[data-agent-chat-target='attachmentList']" do
+      assert_text "first.png"
+      assert_no_text "second.png"
+    end
+    within "[data-agent-chat-target='memoImageResults']" do
+      assert_not find("label", text: "first.png").find("input[type='checkbox']").checked?
+      assert find("label", text: "second.png").find("input[type='checkbox']").checked?
+    end
+
+    click_button "添付に追加"
+
+    assert_no_selector "dialog[data-agent-chat-target='memoImageDialog'][open]"
+    within "[data-agent-chat-target='attachmentList']" do
+      assert_text "first.png"
+      assert_text "second.png"
+    end
+    assert_equal 1, attempts["first.png"]
+    assert_equal 2, attempts["second.png"]
+  ensure
+    AgentChat::MemoImages.define_singleton_method(:upload, original)
+  end
+
   private
 
   def prepare_memo_with_image(memo, slug:, filename:)
