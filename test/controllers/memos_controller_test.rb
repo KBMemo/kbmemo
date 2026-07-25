@@ -860,7 +860,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "form[action=?][method=?]", commit_memo_path(memo), "post" do
       assert_select "input[name=_method][value=patch]", count: 1
-      assert_select "button[type=submit]", text: "コミット"
+      assert_select "button[type=submit][aria-label='コミット'][title='コミット']" do
+        assert_select "i[data-lucide='git-commit-horizontal'][aria-hidden='true']"
+      end
     end
   end
 
@@ -1420,7 +1422,17 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-memo-ai-panel-target='includeSelection']", count: 0
     assert_select "button[data-action='memo-ai-panel#insertLastReply']", count: 0
     assert_select "textarea[placeholder='例: このメモの要点をまとめて（Ctrl+Enter で送信）']"
-    assert_select "a[href=?]", agent_chat_path(new: 1, memo_reference_id: memo.id), text: "AIチャット"
+    assert_select "a[href=?][aria-label='編集'][title='編集']", edit_memo_path(memo) do
+      assert_select "i[data-lucide='pencil'][aria-hidden='true']"
+    end
+    assert_select "a[href=?][aria-label='AIチャット'][title='AIチャット']",
+      agent_chat_path(new: 1, memo_reference_id: memo.id) do
+      assert_select "i[data-lucide='message-square'][aria-hidden='true']"
+    end
+    assert_select "form[action=?][data-turbo-confirm='このメモを削除しますか？'] button[aria-label='削除'][title='削除']",
+      memo_path(memo) do
+      assert_select "i[data-lucide='trash-2'][aria-hidden='true']"
+    end
   end
 
   test "show displays the author only for another user's memo" do
