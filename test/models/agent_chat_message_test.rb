@@ -27,6 +27,31 @@
 require "test_helper"
 
 class AgentChatMessageTest < ActiveSupport::TestCase
+  test "as_ui_entry includes persisted user image attachments" do
+    message = accounts(:one).agent_chat_conversations.create!.messages.create!(
+      role: "user",
+      content: "この画像は？",
+      metadata: {
+        "attachments" => [
+          {
+            "tsuzura_media_id" => "01JABCDEFGHJKMNPQRSTVWXYZ0",
+            "filename" => "photo.jpg"
+          }
+        ]
+      }
+    )
+
+    assert_equal(
+      [
+        {
+          tsuzura_media_id: "01JABCDEFGHJKMNPQRSTVWXYZ0",
+          filename: "photo.jpg"
+        }
+      ],
+      message.as_ui_entry[:attachments]
+    )
+  end
+
   test "as_ui_entry includes assistant meta" do
     conversation = accounts(:one).agent_chat_conversations.create!
     message = conversation.messages.create!(

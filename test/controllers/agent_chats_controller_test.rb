@@ -643,6 +643,11 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
 
         assert_response :success
         assert_equal [ { tsuzura_media_id: ulid, filename: "photo.jpg" } ], captured[:image_attachments]
+        persisted = accounts(:one).agent_chat_conversations.recent_first.first.messages.ordered.first
+        assert_equal(
+          [ { "tsuzura_media_id" => ulid, "filename" => "photo.jpg" } ],
+          persisted.metadata["attachments"]
+        )
       ensure
         Chat::Agent.define_singleton_method(:new, original_new)
       end

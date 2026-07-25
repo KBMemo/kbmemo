@@ -211,7 +211,8 @@ class AgentChatsController < ApplicationController
     store.append_user_message!(
       conversation,
       content: user_text,
-      memo_references: memo_references.map(&:as_json)
+      memo_references: memo_references.map(&:as_json),
+      image_attachments: image_attachments
     )
 
     if (refine_request = natural_language_refine_request(conversation:, user_text: user_text))

@@ -43,9 +43,13 @@ module AgentChat
       conversation.messages.ordered.map(&:as_ui_entry)
     end
 
-    def append_user_message!(conversation, content:, memo_references: [])
+    def append_user_message!(conversation, content:, memo_references: [], image_attachments: [])
       metadata = {}
       metadata["memo_references"] = memo_references if memo_references.present?
+      attachments = AgentChat::ImageAttachments.as_json(
+        AgentChat::ImageAttachments.normalize(image_attachments)
+      )
+      metadata["attachments"] = attachments if attachments.present?
       conversation.messages.create!(role: "user", content: content, metadata: metadata)
       conversation.assign_title_from!(content)
       conversation.touch

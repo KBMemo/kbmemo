@@ -32,6 +32,31 @@ class AgentChatMemoImagesTest < ApplicationSystemTestCase
     end
   end
 
+  test "shows persisted image attachments after reloading a conversation" do
+    conversation = accounts(:one).agent_chat_conversations.create!
+    conversation.messages.create!(
+      role: "user",
+      content: "この画像は？",
+      metadata: {
+        "attachments" => [
+          {
+            "tsuzura_media_id" => "01JABCDEFGHJKMNPQRSTVWXYZ0",
+            "filename" => "persisted-photo.jpg"
+          }
+        ]
+      }
+    )
+
+    visit agent_chat_path(conversation_id: conversation.id)
+
+    assert_text "この画像は？"
+    assert_text "persisted-photo.jpg"
+
+    page.refresh
+
+    assert_text "persisted-photo.jpg"
+  end
+
   private
 
   def prepare_memo_with_image(memo, slug:, filename:)

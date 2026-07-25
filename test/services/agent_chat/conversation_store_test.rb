@@ -55,6 +55,33 @@ class AgentChatConversationStoreTest < ActiveSupport::TestCase
     assert_includes assistant.ui_meta, "RAG: 1件"
   end
 
+  test "append user message stores normalized image attachments" do
+    conversation = @account.agent_chat_conversations.create!
+    media_id = "01JABCDEFGHJKMNPQRSTVWXYZ0"
+
+    @store.append_user_message!(
+      conversation,
+      content: "この画像は？",
+      image_attachments: [
+        {
+          tsuzura_media_id: media_id.downcase,
+          filename: "photo.jpg",
+          preview_url: "blob:must-not-be-persisted"
+        }
+      ]
+    )
+
+    message = conversation.messages.last
+    assert_equal(
+      [ { "tsuzura_media_id" => media_id, "filename" => "photo.jpg" } ],
+      message.metadata["attachments"]
+    )
+    assert_equal(
+      [ { tsuzura_media_id: media_id, filename: "photo.jpg" } ],
+      message.as_ui_entry[:attachments]
+    )
+  end
+
   test "replace memo references stores a bounded unique id list" do
     conversation = @account.agent_chat_conversations.create!
     references = [

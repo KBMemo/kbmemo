@@ -67,6 +67,11 @@ class AgentChatMessage < ApplicationRecord
     if role == "user" && metadata["memo_references"].present?
       entry[:memo_references] = metadata["memo_references"]
     end
+    if role == "user" && metadata["attachments"].present?
+      entry[:attachments] = AgentChat::ImageAttachments.as_json(
+        AgentChat::ImageAttachments.normalize(metadata["attachments"])
+      )
+    end
     if assistant?
       if metadata["trace"].present?
         entry[:activity] = metadata["trace"]
