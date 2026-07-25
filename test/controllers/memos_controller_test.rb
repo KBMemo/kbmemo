@@ -1462,6 +1462,18 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "append ai reply forbids a viewer without update permission" do
+    memo = memos(:one)
+    memo.update!(visibility: :public_everyone)
+    sign_in_as(:two)
+
+    assert_no_changes -> { memo.reload.body } do
+      patch append_ai_reply_memo_url(memo), params: { content: "Unauthorized response" }, as: :json
+    end
+
+    assert_response :forbidden
+  end
+
   test "show displays the author only for another user's memo" do
     memo = memos(:one)
     author = memo.account
