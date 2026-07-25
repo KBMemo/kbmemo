@@ -1319,6 +1319,9 @@ export default class extends Controller {
     if (!this.conversationIdValue || !this.memoReferencesUrlValue) return
 
     const version = ++this.memoReferenceSyncVersion
+    if (this.hasMemoReferenceListTarget) {
+      this.memoReferenceListTarget.dataset.syncState = "pending"
+    }
     try {
       const res = await fetch(this.memoReferencesUrlValue, {
         method: "PATCH",
@@ -1332,6 +1335,7 @@ export default class extends Controller {
       const data = await res.json().catch(() => ({}))
       if (version !== this.memoReferenceSyncVersion) return
       if (!res.ok) {
+        this.setMemoReferenceSyncState("error")
         this.showError(data.error || "参照メモを保存できませんでした。")
         return
       }
@@ -1339,10 +1343,18 @@ export default class extends Controller {
         this.pendingMemoReferences = data.memo_references
         this.renderMemoReferenceList()
       }
+      this.setMemoReferenceSyncState("complete")
     } catch {
       if (version === this.memoReferenceSyncVersion) {
+        this.setMemoReferenceSyncState("error")
         this.showError("参照メモを保存できませんでした。")
       }
+    }
+  }
+
+  setMemoReferenceSyncState(state) {
+    if (this.hasMemoReferenceListTarget) {
+      this.memoReferenceListTarget.dataset.syncState = state
     }
   }
 
