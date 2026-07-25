@@ -89,7 +89,7 @@ export default class extends Controller {
     this.memoReferenceSyncVersion = 0
     this.tsuzuraSelectedIds = new Set()
     this.memoImageResults = []
-    this.memoImageSelectedKeys = new Set()
+    this.memoImageSelections = new Map()
     this.memoImageSearchTimer = null
     this.sending = false
     this.activityTracker = null
@@ -1412,7 +1412,7 @@ export default class extends Controller {
     event?.preventDefault()
     if (!this.hasMemoImageDialogTarget) return
 
-    this.memoImageSelectedKeys = new Set()
+    this.memoImageSelections = new Map()
     this.memoImageDialogTarget.showModal()
     await this.loadMemoImages("")
     this.memoImageSearchTarget?.focus()
@@ -1445,9 +1445,13 @@ export default class extends Controller {
       if (!res.ok) throw new Error(data.error)
       this.memoImageResults = Array.isArray(data.images) ? data.images : []
       this.renderMemoImageResults()
-      this.setMemoImageStatus(
-        this.memoImageResults.length ? "添付する画像を選んでください。" : "画像のあるメモが見つかりません。"
-      )
+      if (this.memoImageSelections.size > 0) {
+        this.updateMemoImageStatus()
+      } else {
+        this.setMemoImageStatus(
+          this.memoImageResults.length ? "添付する画像を選んでください。" : "画像のあるメモが見つかりません。"
+        )
+      }
     } catch {
       this.setMemoImageStatus("メモの画像を取得できませんでした。")
     }
@@ -1463,11 +1467,12 @@ export default class extends Controller {
       row.className = "flex items-center gap-3 border-b kb-border px-3 py-2 text-sm kb-hover-row"
       const checkbox = document.createElement("input")
       checkbox.type = "checkbox"
-      checkbox.checked = this.memoImageSelectedKeys.has(key)
+      checkbox.checked = this.memoImageSelections.has(key)
       checkbox.addEventListener("change", () => {
-        if (checkbox.checked) this.memoImageSelectedKeys.add(key)
-        else this.memoImageSelectedKeys.delete(key)
+        if (checkbox.checked) this.memoImageSelections.set(key, image)
+        else this.memoImageSelections.delete(key)
         this.syncMemoImageConfirmButton()
+        this.updateMemoImageStatus()
       })
       const thumb = document.createElement("img")
       thumb.src = image.preview_url
@@ -1495,15 +1500,20 @@ export default class extends Controller {
 
   syncMemoImageConfirmButton() {
     if (this.hasMemoImageConfirmButtonTarget) {
-      this.memoImageConfirmButtonTarget.disabled = this.memoImageSelectedKeys.size === 0
+      this.memoImageConfirmButtonTarget.disabled = this.memoImageSelections.size === 0
     }
+  }
+
+  updateMemoImageStatus() {
+    const count = this.memoImageSelections.size
+    this.setMemoImageStatus(
+      count > 0 ? `${count}件選択中です。検索条件を変えて追加できます。` : "添付する画像を選んでください。"
+    )
   }
 
   async confirmMemoImageSelection(event) {
     event?.preventDefault()
-    const selected = this.memoImageResults.filter((image) =>
-      this.memoImageSelectedKeys.has(this.memoImageKey(image))
-    )
+    const selected = [...this.memoImageSelections.values()]
     if (selected.length === 0 || !this.uploadMemoImageUrlValue) return
 
     this.memoImageConfirmButtonTarget.disabled = true
