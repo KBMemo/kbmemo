@@ -81,7 +81,7 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_select "button.kb-chrome-link.border-0.bg-transparent.p-0", text: /新規メモ/
     assert_select "button.border-0.bg-transparent.p-0[title='子メモを追加']"
     assert_select "li.kb-notebook-tree-add-row", count: 2
-    assert_select "button.kb-notebook-tree-add-button[aria-label='最上位に新規メモを追加']" do
+    assert_select "button.kb-notebook-tree-add-button.justify-center[aria-label='最上位に新規メモを追加']" do
       assert_select "i[data-lucide='plus'][aria-hidden='true']"
     end
     sibling_label = "「#{notebook.display_label_for_memo(child)}」と同じ階層に新規メモを追加"
