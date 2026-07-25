@@ -151,6 +151,56 @@ class AgentChatMemoImagesTest < ApplicationSystemTestCase
     AgentChat::MemoImages.define_singleton_method(:list, original)
   end
 
+  test "does not let a stale image search replace newer results" do
+    entry_class = Struct.new(:payload) do
+      def as_json
+        payload
+      end
+    end
+    build_page = lambda do |filename|
+      AgentChat::MemoImages::Page.new(
+        entries: [
+          entry_class.new(
+            {
+              memo_id: @first.id,
+              memo_title: @first.title,
+              directory: @first.memo_directory.labeled_path_from_root,
+              filename: filename,
+              relative_path: filename,
+              preview_url: asset_memo_path(@first, filename),
+              updated_at: @first.updated_at.iso8601
+            }
+          )
+        ],
+        next_cursor: nil
+      )
+    end
+    slow_started = Queue.new
+    original = AgentChat::MemoImages.method(:list)
+    AgentChat::MemoImages.define_singleton_method(:list) do |query:, **_kwargs|
+      if query == "slow"
+        slow_started << true
+        sleep 0.5
+        build_page.call("slow-result.png")
+      else
+        build_page.call("fast-result.png")
+      end
+    end
+
+    visit agent_chat_path
+    click_button "メモから選ぶ"
+    fill_in "メモを検索", with: "slow"
+    slow_started.pop
+    fill_in "メモを検索", with: "fast"
+
+    within "[data-agent-chat-target='memoImageResults']" do
+      assert_text "fast-result.png"
+      assert_no_text "slow-result.png"
+    end
+  ensure
+    AgentChat::MemoImages.define_singleton_method(:list, original)
+  end
+
   private
 
   def prepare_memo_with_image(memo, slug:, filename:)

@@ -97,6 +97,7 @@ export default class extends Controller {
     this.memoImageSearchTimer = null
     this.memoImageReferenceOnly = false
     this.memoImageNextCursor = null
+    this.memoImageRequestController = null
     this.sending = false
     this.activityTracker = null
     this.streamPanel = null
@@ -121,6 +122,8 @@ export default class extends Controller {
   disconnect() {
     if (this.memoSearchTimer) window.clearTimeout(this.memoSearchTimer)
     if (this.memoImageSearchTimer) window.clearTimeout(this.memoImageSearchTimer)
+    this.memoImageRequestController?.abort()
+    this.memoImageRequestController = null
     this.stopImageGenerationWatch()
     this.stopActivityTracker()
     this.unsubscribeCable?.()
@@ -1459,6 +1462,9 @@ export default class extends Controller {
 
   async loadMemoImages(query, { append = false } = {}) {
     if (!this.memoImagesUrlValue) return
+    this.memoImageRequestController?.abort()
+    const requestController = new AbortController()
+    this.memoImageRequestController = requestController
     if (!append) {
       this.memoImageNextCursor = null
       this.syncMemoImageLoadMoreButton()
@@ -1479,9 +1485,11 @@ export default class extends Controller {
     try {
       const res = await fetch(url.toString(), {
         credentials: "same-origin",
-        headers: { Accept: "application/json" }
+        headers: { Accept: "application/json" },
+        signal: requestController.signal
       })
       const data = await res.json().catch(() => ({}))
+      if (requestController !== this.memoImageRequestController) return
       if (!res.ok) throw new Error(data.error)
       const incoming = Array.isArray(data.images) ? data.images : []
       this.memoImageResults = append
@@ -1497,8 +1505,13 @@ export default class extends Controller {
           this.memoImageResults.length ? "添付する画像を選んでください。" : "画像のあるメモが見つかりません。"
         )
       }
-    } catch {
+    } catch (error) {
+      if (error?.name === "AbortError") return
       this.setMemoImageStatus("メモの画像を取得できませんでした。")
+    } finally {
+      if (requestController === this.memoImageRequestController) {
+        this.memoImageRequestController = null
+      }
     }
   }
 
@@ -1508,7 +1521,9 @@ export default class extends Controller {
 
     this.memoImageLoadMoreButtonTarget.disabled = true
     await this.loadMemoImages(this.memoImageSearchTarget?.value || "", { append: true })
-    this.memoImageLoadMoreButtonTarget.disabled = false
+    if (this.hasMemoImageLoadMoreButtonTarget) {
+      this.memoImageLoadMoreButtonTarget.disabled = false
+    }
   }
 
   mergeMemoImageResults(current, incoming) {
