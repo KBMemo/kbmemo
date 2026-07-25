@@ -68,6 +68,21 @@ describe("AgentChatController memo references", () => {
     expect(controller.pendingMemoReferences).toEqual([])
     expect(list.textContent).toBe("")
   })
+
+  it("links a reference title to the memo in a new tab", () => {
+    const controller = controllerInstance()
+    Object.defineProperties(controller, {
+      hasMemoUrlTemplateValue: { value: true },
+      memoUrlTemplateValue: { value: "/memos/__ID__" }
+    })
+
+    const node = controller.memoReferenceLabelNode({ id: 42, title: "設計メモ" })
+
+    expect(node.tagName).toBe("A")
+    expect(node.getAttribute("href")).toBe("/memos/42")
+    expect(node.target).toBe("_blank")
+    expect(node.rel).toBe("noopener")
+  })
 })
 
 describe("AgentChatController keyboard send", () => {

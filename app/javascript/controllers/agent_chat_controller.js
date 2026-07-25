@@ -55,7 +55,8 @@ export default class extends Controller {
     uploadImageUrl: String,
     tsuzuraAlbumsUrl: String,
     tsuzuraAlbumUrlTemplate: String,
-    memoReferencesUrl: String
+    memoReferencesUrl: String,
+    memoUrlTemplate: String
   }
 
   static storageKey = "agent_chat_enabled_mcp_tools"
@@ -1271,8 +1272,7 @@ export default class extends Controller {
     this.pendingMemoReferences.forEach((reference, index) => {
       const chip = document.createElement("div")
       chip.className = "inline-flex items-center gap-2 rounded-md border kb-border px-2 py-1 text-xs"
-      const label = document.createElement("span")
-      label.textContent = reference.title || "（無題）"
+      const label = this.memoReferenceLabelNode(reference)
       const remove = document.createElement("button")
       remove.type = "button"
       remove.className = "kb-toolbar-btn px-1"
@@ -1293,10 +1293,34 @@ export default class extends Controller {
     references.forEach((reference) => {
       const chip = document.createElement("span")
       chip.className = "inline-block rounded border kb-border px-2 py-1 text-xs"
-      chip.textContent = `参照: ${reference.title || "（無題）"}`
+      chip.append("参照: ", this.memoReferenceLabelNode(reference))
       wrap.append(chip)
     })
     return wrap
+  }
+
+  memoReferenceLabelNode(reference) {
+    const title = reference.title || "（無題）"
+    const url = this.memoReferenceUrl(reference.id)
+    if (!url) {
+      const label = document.createElement("span")
+      label.textContent = title
+      return label
+    }
+
+    const link = document.createElement("a")
+    link.href = url
+    link.target = "_blank"
+    link.rel = "noopener"
+    link.className = "kb-inline-link"
+    link.textContent = title
+    link.title = "参照メモを新しいタブで開く"
+    return link
+  }
+
+  memoReferenceUrl(id) {
+    if (!id || !this.hasMemoUrlTemplateValue) return null
+    return this.memoUrlTemplateValue.replace("__ID__", encodeURIComponent(String(id)))
   }
 
   setMemoStatus(message) {
