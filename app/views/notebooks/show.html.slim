@@ -5,6 +5,6 @@
 
 - content_for :notebook_memo_panel do
   - if @selected_memo
-    = render "memos/show_content", memo: @selected_memo
+    = render "memos/show_content", memo: @selected_memo, notebook: @notebook, can_manage_notebook: @can_manage
   - else
     = render "notebooks/overview", notebook: @notebook
