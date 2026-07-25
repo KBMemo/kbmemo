@@ -11,7 +11,8 @@ class NotebookMemosController < ApplicationController
     memo = policy_scope(Memo).find(params.require(:memo_id))
     authorize memo, :add_to_notebook?
 
-    Notebooks::AddMemo.call(notebook: @notebook, memo: memo)
+    parent_entry = memo_parent_entry
+    Notebooks::AddMemo.call(notebook: @notebook, memo: memo, parent_id: parent_entry&.id)
     redirect_to notebook_path(@notebook, memo_id: memo.id), notice: "メモを追加しました。"
   rescue Notebooks::Error => e
     redirect_to edit_notebook_path(@notebook), alert: e.message
@@ -22,7 +23,7 @@ class NotebookMemosController < ApplicationController
   def create_blank
     authorize @notebook, :manage_memos?
 
-    parent_entry = blank_memo_parent_entry
+    parent_entry = memo_parent_entry
     parent_memo = parent_entry&.memo
 
     memo = Memo.new(account: rodauth.rails_account)
@@ -52,7 +53,7 @@ class NotebookMemosController < ApplicationController
     @notebook = policy_scope(Notebook).find(params[:notebook_id])
   end
 
-  def blank_memo_parent_entry
+  def memo_parent_entry
     raw = params[:parent_id].presence
     return nil unless raw
 

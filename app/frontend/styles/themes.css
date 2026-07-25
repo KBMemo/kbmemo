@@ -1397,6 +1397,20 @@ html[data-kb-theme-base="dark"] .kb-bookmarklet-link {
   color: var(--kb-text-primary);
 }
 
+.kb-notebook-tree-add-button,
+.kb-notebook-tree-search-button {
+  border-radius: var(--kb-radius-sm);
+  color: var(--kb-text-secondary);
+}
+
+.kb-notebook-tree-add-button:hover,
+.kb-notebook-tree-add-button:focus-visible,
+.kb-notebook-tree-search-button:hover,
+.kb-notebook-tree-search-button:focus-visible {
+  background: var(--kb-bg-subtle);
+  color: var(--kb-text-primary);
+}
+
 .kb-notebook-tree-summary {
   cursor: pointer;
   width: 100%;

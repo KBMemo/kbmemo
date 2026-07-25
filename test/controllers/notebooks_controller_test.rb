@@ -84,6 +84,12 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_select "button.kb-notebook-tree-add-button.justify-center[aria-label='最上位に新規メモを追加']" do
       assert_select "i[data-lucide='plus'][aria-hidden='true']"
     end
+    assert_select "button.kb-notebook-tree-search-button[aria-label='最上位に既存メモを追加']" do
+      assert_select "i[data-lucide='search'][aria-hidden='true']"
+    end
+    assert_select "dialog#notebook_memo_picker_dialog[aria-labelledby='notebook-memo-picker-dialog-title']"
+    assert_select "dialog form[action=?] input[name='parent_id'][data-notebook-memo-picker-dialog-target='parentId']",
+      notebook_notebook_memos_path(notebook)
     sibling_label = "「#{notebook.display_label_for_memo(child)}」と同じ階層に新規メモを追加"
     assert_select "button.kb-notebook-tree-add-button[aria-label=?]", sibling_label
     assert_select "form[action=?] input[name='parent_id'][value=?]",
@@ -252,6 +258,20 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_difference -> { notebook.notebook_memos.count }, 1 do
       post notebook_notebook_memos_url(notebook), params: { memo_id: memo.id }
     end
+    assert_redirected_to notebook_path(notebook, memo_id: memo.id)
+  end
+
+  test "add memo to a selected notebook tree hierarchy" do
+    notebook = notebooks(:one)
+    parent = notebook_memos(:one_one)
+    memo = memos(:two)
+    memo.notebook_memo&.destroy
+
+    assert_difference -> { notebook.notebook_memos.where(parent_id: parent.id).count }, 1 do
+      post notebook_notebook_memos_url(notebook), params: { memo_id: memo.id, parent_id: parent.id }
+    end
+
+    assert_equal parent.id, notebook.notebook_memos.find_by!(memo: memo).parent_id
     assert_redirected_to notebook_path(notebook, memo_id: memo.id)
   end
 

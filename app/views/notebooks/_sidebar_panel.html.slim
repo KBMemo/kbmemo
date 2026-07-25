@@ -1,4 +1,4 @@
-.flex.h-full.min-h-0.flex-col
+.flex.h-full.min-h-0.flex-col data-controller="notebook-memo-picker-dialog" data-notebook-memo-picker-dialog-search-url-value=available_memos_notebook_path(@notebook)
   .shrink-0.border-b.kb-border.px-3.py-3
     .flex.min-w-0.items-center.gap-2
       h2.text-sm.font-semibold.truncate.kb-text-primary = @notebook.title
@@ -30,3 +30,18 @@
         = submit_tag "追加", class: "kb-chrome-btn-primary kb-btn-xs kb-btn-full", disabled: true, data: { memo_search_picker_target: "submit", theme_slot: "btn-primary" }
   .kb-notebook-sidebar-scroll.min-h-0.flex-1.overflow-y-auto.px-2.py-2
     = render "notebooks/memo_tree", notebook: @notebook
+  - if @can_manage
+    dialog#notebook_memo_picker_dialog.notebook-memo-picker-dialog.kb-modal-panel.rounded-lg.p-0 aria-labelledby="notebook-memo-picker-dialog-title" data-notebook-memo-picker-dialog-target="dialog" data-action="click->notebook-memo-picker-dialog#backdropClick close->notebook-memo-picker-dialog#restoreFocus"
+      .flex.items-center.justify-between.border-b.kb-border.px-4.py-3
+        h2#notebook-memo-picker-dialog-title.text-base.font-semibold.kb-text-primary 既存メモを追加
+        button.kb-text-muted.hover:opacity-80 type="button" data-action="notebook-memo-picker-dialog#close" aria-label="閉じる" ×
+      = form_with url: notebook_notebook_memos_path(@notebook), method: :post, class: "w-full space-y-3 p-4", data: { action: "submit->notebook-memo-picker-dialog#submit" } do
+        = hidden_field_tag :parent_id, nil, data: { notebook_memo_picker_dialog_target: "parentId" }
+        = hidden_field_tag :memo_id, nil, data: { notebook_memo_picker_dialog_target: "memoId" }
+        = label_tag :notebook_dialog_memo_picker, "追加する既存メモを検索", class: "sr-only"
+        = search_field_tag :memo_query, nil, id: "notebook_dialog_memo_picker", placeholder: "タイトル・本文で検索", autocomplete: "off", class: "kb-input kb-input-md w-full", data: { notebook_memo_picker_dialog_target: "query", action: "input->notebook-memo-picker-dialog#queryInput" }
+        .max-h-64.overflow-y-auto.rounded-md.border.kb-border data-notebook-memo-picker-dialog-target="results"
+          p.px-3.py-2.text-sm.kb-text-secondary 検索してください
+        .flex.justify-end.gap-2
+          button.kb-chrome-btn-secondary.kb-btn-sm type="button" data-action="notebook-memo-picker-dialog#close" キャンセル
+          = submit_tag "追加", class: "kb-chrome-btn-primary kb-btn-sm", disabled: true, data: { notebook_memo_picker_dialog_target: "submit", theme_slot: "btn-primary" }

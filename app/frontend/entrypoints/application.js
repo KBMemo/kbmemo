@@ -26,6 +26,7 @@ import {
   PanelLeftOpen,
   Pencil,
   Plus,
+  Search,
   Trash2,
   WandSparkles
 } from "lucide"
@@ -60,6 +61,7 @@ const renderLucideIcons = () => {
       PanelLeftOpen,
       Pencil,
       Plus,
+      Search,
       Trash2,
       WandSparkles
     }
