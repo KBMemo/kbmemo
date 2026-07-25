@@ -60,12 +60,18 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_select ".kb-notebook-workspace"
     assert_select "#notebook_sidebar_shell.kb-notebook-sidebar-shell"
     assert_select "#notebook_memo_panel.kb-notebook-content-scroll"
+    assert_select "#notebook_sidebar_shell a[href=?]", notebooks_path, count: 0
+    assert_select "#notebook_sidebar_shell a.kb-toolbar-btn[href=?][aria-label='ノートブックを編集'][title='ノートブックを編集']",
+      edit_notebook_path(notebooks(:one)) do
+      assert_select "i[data-lucide='pencil'][aria-hidden='true']"
+    end
   end
 
   test "show renders compact selected memo title and borderless add buttons" do
     notebook = notebooks(:one)
     entry = notebook_memos(:one_one)
-    notebook_memos(:one_two).update!(parent: entry)
+    child = notebook_memos(:one_two)
+    child.update!(parent: entry)
 
     get notebook_url(notebook, memo_id: entry.memo_id)
     assert_response :success
@@ -74,6 +80,15 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
       text: notebook.display_label_for_memo(entry)
     assert_select "button.kb-chrome-link.border-0.bg-transparent.p-0", text: /新規メモ/
     assert_select "button.border-0.bg-transparent.p-0[title='子メモを追加']"
+    assert_select "li.kb-notebook-tree-add-row", count: 2
+    assert_select "button.kb-notebook-tree-add-button[aria-label='最上位に新規メモを追加']" do
+      assert_select "i[data-lucide='plus'][aria-hidden='true']"
+    end
+    sibling_label = "「#{notebook.display_label_for_memo(child)}」と同じ階層に新規メモを追加"
+    assert_select "button.kb-notebook-tree-add-button[aria-label=?]", sibling_label
+    assert_select "form[action=?] input[name='parent_id'][value=?]",
+      create_blank_notebook_notebook_memos_path(notebook),
+      entry.id.to_s
     assert_select "summary.kb-notebook-tree-summary", minimum: 1
     assert_select "summary.memo-directory-nav-summary", count: 0
   end
@@ -180,6 +195,8 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Empty notebook"
     assert_includes response.body, "左の一覧からメモを選ぶ"
     assert_includes response.body, "memo-search-picker"
+    assert_select "li.kb-notebook-tree-add-row", count: 1
+    assert_select "button.kb-notebook-tree-add-button[aria-label='最上位に新規メモを追加']"
   end
 
   test "reorder memos in tree" do
@@ -224,6 +241,7 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     get notebook_url(notebook)
     assert_response :success
     assert_includes response.body, notebook.title
+    assert_select "li.kb-notebook-tree-add-row", count: 0
   end
 
   test "add memo to notebook" do

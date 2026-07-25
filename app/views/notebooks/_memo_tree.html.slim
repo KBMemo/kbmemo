@@ -4,13 +4,12 @@ ruby:
   selected_id = @selected_memo&.id
 
 #notebook_memo_tree.min-w-0
-  - if roots.any?
+  - if roots.any? || @can_manage
     ul.mt-0.5.list-none.space-y-0.5.p-0 data-tree-children="" data-action=( @can_manage ? "dragover->notebook-memo-tree#allowDrop drop->notebook-memo-tree#dropOnRoot" : nil )
       - roots.each do |entry|
         = render "notebooks/memo_tree_branch", entry: entry, by_parent: by_parent, selected_memo_id: selected_id, can_manage: @can_manage
+      - if @can_manage
+        = render "notebooks/memo_tree_add_row", parent_entry: nil
   - else
     p.px-2.py-6.text-center.text-sm.kb-text-muted
-      - if @can_manage
-        | メモがまだありません。上から追加してください。
-      - else
-        | 公開されているメモはまだありません。
+      | 公開されているメモはまだありません。

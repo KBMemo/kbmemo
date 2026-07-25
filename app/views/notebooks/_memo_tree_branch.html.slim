@@ -28,5 +28,7 @@ li *row_attrs
       ul.kb-tree-children.space-y-0.5 data-tree-children="" data-action=(can_manage ? "dragover->notebook-memo-tree#allowDrop drop->notebook-memo-tree#dropOnChildren" : nil)
         - children.each do |child|
           = render "notebooks/memo_tree_branch", entry: child, by_parent: by_parent, selected_memo_id: selected_memo_id, can_manage: can_manage
+        - if can_manage
+          = render "notebooks/memo_tree_add_row", parent_entry: children.last
   - else
     = render "notebooks/memo_tree_row", entry: entry, can_manage: can_manage, row_drop: row_drop

@@ -1,0 +1,13 @@
+ruby:
+  label = parent_entry ? "「#{@notebook.display_label_for_memo(parent_entry)}」と同じ階層に新規メモを追加" : "最上位に新規メモを追加"
+  params = parent_entry ? { parent_id: parent_entry.parent_id } : {}
+
+li.kb-notebook-tree-add-row
+  = button_to create_blank_notebook_notebook_memos_path(@notebook),
+    method: :post,
+    params: params,
+    form_class: "contents",
+    title: label,
+    aria: { label: label },
+    class: "kb-notebook-tree-add-button inline-flex h-7 w-full cursor-pointer items-center border-0 bg-transparent px-2 kb-text-subtle hover:kb-text-secondary" do
+    i.h-4.w-4 aria-hidden="true" data-lucide="plus"
