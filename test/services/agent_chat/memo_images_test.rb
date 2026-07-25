@@ -23,6 +23,22 @@ module AgentChat
       assert_equal MemoAssets.asset_url_for(@memo, "photo.png"), json[:preview_url]
     end
 
+    test "limits images to the requested memo ids" do
+      other = memos(:two)
+      other.update_columns(slug: memo_global_slug("other-images", other), file_committed_at: Time.current)
+      @repo.write_asset!(@memo, filename: "selected.png", io: StringIO.new("PNG"))
+      @repo.write_asset!(other, filename: "other.png", io: StringIO.new("PNG"))
+
+      entries = MemoImages.list(
+        scope: Memo.where(id: [ @memo.id, other.id ]),
+        query: "",
+        memo_ids: [ @memo.id ],
+        repo: @repo
+      )
+
+      assert_equal [ "selected.png" ], entries.map(&:relative_path)
+    end
+
     test "rejects a path outside the memo assets directory" do
       assert_raises(MemoAssets::InvalidFile) do
         MemoImages.upload(

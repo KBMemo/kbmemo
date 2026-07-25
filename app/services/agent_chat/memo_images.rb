@@ -24,8 +24,10 @@ module AgentChat
       delegate :read, :rewind, :size, to: :io
     end
 
-    def self.list(scope:, query:, repo: MemoRepository.new)
+    def self.list(scope:, query:, memo_ids: nil, repo: MemoRepository.new)
       memo_scope = scope.includes(:memo_directory).order(updated_at: :desc)
+      normalized_ids = Array(memo_ids).filter_map { |id| Integer(id, exception: false) }.uniq
+      memo_scope = memo_scope.where(id: normalized_ids) if memo_ids
       memo_scope = memo_scope.search_text(query) if query.present?
 
       memo_scope.limit(MAX_MEMOS).flat_map do |memo|

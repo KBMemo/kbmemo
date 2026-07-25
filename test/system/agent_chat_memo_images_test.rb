@@ -84,6 +84,23 @@ class AgentChatMemoImagesTest < ApplicationSystemTestCase
     AgentChat::MemoImages.define_singleton_method(:upload, original)
   end
 
+  test "offers images from the referenced memos only" do
+    visit agent_chat_path(new: 1)
+    button = find_button "参照メモから選ぶ"
+    assert_equal "true", button["aria-disabled"]
+
+    visit agent_chat_path(new: 1, memo_reference_id: @first.id)
+    button = find_button "参照メモから選ぶ"
+    assert_equal "false", button["aria-disabled"]
+    button.click
+
+    assert_selector "[data-agent-chat-target='memoImageDialogTitle']", text: "参照メモの画像を選ぶ"
+    within "[data-agent-chat-target='memoImageResults']" do
+      assert_text "first.png"
+      assert_no_text "second.png"
+    end
+  end
+
   private
 
   def prepare_memo_with_image(memo, slug:, filename:)

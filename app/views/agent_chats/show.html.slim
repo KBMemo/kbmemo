@@ -36,6 +36,7 @@
             input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple=true data-agent-chat-target="fileInput" data-action="change->agent-chat#addFiles"
           button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#openTsuzuraPicker" 葛籠から選ぶ
           button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#openMemoImagePicker" メモから選ぶ
+          button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#openReferenceMemoImagePicker" data-agent-chat-target="referenceMemoImageButton" aria-disabled="true" title="参照メモを選ぶと利用できます" 参照メモから選ぶ
         p.hidden.text-xs.kb-status-danger data-agent-chat-target="attachmentError"
         .flex.flex-wrap.gap-2 data-agent-chat-target="attachmentList"
         .flex.flex-wrap.items-center.gap-2
@@ -71,7 +72,7 @@
       dialog.agent-chat-memo-image-dialog.rounded-lg.border.kb-chrome-panel.p-0.backdrop:bg-black/40 data-agent-chat-target="memoImageDialog" aria-labelledby="agent-chat-memo-image-dialog-title"
         .flex.flex-col class="max-h-[min(75dvh,36rem)] w-[min(92vw,36rem)]"
           .flex.items-center.justify-between.border-b.kb-border.px-3.py-2
-            h2#agent-chat-memo-image-dialog-title.text-sm.font-medium.kb-text-primary メモの画像を選ぶ
+            h2#agent-chat-memo-image-dialog-title.text-sm.font-medium.kb-text-primary data-agent-chat-target="memoImageDialogTitle" メモの画像を選ぶ
             button.kb-toolbar-btn type="button" data-action="agent-chat#closeMemoImagePicker" aria-label="閉じる" ×
           .p-3
             label.sr-only for="agent_chat_memo_image_search" メモを検索

@@ -69,7 +69,8 @@ class AgentChatsController < ApplicationController
 
     images = AgentChat::MemoImages.list(
       scope: policy_scope(Memo),
-      query: params[:q].to_s.strip
+      query: params[:q].to_s.strip,
+      memo_ids: memo_image_ids_param
     )
     render json: { images: images.map(&:as_json) }
   end
@@ -272,6 +273,12 @@ class AgentChatsController < ApplicationController
   end
 
   private
+
+  def memo_image_ids_param
+    return nil unless params.key?(:memo_ids)
+
+    params[:memo_ids].to_s.split(",").first(AgentChat::MemoReferences::MAX_COUNT)
+  end
 
   def conversation_store
     AgentChat::ConversationStore.new(account: rodauth.rails_account)

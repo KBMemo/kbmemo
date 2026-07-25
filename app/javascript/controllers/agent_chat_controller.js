@@ -45,7 +45,9 @@ export default class extends Controller {
     "memoImageSearch",
     "memoImageStatus",
     "memoImageResults",
-    "memoImageConfirmButton"
+    "memoImageConfirmButton",
+    "memoImageDialogTitle",
+    "referenceMemoImageButton"
   ]
 
   static values = {
@@ -91,6 +93,7 @@ export default class extends Controller {
     this.memoImageResults = []
     this.memoImageSelections = new Map()
     this.memoImageSearchTimer = null
+    this.memoImageReferenceOnly = false
     this.sending = false
     this.activityTracker = null
     this.streamPanel = null
@@ -102,6 +105,7 @@ export default class extends Controller {
     this.unsubscribeCable = subscribeAgentChat((event) => this.receivedCable(event))
     this.renderMessages()
     this.renderMemoReferenceList()
+    this.syncReferenceMemoImageButton()
     this.updateSendState()
     this.initialMessagesJsonTarget?.remove()
     this.initialMemoReferencesJsonTarget?.remove()
@@ -1316,6 +1320,7 @@ export default class extends Controller {
       chip.append(label, usage, remove)
       this.memoReferenceListTarget.append(chip)
     })
+    this.syncReferenceMemoImageButton()
   }
 
   memoReferenceLabelNode(reference) {
@@ -1410,9 +1415,28 @@ export default class extends Controller {
 
   async openMemoImagePicker(event) {
     event?.preventDefault()
+    await this.showMemoImagePicker({ referenceOnly: false })
+  }
+
+  async openReferenceMemoImagePicker(event) {
+    event?.preventDefault()
+    if (this.pendingMemoReferences.length === 0) {
+      this.showAttachmentError("先に参照メモを選んでください。")
+      return
+    }
+    await this.showMemoImagePicker({ referenceOnly: true })
+  }
+
+  async showMemoImagePicker({ referenceOnly }) {
     if (!this.hasMemoImageDialogTarget) return
 
+    this.memoImageReferenceOnly = referenceOnly
     this.memoImageSelections = new Map()
+    if (this.hasMemoImageDialogTitleTarget) {
+      this.memoImageDialogTitleTarget.textContent = referenceOnly
+        ? "参照メモの画像を選ぶ"
+        : "メモの画像を選ぶ"
+    }
     this.memoImageDialogTarget.showModal()
     await this.loadMemoImages("")
     this.memoImageSearchTarget?.focus()
@@ -1435,6 +1459,12 @@ export default class extends Controller {
     this.setMemoImageStatus("画像を読み込み中…")
     const url = new URL(this.memoImagesUrlValue, window.location.origin)
     if (query.trim()) url.searchParams.set("q", query.trim())
+    if (this.memoImageReferenceOnly) {
+      url.searchParams.set(
+        "memo_ids",
+        this.pendingMemoReferences.map((reference) => reference.id).join(",")
+      )
+    }
 
     try {
       const res = await fetch(url.toString(), {
@@ -1545,6 +1575,16 @@ export default class extends Controller {
 
   setMemoImageStatus(message) {
     if (this.hasMemoImageStatusTarget) this.memoImageStatusTarget.textContent = message
+  }
+
+  syncReferenceMemoImageButton() {
+    if (!this.hasReferenceMemoImageButtonTarget) return
+
+    const unavailable = this.pendingMemoReferences.length === 0
+    this.referenceMemoImageButtonTarget.setAttribute("aria-disabled", String(unavailable))
+    this.referenceMemoImageButtonTarget.title = unavailable
+      ? "参照メモを選ぶと利用できます"
+      : "参照中のメモにある画像から選びます"
   }
 
   async openTsuzuraPicker(event) {

@@ -170,6 +170,25 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     refute images.any? { |image| image["memo_id"] == hidden.id }
   end
 
+  test "memo_images limits results to referenced memo ids" do
+    first = memos(:one)
+    second = memos(:two)
+    first.update_columns(slug: memo_global_slug("reference-first", first), file_committed_at: Time.current)
+    second.update_columns(slug: memo_global_slug("reference-second", second), file_committed_at: Time.current)
+    repo = MemoRepository.new
+    repo.write_asset!(first, filename: "first-reference.png", io: StringIO.new("PNG"))
+    repo.write_asset!(second, filename: "second-reference.png", io: StringIO.new("PNG"))
+
+    get memo_images_agent_chat_url,
+      params: { memo_ids: first.id.to_s },
+      as: :json
+
+    assert_response :success
+    images = response.parsed_body.fetch("images")
+    assert images.any? { |image| image["filename"] == "first-reference.png" }
+    refute images.any? { |image| image["filename"] == "second-reference.png" }
+  end
+
   test "upload_memo_image resolves a visible memo image" do
     memo = memos(:one)
     result = AgentChat::TsuzuraUpload::Result.new(
