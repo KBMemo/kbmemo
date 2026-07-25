@@ -51,10 +51,10 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, memos(:two).title
     assert_includes response.body, "notebook_memo_tree"
     assert_includes response.body, "notebook_memo_panel"
-    assert_includes response.body, "memo-search-picker"
+    assert_not_includes response.body, "memo-search-picker"
     assert_includes response.body, available_memos_notebook_path(notebooks(:one))
     assert_select "select#memo_id", count: 0
-    assert_select ".relative.min-w-0.w-full input.kb-memo-picker-query.min-w-0.w-full"
+    assert_select "dialog input#notebook_dialog_memo_picker[type='search']"
     assert_select "body.kb-notebook-viewport"
     assert_select "main.kb-notebook-main"
     assert_select ".kb-notebook-workspace"
@@ -64,6 +64,23 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_select "#notebook_sidebar_shell a.kb-toolbar-btn[href=?][aria-label='ノートブックを編集'][title='ノートブックを編集']",
       edit_notebook_path(notebooks(:one)) do
       assert_select "i[data-lucide='pencil'][aria-hidden='true']"
+    end
+    assert_select "#notebook_sidebar_shell form[action=?]", unpublish_notebook_path(notebooks(:one)), count: 0
+  end
+
+  test "edit keeps publication actions out of the sidebar workflow" do
+    published = notebooks(:one)
+    get edit_notebook_url(published)
+    assert_response :success
+    assert_select "section", text: /公開設定/ do
+      assert_select "form[action=?] button", unpublish_notebook_path(published), text: "公開停止"
+    end
+
+    draft = notebooks(:two)
+    get edit_notebook_url(draft)
+    assert_response :success
+    assert_select "section", text: /公開設定/ do
+      assert_select "form[action=?] button", publish_notebook_path(draft), text: "公開"
     end
   end
 
@@ -78,7 +95,7 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_select "a.kb-notebook-tree-link.is-active[href=?]",
       notebook_path(notebook, memo_id: entry.memo_id),
       text: notebook.display_label_for_memo(entry)
-    assert_select "button.kb-chrome-link.border-0.bg-transparent.p-0", text: /新規メモ/
+    assert_select "#notebook_sidebar_shell", text: /新規メモ/, count: 0
     assert_select "button.border-0.bg-transparent.p-0[title='子メモを追加']"
     child_search_label = "「#{notebook.display_label_for_memo(entry)}」の子階層に既存メモを追加"
     assert_select "button.kb-notebook-tree-row-search-button[aria-label=?][data-notebook-memo-picker-dialog-parent-id-param=?]",
@@ -212,7 +229,7 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Empty notebook"
     assert_includes response.body, "左の一覧からメモを選ぶ"
-    assert_includes response.body, "memo-search-picker"
+    assert_not_includes response.body, "memo-search-picker"
     assert_select "li.kb-notebook-tree-add-row", count: 1
     assert_select "button.kb-notebook-tree-add-button[aria-label='最上位に新規メモを追加']"
   end
@@ -303,11 +320,13 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_memo_path(new_entry.memo_id)
   end
 
-  test "notebook sidebar shows the new-memo button for the owner" do
+  test "notebook sidebar keeps memo creation actions in the tree" do
     notebook = notebooks(:one)
     get notebook_url(notebook)
     assert_response :success
-    assert_select "form[action=?]", create_blank_notebook_notebook_memos_path(notebook)
+    assert_select "#notebook_sidebar_shell", text: /新規メモ/, count: 0
+    assert_select "button.kb-notebook-tree-add-button", minimum: 1
+    assert_select "button.kb-notebook-tree-search-button", minimum: 1
   end
 
   test "create_blank with parent_id appends a child with date directory and inherited tags" do
