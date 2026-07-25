@@ -142,6 +142,73 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     refute_includes ids, hidden.id
     first = response.parsed_body.fetch("memos").find { |memo| memo["id"] == memos(:one).id }
     assert_equal memos(:one).body.length, first["body_chars"]
+    assert_equal memos(:one).memo_directory.labeled_path_from_root, first["directory"]
+    assert_equal memos(:one).body.squish.first(180), first["excerpt"]
+    assert first["updated_at"].present?
+  end
+
+  test "memo_images returns images from visible memos only" do
+    visible = memos(:one)
+    visible.update_columns(slug: memo_global_slug("visible-image", visible), file_committed_at: Time.current)
+    hidden = Memo.create!(
+      title: "Secret image",
+      body: "private",
+      account: accounts(:two),
+      memo_directory: memo_directories(:home_u_two),
+      visibility: :owner_read_write,
+      file_committed_at: Time.current
+    )
+    repo = MemoRepository.new
+    repo.write_asset!(visible, filename: "visible.png", io: StringIO.new("PNG"))
+    repo.write_asset!(hidden, filename: "secret.png", io: StringIO.new("PNG"))
+
+    get memo_images_agent_chat_url, as: :json
+
+    assert_response :success
+    images = response.parsed_body.fetch("images")
+    assert images.any? { |image| image["memo_id"] == visible.id && image["filename"] == "visible.png" }
+    refute images.any? { |image| image["memo_id"] == hidden.id }
+  end
+
+  test "upload_memo_image resolves a visible memo image" do
+    memo = memos(:one)
+    result = AgentChat::TsuzuraUpload::Result.new(
+      tsuzura_media_id: "01JABCDEFGHJKMNPQRSTVWXYZ0",
+      filename: "photo.png"
+    )
+    captured = {}
+    original = AgentChat::MemoImages.method(:upload)
+    AgentChat::MemoImages.define_singleton_method(:upload) do |**kwargs|
+      captured.replace(kwargs)
+      result
+    end
+
+    post upload_memo_image_agent_chat_url,
+      params: { memo_id: memo.id, relative_path: "photo.png" },
+      as: :json
+
+    assert_response :success
+    assert_equal memo.id, captured[:memo].id
+    assert_equal "photo.png", captured[:relative_path]
+    assert_equal result.tsuzura_media_id, response.parsed_body["tsuzura_media_id"]
+  ensure
+    AgentChat::MemoImages.define_singleton_method(:upload, original)
+  end
+
+  test "upload_memo_image does not expose another account memo" do
+    hidden = Memo.create!(
+      title: "Secret image",
+      body: "private",
+      account: accounts(:two),
+      memo_directory: memo_directories(:home_u_two),
+      visibility: :owner_read_write
+    )
+
+    post upload_memo_image_agent_chat_url,
+      params: { memo_id: hidden.id, relative_path: "secret.png" },
+      as: :json
+
+    assert_response :not_found
   end
 
   test "update_memo_references immediately persists visible references" do

@@ -55,11 +55,43 @@ class AgentChatsController < ApplicationController
         {
           id: memo.id,
           title: memo.title,
+          directory: memo.memo_directory.labeled_path_from_root,
+          excerpt: memo.body.to_s.squish.first(180),
           body_chars: memo.body.to_s.length,
           updated_at: memo.updated_at.iso8601
         }
       end
     }
+  end
+
+  def memo_images
+    authorize :agent_chat, :memo_images?
+
+    images = AgentChat::MemoImages.list(
+      scope: policy_scope(Memo),
+      query: params[:q].to_s.strip
+    )
+    render json: { images: images.map(&:as_json) }
+  end
+
+  def upload_memo_image
+    authorize :agent_chat, :upload_memo_image?
+
+    memo = policy_scope(Memo).find(params[:memo_id])
+    result = AgentChat::MemoImages.upload(
+      memo: memo,
+      relative_path: params[:relative_path],
+      cookie_header: request.headers["Cookie"]
+    )
+    render json: {
+      tsuzura_media_id: result.tsuzura_media_id,
+      filename: result.filename,
+      preview_url: MemoAssets.asset_url_for(memo, params[:relative_path])
+    }
+  rescue ActiveRecord::RecordNotFound
+    render json: { error: "メモが見つかりません。" }, status: :not_found
+  rescue MemoAssets::Error, AgentChat::TsuzuraUpload::Error => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def update_memo_references

@@ -40,7 +40,12 @@ export default class extends Controller {
     "memoResults",
     "memoConfirmButton",
     "memoReferenceList",
-    "memoReferenceCount"
+    "memoReferenceCount",
+    "memoImageDialog",
+    "memoImageSearch",
+    "memoImageStatus",
+    "memoImageResults",
+    "memoImageConfirmButton"
   ]
 
   static values = {
@@ -54,6 +59,8 @@ export default class extends Controller {
     nyoyToolsUrl: String,
     nyoyConfigured: Boolean,
     uploadImageUrl: String,
+    memoImagesUrl: String,
+    uploadMemoImageUrl: String,
     tsuzuraAlbumsUrl: String,
     tsuzuraAlbumUrlTemplate: String,
     memoReferencesUrl: String,
@@ -81,6 +88,9 @@ export default class extends Controller {
     this.memoSearchTimer = null
     this.memoReferenceSyncVersion = 0
     this.tsuzuraSelectedIds = new Set()
+    this.memoImageResults = []
+    this.memoImageSelectedKeys = new Set()
+    this.memoImageSearchTimer = null
     this.sending = false
     this.activityTracker = null
     this.streamPanel = null
@@ -103,6 +113,7 @@ export default class extends Controller {
 
   disconnect() {
     if (this.memoSearchTimer) window.clearTimeout(this.memoSearchTimer)
+    if (this.memoImageSearchTimer) window.clearTimeout(this.memoImageSearchTimer)
     this.stopImageGenerationWatch()
     this.stopActivityTracker()
     this.unsubscribeCable?.()
@@ -1225,7 +1236,7 @@ export default class extends Controller {
 
     for (const memo of this.memoSearchResults) {
       const row = document.createElement("label")
-      row.className = "flex items-center gap-2 border-b kb-border px-3 py-2 text-sm kb-hover-row"
+      row.className = "flex items-start gap-2 border-b kb-border px-3 py-2 text-sm kb-hover-row"
       const checkbox = document.createElement("input")
       checkbox.type = "checkbox"
       checkbox.value = String(memo.id)
@@ -1237,9 +1248,19 @@ export default class extends Controller {
         this.renderMemoResults()
         this.syncMemoConfirmButton()
       })
+      const details = document.createElement("span")
+      details.className = "min-w-0"
       const title = document.createElement("span")
+      title.className = "block kb-text-primary"
       title.textContent = memo.title || "（無題）"
-      row.append(checkbox, title)
+      const identity = document.createElement("span")
+      identity.className = "mt-0.5 block text-xs kb-text-muted"
+      identity.textContent = [memo.directory, this.formatMemoDate(memo.updated_at)].filter(Boolean).join(" · ")
+      const excerpt = document.createElement("span")
+      excerpt.className = "mt-1 block text-xs kb-text-muted"
+      excerpt.textContent = memo.excerpt || "（本文なし）"
+      details.append(title, identity, excerpt)
+      row.append(checkbox, details)
       this.memoResultsTarget.append(row)
     }
     this.syncMemoConfirmButton()
@@ -1379,6 +1400,141 @@ export default class extends Controller {
 
   setMemoStatus(message) {
     if (this.hasMemoStatusTarget) this.memoStatusTarget.textContent = message
+  }
+
+  formatMemoDate(value) {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return ""
+    return new Intl.DateTimeFormat("ja-JP", { dateStyle: "medium" }).format(date)
+  }
+
+  async openMemoImagePicker(event) {
+    event?.preventDefault()
+    if (!this.hasMemoImageDialogTarget) return
+
+    this.memoImageSelectedKeys = new Set()
+    this.memoImageDialogTarget.showModal()
+    await this.loadMemoImages("")
+    this.memoImageSearchTarget?.focus()
+  }
+
+  closeMemoImagePicker(event) {
+    event?.preventDefault()
+    this.memoImageDialogTarget?.close()
+  }
+
+  searchMemoImages() {
+    if (this.memoImageSearchTimer) window.clearTimeout(this.memoImageSearchTimer)
+    this.memoImageSearchTimer = window.setTimeout(() => {
+      void this.loadMemoImages(this.memoImageSearchTarget?.value || "")
+    }, 200)
+  }
+
+  async loadMemoImages(query) {
+    if (!this.memoImagesUrlValue) return
+    this.setMemoImageStatus("画像を読み込み中…")
+    const url = new URL(this.memoImagesUrlValue, window.location.origin)
+    if (query.trim()) url.searchParams.set("q", query.trim())
+
+    try {
+      const res = await fetch(url.toString(), {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" }
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error)
+      this.memoImageResults = Array.isArray(data.images) ? data.images : []
+      this.renderMemoImageResults()
+      this.setMemoImageStatus(
+        this.memoImageResults.length ? "添付する画像を選んでください。" : "画像のあるメモが見つかりません。"
+      )
+    } catch {
+      this.setMemoImageStatus("メモの画像を取得できませんでした。")
+    }
+  }
+
+  renderMemoImageResults() {
+    if (!this.hasMemoImageResultsTarget) return
+    this.memoImageResultsTarget.replaceChildren()
+
+    for (const image of this.memoImageResults) {
+      const key = this.memoImageKey(image)
+      const row = document.createElement("label")
+      row.className = "flex items-center gap-3 border-b kb-border px-3 py-2 text-sm kb-hover-row"
+      const checkbox = document.createElement("input")
+      checkbox.type = "checkbox"
+      checkbox.checked = this.memoImageSelectedKeys.has(key)
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) this.memoImageSelectedKeys.add(key)
+        else this.memoImageSelectedKeys.delete(key)
+        this.syncMemoImageConfirmButton()
+      })
+      const thumb = document.createElement("img")
+      thumb.src = image.preview_url
+      thumb.alt = ""
+      thumb.loading = "lazy"
+      thumb.className = "agent-chat-attachment-thumb"
+      const details = document.createElement("span")
+      details.className = "min-w-0"
+      const filename = document.createElement("span")
+      filename.className = "block truncate kb-text-primary"
+      filename.textContent = image.filename
+      const memo = document.createElement("span")
+      memo.className = "mt-0.5 block truncate text-xs kb-text-muted"
+      memo.textContent = [image.memo_title || "（無題）", image.directory].filter(Boolean).join(" · ")
+      details.append(filename, memo)
+      row.append(checkbox, thumb, details)
+      this.memoImageResultsTarget.append(row)
+    }
+    this.syncMemoImageConfirmButton()
+  }
+
+  memoImageKey(image) {
+    return `${image.memo_id}:${image.relative_path}`
+  }
+
+  syncMemoImageConfirmButton() {
+    if (this.hasMemoImageConfirmButtonTarget) {
+      this.memoImageConfirmButtonTarget.disabled = this.memoImageSelectedKeys.size === 0
+    }
+  }
+
+  async confirmMemoImageSelection(event) {
+    event?.preventDefault()
+    const selected = this.memoImageResults.filter((image) =>
+      this.memoImageSelectedKeys.has(this.memoImageKey(image))
+    )
+    if (selected.length === 0 || !this.uploadMemoImageUrlValue) return
+
+    this.memoImageConfirmButtonTarget.disabled = true
+    this.setMemoImageStatus("選択した画像を添付しています…")
+    this.clearAttachmentError()
+    for (const image of selected) {
+      try {
+        const res = await fetch(this.uploadMemoImageUrlValue, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: jsonRequestHeaders(),
+          body: JSON.stringify(withAuthenticityToken({
+            memo_id: image.memo_id,
+            relative_path: image.relative_path
+          }))
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.error || "画像を添付できませんでした。")
+        if (!this.pendingAttachments.some((entry) => entry.tsuzura_media_id === data.tsuzura_media_id)) {
+          this.pendingAttachments.push(data)
+        }
+      } catch (error) {
+        this.showAttachmentError(error.message || "画像を添付できませんでした。")
+      }
+    }
+    this.renderAttachmentList()
+    this.closeMemoImagePicker()
+  }
+
+  setMemoImageStatus(message) {
+    if (this.hasMemoImageStatusTarget) this.memoImageStatusTarget.textContent = message
   }
 
   async openTsuzuraPicker(event) {
