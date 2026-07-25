@@ -54,7 +54,10 @@ export default class extends Controller {
   }
 
   restoreFocus() {
-    this._opener?.focus()
+    const focusTarget = this._opener?.matches(".kb-notebook-tree-row-search-button")
+      ? this._opener.closest("[data-notebook-memo-row]")?.querySelector(".kb-notebook-tree-link")
+      : this._opener
+    focusTarget?.focus()
     this._opener = null
   }
 

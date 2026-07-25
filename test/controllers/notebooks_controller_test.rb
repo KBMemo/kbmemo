@@ -80,6 +80,12 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
       text: notebook.display_label_for_memo(entry)
     assert_select "button.kb-chrome-link.border-0.bg-transparent.p-0", text: /新規メモ/
     assert_select "button.border-0.bg-transparent.p-0[title='子メモを追加']"
+    child_search_label = "「#{notebook.display_label_for_memo(entry)}」の子階層に既存メモを追加"
+    assert_select "button.kb-notebook-tree-row-search-button[aria-label=?][data-notebook-memo-picker-dialog-parent-id-param=?]",
+      child_search_label,
+      entry.id.to_s do
+      assert_select "i[data-lucide='search'][aria-hidden='true']"
+    end
     assert_select "li.kb-notebook-tree-add-row", count: 2
     assert_select "button.kb-notebook-tree-add-button.justify-center[aria-label='最上位に新規メモを追加']" do
       assert_select "i[data-lucide='plus'][aria-hidden='true']"
@@ -90,6 +96,12 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_select "dialog#notebook_memo_picker_dialog[aria-labelledby='notebook-memo-picker-dialog-title']"
     assert_select "dialog form[action=?] input[name='parent_id'][data-notebook-memo-picker-dialog-target='parentId']",
       notebook_notebook_memos_path(notebook)
+    assert_select "dialog button[type='submit'][aria-label='追加'][title='追加'][disabled]" do
+      assert_select "i[data-lucide='plus'][aria-hidden='true']"
+    end
+    assert_select "dialog button[type='button'][aria-label='キャンセル'][title='キャンセル']" do
+      assert_select "i[data-lucide='x'][aria-hidden='true']"
+    end
     sibling_label = "「#{notebook.display_label_for_memo(child)}」と同じ階層に新規メモを追加"
     assert_select "button.kb-notebook-tree-add-button[aria-label=?]", sibling_label
     assert_select "form[action=?] input[name='parent_id'][value=?]",

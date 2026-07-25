@@ -39,9 +39,11 @@
         = hidden_field_tag :parent_id, nil, data: { notebook_memo_picker_dialog_target: "parentId" }
         = hidden_field_tag :memo_id, nil, data: { notebook_memo_picker_dialog_target: "memoId" }
         = label_tag :notebook_dialog_memo_picker, "追加する既存メモを検索", class: "sr-only"
-        = search_field_tag :memo_query, nil, id: "notebook_dialog_memo_picker", placeholder: "タイトル・本文で検索", autocomplete: "off", class: "kb-input kb-input-md w-full", data: { notebook_memo_picker_dialog_target: "query", action: "input->notebook-memo-picker-dialog#queryInput" }
+        .flex.min-w-0.items-center.gap-2
+          = search_field_tag :memo_query, nil, id: "notebook_dialog_memo_picker", placeholder: "タイトル・本文で検索", autocomplete: "off", class: "kb-input kb-input-md min-w-0 flex-1", data: { notebook_memo_picker_dialog_target: "query", action: "input->notebook-memo-picker-dialog#queryInput" }
+          = button_tag type: "submit", class: "kb-toolbar-btn h-9 w-9 shrink-0 justify-center p-0", disabled: true, title: "追加", aria: { label: "追加" }, data: { notebook_memo_picker_dialog_target: "submit" } do
+            i.h-4.w-4 aria-hidden="true" data-lucide="plus"
+          button.kb-toolbar-btn.h-9.w-9.shrink-0.justify-center.p-0 type="button" title="キャンセル" aria-label="キャンセル" data-action="notebook-memo-picker-dialog#close"
+            i.h-4.w-4 aria-hidden="true" data-lucide="x"
         .max-h-64.overflow-y-auto.rounded-md.border.kb-border data-notebook-memo-picker-dialog-target="results"
           p.px-3.py-2.text-sm.kb-text-secondary 検索してください
-        .flex.justify-end.gap-2
-          button.kb-chrome-btn-secondary.kb-btn-sm type="button" data-action="notebook-memo-picker-dialog#close" キャンセル
-          = submit_tag "追加", class: "kb-chrome-btn-primary kb-btn-sm", disabled: true, data: { notebook_memo_picker_dialog_target: "submit", theme_slot: "btn-primary" }

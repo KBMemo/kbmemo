@@ -87,8 +87,27 @@ class NotebookSidebarLayoutTest < ApplicationSystemTestCase
     memo = Memo.create!(account: accounts(:one), title: "Search target memo", body: "= Search target memo")
 
     visit notebook_path(notebook)
-    search_label = "「#{notebook.display_label_for_memo(sibling)}」と同じ階層に既存メモを追加"
-    search_button = find("button[aria-label='#{search_label}']")
+    search_label = "「#{notebook.display_label_for_memo(parent)}」の子階層に既存メモを追加"
+    parent_row = find("[data-notebook-memo-row][data-notebook-memo-id='#{parent.id}']")
+    parent_row.hover
+    assert_equal "1", page.evaluate_script(
+      "getComputedStyle(document.querySelector('[data-notebook-memo-row][data-notebook-memo-id=\"#{parent.id}\"] .kb-notebook-tree-row-search-button')).opacity"
+    )
+    assert_equal "0", page.evaluate_script(
+      "getComputedStyle(document.querySelector('[data-notebook-memo-row][data-notebook-memo-id=\"#{sibling.id}\"] .kb-notebook-tree-row-search-button')).opacity"
+    )
+    page.execute_script("document.documentElement.classList.add('notebook-memo-tree-dragging')")
+    assert_equal "0", page.evaluate_script(
+      "getComputedStyle(document.querySelector('[data-notebook-memo-row][data-notebook-memo-id=\"#{parent.id}\"] .kb-notebook-tree-row-search-button')).opacity"
+    )
+    assert_equal "none", page.evaluate_script(
+      "getComputedStyle(document.querySelector('[data-notebook-memo-row][data-notebook-memo-id=\"#{parent.id}\"] .kb-notebook-tree-row-search-button')).pointerEvents"
+    )
+    page.execute_script("document.documentElement.classList.remove('notebook-memo-tree-dragging')")
+    assert_equal "1", page.evaluate_script(
+      "getComputedStyle(document.querySelector('[data-notebook-memo-row][data-notebook-memo-id=\"#{parent.id}\"] .kb-notebook-tree-row-search-button')).opacity"
+    )
+    search_button = parent_row.find("button[aria-label='#{search_label}']")
     icon_color = page.evaluate_script(<<~JS, search_button)
       ((button) => {
         const probe = document.createElement("span")
@@ -106,6 +125,19 @@ class NotebookSidebarLayoutTest < ApplicationSystemTestCase
     search_button.click
 
     assert_selector "dialog#notebook_memo_picker_dialog[open]"
+    within "dialog#notebook_memo_picker_dialog" do
+      click_button "キャンセル"
+    end
+    assert_no_selector "dialog#notebook_memo_picker_dialog[open]"
+    assert_equal parent.id.to_s, page.evaluate_script(
+      "document.activeElement.closest('[data-notebook-memo-row]')?.dataset.notebookMemoId"
+    )
+    assert_equal "0", page.evaluate_script(
+      "getComputedStyle(document.querySelector('[data-notebook-memo-row][data-notebook-memo-id=\"#{parent.id}\"] .kb-notebook-tree-row-search-button')).opacity"
+    )
+
+    parent_row.hover
+    parent_row.find("button[aria-label='#{search_label}']").click
     fill_in "追加する既存メモを検索", with: memo.title
     find("[data-notebook-memo-picker-dialog-target='results'] button", text: memo.title).click
     within "dialog#notebook_memo_picker_dialog" do

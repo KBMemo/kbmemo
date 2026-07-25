@@ -28,7 +28,8 @@ import {
   Plus,
   Search,
   Trash2,
-  WandSparkles
+  WandSparkles,
+  X
 } from "lucide"
 
 if (window.Turbo?.config?.drive) {
@@ -63,7 +64,8 @@ const renderLucideIcons = () => {
       Plus,
       Search,
       Trash2,
-      WandSparkles
+      WandSparkles,
+      X
     }
   })
 }
