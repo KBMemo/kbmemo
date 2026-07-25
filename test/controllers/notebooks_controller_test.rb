@@ -55,6 +55,11 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, available_memos_notebook_path(notebooks(:one))
     assert_select "select#memo_id", count: 0
     assert_select ".relative.min-w-0.w-full input.kb-memo-picker-query.min-w-0.w-full"
+    assert_select "body.kb-notebook-viewport"
+    assert_select "main.kb-notebook-main"
+    assert_select ".kb-notebook-workspace"
+    assert_select "#notebook_sidebar_shell.kb-notebook-sidebar-shell"
+    assert_select "#notebook_memo_panel.kb-notebook-content-scroll"
   end
 
   test "show renders compact selected memo title and borderless add buttons" do

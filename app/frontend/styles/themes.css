@@ -311,6 +311,45 @@ html[data-kb-theme-base="minimal"] {
   .kb-ai-sidebar-region {
     max-height: 100%;
   }
+
+  .kb-notebook-viewport {
+    display: flex;
+    height: 100dvh;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .kb-notebook-viewport > .kb-chrome-header {
+    flex: 0 0 auto;
+  }
+
+  .kb-notebook-main {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .kb-notebook-workspace {
+    min-height: 0;
+    flex: 1 1 auto;
+  }
+
+  .kb-notebook-sidebar-shell,
+  .kb-notebook-content {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .kb-notebook-sidebar-scroll,
+  .kb-notebook-content-scroll {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
 }
 
 .kb-chrome-muted-bar {
