@@ -66,9 +66,21 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
       assert_select "i[data-lucide='pencil'][aria-hidden='true']"
     end
     assert_select "#notebook_sidebar_shell form[action=?]", unpublish_notebook_path(notebooks(:one)), count: 0
-    assert_select "#notebook_memo_panel form[action=?][data-turbo-confirm*='メモ自体は削除されません'] button",
-      notebook_notebook_memo_path(notebooks(:one), memos(:one)),
-      text: "ノートブックから外す"
+    assert_select "#notebook_memo_panel form[action=?][data-turbo-confirm*='メモ自体は削除されません'] button[aria-label='ノートブックから外す'][title='ノートブックから外す']",
+      notebook_notebook_memo_path(notebooks(:one), memos(:one)) do
+      assert_select "i[data-lucide='unlink'][aria-hidden='true']"
+    end
+    assert_select "#notebook_memo_panel form[action=?] button[aria-label='コミット'][title='コミット']",
+      commit_memo_path(memos(:one)) do
+      assert_select "i[data-lucide='git-commit-horizontal'][aria-hidden='true']"
+    end
+    assert_select "#notebook_memo_panel a[href=?][aria-label='編集'][title='編集']", edit_memo_path(memos(:one)) do
+      assert_select "i[data-lucide='pencil'][aria-hidden='true']"
+    end
+    assert_select "#notebook_memo_panel a[href=?][aria-label='AIチャット'][title='AIチャット']",
+      agent_chat_path(new: 1, memo_reference_id: memos(:one).id) do
+      assert_select "i[data-lucide='message-square'][aria-hidden='true']"
+    end
     assert_select "#notebook_memo_panel form[action=?] button", memo_path(memos(:one)), count: 0
   end
 

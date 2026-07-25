@@ -48,17 +48,33 @@ ruby:
         - elsif memo.google_calendar_read_only?
           span.text-sm.kb-text-muted Google Calendar
         - elsif memo.display_as_draft? && policy(memo).update?
-          = button_to "コミット", commit_memo_path(memo), method: :patch, title: "ファイルへ保存して、Gitに記録", class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
-          = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-secondary kb-btn-md"
+          - if notebook_context
+            = button_to commit_memo_path(memo), method: :patch, title: "コミット", aria: { label: "コミット" }, class: "kb-toolbar-btn h-9 w-9 justify-center p-0" do
+              i.h-4.w-4 aria-hidden="true" data-lucide="git-commit-horizontal"
+            = link_to edit_memo_path(memo), title: "編集", aria: { label: "編集" }, class: "kb-toolbar-btn h-9 w-9 justify-center p-0" do
+              i.h-4.w-4 aria-hidden="true" data-lucide="pencil"
+          - else
+            = button_to "コミット", commit_memo_path(memo), method: :patch, title: "ファイルへ保存して、Gitに記録", class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
+            = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-secondary kb-btn-md"
         - elsif policy(memo).update?
-          = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
-        = link_to "AIチャット", agent_chat_path(new: 1, memo_reference_id: memo.id), class: "kb-chrome-btn-secondary kb-btn-md"
+          - if notebook_context
+            = link_to edit_memo_path(memo), title: "編集", aria: { label: "編集" }, class: "kb-toolbar-btn h-9 w-9 justify-center p-0" do
+              i.h-4.w-4 aria-hidden="true" data-lucide="pencil"
+          - else
+            = link_to "編集", edit_memo_path(memo), class: "kb-chrome-btn-primary kb-btn-md", data: { theme_slot: "btn-primary" }
+        - if notebook_context
+          = link_to agent_chat_path(new: 1, memo_reference_id: memo.id), title: "AIチャット", aria: { label: "AIチャット" }, class: "kb-toolbar-btn h-9 w-9 justify-center p-0" do
+            i.h-4.w-4 aria-hidden="true" data-lucide="message-square"
+        - else
+          = link_to "AIチャット", agent_chat_path(new: 1, memo_reference_id: memo.id), class: "kb-chrome-btn-secondary kb-btn-md"
         - if notebook_context && can_manage_notebook
-          = button_to "ノートブックから外す",
-            notebook_notebook_memo_path(notebook_context, memo),
+          = button_to notebook_notebook_memo_path(notebook_context, memo),
             method: :delete,
             form: { data: { turbo_confirm: "「#{memo.title}」をこのノートブックから外しますか？メモ自体は削除されません。" } },
-            class: "kb-chrome-btn-secondary kb-btn-sm"
+            title: "ノートブックから外す",
+            aria: { label: "ノートブックから外す" },
+            class: "kb-toolbar-btn h-9 w-9 justify-center p-0" do
+            i.h-4.w-4 aria-hidden="true" data-lucide="unlink"
         - elsif !notebook_context && policy(memo).destroy?
           = button_to "削除", memo_path(memo), method: :delete, form: { data: { turbo_confirm: "このメモを削除しますか？" } }, class: "kb-danger-btn kb-btn-sm"
 
