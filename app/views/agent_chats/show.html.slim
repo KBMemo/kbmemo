@@ -37,7 +37,7 @@
           button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#openTsuzuraPicker" 葛籠から選ぶ
           button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#openMemoImagePicker" メモから選ぶ
           button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#openReferenceMemoImagePicker" data-agent-chat-target="referenceMemoImageButton" aria-disabled="true" title="参照メモを選ぶと利用できます" 参照メモから選ぶ
-        p.hidden.text-xs.kb-status-danger data-agent-chat-target="attachmentError"
+        p.hidden.text-xs.kb-status-danger role="alert" aria-atomic="true" data-agent-chat-target="attachmentError"
         .flex.flex-wrap.gap-2 data-agent-chat-target="attachmentList"
         .flex.flex-wrap.items-center.gap-2
           span.text-xs.kb-text-muted この会話の参照メモ
@@ -77,7 +77,7 @@
           .p-3
             label.sr-only for="agent_chat_memo_image_search" メモを検索
             input#agent_chat_memo_image_search.kb-input.kb-input-sm.w-full type="search" placeholder="メモのタイトル・本文で検索" autocomplete="off" data-agent-chat-target="memoImageSearch" data-action="input->agent-chat#searchMemoImages"
-          p.px-3.pb-2.text-xs.kb-text-muted data-agent-chat-target="memoImageStatus"
+          p.px-3.pb-2.text-xs.kb-text-muted aria-live="polite" aria-atomic="true" data-agent-chat-target="memoImageStatus"
           .min-h-0.flex-1.overflow-y-auto.border-t.kb-border data-agent-chat-target="memoImageResults"
           .hidden.justify-center.border-t.kb-border.px-3.py-2 data-agent-chat-target="memoImageLoadMoreWrap"
             button.kb-chrome-btn-secondary.kb-btn-xs type="button" data-action="agent-chat#loadMoreMemoImages" data-agent-chat-target="memoImageLoadMoreButton" さらに読み込む
