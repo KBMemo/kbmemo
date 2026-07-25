@@ -234,6 +234,7 @@ export default class extends Controller {
     ])
 
     const textarea = this.fieldTarget
+    const isNewMemo = !this.memoIdValue
 
     this._onResetBody = (event) => {
       const body = event.detail?.body ?? ""

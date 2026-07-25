@@ -28,6 +28,8 @@ class MemoTemplateTest < ApplicationSystemTestCase
 
   test "new and edit forms use the same editor layout width" do
     visit new_memo_path
+    assert_selector ".memo-body-editor .cm-editor"
+    assert_selector ".memo-body-editor .cm-content:focus"
     new_width = page.evaluate_script(
       "document.querySelector('#memos_editor_scroll').getBoundingClientRect().width"
     )
