@@ -16,9 +16,14 @@ class AgentChatsController < ApplicationController
     @new_chat = ActiveModel::Type::Boolean.new.cast(params[:new])
     @initial_messages = store.ui_messages(@conversation)
     @conversation_id = @conversation&.id
+    initial_reference_ids = if params[:memo_reference_id].present?
+      [ params[:memo_reference_id] ]
+    else
+      @conversation&.memo_reference_ids
+    end
     @initial_memo_references = AgentChat::MemoReferences.resolve(
       scope: policy_scope(Memo),
-      ids: [ params[:memo_reference_id] ]
+      ids: initial_reference_ids
     ).map(&:as_json)
     @nyoy_mcp_configured = Chat::NyoyMcpConfig.configured?(account: account)
   end
@@ -120,10 +125,16 @@ class AgentChatsController < ApplicationController
     store = conversation_store
     conversation = store.find_or_create_conversation!(conversation_id: params[:conversation_id])
     image_attachments = AgentChat::ImageAttachments.normalize(image_attachments_param)
+    requested_reference_ids = if params.key?(:memo_reference_ids)
+      params[:memo_reference_ids]
+    else
+      conversation.memo_reference_ids
+    end
     memo_references = AgentChat::MemoReferences.resolve(
       scope: policy_scope(Memo),
-      ids: params[:memo_reference_ids]
+      ids: requested_reference_ids
     )
+    store.replace_memo_references!(conversation, memo_references)
     user_text = last_user_text_from_params
     user_text = "（画像を添付）" if user_text.blank? && image_attachments.any?
     turn_id = params[:turn_id].presence || SecureRandom.uuid

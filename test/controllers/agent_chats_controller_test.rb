@@ -74,6 +74,17 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, '"id":'
   end
 
+  test "show restores memo references saved on the conversation" do
+    conversation = accounts(:one).agent_chat_conversations.create!(
+      memo_reference_ids: [ memos(:two).id ]
+    )
+
+    get agent_chat_url(conversation_id: conversation.id)
+
+    assert_response :success
+    assert_select "script[data-agent-chat-target='initialMemoReferencesJson']", text: /Second memo/
+  end
+
   test "show ignores a memo reference outside the visible scope" do
     hidden = Memo.create!(
       title: "Hidden reference",
@@ -159,6 +170,74 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
       assert_equal [ memos(:one).id ], captured[:memo_references].map(&:id)
       conversation = AgentChatConversation.find(JSON.parse(response.body)["conversation_id"])
       assert_equal "First memo", conversation.messages.ordered.first.metadata.dig("memo_references", 0, "title")
+      assert_equal [ memos(:one).id ], conversation.memo_reference_ids
+    ensure
+      Chat::Agent.define_singleton_method(:new, original_new)
+    end
+  end
+
+  test "create reuses saved memo references when ids are omitted" do
+    conversation = accounts(:one).agent_chat_conversations.create!(
+      memo_reference_ids: [ memos(:two).id ]
+    )
+    captured = {}
+    fake_result = Chat::Agent::Result.new(
+      reply: "ok", intent: "conversation", classification: nil, model_role: :fast_chat,
+      escalated: false, tools: [], pending_tools: false, rag: nil
+    )
+    original_new = Chat::Agent.method(:new)
+    begin
+      Chat::Agent.define_singleton_method(:new) do |**_kwargs|
+        Object.new.tap do |agent|
+          agent.define_singleton_method(:call) do |**kwargs|
+            captured.replace(kwargs)
+            fake_result
+          end
+        end
+      end
+
+      post agent_chat_url,
+        params: {
+          conversation_id: conversation.id,
+          messages: [ { role: "user", content: "続けて" } ]
+        },
+        as: :json
+
+      assert_response :success
+      assert_equal [ memos(:two).id ], captured[:memo_references].map(&:id)
+    ensure
+      Chat::Agent.define_singleton_method(:new, original_new)
+    end
+  end
+
+  test "create removes saved references that are no longer visible" do
+    hidden = Memo.create!(
+      title: "Revoked",
+      body: "secret",
+      account: accounts(:two),
+      memo_directory: memo_directories(:home_u_two),
+      visibility: :owner_read_write
+    )
+    conversation = accounts(:one).agent_chat_conversations.create!(memo_reference_ids: [ hidden.id ])
+    fake_result = Chat::Agent::Result.new(
+      reply: "ok", intent: "conversation", classification: nil, model_role: :fast_chat,
+      escalated: false, tools: [], pending_tools: false, rag: nil
+    )
+    original_new = Chat::Agent.method(:new)
+    begin
+      Chat::Agent.define_singleton_method(:new) do |**_kwargs|
+        Object.new.tap { |agent| agent.define_singleton_method(:call) { |**_kwargs| fake_result } }
+      end
+
+      post agent_chat_url,
+        params: {
+          conversation_id: conversation.id,
+          messages: [ { role: "user", content: "続けて" } ]
+        },
+        as: :json
+
+      assert_response :success
+      assert_empty conversation.reload.memo_reference_ids
     ensure
       Chat::Agent.define_singleton_method(:new, original_new)
     end

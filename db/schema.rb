@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_24_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_25_073000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgroonga"
@@ -95,6 +95,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_24_090000) do
     t.bigint "account_id", null: false
     t.datetime "created_at", null: false
     t.bigint "memo_id"
+    t.jsonb "memo_reference_ids", default: [], null: false
     t.string "title"
     t.datetime "updated_at", null: false
     t.index ["account_id", "updated_at"], name: "index_agent_chat_conversations_on_account_id_and_updated_at"

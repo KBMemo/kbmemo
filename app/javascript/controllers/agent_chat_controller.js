@@ -386,7 +386,6 @@ export default class extends Controller {
     })
     if (this.inputTarget) this.inputTarget.value = ""
     this.pendingAttachments = []
-    this.pendingMemoReferences = []
     this.renderAttachmentList()
     this.renderMemoReferenceList()
     this.renderMessages()

@@ -55,6 +55,19 @@ class AgentChatConversationStoreTest < ActiveSupport::TestCase
     assert_includes assistant.ui_meta, "RAG: 1件"
   end
 
+  test "replace memo references stores a bounded unique id list" do
+    conversation = @account.agent_chat_conversations.create!
+    references = [
+      AgentChat::MemoReferences::Reference.new(id: memos(:one).id, title: "One", body: ""),
+      AgentChat::MemoReferences::Reference.new(id: memos(:one).id, title: "One", body: ""),
+      AgentChat::MemoReferences::Reference.new(id: memos(:two).id, title: "Two", body: "")
+    ]
+
+    @store.replace_memo_references!(conversation, references)
+
+    assert_equal [ memos(:one).id, memos(:two).id ], conversation.reload.memo_reference_ids
+  end
+
   test "clear destroys active conversation" do
     conversation = @account.agent_chat_conversations.create!
     conversation.messages.create!(role: "user", content: "hi", metadata: {})

@@ -52,6 +52,12 @@ module AgentChat
       conversation
     end
 
+    def replace_memo_references!(conversation, references)
+      ids = Array(references).filter_map { |reference| reference.respond_to?(:id) ? reference.id : nil }
+      conversation.update!(memo_reference_ids: ids.uniq.first(AgentChat::MemoReferences::MAX_COUNT))
+      conversation
+    end
+
     def append_assistant_message!(conversation, result:)
       conversation.messages.create!(
         role: "assistant",

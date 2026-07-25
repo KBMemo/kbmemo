@@ -4,12 +4,13 @@
 #
 # Table name: agent_chat_conversations
 #
-#  id         :bigint           not null, primary key
-#  title      :string
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#  account_id :bigint           not null
-#  memo_id    :bigint
+#  id                 :bigint           not null, primary key
+#  memo_reference_ids :jsonb            not null
+#  title              :string
+#  created_at         :datetime         not null
+#  updated_at         :datetime         not null
+#  account_id         :bigint           not null
+#  memo_id            :bigint
 #
 # Indexes
 #
@@ -35,6 +36,7 @@ class AgentChatConversation < ApplicationRecord
            dependent: :destroy
 
   validates :title, length: { maximum: TITLE_MAX_LENGTH }, allow_blank: true
+  validate :memo_reference_ids_must_be_an_array
 
   scope :recent_first, -> { order(updated_at: :desc) }
 
@@ -54,5 +56,11 @@ class AgentChatConversation < ApplicationRecord
     return if snippet.blank?
 
     update!(title: snippet.truncate(TITLE_MAX_LENGTH, omission: "…"))
+  end
+
+  private
+
+  def memo_reference_ids_must_be_an_array
+    errors.add(:memo_reference_ids, "must be an array") unless memo_reference_ids.is_a?(Array)
   end
 end

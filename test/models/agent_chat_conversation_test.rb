@@ -4,12 +4,13 @@
 #
 # Table name: agent_chat_conversations
 #
-#  id         :bigint           not null, primary key
-#  title      :string
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#  account_id :bigint           not null
-#  memo_id    :bigint
+#  id                 :bigint           not null, primary key
+#  memo_reference_ids :jsonb            not null
+#  title              :string
+#  created_at         :datetime         not null
+#  updated_at         :datetime         not null
+#  account_id         :bigint           not null
+#  memo_id            :bigint
 #
 # Indexes
 #
