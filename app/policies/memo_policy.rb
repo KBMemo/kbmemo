@@ -46,6 +46,7 @@ class MemoPolicy < ApplicationPolicy
   alias commit? update?
   alias revert_draft? update?
   alias ai_chat? update?
+  alias append_ai_reply? update?
   alias suggest_metadata? update?
 
   def upload_asset?

@@ -1425,7 +1425,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "a.kb-inline-link[href=?]", memo_path(memo, sidebar_view: "directory", memo_directory_id: memo.memo_directory_id)
     assert_select "#memo_ai_sidebar_region [data-controller='memo-ai-panel']"
     assert_select "[data-memo-ai-panel-target='includeSelection']", count: 0
-    assert_select "button[data-action='memo-ai-panel#insertLastReply']", count: 0
+    assert_select "[data-memo-ai-panel-append-url-value=?]", append_ai_reply_memo_path(memo, format: :json)
+    assert_select "button[data-action='memo-ai-panel#insertLastReply']", text: "応答を末尾へ追記"
     assert_select "textarea[placeholder='例: このメモの要点をまとめて（Ctrl+Enter で送信）']"
     assert_select "a[href=?][aria-label='編集'][title='編集']", edit_memo_path(memo) do
       assert_select "i[data-lucide='pencil'][aria-hidden='true']"
@@ -1438,6 +1439,27 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
       memo_path(memo) do
       assert_select "i[data-lucide='trash-2'][aria-hidden='true']"
     end
+  end
+
+  test "append ai reply adds the response to the latest body as a draft" do
+    memo = memos(:one)
+    memo.update_columns(body: "= Existing\n\nBody", file_committed_at: 1.hour.ago)
+
+    patch append_ai_reply_memo_url(memo), params: { content: "== AI response\n\nAdded." }, as: :json
+
+    assert_response :success
+    assert_equal "= Existing\n\nBody\n\n== AI response\n\nAdded.", memo.reload.body
+    assert memo.display_as_draft?
+  end
+
+  test "append ai reply rejects an empty response" do
+    memo = memos(:one)
+
+    assert_no_changes -> { memo.reload.body } do
+      patch append_ai_reply_memo_url(memo), params: { content: "  " }, as: :json
+    end
+
+    assert_response :unprocessable_entity
   end
 
   test "show displays the author only for another user's memo" do

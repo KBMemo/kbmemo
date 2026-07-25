@@ -8,6 +8,7 @@ export default class extends Controller {
     "messages",
     "input",
     "sendButton",
+    "insertButton",
     "error",
     "includeSelection",
     "modelRole"
@@ -15,6 +16,7 @@ export default class extends Controller {
 
   static values = {
     chatUrl: String,
+    appendUrl: String,
     modelOptionsUrl: String,
     profileUrl: String,
     hasApiKey: Boolean
@@ -140,7 +142,7 @@ export default class extends Controller {
     }
   }
 
-  insertLastReply(event) {
+  async insertLastReply(event) {
     event?.preventDefault()
     const last = [...this.history].reverse().find((m) => m.role === "assistant")
     if (!last?.content) {
@@ -148,12 +150,40 @@ export default class extends Controller {
       return
     }
     const editor = this.bodyEditorController()
-    if (!editor) {
+    if (editor) {
+      await editor.insertAtCursor(last.content)
+      this.clearError()
+      return
+    }
+    if (!this.hasAppendUrlValue) {
       this.showError("本文エディタの準備ができていません。")
       return
     }
-    void editor.insertAtCursor(last.content)
-    this.clearError()
+
+    this.setInsertBusy(true)
+    try {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content
+      const res = await fetch(this.appendUrlValue, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          ...(token ? { "X-CSRF-Token": token } : {})
+        },
+        body: JSON.stringify({ content: last.content })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        this.showError(data.error || "応答をメモへ追記できませんでした。")
+        return
+      }
+      this.clearError()
+    } catch {
+      this.showError("応答をメモへ追記できませんでした。")
+    } finally {
+      this.setInsertBusy(false)
+    }
   }
 
   clearChat(event) {
@@ -233,6 +263,12 @@ export default class extends Controller {
     if (!this.hasSendButtonTarget) return
     this.sendButtonTarget.disabled = this.sending
     this.sendButtonTarget.textContent = this.sending ? "送信中…" : "送信"
+  }
+
+  setInsertBusy(busy) {
+    if (!this.hasInsertButtonTarget) return
+    this.insertButtonTarget.disabled = busy
+    this.insertButtonTarget.textContent = busy ? "追記中…" : "応答を末尾へ追記"
   }
 
   selectedModelRole() {

@@ -1,6 +1,6 @@
 class MemosController < ApplicationController
   prepend_before_action :record_memo_view_history, only: %i[show edit]
-  prepend_before_action :set_memo, only: %i[show edit update destroy draft commit revert_draft checklist_toggle update_directory update_tags render_diagram]
+  prepend_before_action :set_memo, only: %i[show edit update destroy draft append_ai_reply commit revert_draft checklist_toggle update_directory update_tags render_diagram]
   before_action :set_memo_groups_for_form, only: %i[new create edit update]
   before_action :set_memo_templates_for_new, only: %i[new create]
   include MemoSidebar
@@ -363,6 +363,27 @@ class MemosController < ApplicationController
     else
       render json: { errors: @memo.errors.full_messages }, status: :unprocessable_entity
     end
+  end
+
+  def append_ai_reply
+    authorize @memo
+    reply = params[:content].to_s.strip
+    if reply.blank?
+      render json: { error: "追記する応答がありません。" }, status: :unprocessable_entity
+      return
+    end
+
+    @memo.with_lock do
+      @memo.body = [ @memo.body.to_s.rstrip.presence, reply ].compact.join("\n\n")
+      MemoChecklist.sync_properties_from_body!(@memo)
+      @memo.save!(validate: false)
+    end
+
+    broadcast_updated_show_content
+    render json: {
+      saved_at: @memo.updated_at.iso8601(3),
+      display_as_draft: @memo.display_as_draft?
+    }
   end
 
   def revert_draft
