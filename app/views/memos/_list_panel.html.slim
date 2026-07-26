@@ -9,18 +9,31 @@ ruby:
       = link_to "タグ", memos_sidebar_tag_tab_path, class: memo_sidebar_view_tab_classes("tag"), draggable: "false"
       = link_to "検索", memos_sidebar_search_tab_path, class: memo_sidebar_view_tab_classes("search"), draggable: "false"
       = link_to "ディレクトリ", memos_sidebar_directory_tab_path, class: memo_sidebar_view_tab_classes("directory"), draggable: "false"
-    - if @sidebar_view == "directory" && (open_memo = memo_sidebar_open_memo) && (dir = open_memo.memo_directory) && !dir.root?
-      .mb-2.min-w-0.text-sm.kb-text-secondary
-        span.sr-only 保存先
-        = link_to memo_directory_path_from_root_label(dir),
-          memo_sidebar_open_memo_path(open_memo, sidebar_view: "directory", memo_directory_id: dir.id),
-          class: "block truncate kb-inline-link",
-          title: "サイドバーでこのディレクトリを表示"
     - if @sidebar_view == "directory"
+      = form_tag memos_path, method: :get, class: "mb-2", data: { turbo: false } do
+        = hidden_field_tag :sidebar_view, "directory"
+        = label_tag :memo_directory_path, "選択ディレクトリ", class: "mb-1 block text-xs font-medium kb-text-secondary"
+        .flex.min-w-0.items-center.gap-1
+          = search_field_tag :memo_directory_path,
+            memo_sidebar_directory_path_value,
+            list: "memo-sidebar-directory-path-options",
+            autocomplete: "off",
+            spellcheck: "false",
+            class: "kb-input kb-input-xs min-w-0 flex-1 font-mono",
+            aria: { invalid: (@memo_directory_path_invalid ? "true" : nil), describedby: (@memo_directory_path_invalid ? "memo-directory-path-error" : nil) }
+          = button_tag "移動", type: "submit", class: "kb-chrome-btn-secondary kb-btn-xs shrink-0"
+        datalist#memo-sidebar-directory-path-options
+          option value="/" label="ルート"
+          - (@memo_directories_for_nav || []).reject(&:root?).each do |directory|
+            option value="/#{directory.full_path}" label=directory.labeled_path_from_root
+        - if @memo_directory_path_invalid
+          p#memo-directory-path-error.mt-1.text-xs.kb-status-danger
+            | ディレクトリが見つかりません。
       - nav_dir_children = memo_directory_nav_children_index(@memo_directories_for_nav || [])
-      ul.mb-2.list-none.space-y-0.5.p-0
-        - memo_directory_nav_tree_roots(@memo_directories_for_nav || [], nav_dir_children).each do |dir|
-          = render "memos/memo_directory_nav_branch", dir: dir, by_parent: nav_dir_children
+      .kb-memo-directory-tree-scroll.mb-2
+        ul.list-none.space-y-0.5.p-0
+          - memo_directory_nav_tree_roots(@memo_directories_for_nav || [], nav_dir_children).each do |dir|
+            = render "memos/memo_directory_nav_branch", dir: dir, by_parent: nav_dir_children
     - elsif @sidebar_view == "tag"
       - tags = @tags_for_nav || []
       - if tags.any?

@@ -76,4 +76,61 @@ class MemoSidebarLayoutTest < ApplicationSystemTestCase
   ensure
     page.current_window.resize_to(1400, 1400)
   end
+
+  test "keeps directory tree and memo list heights stable while toggling a branch" do
+    directory = memo_directories(:work)
+    20.times do |i|
+      MemoDirectory.create!(
+        parent: directory,
+        path_segment: "tree-scroll-#{i}",
+        label: "Tree scroll #{i}"
+      )
+      Memo.create!(
+        title: "List scroll memo #{i}",
+        body: "body",
+        memo_directory: directory,
+        account: accounts(:one),
+        file_committed_at: Time.current
+      )
+    end
+
+    visit memos_path(sidebar_view: "directory", memo_directory_id: directory.id)
+
+    dimensions_before = page.evaluate_script(<<~JS)
+      (() => {
+        const tree = document.querySelector(".kb-memo-directory-tree-scroll")
+        const list = document.querySelector("#memo_sidebar_memo_list_scroll")
+        return {
+          treeHeight: tree.clientHeight,
+          treeScrollHeight: tree.scrollHeight,
+          treeOverflow: getComputedStyle(tree).overflowY,
+          listHeight: list.clientHeight,
+          listOverflow: getComputedStyle(list).overflowY
+        }
+      })()
+    JS
+
+    find(
+      "[data-memo-directory-nav-branch][data-memo-directory-id='#{directory.id}'] > " \
+      "button.memo-directory-nav-summary"
+    ).click
+
+    dimensions_after = page.evaluate_script(<<~JS)
+      (() => {
+        const tree = document.querySelector(".kb-memo-directory-tree-scroll")
+        const list = document.querySelector("#memo_sidebar_memo_list_scroll")
+        return {
+          treeHeight: tree.clientHeight,
+          treeScrollHeight: tree.scrollHeight,
+          listHeight: list.clientHeight
+        }
+      })()
+    JS
+
+    assert_equal "auto", dimensions_before["treeOverflow"]
+    assert_equal "auto", dimensions_before["listOverflow"]
+    assert_equal dimensions_before["treeHeight"], dimensions_after["treeHeight"]
+    assert_equal dimensions_before["listHeight"], dimensions_after["listHeight"]
+    assert_not_equal dimensions_before["treeScrollHeight"], dimensions_after["treeScrollHeight"]
+  end
 end

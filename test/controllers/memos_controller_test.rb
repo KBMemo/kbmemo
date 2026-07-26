@@ -466,6 +466,39 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "#memos_list_panel a[href=?]", tags_path, count: 0
   end
 
+  test "directory sidebar separates the tree from the memo list scroll region" do
+    directory = memo_directories(:work)
+    get memos_url(sidebar_view: "directory", memo_directory_id: directory.id)
+
+    assert_response :success
+    assert_select "form input[name='sidebar_view'][value='directory']"
+    assert_select "label[for='memo_directory_path']", text: "選択ディレクトリ"
+    assert_select "input#memo_directory_path[list='memo-sidebar-directory-path-options'][value=?]",
+      "/#{directory.full_path}"
+    assert_select "datalist#memo-sidebar-directory-path-options option[value=?][label=?]",
+      "/#{directory.full_path}", directory.labeled_path_from_root
+    assert_select ".kb-memo-directory-tree-scroll"
+    assert_select "#memo_sidebar_memo_list_scroll.kb-memo-sidebar-scroll"
+  end
+
+  test "directory sidebar accepts a manually entered full path" do
+    directory = memo_directories(:work)
+
+    get memos_url(sidebar_view: "directory", memo_directory_path: "/#{directory.full_path}/")
+
+    assert_response :success
+    assert_select "input#memo_directory_path[value=?]", "/#{directory.full_path}"
+    assert_includes response.body, memos(:one).title
+  end
+
+  test "directory sidebar reports an unknown manually entered path" do
+    get memos_url(sidebar_view: "directory", memo_directory_path: "/missing/path")
+
+    assert_response :success
+    assert_select "input#memo_directory_path[value='/missing/path'][aria-invalid='true'][aria-describedby='memo-directory-path-error']"
+    assert_select "#memo-directory-path-error", text: "ディレクトリが見つかりません。"
+  end
+
   test "tag sidebar suggests only tags attached to visible memos" do
     unused_tag = Tag.create!(name: "UnusedSidebarTag")
     private_tag = Tag.create!(name: "PrivateSidebarTag")

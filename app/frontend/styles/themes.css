@@ -298,6 +298,13 @@ html[data-kb-theme-base="minimal"] {
   transition-property: width, max-height;
 }
 
+.kb-memo-directory-tree-scroll {
+  block-size: clamp(10rem, 30dvh, 18rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
 @media (min-width: 768px) {
   .kb-workspace-min {
     min-height: calc(100vh - var(--kb-workspace-offset));

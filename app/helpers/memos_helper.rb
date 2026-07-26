@@ -223,6 +223,13 @@ module MemosHelper
     "#{shown} / #{total} 件"
   end
 
+  def memo_sidebar_directory_path_value
+    return @memo_directory_path_query if @memo_directory_path_invalid
+    return "/" if @current_memo_directory&.root?
+
+    "/#{@current_memo_directory&.full_path}"
+  end
+
   # サイドバー用: policy_scope 内のディレクトリを parent_id でグルーピング（ルート行は除外）
   def memo_directory_nav_children_index(directories)
     all = Array(directories)

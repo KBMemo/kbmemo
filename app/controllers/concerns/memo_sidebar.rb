@@ -43,9 +43,16 @@ module MemoSidebar
     @sidebar_view = sidebar_view_from_params
     @memo_search_query = @sidebar_view == "search" ? params[:q].to_s.strip.presence : nil
 
+    directory_scope = policy_scope(MemoDirectory)
     @current_memo_directory =
-      if params[:memo_directory_id].present?
-        policy_scope(MemoDirectory).find_by(id: params[:memo_directory_id]) || MemoDirectory.root
+      if params.key?(:memo_directory_path)
+        @memo_directory_path_query = params[:memo_directory_path].to_s.strip
+        normalized_path = @memo_directory_path_query.sub(%r{\A/+}, "").sub(%r{/+\z}, "")
+        selected = directory_scope.find_by(full_path: normalized_path)
+        @memo_directory_path_invalid = selected.nil?
+        selected || MemoDirectory.root
+      elsif params[:memo_directory_id].present?
+        directory_scope.find_by(id: params[:memo_directory_id]) || MemoDirectory.root
       else
         MemoDirectory.root
       end
