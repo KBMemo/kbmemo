@@ -133,6 +133,10 @@ public repository を作成しない。
 * `agent_graph-core.gemspec` のhomepageは`KBMemo/nyoy`を参照するよう更新済み。
 * Gitea URL、内部ホスト名、private network のアドレス、個人環境のパスを含む
   runbook と設定がある。
+* README、example env、database、LLM / SD / 検索 / readabilityのruntime defaultは
+  `localhost`基準へ一般化した。既存環境のDBホストはGit管理外credentialsへ移行した。
+* 本番deploy scriptと実運用runbookに残るホスト名・配置パスは、公開用手順と
+  内部運用記録へ分離する必要がある。
 * 履歴書き換え後のgitleaks検出は6件。
 ** すべてrunbookの`Authorization: Bearer your-token`という例示値。
 ** 過去の`config/credentials.yml.enc`とその暗号文は全refから除去済み。
