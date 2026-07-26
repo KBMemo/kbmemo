@@ -145,4 +145,36 @@ describe("memo-ai-panel", () => {
       )
     )
   })
+
+  it("restores the append action after an append failure", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url) => {
+      if (String(url).includes("ai_chat")) {
+        return {
+          ok: true,
+          json: async () => ({ reply: "AI response", backend: "local", model: "model" })
+        }
+      }
+      return {
+        ok: false,
+        json: async () => ({ error: "メモを更新できませんでした。" })
+      }
+    }))
+    await mount({ append: true })
+
+    document.querySelector("textarea").value = "Hello"
+    document.querySelector("[data-memo-ai-panel-target='sendButton']").click()
+    await vi.waitFor(() => expect(document.body.textContent).toContain("AI response"))
+
+    const insertButton = document.querySelector("[data-memo-ai-panel-target='insertButton']")
+    insertButton.click()
+
+    await vi.waitFor(() =>
+      expect(document.querySelector("[data-memo-ai-panel-target='error']").textContent).toBe(
+        "メモを更新できませんでした。"
+      )
+    )
+    expect(insertButton.disabled).toBe(false)
+    expect(insertButton.textContent).toBe("応答を末尾へ追記")
+    expect(document.querySelector("[role='status']").textContent).toBe("")
+  })
 })
