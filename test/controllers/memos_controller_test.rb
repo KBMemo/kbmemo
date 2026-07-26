@@ -473,9 +473,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "form input[name='sidebar_view'][value='directory']"
     assert_select "label[for='memo_directory_path']", text: "選択ディレクトリ"
-    assert_select "input#memo_directory_path[list='memo-sidebar-directory-path-options'][value=?]",
+    assert_select "input#memo_directory_path[role='combobox'][aria-controls='memo-sidebar-directory-path-options'][value=?]",
       "/#{directory.full_path}"
-    assert_select "datalist#memo-sidebar-directory-path-options option[value=?][label=?]",
+    assert_select "#memo-sidebar-directory-path-options[role='listbox'] button[data-directory-path=?][title=?]",
       "/#{directory.full_path}", directory.labeled_path_from_root
     assert_select ".kb-memo-directory-tree-scroll"
     assert_select "#memo_sidebar_memo_list_scroll.kb-memo-sidebar-scroll"

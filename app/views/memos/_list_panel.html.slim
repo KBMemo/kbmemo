@@ -10,22 +10,26 @@ ruby:
       = link_to "検索", memos_sidebar_search_tab_path, class: memo_sidebar_view_tab_classes("search"), draggable: "false"
       = link_to "ディレクトリ", memos_sidebar_directory_tab_path, class: memo_sidebar_view_tab_classes("directory"), draggable: "false"
     - if @sidebar_view == "directory"
-      = form_tag memos_path, method: :get, class: "mb-2", data: { turbo: false } do
+      = form_tag memos_path, method: :get, class: "relative mb-2", data: { turbo: false, controller: "memo-directory-path-search", memo_directory_path_search_target: "form" } do
         = hidden_field_tag :sidebar_view, "directory"
         = label_tag :memo_directory_path, "選択ディレクトリ", class: "mb-1 block text-xs font-medium kb-text-secondary"
         .flex.min-w-0.items-center.gap-1
           = search_field_tag :memo_directory_path,
             memo_sidebar_directory_path_value,
-            list: "memo-sidebar-directory-path-options",
             autocomplete: "off",
             spellcheck: "false",
+            role: "combobox",
             class: "kb-input kb-input-xs min-w-0 flex-1 font-mono",
-            aria: { invalid: (@memo_directory_path_invalid ? "true" : nil), describedby: (@memo_directory_path_invalid ? "memo-directory-path-error" : nil) }
+            aria: { autocomplete: "list", controls: "memo-sidebar-directory-path-options", expanded: "false", invalid: (@memo_directory_path_invalid ? "true" : nil), describedby: (@memo_directory_path_invalid ? "memo-directory-path-error" : nil) },
+            data: { memo_directory_path_search_target: "input", action: "input->memo-directory-path-search#input focus->memo-directory-path-search#focus blur->memo-directory-path-search#closeLater keydown->memo-directory-path-search#keydown" }
           = button_tag "移動", type: "submit", class: "kb-chrome-btn-secondary kb-btn-xs shrink-0"
-        datalist#memo-sidebar-directory-path-options
-          option value="/" label="ルート"
+        #memo-sidebar-directory-path-options.kb-tag-search-options.hidden role="listbox" data-memo-directory-path-search-target="options"
+          button#memo-directory-path-option-root.kb-tag-search-option.hidden type="button" role="option" aria-selected="false" data-directory-path="/" data-search-text="/ ルート" data-memo-directory-path-search-target="option" data-action="mousedown->memo-directory-path-search#keepOpen click->memo-directory-path-search#select"
+            | /
           - (@memo_directories_for_nav || []).reject(&:root?).each do |directory|
-            option value="/#{directory.full_path}" label=directory.labeled_path_from_root
+            - directory_path = "/#{directory.full_path}"
+            button.kb-tag-search-option.hidden id="memo-directory-path-option-#{directory.id}" type="button" role="option" aria-selected="false" title=directory.labeled_path_from_root data-directory-path=directory_path data-search-text="#{directory_path} #{directory.labeled_path_from_root}" data-memo-directory-path-search-target="option" data-action="mousedown->memo-directory-path-search#keepOpen click->memo-directory-path-search#select"
+              = directory_path
         - if @memo_directory_path_invalid
           p#memo-directory-path-error.mt-1.text-xs.kb-status-danger
             | ディレクトリが見つかりません。

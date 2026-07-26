@@ -60,6 +60,7 @@ const lazyControllers = {
   "memo-directory-dialog": () => import("./memo_directory_dialog_controller"),
   "memo-directory-dnd": () => import("./memo_directory_dnd_controller"),
   "memo-directory-parent-picker": () => import("./memo_directory_parent_picker_controller"),
+  "memo-directory-path-search": () => import("./memo_directory_path_search_controller"),
   "memo-search": () => import("./memo_search_controller"),
   "memo-tag-search": () => import("./memo_tag_search_controller"),
   "memo-sidebar-memo-list": () => import("./memo_sidebar_memo_list_controller"),
