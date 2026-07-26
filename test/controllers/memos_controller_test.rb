@@ -1446,7 +1446,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     memo = memos(:one)
     memo.update_columns(body: "= Existing\n\nBody", file_committed_at: 1.hour.ago)
 
-    patch append_ai_reply_memo_url(memo), params: { content: "== AI response\n\nAdded." }, as: :json
+    assert_turbo_stream_broadcasts memo do
+      patch append_ai_reply_memo_url(memo), params: { content: "== AI response\n\nAdded." }, as: :json
+    end
 
     assert_response :success
     assert_equal "= Existing\n\nBody\n\n== AI response\n\nAdded.", memo.reload.body
