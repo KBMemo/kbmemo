@@ -4,7 +4,7 @@
       h2.text-sm.font-semibold.truncate.kb-text-primary = @notebook.title
       - if !help_show? && @can_manage
         = link_to edit_notebook_path(@notebook), class: "kb-toolbar-btn ml-auto shrink-0", aria: { label: "ノートブックを編集" }, title: "ノートブックを編集" do
-          i aria-hidden="true" data-lucide="pencil"
+          i aria-hidden="true" data-lucide="settings"
     .min-w-0
       p.mt-0.5.text-xs.kb-text-muted
         = notebook_kind_label(@notebook)
@@ -14,6 +14,7 @@
       .mt-2.flex.flex-wrap.items-center.gap-x-2.gap-y-1.text-xs
         = link_to "ヘルプトップ", help_path, class: "kb-chrome-link"
   .kb-notebook-sidebar-scroll.min-h-0.flex-1.overflow-y-auto.px-2.py-2
+    p.hidden.px-2.pb-2.text-xs role="status" aria-live="polite" data-notebook-memo-tree-target="status"
     = render "notebooks/memo_tree", notebook: @notebook
   - if @can_manage
     dialog#notebook_memo_picker_dialog.notebook-memo-picker-dialog.kb-modal-panel.rounded-lg.p-0 aria-labelledby="notebook-memo-picker-dialog-title" data-notebook-memo-picker-dialog-target="dialog" data-action="click->notebook-memo-picker-dialog#backdropClick close->notebook-memo-picker-dialog#restoreFocus"

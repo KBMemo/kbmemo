@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 // ノートブック左ペインのメモツリー DnD（順序・階層）
 export default class extends Controller {
+  static targets = ["status"]
   static values = { reorderUrl: String }
 
   entryDragStart(event) {
@@ -107,6 +108,7 @@ export default class extends Controller {
   }
 
   async _patchMove(entryId, parentId, position) {
+    this._clearStatus()
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content")
     const body = {
       notebook_memo_id: Number(entryId),
@@ -124,7 +126,11 @@ export default class extends Controller {
         },
         body: JSON.stringify(body)
       })
-      if (!res.ok) return
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        this._showStatus(data.error || "並べ替えに失敗しました。", true)
+        return
+      }
       const ct = (res.headers.get("Content-Type") || "").toLowerCase()
       if (ct.includes("vnd.turbo-stream")) {
         const stream = await res.text()
@@ -132,8 +138,9 @@ export default class extends Controller {
           window.Turbo.renderStreamMessage(stream)
         }
       }
-    } catch (e) {
-      console.error(e)
+      this._showStatus("並べ替えました。")
+    } catch {
+      this._showStatus("並べ替えに失敗しました。", true)
     } finally {
       this._dragEntryId = null
       document.documentElement.classList.remove("notebook-memo-tree-dragging")
@@ -141,6 +148,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    if (this._statusTimer) window.clearTimeout(this._statusTimer)
     document.documentElement.classList.remove("notebook-memo-tree-dragging")
   }
 
@@ -148,5 +156,28 @@ export default class extends Controller {
     this.element.querySelectorAll("[data-notebook-memo-row]").forEach((el) => {
       el.classList.remove("kb-drop-highlight")
     })
+  }
+
+  _showStatus(message, error = false) {
+    if (!this.hasStatusTarget) return
+    this._clearStatus()
+    this.statusTarget.textContent = message
+    this.statusTarget.classList.toggle("kb-status-danger", error)
+    this.statusTarget.classList.toggle("kb-status-success", !error)
+    this.statusTarget.classList.remove("hidden")
+    if (!error) {
+      this._statusTimer = window.setTimeout(() => this._clearStatus(), 4000)
+    }
+  }
+
+  _clearStatus() {
+    if (this._statusTimer) {
+      window.clearTimeout(this._statusTimer)
+      this._statusTimer = null
+    }
+    if (!this.hasStatusTarget) return
+    this.statusTarget.textContent = ""
+    this.statusTarget.classList.add("hidden")
+    this.statusTarget.classList.remove("kb-status-danger", "kb-status-success")
   }
 }

@@ -61,9 +61,10 @@ class NotebooksControllerTest < ActionDispatch::IntegrationTest
     assert_select "#notebook_sidebar_shell.kb-notebook-sidebar-shell"
     assert_select "#notebook_memo_panel.kb-notebook-content-scroll"
     assert_select "#notebook_sidebar_shell a[href=?]", notebooks_path, count: 0
+    assert_select "#notebook_sidebar_shell [data-notebook-memo-tree-target='status'][role='status'][aria-live='polite']"
     assert_select "#notebook_sidebar_shell a.kb-toolbar-btn[href=?][aria-label='ノートブックを編集'][title='ノートブックを編集']",
       edit_notebook_path(notebooks(:one)) do
-      assert_select "i[data-lucide='pencil'][aria-hidden='true']"
+      assert_select "i[data-lucide='settings'][aria-hidden='true']"
     end
     assert_select "#notebook_sidebar_shell form[action=?]", unpublish_notebook_path(notebooks(:one)), count: 0
     assert_select "#notebook_memo_panel form[action=?][data-turbo-confirm*='メモ自体は削除されません'] button[aria-label='ノートブックから外す'][title='ノートブックから外す']",
