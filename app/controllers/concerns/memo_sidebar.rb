@@ -34,6 +34,12 @@ module MemoSidebar
 
   def set_memo_directory_nav_context
     @memo_directories_for_nav = policy_scope(MemoDirectory).nav_ordered
+    user_directory_account_ids = @memo_directories_for_nav.pluck(:full_path).filter_map do |path|
+      path.match(%r{\A(?:home|share|public)/u-(\d+)(?:/|\z)})&.then { |match| match[1].to_i }
+    end.uniq
+    @memo_directory_account_names = Account.where(id: user_directory_account_ids).to_h do |account|
+      [ account.id, account.display_name ]
+    end
     @sidebar_memo_templates = policy_scope(MemoTemplate).order(:name)
     visible_memo_ids = policy_scope(Memo).select(:id)
     @tags_for_nav = Tag.joins(:memo_tags)

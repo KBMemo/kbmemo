@@ -230,6 +230,22 @@ module MemosHelper
     "/#{@current_memo_directory&.full_path}"
   end
 
+  def memo_sidebar_directory_display_path_value
+    return @memo_directory_path_query if @memo_directory_path_invalid
+
+    memo_directory_display_path(@current_memo_directory)
+  end
+
+  def memo_directory_display_path(directory)
+    return "/" if directory.nil? || directory.root?
+
+    segments = directory.full_path.split("/")
+    account_id = segments[1]&.match(/\Au-(\d+)\z/)&.then { |match| match[1].to_i }
+    account_name = @memo_directory_account_names&.fetch(account_id, nil)
+    segments[1] = account_name.to_s.tr("/", "／") if account_name.present?
+    "/#{segments.join('/')}"
+  end
+
   # サイドバー用: policy_scope 内のディレクトリを parent_id でグルーピング（ルート行は除外）
   def memo_directory_nav_children_index(directories)
     all = Array(directories)

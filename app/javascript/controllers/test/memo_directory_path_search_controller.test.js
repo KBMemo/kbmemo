@@ -15,7 +15,7 @@ async function mount() {
         class="hidden"
         type="button"
         role="option"
-        data-directory-name="Project ${index}"
+        data-directory-display-path="/home/Freddie/project-${index}"
         data-directory-path="/home/project-${index}"
         data-search-text="/home/project-${index} /Home/Project ${index}"
         data-memo-directory-path-search-target="option"
@@ -27,6 +27,7 @@ async function mount() {
     <form
       data-controller="memo-directory-path-search"
       data-memo-directory-path-search-target="form"
+      data-action="submit->memo-directory-path-search#prepareSubmit"
     >
       <input
         role="combobox"
@@ -79,8 +80,32 @@ describe("memo-directory-path-search", () => {
     expect(input.getAttribute("aria-activedescendant")).toBe("directory-option-0")
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))
 
-    expect(input.value).toBe("/home/project-0")
+    expect(input.value).toBe("/home/Freddie/project-0")
     expect(document.querySelector("input[type='hidden']").value).toBe("/home/project-0")
     expect(form.requestSubmit).toHaveBeenCalledOnce()
+  })
+
+  it("submits the internal path when the display path is typed", async () => {
+    await mount()
+    const input = document.querySelector("input")
+    const hiddenInput = document.querySelector("input[type='hidden']")
+
+    input.value = "/home/Freddie/project-1"
+    input.dispatchEvent(new Event("input", { bubbles: true }))
+
+    expect(hiddenInput.value).toBe("/home/project-1")
+  })
+
+  it("refreshes the submitted path from the final input value", async () => {
+    await mount()
+    const form = document.querySelector("form")
+    const input = document.querySelector("input")
+    const hiddenInput = document.querySelector("input[type='hidden']")
+    input.value = "/home/project-12"
+    hiddenInput.value = "/home/project-1"
+
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))
+
+    expect(hiddenInput.value).toBe("/home/project-12")
   })
 })

@@ -474,10 +474,10 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "form input[name='sidebar_view'][value='directory']"
     assert_select "label[for='memo_directory_path']", text: "選択ディレクトリ"
     assert_select "input#memo_directory_path[role='combobox'][aria-controls='memo-sidebar-directory-path-options'][value=?]",
-      "/#{directory.full_path}"
+      "/home/#{accounts(:one).display_name}/work"
     assert_select "input[type='hidden'][name='memo_directory_path'][value=?]", "/#{directory.full_path}"
     assert_select "#memo-sidebar-directory-path-options[role='listbox'] button[data-directory-path=?][title=?]",
-      "/#{directory.full_path}", "/#{directory.full_path}", text: directory.display_name
+      "/#{directory.full_path}", "/home/#{accounts(:one).display_name}/work", text: directory.display_name
     assert_select "#memo-directory-path-option-root", text: "ルート"
     assert_select ".kb-memo-directory-tree-scroll"
     assert_select "#memo_sidebar_memo_list_scroll.kb-memo-sidebar-scroll"
@@ -489,7 +489,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     get memos_url(sidebar_view: "directory", memo_directory_path: "/#{directory.full_path}/")
 
     assert_response :success
-    assert_select "input#memo_directory_path[value=?]", "/#{directory.full_path}"
+    assert_select "input#memo_directory_path[value=?]", "/home/#{accounts(:one).display_name}/work"
     assert_select "input[type='hidden'][name='memo_directory_path'][value=?]", "/#{directory.full_path}"
     assert_includes response.body, memos(:one).title
   end

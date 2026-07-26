@@ -10,8 +10,12 @@ export default class extends Controller {
   }
 
   input() {
-    this.hiddenInputTarget.value = this.inputTarget.value
+    this.syncHiddenInput()
     this.filterOptions()
+  }
+
+  prepareSubmit() {
+    this.syncHiddenInput()
   }
 
   focus() {
@@ -73,7 +77,7 @@ export default class extends Controller {
   }
 
   choose(option) {
-    this.inputTarget.value = option.dataset.directoryPath
+    this.inputTarget.value = option.dataset.directoryDisplayPath
     this.hiddenInputTarget.value = option.dataset.directoryPath
     this.close()
     this.formTarget.requestSubmit()
@@ -103,6 +107,14 @@ export default class extends Controller {
 
   normalize(value) {
     return value.toString().trim().normalize("NFKC").toLocaleLowerCase()
+  }
+
+  syncHiddenInput() {
+    const inputValue = this.normalize(this.inputTarget.value)
+    const matchingOption = this.optionTargets.find(
+      (option) => this.normalize(option.dataset.directoryDisplayPath) === inputValue
+    )
+    this.hiddenInputTarget.value = matchingOption?.dataset.directoryPath || this.inputTarget.value
   }
 
   get visibleOptions() {
