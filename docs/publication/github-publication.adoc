@@ -57,8 +57,8 @@ public repository を作成しない。
 
 |ライセンス
 |DONE: MIT
-|TODO
-|TODO
+|DONE: MIT
+|DONE: MIT
 
 |README とセットアップ手順
 |DOING
@@ -122,14 +122,14 @@ public repository を作成しない。
 
 === 葛籠
 
-* LICENSE が存在しない。
+* MIT Licenseを採用した。
 * 現在の repository 名は `kbmemo-media`、製品名は Tsuzura（葛籠）。
 * Gitea URLと内部環境向け deploy 設定がある。
 * gitleaksの検出は0件。
 
 === 如意
 
-* LICENSE が存在しない。
+* Nyoy本体と`agent_graph-core`はMIT Licenseを採用した。
 * `agent_graph-core.gemspec` の homepage が Gitea を参照している。
 * Gitea URL、内部ホスト名、private network のアドレス、個人環境のパスを含む
   runbook と設定がある。
@@ -206,5 +206,5 @@ gitea   git@gitea.artif.org:Artif.org/<old-repository>.git
 == 次の作業
 
 . 如意の`config/credentials.yml.enc`を全履歴から除去する手順と影響を確認する。
-. 葛籠と如意のライセンス方針を決定する。
 . 内部環境情報を、削除、一般化、公開可能な運用例のいずれに分類する。
+. 3 repositoryのREADMEと公開リンクをGitHub構成へ合わせる。
