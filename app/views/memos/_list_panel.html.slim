@@ -22,7 +22,7 @@ ruby:
             class: "kb-input kb-input-xs min-w-0 flex-1 font-mono",
             aria: { autocomplete: "list", controls: "memo-sidebar-directory-path-options", expanded: "false", invalid: (@memo_directory_path_invalid ? "true" : nil), describedby: (@memo_directory_path_invalid ? "memo-directory-path-error" : nil) },
             data: { memo_directory_path_search_target: "input", action: "input->memo-directory-path-search#input focus->memo-directory-path-search#focus blur->memo-directory-path-search#closeLater keydown->memo-directory-path-search#keydown" }
-          = button_tag "移動", type: "submit", class: "kb-chrome-btn-secondary kb-btn-xs shrink-0"
+          = button_tag "移動", type: "submit", name: nil, class: "kb-chrome-btn-secondary kb-btn-xs shrink-0"
         #memo-sidebar-directory-path-options.kb-tag-search-options.hidden role="listbox" data-memo-directory-path-search-target="options"
           button#memo-directory-path-option-root.kb-tag-search-option.hidden type="button" role="option" aria-selected="false" data-directory-path="/" data-search-text="/ ルート" data-memo-directory-path-search-target="option" data-action="mousedown->memo-directory-path-search#keepOpen click->memo-directory-path-search#select"
             | /

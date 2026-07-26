@@ -4,6 +4,14 @@ import { applyOpenDirectoryIds, loadOpenDirectoryIds, setBranchOpen, syncOpenDir
 export default class extends Controller {
   connect() {
     applyOpenDirectoryIds(loadOpenDirectoryIds(), this.element)
+    this.revealSelectedDirectory()
+    this._scrollFrame = window.requestAnimationFrame(() => {
+      this._scrollFrame = window.requestAnimationFrame(() => this.scrollSelectedDirectory())
+    })
+  }
+
+  disconnect() {
+    if (this._scrollFrame) window.cancelAnimationFrame(this._scrollFrame)
   }
 
   toggle(event) {
@@ -16,5 +24,28 @@ export default class extends Controller {
     const open = branch.dataset.memoDirectoryNavOpen === "true"
     setBranchOpen(branch, !open)
     syncOpenDirectoryIdsFromPanel()
+  }
+
+  revealSelectedDirectory() {
+    const selected = this.selectedDirectoryLink()
+    if (!selected) return
+
+    for (const branch of selected.closest(".kb-memo-directory-tree-scroll")
+      ?.querySelectorAll("[data-memo-directory-nav-branch]") || []) {
+      if (branch.contains(selected)) setBranchOpen(branch, true)
+    }
+  }
+
+  scrollSelectedDirectory() {
+    const selected = this.selectedDirectoryLink()
+    if (!selected) return
+
+    selected.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" })
+    const scroller = selected.closest(".kb-memo-directory-tree-scroll")
+    if (scroller) scroller.dataset.selectedDirectoryScrolled = "true"
+  }
+
+  selectedDirectoryLink() {
+    return this.element.querySelector(".kb-memo-directory-tree-scroll .kb-sidebar-nav.is-active")
   }
 }

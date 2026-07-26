@@ -133,4 +133,44 @@ class MemoSidebarLayoutTest < ApplicationSystemTestCase
     assert_equal dimensions_before["listHeight"], dimensions_after["listHeight"]
     assert_not_equal dimensions_before["treeScrollHeight"], dimensions_after["treeScrollHeight"]
   end
+
+  test "scrolls the directory tree to a manually entered directory" do
+    parent = memo_directories(:work)
+    directories = 20.times.map do |i|
+      MemoDirectory.create!(
+        parent: parent,
+        path_segment: "manual-scroll-#{i}",
+        label: "Manual scroll #{i}"
+      )
+    end
+    selected = directories.last
+
+    visit memos_path(sidebar_view: "directory", memo_directory_id: parent.id)
+    fill_in "選択ディレクトリ", with: "/#{selected.full_path}"
+    click_button "移動"
+
+    assert_current_path memos_path, ignore_query: true
+    query = Rack::Utils.parse_nested_query(URI.parse(page.current_url).query)
+    assert_equal "directory", query["sidebar_view"]
+    assert_equal "/#{selected.full_path}", query["memo_directory_path"]
+    assert_selector(".kb-memo-directory-tree-scroll .kb-sidebar-nav.is-active", text: selected.display_name)
+    assert_selector(".kb-memo-directory-tree-scroll[data-selected-directory-scrolled='true']")
+    tree_state = page.evaluate_script(<<~JS)
+      (() => {
+        const tree = document.querySelector(".kb-memo-directory-tree-scroll")
+        const selected = tree.querySelector(".kb-sidebar-nav.is-active")
+        const treeRect = tree.getBoundingClientRect()
+        const selectedRect = selected.getBoundingClientRect()
+        return {
+          scrollTop: tree.scrollTop,
+          selectedVisible:
+            selectedRect.top >= treeRect.top &&
+            selectedRect.bottom <= treeRect.bottom
+        }
+      })()
+    JS
+
+    assert_operator tree_state["scrollTop"], :>, 0
+    assert tree_state["selectedVisible"]
+  end
 end
