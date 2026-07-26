@@ -80,11 +80,6 @@ module MemoSidebar
   def load_sidebar_memos_list
     return unless %w[memos memo_directories tags].include?(controller_path)
 
-    @all_memos_total_count = if rodauth.rails_account
-      Memo.where(account_id: rodauth.rails_account.id).count
-    else
-      policy_scope(Memo).count
-    end
     @sidebar_memos_scope = build_sidebar_memos_scope
     @sidebar_memos_scope_total_count = @sidebar_memos_scope.count
     load_sidebar_memos_page(offset: 0)

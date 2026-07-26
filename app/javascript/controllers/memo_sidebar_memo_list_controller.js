@@ -8,7 +8,6 @@ export default class extends Controller {
     offset: Number,
     hasMore: Boolean,
     total: Number,
-    scopeTotal: Number,
     params: Object
   }
 
@@ -81,7 +80,7 @@ export default class extends Controller {
     if (this.loading || !this.hasMoreValue) return
 
     this.loading = true
-    this.sentinelTarget?.setAttribute("aria-busy", "true")
+    if (this.hasSentinelTarget) this.sentinelTarget.setAttribute("aria-busy", "true")
     if (this.hasSentinelLabelTarget) this.sentinelLabelTarget.textContent = "読み込み中…"
 
     const params = new URLSearchParams({ append: "1", offset: String(this.offsetValue) })
@@ -132,7 +131,7 @@ export default class extends Controller {
       document.dispatchEvent(new Event("turbo:render"))
     } finally {
       this.loading = false
-      this.sentinelTarget?.removeAttribute("aria-busy")
+      if (this.hasSentinelTarget) this.sentinelTarget.removeAttribute("aria-busy")
       if (this.hasSentinelLabelTarget) this.sentinelLabelTarget.textContent = ""
     }
   }
@@ -163,22 +162,14 @@ export default class extends Controller {
     return Number.isFinite(fromDom) && fromDom > 0 ? fromDom : 0
   }
 
-  scopeMemoCount() {
-    if (Number.isFinite(this.scopeTotalValue) && this.scopeTotalValue > 0) return this.scopeTotalValue
-
-    const countEl = document.getElementById("memo_sidebar_list_count")
-    const fromDom = Number(countEl?.dataset.scopeTotalCount)
-    return Number.isFinite(fromDom) && fromDom > 0 ? fromDom : 0
-  }
-
   reachedScopeEnd() {
-    const scopeTotal = this.scopeMemoCount()
-    return scopeTotal > 0 && this.shownCount() >= scopeTotal
+    const total = this.totalMemoCount()
+    return total > 0 && this.shownCount() >= total
   }
 
   clearSentinel() {
     this.hasMoreValue = false
-    this.sentinelTarget?.remove()
+    if (this.hasSentinelTarget) this.sentinelTarget.remove()
     this.observer?.disconnect()
     this.observer = null
     this.scrollRootEl()?.removeEventListener("scroll", this.onScroll)

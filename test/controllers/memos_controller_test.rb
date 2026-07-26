@@ -254,13 +254,11 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
     get memos_url(memo_directory_id: dir.id, sidebar_view: "directory")
     assert_response :success
-    account_total = Memo.where(account_id: account.id).count
-    assert_operator account_total, :>, 15
     assert_select "#memo_sidebar_memo_list > li[id^='sidebar_row_memo_']", count: 15
     assert_select "#memo_sidebar_memo_list_sentinel"
-    assert_select "#memo_sidebar_list_count[data-total-count='#{account_total}'][data-scope-total-count='25']"
-    assert_select "#memo_sidebar_list_count", text: "15 / #{account_total} 件"
-    assert_match(/data-memo-sidebar-memo-list-total-value="#{account_total}"/, response.body)
+    assert_select "#memo_sidebar_list_count[data-total-count='25']"
+    assert_select "#memo_sidebar_list_count", text: "15 / 25 件"
+    assert_match(/data-memo-sidebar-memo-list-total-value="25"/, response.body)
 
     get sidebar_memo_list_memos_url(
       sidebar_view: "directory",
@@ -293,9 +291,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
     get memos_url(memo_directory_id: dir.id, sidebar_view: "directory")
     assert_response :success
-    account_total = Memo.where(account_id: account.id).count
     assert_select "#memo_sidebar_memo_list > li[id^='sidebar_row_memo_']", count: 15
-    assert_select "#memo_sidebar_list_count", text: "15 / #{account_total} 件"
+    assert_select "#memo_sidebar_list_count", text: "15 / 15 件"
     assert_select "#memo_sidebar_memo_list_sentinel", count: 0
   end
 
@@ -315,10 +312,9 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
 
     get memos_url(sidebar_view: "history")
     assert_response :success
-    account_total = Memo.where(account_id: account.id).count
     assert_select "#memo_sidebar_memo_list > li[id^='sidebar_row_memo_']", count: 15
     assert_select "#memo_sidebar_memo_list_sentinel"
-    assert_select "#memo_sidebar_list_count", text: "15 / #{account_total} 件"
+    assert_select "#memo_sidebar_list_count", text: "15 / 20 件"
 
     get sidebar_memo_list_memos_url(sidebar_view: "history", append: 1, offset: 15),
       headers: { "X-Kbmemo-Sidebar-Sync" => "1" }
@@ -498,6 +494,35 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "ul[aria-label='選択中のタグ']", text: /#{Regexp.escape(tag.name)}/
     assert_select "#memo-sidebar-tag-options [data-tag-name=?]", tag.name
     assert_not_includes response.body, memos(:one).title
+  end
+
+  test "tag sidebar count uses the filtered total when results paginate" do
+    tag = tags(:one)
+    account = accounts(:one)
+    20.times do |i|
+      memo = Memo.create!(
+        title: "Paged tag memo #{i}",
+        body: "body",
+        memo_directory: memo_directories(:work),
+        account: account,
+        file_committed_at: Time.current
+      )
+      memo.tags << tag
+    end
+    expected_total = MemoPolicy::Scope.new(account, Memo).resolve
+      .joins(:memo_tags)
+      .where(memo_tags: { tag_id: tag.id })
+      .distinct
+      .count
+
+    get memos_url(sidebar_view: "tag", tag_ids: [ tag.id ])
+
+    assert_response :success
+    assert_operator expected_total, :>, 15
+    assert_select "#memo_sidebar_memo_list > li[id^='sidebar_row_memo_']", count: 15
+    assert_select "#memo_sidebar_list_count[data-total-count=?]", expected_total.to_s,
+      text: "15 / #{expected_total} 件"
+    assert_select "#memo_sidebar_memo_list_sentinel"
   end
 
   test "tag sidebar combines multiple selected tags with AND" do

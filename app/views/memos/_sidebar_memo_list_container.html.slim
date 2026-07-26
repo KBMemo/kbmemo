@@ -5,14 +5,13 @@ ruby:
       memo_sidebar_memo_list_url_value: sidebar_memo_list_memos_path,
       memo_sidebar_memo_list_offset_value: @sidebar_memo_list_next_offset,
       memo_sidebar_memo_list_has_more_value: @sidebar_memos_has_more,
-      memo_sidebar_memo_list_total_value: @all_memos_total_count,
-      memo_sidebar_memo_list_scope_total_value: @sidebar_memos_scope_total_count,
+      memo_sidebar_memo_list_total_value: @sidebar_memos_scope_total_count,
       memo_sidebar_memo_list_params_value: memo_sidebar_list_fetch_params.to_json
     )
   end
 = tag.div id: "memo_sidebar_memo_list_container", data: list_data do
   - if @memos&.any?
-    p#memo_sidebar_list_count.mb-2.px-3.pt-2.text-xs.kb-text-secondary data-total-count=@all_memos_total_count data-scope-total-count=@sidebar_memos_scope_total_count = memo_sidebar_list_count_text
+    p#memo_sidebar_list_count.mb-2.px-3.pt-2.text-xs.kb-text-secondary data-total-count=@sidebar_memos_scope_total_count = memo_sidebar_list_count_text
     ul#memo_sidebar_memo_list class="kb-divide-y" data-history-memo-ids=memo_sidebar_history_memo_ids
       = render "memos/sidebar_memo_list_rows", memos: @memos
       - if @sidebar_memos_has_more && @sidebar_memo_list_next_offset < @sidebar_memos_scope_total_count

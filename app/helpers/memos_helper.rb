@@ -217,7 +217,7 @@ module MemosHelper
 
   def memo_sidebar_list_count_text
     shown = @memos&.size.to_i
-    total = @all_memos_total_count.to_i
+    total = @sidebar_memos_scope_total_count.to_i
     return if total.zero?
 
     "#{shown} / #{total} 件"
