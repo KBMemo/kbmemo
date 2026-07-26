@@ -464,6 +464,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "input#tag_query[role='combobox'][aria-controls='memo-sidebar-tag-options']"
     assert_select "input[name='tag_ids[]']", count: 0
     assert_select "#memo_sidebar_memo_list_container", text: /タグを検索して選択/
+    assert_select "#memo_sidebar_list_heading", count: 0
     assert_select "#memos_list_panel a[href=?]", tags_path, count: 0
   end
 
@@ -512,7 +513,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, memos(:two).title
     assert_select "input[name='tag_ids[]']", count: 2
     assert_select "ul[aria-label='選択中のタグ'] li", count: 2
-    assert_select "#memo_sidebar_list_heading", text: /#{Regexp.escape(first.name)} AND #{Regexp.escape(second.name)}/
+    assert_select "#memo_sidebar_list_heading", count: 0
   end
 
   test "tag sidebar combines included and excluded tags" do
@@ -534,7 +535,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='tag_ids[]'][value=?]", included.id.to_s
     assert_select "input[name='excluded_tag_ids[]'][value=?]", excluded.id.to_s
     assert_select "a.kb-list-tag-negative", text: "NOT #{excluded.name}"
-    assert_select "#memo_sidebar_list_heading", text: /#{Regexp.escape(included.name)} AND NOT #{Regexp.escape(excluded.name)}/
+    assert_select "#memo_sidebar_list_heading", count: 0
   end
 
   test "tag sidebar supports an excluded tag without an included tag" do

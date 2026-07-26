@@ -22,7 +22,7 @@ html lang="ja" data-kb-theme=kb_initial_theme_id data-kb-theme-base=kb_initial_t
     = vite_javascript_tag "application"
     script#kbmemo-account-theme-json type="application/json"
       = raw json_escape(kb_account_theme_json)
-  body.kb-chrome-body.min-h-screen class=(notebook_show_wide_layout? ? "kb-notebook-viewport" : nil) data-theme-slot="app-body" data-controller="flash-notice external-links"
+  body.kb-chrome-body.min-h-screen class=(notebook_show_wide_layout? ? "kb-notebook-viewport" : (memos_wide_layout? ? "kb-memo-viewport" : nil)) data-theme-slot="app-body" data-controller="flash-notice external-links"
     a.kb-skip-link href="#main-content" 本文へスキップ
     header.kb-chrome-header data-theme-slot="app-header"
       nav.mx-auto.flex.w-full.flex-wrap.items-center.justify-between.gap-3.px-4.py-3 class=content_max_width_class
@@ -60,12 +60,12 @@ html lang="ja" data-kb-theme=kb_initial_theme_id data-kb-theme-base=kb_initial_t
                 = button_to "ログアウト", rodauth.logout_path, method: :post, form: { class: "block w-full" }, class: "kb-menu-item w-full rounded-none border-0 bg-transparent px-3 py-2 text-left text-sm font-normal", role: "menuitem"
           - if Rails.env.development?
             = link_to "送信メール", "/letter_opener", class: "kb-chrome-link kb-text-muted", target: "_blank", rel: "noopener"
-    main#main-content.mx-auto.w-full.px-4 tabindex="-1" class=[content_max_width_class, (notebook_show_wide_layout? ? "kb-notebook-main py-0" : (theme_studio_layout? ? "py-4" : (wide_content_layout? ? "py-6" : "py-8")))].join(" ")
+    main#main-content.mx-auto.w-full.px-4 tabindex="-1" class=[content_max_width_class, (notebook_show_wide_layout? ? "kb-notebook-main py-0" : (memos_wide_layout? ? "kb-memo-main py-0" : (theme_studio_layout? ? "py-4" : (wide_content_layout? ? "py-6" : "py-8"))))].join(" ")
       - if memos_wide_layout?
         div[class="hidden" aria-hidden="true"]
           = yield
-        div class="kb-chrome-workspace kb-workspace-min flex -mx-4 flex-col border-t md:flex-row md:items-start" data-controller="memo-sidebar" data-memo-sidebar-storage-key-value="kbmemo_memo_sidebar_v1"
-          #memo_sidebar_shell.kb-chrome-panel[class="kb-workspace-panel-max flex max-md:w-full flex-shrink-0 flex-col border-b kb-sidebar-width-transition duration-200 ease-out md:h-auto md:self-start md:flex-shrink-0 md:border-b-0 md:border-r md:border-t-0" data-theme-slot="memo-sidebar" data-memo-sidebar-target="shell"]
+        div class="kb-chrome-workspace kb-memo-workspace kb-workspace-min flex -mx-4 flex-col border-t md:flex-row md:items-stretch" data-controller="memo-sidebar" data-memo-sidebar-storage-key-value="kbmemo_memo_sidebar_v1"
+          #memo_sidebar_shell.kb-chrome-panel[class="kb-memo-sidebar-shell flex max-md:w-full flex-shrink-0 flex-col overflow-hidden border-b kb-sidebar-width-transition duration-200 ease-out md:flex-shrink-0 md:border-b-0 md:border-r md:border-t-0" data-theme-slot="memo-sidebar" data-memo-sidebar-target="shell"]
             button.kb-chrome-muted-bar.flex.w-full.shrink-0.items-center.justify-center.gap-2.border-b.px-2.py-2.text-left.text-xs.font-medium.md:hidden[type="button" data-memo-sidebar-target="toggleButtonMobile" data-action="memo-sidebar#toggle" aria-expanded="true" aria-controls="memos_list_panel"]
               span.text-sm.leading-none.tabular-nums[aria-hidden="true" data-memo-sidebar-target="toggleGlyphMobile"] ◀
               span.sr-only メモ一覧サイドバー
@@ -76,8 +76,8 @@ html lang="ja" data-kb-theme=kb_initial_theme_id data-kb-theme-base=kb_initial_t
             span.select-none.tracking-tighter[aria-hidden="true" data-memo-sidebar-target="toggleGlyph"] ««
             span.sr-only メモ一覧サイドバー
           div class=kb_resizer role="separator" aria-orientation="vertical" aria-label="サイドバーの幅を変更" title="ドラッグまたは左右キーで幅を変更" tabindex="0" data-memo-sidebar-target="resizer" data-action="pointerdown->memo-sidebar#resizerPointerDown keydown->memo-sidebar#resizerKeydown"
-          section[class="kb-workspace-min flex min-w-0 flex-1 flex-col"]
-            div#memos_editor_scroll[class="flex-1 px-4 py-5 md:px-8"]
+          section[class="kb-memo-content flex min-w-0 flex-1 flex-col"]
+            div#memos_editor_scroll[class="kb-memo-content-scroll flex-1 px-4 py-5 md:px-8"]
               = yield :memos_editor
           - if content_for?(:memo_ai_sidebar)
             div#memo_ai_sidebar_region class="kb-ai-sidebar-region flex min-h-0 shrink-0 max-md:w-full max-md:flex-col md:h-full md:flex-row md:items-stretch md:overflow-hidden" data-controller="memo-ai-sidebar" data-memo-ai-sidebar-storage-key-value="kbmemo_memo_ai_sidebar_v1"

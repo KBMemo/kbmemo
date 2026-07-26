@@ -58,7 +58,7 @@ ruby:
           = search_field_tag :q, @memo_search_query, placeholder: "タイトル・本文を検索", autocomplete: "off", class: memo_sidebar_search_input, data: { memo_search_target: "input", action: "input->memo-search#queueSearch" }
           button type="button" class="kb-chrome-btn-secondary kb-btn-xs shrink-0#{' hidden' unless @memo_search_query.present?}" data-memo-search-target="clear" data-action="memo-search#clear" クリア
       p.mb-2.text-xs.kb-text-secondary タイトルと本文を横断して検索します。
-    - unless @sidebar_view == "history"
+    - unless @sidebar_view.in?(%w[history tag])
       .mb-2.flex.min-w-0.items-center.justify-between.gap-2
         - if @sidebar_view == "search" && @memo_search_query.present?
           p#memo_sidebar_list_heading.truncate.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted
@@ -66,10 +66,6 @@ ruby:
             span.ml-1.font-normal.normal-case.kb-text-subtle = "「#{h(@memo_search_query)}」"
         - elsif @sidebar_view == "search"
           p#memo_sidebar_list_heading.truncate.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted メモ一覧
-        - elsif @sidebar_view == "tag" && (@current_tags.any? || @excluded_tags.any?)
-          p#memo_sidebar_list_heading.truncate.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted
-            - conditions = @current_tags.map(&:name) + @excluded_tags.map { |tag| "NOT #{tag.name}" }
-            span.normal-case = "「#{h(conditions.join(' AND '))}」のメモ"
         - else
           p#memo_sidebar_list_heading.truncate.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted メモ一覧
         - if @sidebar_view == "directory"
@@ -90,5 +86,5 @@ ruby:
       - else
         button.kb-sidebar-template-trigger type="button" disabled=true title="利用できるテンプレートがありません"
           | Templateから作成
-  #memo_sidebar_memo_list_scroll.min-h-0.flex-1.overflow-y-auto.pb-4
+  #memo_sidebar_memo_list_scroll.kb-memo-sidebar-scroll.min-h-0.flex-1.overflow-y-auto.pb-4
     = render "memos/sidebar_memo_list_container"

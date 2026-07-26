@@ -312,6 +312,7 @@ html[data-kb-theme-base="minimal"] {
     max-height: 100%;
   }
 
+  .kb-memo-viewport,
   .kb-notebook-viewport {
     display: flex;
     height: 100dvh;
@@ -320,10 +321,12 @@ html[data-kb-theme-base="minimal"] {
     overflow: hidden;
   }
 
+  .kb-memo-viewport > .kb-chrome-header,
   .kb-notebook-viewport > .kb-chrome-header {
     flex: 0 0 auto;
   }
 
+  .kb-memo-main,
   .kb-notebook-main {
     display: flex;
     min-height: 0;
@@ -332,17 +335,22 @@ html[data-kb-theme-base="minimal"] {
     overflow: hidden;
   }
 
+  .kb-memo-workspace,
   .kb-notebook-workspace {
     min-height: 0;
     flex: 1 1 auto;
   }
 
+  .kb-memo-sidebar-shell,
+  .kb-memo-content,
   .kb-notebook-sidebar-shell,
   .kb-notebook-content {
     height: 100%;
     min-height: 0;
   }
 
+  .kb-memo-sidebar-scroll,
+  .kb-memo-content-scroll,
   .kb-notebook-sidebar-scroll,
   .kb-notebook-content-scroll {
     min-height: 0;
