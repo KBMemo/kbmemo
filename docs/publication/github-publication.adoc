@@ -111,7 +111,7 @@ public repository を作成しない。
 === 徒然
 
 * MIT License が存在する。
-* ローカル `main` は Gitea の `origin/main` より16 commit先行している。
+* ローカル`main`とGiteaの`origin/main`は同期済み。
 * `README.md` と `README.adoc` が併存している。公開時の正を決める。
 * npm package publish workflow は registry と token の GitHub Actions secrets を必要とする。
 * Gitea URL、内部ホスト名、個人環境のパスを含む文書と設定がある。
@@ -130,20 +130,18 @@ public repository を作成しない。
 === 如意
 
 * Nyoy本体と`agent_graph-core`はMIT Licenseを採用した。
-* `agent_graph-core.gemspec` の homepage が Gitea を参照している。
+* `agent_graph-core.gemspec` のhomepageは`KBMemo/nyoy`を参照するよう更新済み。
 * Gitea URL、内部ホスト名、private network のアドレス、個人環境のパスを含む
   runbook と設定がある。
-* gitleaksは7件を検出した。
-** 6件はrunbookの`Authorization: Bearer your-token`という例示値。
-** 1件は過去に追跡されていた`config/credentials.yml.enc`の暗号文。
+* 履歴書き換え後のgitleaks検出は6件。
+** すべてrunbookの`Authorization: Bearer your-token`という例示値。
+** 過去の`config/credentials.yml.enc`とその暗号文は全refから除去済み。
 ** `config/master.key`が追跡されたcommitは0件であり、復号keyの漏えいは確認されなかった。
-* 不要な暗号文を公開履歴に残さないため、GitHub移行前に
-  `config/credentials.yml.enc`を全履歴から除去し、再scanする。
 
-==== credentials履歴除去の試行
+==== credentials履歴除去
 
-2026-07-27にNyoyの全refを一時mirrorへ複製し、次の条件でdry run相当の
-履歴書き換えを検証した。
+2026-07-27にNyoyの全refを一時mirrorで検証後、復旧用bundleを作成・検証し、
+実repositoryへ履歴書き換えを適用した。
 
 * `git-filter-repo --sensitive-data-removal --invert-paths
   --path config/credentials.yml.enc`
@@ -158,9 +156,9 @@ public repository を作成しない。
 
 最初に変更されるcommitは
 `7fbc77ef6be898035a5a02772f26484dc0d31afa`。
-履歴へ適用すると全commit SHAが変わるため、Giteaの`main`へforce pushし、
-既存cloneを再取得する必要がある。GitHubへ最初にpushする前に実施し、
-旧Gitea refから履歴を再流入させない。
+Giteaの旧`main` SHAを明示した`--force-with-lease`で更新し、localとremoteの
+`main`一致を確認した。既存cloneは再取得し、旧Gitea refや古いcloneから
+書き換え前の履歴を再流入させない。
 
 == 公開ゲート
 
@@ -227,6 +225,5 @@ gitea   git@gitea.artif.org:Artif.org/<old-repository>.git
 
 == 次の作業
 
-. 如意の`config/credentials.yml.enc`を全履歴から除去する手順と影響を確認する。
 . 内部環境情報を、削除、一般化、公開可能な運用例のいずれに分類する。
 . 3 repositoryのREADMEと公開リンクをGitHub構成へ合わせる。
