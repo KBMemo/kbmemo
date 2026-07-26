@@ -68,9 +68,6 @@ ruby:
           p#memo_sidebar_list_heading.truncate.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted メモ一覧
         - else
           p#memo_sidebar_list_heading.truncate.text-xs.font-medium.uppercase.tracking-wide.kb-text-muted メモ一覧
-        - if @sidebar_view == "directory"
-          .flex.shrink-0.items-center.gap-1
-            = link_to "管理", manage_memos_path(memo_directory_id: (@current_memo_directory&.root? ? nil : @current_memo_directory&.id)), class: "text-xs kb-text-secondary kb-inline-link", title: "メモ管理画面を開く", data: { turbo: false }
     .kb-sidebar-create-row
       = link_to new_memo_path, class: memo_sidebar_link_classes(:new), data: { turbo: false } do
         span +新規

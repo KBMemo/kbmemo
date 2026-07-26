@@ -9,6 +9,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "header button.kb-header-menu-trigger", text: /ノートブック/
     assert_select "header button.kb-header-menu-trigger", text: /#{Regexp.escape(accounts(:one).display_name)}/
     assert_select "header button.kb-input[data-user-menu-target='button']", count: 0
+    assert_select "#management-menu a[href=?]", manage_memos_path, text: "メモ管理"
+    assert_select "#memos_list_panel a[href^=?]", manage_memos_path, count: 0
   end
 
   test "shows a memo addressed by its uid" do

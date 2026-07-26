@@ -7,6 +7,7 @@
     = link_to "Chat サーバー設定", chat_server_path, class: "kb-menu-item block px-3 py-2", role: "menuitem"
     = link_to "Nyoy MCP 設定", nyoy_mcp_path, class: "kb-menu-item block px-3 py-2", role: "menuitem"
     hr.my-1.border.kb-border
+    = link_to "メモ管理", manage_memos_path, class: "kb-menu-item block px-3 py-2", role: "menuitem", data: { turbo: false }
     = link_to "タグ管理", tags_path, class: "kb-menu-item block px-3 py-2", role: "menuitem"
     = link_to "テンプレート管理", memo_templates_path, class: "kb-menu-item block px-3 py-2", role: "menuitem"
     - if rodauth.rails_account&.admin?
