@@ -3,13 +3,14 @@ import { Controller } from "@hotwired/stimulus"
 const MAX_VISIBLE_OPTIONS = 10
 
 export default class extends Controller {
-  static targets = ["form", "input", "options", "option"]
+  static targets = ["form", "input", "hiddenInput", "options", "option"]
 
   connect() {
     this.activeIndex = -1
   }
 
   input() {
+    this.hiddenInputTarget.value = this.inputTarget.value
     this.filterOptions()
   }
 
@@ -73,6 +74,7 @@ export default class extends Controller {
 
   choose(option) {
     this.inputTarget.value = option.dataset.directoryPath
+    this.hiddenInputTarget.value = option.dataset.directoryPath
     this.close()
     this.formTarget.requestSubmit()
   }

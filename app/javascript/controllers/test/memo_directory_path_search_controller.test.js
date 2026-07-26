@@ -15,6 +15,7 @@ async function mount() {
         class="hidden"
         type="button"
         role="option"
+        data-directory-name="Project ${index}"
         data-directory-path="/home/project-${index}"
         data-search-text="/home/project-${index} /Home/Project ${index}"
         data-memo-directory-path-search-target="option"
@@ -33,6 +34,7 @@ async function mount() {
         data-memo-directory-path-search-target="input"
         data-action="input->memo-directory-path-search#input keydown->memo-directory-path-search#keydown"
       >
+      <input type="hidden" data-memo-directory-path-search-target="hiddenInput">
       <div class="hidden" data-memo-directory-path-search-target="options">${options}</div>
     </form>
   `
@@ -78,6 +80,7 @@ describe("memo-directory-path-search", () => {
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))
 
     expect(input.value).toBe("/home/project-0")
+    expect(document.querySelector("input[type='hidden']").value).toBe("/home/project-0")
     expect(form.requestSubmit).toHaveBeenCalledOnce()
   })
 })
