@@ -140,6 +140,28 @@ public repository を作成しない。
 * 不要な暗号文を公開履歴に残さないため、GitHub移行前に
   `config/credentials.yml.enc`を全履歴から除去し、再scanする。
 
+==== credentials履歴除去の試行
+
+2026-07-27にNyoyの全refを一時mirrorへ複製し、次の条件でdry run相当の
+履歴書き換えを検証した。
+
+* `git-filter-repo --sensitive-data-removal --invert-paths
+  --path config/credentials.yml.enc`
+* 対象commit: 394
+* 書き換わるcommit SHA: 394
+* 削除されるcommit: 0
+* `config/credentials.yml.enc`が残るcommit: 0
+* 書き換え前後の`main` HEAD tree: 一致
+* 書き換え後のgitleaks検出: 6件
+** すべてrunbookの`Authorization: Bearer your-token`例示
+** 暗号化credentialsの検出は解消
+
+最初に変更されるcommitは
+`7fbc77ef6be898035a5a02772f26484dc0d31afa`。
+履歴へ適用すると全commit SHAが変わるため、Giteaの`main`へforce pushし、
+既存cloneを再取得する必要がある。GitHubへ最初にpushする前に実施し、
+旧Gitea refから履歴を再流入させない。
+
 == 公開ゲート
 
 次の条件をすべて満たすまで public にしない。
