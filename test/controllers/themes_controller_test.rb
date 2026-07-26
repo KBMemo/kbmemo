@@ -98,6 +98,7 @@ class ThemesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'name="kbmemo-theme-sync"'
     assert_includes response.body, 'id="kbmemo-account-theme-json"'
     assert_includes response.body, '"active_theme_id":"default"'
+    assert_select "head style#kbmemo-critical-icon-layout[nonce]", text: /data-lucide/
   end
 
   test "layout renders initial account theme before javascript runs" do
