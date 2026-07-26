@@ -21,6 +21,7 @@ async function mount({ modelOptions = false, append = false } = {}) {
       </select>
       <div data-memo-ai-panel-target="messages"></div>
       <p class="hidden" data-memo-ai-panel-target="error"></p>
+      <p class="hidden" role="status" data-memo-ai-panel-target="status"></p>
       <textarea data-memo-ai-panel-target="input" data-action="keydown->memo-ai-panel#sendOnEnter"></textarea>
       <button type="button" data-memo-ai-panel-target="sendButton" data-action="memo-ai-panel#send">送信</button>
       <button type="button" data-memo-ai-panel-target="insertButton" data-action="memo-ai-panel#insertLastReply">応答を末尾へ追記</button>
@@ -138,5 +139,10 @@ describe("memo-ai-panel", () => {
     expect(fetch.mock.calls[1][0]).toBe("/memos/1/append_ai_reply.json")
     expect(fetch.mock.calls[1][1].method).toBe("PATCH")
     expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ content: "AI response" })
+    await vi.waitFor(() =>
+      expect(document.querySelector("[role='status']").textContent).toBe(
+        "応答をメモ末尾へ追記しました。"
+      )
+    )
   })
 })

@@ -10,6 +10,7 @@ export default class extends Controller {
     "sendButton",
     "insertButton",
     "error",
+    "status",
     "includeSelection",
     "modelRole"
   ]
@@ -29,6 +30,10 @@ export default class extends Controller {
     void this.refreshModelOptions()
     this.renderMessages()
     this.updateSendState()
+  }
+
+  disconnect() {
+    if (this.statusTimer) window.clearTimeout(this.statusTimer)
   }
 
   modelRoleChanged() {
@@ -153,6 +158,7 @@ export default class extends Controller {
     if (editor) {
       await editor.insertAtCursor(last.content)
       this.clearError()
+      this.showStatus("応答をカーソル位置へ挿入しました。")
       return
     }
     if (!this.hasAppendUrlValue) {
@@ -179,6 +185,7 @@ export default class extends Controller {
         return
       }
       this.clearError()
+      this.showStatus("応答をメモ末尾へ追記しました。")
     } catch {
       this.showError("応答をメモへ追記できませんでした。")
     } finally {
@@ -292,6 +299,7 @@ export default class extends Controller {
 
   showError(message, options = {}) {
     if (!this.hasErrorTarget) return
+    this.clearStatus()
     this.errorTarget.replaceChildren()
     this.errorTarget.append(document.createTextNode(String(message)))
 
@@ -311,6 +319,24 @@ export default class extends Controller {
     if (!this.hasErrorTarget) return
     this.errorTarget.textContent = ""
     this.errorTarget.classList.add("hidden")
+  }
+
+  showStatus(message) {
+    if (!this.hasStatusTarget) return
+    this.clearStatus()
+    this.statusTarget.textContent = String(message)
+    this.statusTarget.classList.remove("hidden")
+    this.statusTimer = window.setTimeout(() => this.clearStatus(), 4000)
+  }
+
+  clearStatus() {
+    if (this.statusTimer) {
+      window.clearTimeout(this.statusTimer)
+      this.statusTimer = null
+    }
+    if (!this.hasStatusTarget) return
+    this.statusTarget.textContent = ""
+    this.statusTarget.classList.add("hidden")
   }
 
 }

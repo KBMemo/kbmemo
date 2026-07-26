@@ -1427,6 +1427,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-memo-ai-panel-target='includeSelection']", count: 0
     assert_select "[data-memo-ai-panel-append-url-value=?]", append_ai_reply_memo_path(memo, format: :json)
     assert_select "button[data-action='memo-ai-panel#insertLastReply']", text: "応答を末尾へ追記"
+    assert_select "[data-memo-ai-panel-target='status'][role='status'][aria-live='polite']"
     assert_select "textarea[placeholder='例: このメモの要点をまとめて（Ctrl+Enter で送信）']"
     assert_select "a[href=?][aria-label='編集'][title='編集']", edit_memo_path(memo) do
       assert_select "i[data-lucide='pencil'][aria-hidden='true']"
