@@ -84,6 +84,23 @@ class BoardScheduleCalendarTest < ActiveSupport::TestCase
     assert_not_includes calendar.list_items, other_memo
   end
 
+  test "includes scheduled memos from every board when board is nil" do
+    other_board = Board.create!(account: @account, title: "Other")
+    other_memo = memos(:two)
+    BoardKanban::AddMemo.call(board: other_board, memo: other_memo, column: other_board.board_columns.first)
+    other_memo.update!(scheduled_on: Date.new(2026, 5, 15))
+
+    calendar = BoardScheduleCalendar.new(
+      board: nil,
+      memos_scope: Memo.where(account_id: @account.id),
+      month: Date.new(2026, 5, 1),
+      selected_day: Date.new(2026, 5, 15)
+    )
+
+    assert_includes calendar.list_items, @memo
+    assert_includes calendar.list_items, other_memo
+  end
+
   test "week view groups memos within selected week" do
     @memo.update!(scheduled_on: Date.new(2026, 5, 15))
     other = memos(:two)

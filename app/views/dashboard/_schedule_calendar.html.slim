@@ -1,0 +1,17 @@
+.kb-dashboard-calendar
+  .mb-2.flex.items-center.justify-between.gap-2
+    = link_to "‹", root_path(schedule_month: calendar.prev_month.strftime("%Y-%m")), class: "kb-chrome-btn-secondary kb-icon-square-md", title: "前の月"
+    p.text-sm.font-semibold.kb-text-primary = board_schedule_month_label(calendar.month)
+    = link_to "›", root_path(schedule_month: calendar.next_month.strftime("%Y-%m")), class: "kb-chrome-btn-secondary kb-icon-square-md", title: "次の月"
+  table.w-full.border-collapse.text-center
+    thead
+      tr
+        - BoardScheduleCalendar::WEEKDAY_LABELS.each do |label|
+          th class="pb-1 kb-text-2xs font-medium uppercase tracking-wide kb-text-muted" = label
+    tbody
+      - calendar.weeks.each do |week|
+        tr
+          - week.each do |day|
+            td.p-0.5
+              span class=board_schedule_day_cell_classes(calendar, day) title=l(day, format: :long)
+                = day.day

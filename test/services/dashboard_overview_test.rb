@@ -25,6 +25,8 @@ class DashboardOverviewTest < ActiveSupport::TestCase
     assert_equal [ task ], overview.schedule.map(&:memo)
     assert_equal [ Date.new(2026, 7, 25) ], overview.schedule.map(&:date)
     assert_equal notebooks(:one), overview.recent_notebooks.first
+    assert_equal @board, overview.boards.first
+    assert_equal 2, overview.boards.first[:memo_count]
     assert_operator overview.latest_memos.size, :<=, DashboardOverview::LIMIT
   end
 

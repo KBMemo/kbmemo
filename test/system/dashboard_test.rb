@@ -10,11 +10,15 @@ class DashboardTest < ApplicationSystemTestCase
   test "shows the dashboard without horizontal overflow" do
     visit root_path
 
+    assert_text "カレンダー"
     assert_text "最新のメモ"
-    assert_text "タスク"
+    assert_text "カンバン"
     assert_text "予定"
-    assert_text "最近編集したノートブック"
     assert page.evaluate_script("document.documentElement.scrollWidth <= window.innerWidth")
+    calendar_width = page.evaluate_script(
+      "document.querySelector('.kb-dashboard-calendar').getBoundingClientRect().width"
+    )
+    assert_operator calendar_width, :<=, 352
 
     page.current_window.resize_to(390, 844)
     assert page.evaluate_script("document.documentElement.scrollWidth <= window.innerWidth")

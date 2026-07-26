@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# カンバンボード左サイドバー用: 月カレンダーと選択日の予定一覧。
+# 月カレンダーと選択日の予定一覧。board が nil の場合は全カンバンを対象にする。
 class BoardScheduleCalendar
   WEEKDAY_LABELS = %w[月 火 水 木 金 土 日].freeze
   VIEWS = %w[day week month].freeze
@@ -129,14 +129,13 @@ class BoardScheduleCalendar
     gcal_event_sql = MemoPropertiesSql.json_text_at("google_calendar", "event_id")
     board_memos = memos_scope
       .where("#{scheduled_on_sql} IS NOT NULL AND #{scheduled_on_sql} != ''")
-      .where(board_id: board.id)
       .includes(:kanban_column)
-      .to_a
+    board_memos = board_memos.where(board_id: board.id) if board
     gcal_memos = memos_scope
       .where("#{gcal_event_sql} IS NOT NULL AND #{gcal_event_sql} != ''")
       .includes(:kanban_column)
       .to_a
-    (board_memos + gcal_memos).uniq
+    (board_memos.to_a + gcal_memos).uniq
   end
 
   def schedule_sort_key(occurrence)

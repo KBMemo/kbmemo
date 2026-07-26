@@ -5,7 +5,7 @@ class DashboardOverview
   SCHEDULE_DAYS = 90
   ScheduleEntry = Data.define(:memo, :date)
 
-  attr_reader :latest_memos, :tasks, :schedule, :recent_notebooks
+  attr_reader :latest_memos, :tasks, :schedule, :recent_notebooks, :boards
 
   def initialize(account:, memo_scope:, board_scope:, notebook_scope:, today: Date.current)
     @account = account
@@ -15,6 +15,7 @@ class DashboardOverview
     @today = today
 
     @latest_memos = load_latest_memos
+    @boards = load_boards
     @tasks = load_tasks
     @schedule = load_schedule
     @recent_notebooks = load_recent_notebooks
@@ -24,6 +25,15 @@ class DashboardOverview
 
   def load_latest_memos
     @memo_scope.includes(:tags).order(updated_at: :desc, id: :desc).limit(LIMIT)
+  end
+
+  def load_boards
+    @board_scope
+      .left_joins(:memos)
+      .select("boards.*", "COUNT(memos.id) AS memo_count")
+      .group("boards.id")
+      .order(boards: { updated_at: :desc, id: :desc })
+      .limit(LIMIT)
   end
 
   def load_tasks
