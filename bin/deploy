@@ -116,7 +116,12 @@ if [[ "${SKIP_PULL}" -eq 0 ]]; then
     run git checkout "${GIT_BRANCH}"
     run git pull --ff-only "${GIT_REMOTE}" "${GIT_BRANCH}"
   else
-    run git pull --ff-only "${GIT_REMOTE}"
+    current_branch="$(git branch --show-current)"
+    if [[ -z "${current_branch}" ]]; then
+      echo "cannot deploy from a detached HEAD without --branch" >&2
+      exit 1
+    fi
+    run git pull --ff-only "${GIT_REMOTE}" "${current_branch}"
   fi
 fi
 
