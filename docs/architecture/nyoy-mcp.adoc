@@ -16,7 +16,7 @@
 {
   "mcpServers": {
     "nyoy": {
-      "url": "https://nyoy.kbmemo.net/mcp",
+      "url": "https://nyoy.example.com/mcp",
       "headers": {
         "Authorization": "Bearer YOUR_MCP_API_TOKEN",
         "Accept": "application/json, text/event-stream"
@@ -29,7 +29,7 @@
 == 何を Nyoy MCP に任せるか
 
 徒然 **in-app** `Chat::Agent` では pgroonga/pgvector RAG（`rag_search`）を継続する。
-次は **徒然に実装せず** Nyoy MCP を使う（link:../../localai/nyoy/docs/architecture/nyoy-mcp.adoc[§6 フェーズ見直し]）。
+次は **徒然に実装せず** Nyoy MCP を使う（link:https://github.com/KBMemo/nyoy/blob/main/docs/architecture/nyoy-mcp.adoc[§6 フェーズ見直し]）。
 
 * Web / URL: `web_search`, `fetch_url`, `search_fetched_page`
 * 徒然 API 経由のメモ操作: `search_memos`, `get_memo`, `create_memo`, `update_memo`
@@ -53,12 +53,12 @@
 
 Nyoy 側の export ベース RAG を最新化するため、徒然はメモの作成・更新・削除を webhook で通知できる。
 送信は `NyoyMemoWebhookJob` が担当し、Memo callback はジョブ投入だけを行う。
-本番有効化手順は Nyoy 側 link:../../localai/nyoy/docs/memo-rag-webhook-production-runbook.md[Memo RAG Webhook 本番有効化 Runbook] を参照。
+本番有効化手順は Nyoy 側 link:https://github.com/KBMemo/nyoy/blob/main/docs/memo-rag-webhook-production-runbook.md[Memo RAG Webhook 本番有効化 Runbook] を参照。
 
 設定:
 
 * `NYOY_MEMO_WEBHOOK_ENABLED=true`
-* `NYOY_MEMO_WEBHOOK_URL=https://nyoy.kbmemo.net/webhooks/kbmemo/memos`
+* `NYOY_MEMO_WEBHOOK_URL=https://nyoy.example.com/webhooks/kbmemo/memos`
 * `NYOY_MEMO_WEBHOOK_SECRET=...`
 
 送信条件:

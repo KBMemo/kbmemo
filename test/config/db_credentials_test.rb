@@ -9,7 +9,7 @@ class DbCredentialsTest < Minitest::Test
   def test_connection_options_reads_env_specific_credentials
     credentials = stub_credentials(
       test: {
-        host: "bowmore",
+        host: "db.example.com",
         port: 5432,
         username: "kbmemo",
         password: "secret",
@@ -18,7 +18,7 @@ class DbCredentialsTest < Minitest::Test
     )
 
     opts = DbCredentials.connection_options(:test, credentials: credentials)
-    assert_equal "bowmore", opts[:host]
+    assert_equal "db.example.com", opts[:host]
     assert_equal 5432, opts[:port]
     assert_equal "kbmemo", opts[:username]
     assert_equal "secret", opts[:password]

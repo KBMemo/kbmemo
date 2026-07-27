@@ -43,9 +43,9 @@ describe('substituteTsuzuraForPreview', () => {
   it('re-signs legacy localhost tsuzura image urls', () => {
     const legacy =
       `image::http://localhost:3008/v1/media/${MEDIA_ULID}/web?memo_id=70&exp=1&sig=abc[]`
-    const urls = new Map([[MEDIA_ULID, 'https://media.kbmemo.net/v1/web']])
+    const urls = new Map([[MEDIA_ULID, 'https://media.kbmemo.example.com/v1/web']])
     const out = substituteTsuzuraForPreview(legacy, { urls })
-    expect(out).toBe('image::https://media.kbmemo.net/v1/web[]')
+    expect(out).toBe('image::https://media.kbmemo.example.com/v1/web[]')
     expect(out).not.toContain('localhost:3008')
   })
 })

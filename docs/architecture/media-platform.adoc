@@ -18,17 +18,17 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 |KBMemo の写真籠 — 集めた写真をメモと一緒に
 
 |公開 URL
-|`https://media.kbmemo.net`（Phase 1 本番稼働）
+|`https://media.kbmemo.example.com`（Phase 1 本番稼働）
 
 |開発名・リポジトリ
 |`kbmemo-media`（`kbmemo_site` と対）
 
 |KBMemo 本体
-|`kbmemo_site` — `https://kbmemo.net`
+|`kbmemo_site` — `https://kbmemo.example.com`
 |===
 
 * **Tsuzura** … アルバムに写真を **集める容器** のイメージ。一括登録・写真集・メモへの束ねに合わせて選定（2026-05）。
-* **media** … 一般名詞のため製品名には使わない。サブドメイン `media.kbmemo.net` のみ技術 URL として使用。
+* **media** … 一般名詞のため製品名には使わない。サブドメイン `media.kbmemo.example.com` のみ技術 URL として使用。
 * ドキュメント内の「MediaItem / Media DB」等は **Tsuzura サービスのデータモデル名**（技術呼称）。
 
 == 要約（意思決定）
@@ -71,10 +71,10 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 |**Active Storage `local`** で開始。本番もディスク配下（例: `storage/tsuzura/`）。後から **S3 互換**（**RustFS** 等、正式版待ち可）へ **設定差し替え** で移行
 
 |デプロイ
-|**kbmemo.net の nginx 配下**。`media.kbmemo.net` → localhost の Tsuzura（例: `3008`）。TLS は既存 certbot / nginx と同型
+|**kbmemo.example.com の nginx 配下**。`media.kbmemo.example.com` → localhost の Tsuzura（例: `3008`）。TLS は既存 certbot / nginx と同型
 
 |認証
-|**Rodauth 共有のみ**（Phase 1）。同一 `accounts` / 同一セッション Cookie（`.kbmemo.net`）。サービス間 JWT は Phase 1 非ゴール
+|**Rodauth 共有のみ**（Phase 1）。同一 `accounts` / 同一セッション Cookie（`.kbmemo.example.com`）。サービス間 JWT は Phase 1 非ゴール
 
 |AsciiDoc 参照 ID
 |**ULID**（26 文字・Crockford Base32、`Memo#uid` と同形式）。`album::01J…[]` / `image::media:01J…[]`
@@ -102,7 +102,7 @@ KBMemo で写真・画像を **大規模に扱い・編集し・共有する** �
 |`album::` / `image::media:` — show（`MemoTsuzuraMacro`）、編集プレビュー（`substituteTsuzuraForPreview` + `POST /internal/tsuzura/sign_urls`）。`account.tsuzura_api_token_*`、プロフィールで CLI トークン発行
 
 |運用
-|nginx `media.kbmemo.net` → `:3008`。`.env.production` に `TSUZURA_*`。署名 URL 本番既定 `https://media.kbmemo.net`、レガシー `localhost` マクロの再署名
+|nginx `media.kbmemo.example.com` → `:3008`。`.env.production` に `TSUZURA_*`。署名 URL 本番既定 `https://media.kbmemo.example.com`、レガシー `localhost` マクロの再署名
 
 |===
 
@@ -208,7 +208,7 @@ image::media:01JHBCEF1234567890ABCDEF[]
 === Phase 1
 
 * **Rails Active Storage**、`config.active_storage.service = :local`
-* 本番ディスク: 例 `/home/kensei/sites/kbmemo-media/storage`（容量監視必須）
+* 本番ディスク: 例 `/srv/kbmemo/tsuzura/storage`（容量監視必須）
 * サムネ（thumb / web）は **アップロード Job** で生成し、別 blob として保存（Phase 1 最小: web のみでも可）
 
 === 移行（Phase 後半）
@@ -223,13 +223,13 @@ link:../deployment/production.adoc[production.adoc] の kbmemo と同型。
 
 [source,text]
 ----
-https://media.kbmemo.net
-  → nginx server_name media.kbmemo.net
+https://media.kbmemo.example.com
+  → nginx server_name media.kbmemo.example.com
   → proxy_pass http://127.0.0.1:3008  （Tsuzura Thruster+Puma）
-  → TLS: certbot -d media.kbmemo.net
+  → TLS: certbot -d media.kbmemo.example.com
 ----
 
-* **Cookie:** Rodauth 共有時は `domain: .kbmemo.net` を両アプリで揃える
+* **Cookie:** Rodauth 共有時は `domain: .kbmemo.example.com` を両アプリで揃える
 * **CORS:** Phase 2 で `rack-cors`（`/v1/*`、`TSUZURA_CORS_ORIGINS`）。ピッカーは KBMemo 同一オリジン API 経由が主経路
 * **デプロイ:** `kbmemo-media/bin/deploy`（`db:migrate` 必須）。nginx 一括 import 向け `client_max_body_size` **512M 以上** 推奨 — link:../deployment/production.adoc#tsuzura-nginx[production.adoc]
 
@@ -319,7 +319,7 @@ Tsuzura の顔検出機能は、お客様が写真を共有する前に、写り
 顔検出は任意機能です。手動でのぼかしのみを利用することもできます。自動検出結果は、共有前に必ずプレビューで確認できます。
 
 9. お問い合わせ
-kbmemo.net の運営者連絡先（本番運用開始時に URL を記載）までご連絡ください。
+kbmemo.example.com の運営者連絡先（本番運用開始時に URL を記載）までご連絡ください。
 ____
 
 ※ 本番公開前に **利用規約・プライバシーポリシー全体** へ組み込み、必要に応じて法務レビューすること。
@@ -387,7 +387,7 @@ Phase 1 では **動画機能なし**。将来 Phase 5 で動画を足すとき�
 
 === Tsuzura（`kbmemo-media`）
 
-`media.kbmemo.net` で公開する写真・動画アプリ。写真・動画アセットの **保管・整理・加工・配信** を担う。
+`media.kbmemo.example.com` で公開する写真・動画アプリ。写真・動画アセットの **保管・整理・加工・配信** を担う。
 
 * 一括アップロード（EXIF 付き）
 * アルバム（写真集）
@@ -456,7 +456,7 @@ Phase 1 では **動画機能なし**。将来 Phase 5 で動画を足すとき�
 [source,text]
 ----
                     ┌──────────────────────────────────┐
-  外部クライアント ──►│  Tsuzura（media.kbmemo.net）      │
+  外部クライアント ──►│  Tsuzura（media.kbmemo.example.com）      │
   一括 upload        │  repo: kbmemo-media               │
   編集 UI            │  • Album / MediaItem / VideoExport │
   ffmpeg Job         │  • PostgreSQL + S3/R2 + CDN        │
@@ -675,7 +675,7 @@ memo.body（AsciiDoc）
 
 == API 概要
 
-Tsuzura サービス（`media.kbmemo.net/v1`）:
+Tsuzura サービス（`media.kbmemo.example.com/v1`）:
 
 [cols="1,2,2"]
 |===
@@ -781,7 +781,7 @@ KBMemo 内部:
 
 * **`kbmemo-media`** — Tsuzura API・CLI・`bin/deploy`
 * **`kbmemo_site`** — マクロ表示・`sign_urls`・プロフィール CLI トークン
-* 本番 **`https://media.kbmemo.net`**（nginx upstream `:3008`）
+* 本番 **`https://media.kbmemo.example.com`**（nginx upstream `:3008`）
 
 === 1 Phase = 1 Agent セッション（目安）
 
@@ -789,7 +789,7 @@ KBMemo 内部:
 
 [source,text]
 ----
-bin/tsuzura import、メモ編集ピッカー、media.kbmemo.net Web UI、
+bin/tsuzura import、メモ編集ピッカー、media.kbmemo.example.com Web UI、
 sign_urls（JSON+CSRF）、TSUZURA_PUBLIC_URL、kbmemo-media bin/deploy。
 ----
 
@@ -834,7 +834,7 @@ sign_urls（JSON+CSRF）、TSUZURA_PUBLIC_URL、kbmemo-media bin/deploy。
 
 * Phase 1 = API-only + CLI。Phase 2 から media は最小 HTML UI あり
 * Active Storage local → 将来 S3 互換（RustFS）
-* nginx `media.kbmemo.net`、Rodauth 共有
+* nginx `media.kbmemo.example.com`、Rodauth 共有
 * マクロ ID は ULID、メモ添付との使い分け（<<memo-vs-tsuzura>>）
 * 顔検出: サーバー、**アカウント単位で保持・システム内共有なし**（<<face-privacy>>）
 * 動画: CDN なし低帯域（<<video-delivery>>）

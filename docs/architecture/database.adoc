@@ -13,7 +13,7 @@ KBMemo のアプリ DB は **PostgreSQL** です。`memos.properties` 等の JSO
 |環境 |接続先の想定 |credentials キー
 
 |development
-|別ホスト（例: `bowmore:5432`）
+|別ホスト（例: `db.example.com:5432`）
 |`db.development` — `host`, `port`, `username`, `password`, `database`
 
 |test
@@ -60,7 +60,7 @@ bin/rails kbmemo:db:import_sqlite
 
 # ソースファイルを指定
 SOURCE=storage/development.sqlite3 bin/rails kbmemo:db:import_sqlite
-SOURCE=/home/kensei/sites/kbmemo/storage/production.sqlite3 bin/rails kbmemo:db:import_sqlite
+SOURCE=/srv/kbmemo/site/storage/production.sqlite3 bin/rails kbmemo:db:import_sqlite
 
 # 既存 PG データを消さず追記（通常は使わない）
 CLEAR=0 bin/rails kbmemo:db:import_sqlite

@@ -375,7 +375,7 @@ development 既定 `base_url` は `http://localhost:10031`（intent）等。`emb
 [[nyoy-mcp]]
 == 11. Nyoy MCP を前提とした構成見直し（2026-07-10）
 
-如意（Nyoy）が `ChatTools::*` を MCP（`https://nyoy.kbmemo.net/mcp`）で公開した。
+如意（Nyoy）が `ChatTools::*` を MCP（`https://nyoy.example.com/mcp`）で公開した。
 徒然は **ツールの二重実装を避け**、役割を次のように分ける。
 
 === 11.1 徒然に残すもの

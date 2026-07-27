@@ -103,7 +103,7 @@ bin/ci
 
 == 本番デプロイ
 
-手順の全体像は link:docs/deployment/production.adoc[docs/deployment/production.adoc] を参照してください（Ubuntu 24.04・nginx・`/home/kensei/sites/kbmemo`・https://kbmemo.net/ ）。
+手順の全体像は link:docs/deployment/production.adoc[docs/deployment/production.adoc] を参照してください（Ubuntu 24.04・nginx・`/srv/kbmemo/site`・https://kbmemo.example.com/ ）。
 
 === Active Record Encryption（OpenAI API キー BYOK）
 

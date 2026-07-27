@@ -9,7 +9,7 @@
 * UI・機能を足すときは、まず properties にキーを追加し、`Memo` 上の薄いアクセサ（concern / サービス）で読み書きする。
 * **本文（AsciiDoc）や Git 作業ツリーには書かない。** 表示専用の派生情報も properties を正とする。
 * カンバン列・ノートブック所属など **プロダクトの中核スキーマ** は従来どおり専用テーブル／カラムを正とする（`docs/architecture/kanban-mvp.adoc` 等）。
-* **RDBMS は PostgreSQL**（`memos.properties` 等の JSON 型を正しく扱う）。開発は別ホスト（既定 `bowmore:5432`）、本番 deploy は `localhost`。
+* **RDBMS は PostgreSQL**（`memos.properties` 等の JSON 型を正しく扱う）。開発は別ホスト（既定 `db.example.com:5432`）、本番 deploy は `localhost`。
 
 == PostgreSQL と JSON
 

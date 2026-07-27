@@ -121,6 +121,8 @@ public repository を作成しない。
   本番運用手順で明示する。
 * 本番デプロイ手順は `/srv/kbmemo/site`、`/srv/kbmemo/tsuzura`、
   `*.example.com`、`db.example.com` を使う再利用可能な運用例へ更新済み。
+* 設計文書、README、credential template、関連 test の接続例は
+  `*.example.com` へ統一し、Nyoy のローカル相対参照は GitHub 上の正本へ変更済み。
 * gitleaksは2件を検出した。
 ** `app/services/tsuzura/client.rb`: secretを取得するメソッド呼び出しの誤検知。
 ** `docs/deployment/production.adoc`: nginx設定内の証明書private keyファイルパス。

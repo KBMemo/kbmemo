@@ -8,7 +8,7 @@ KBMemo (Kanban + Blog + Memo) のアプリサイト。
 |----------|-------------|
 | [docs/architecture/google-calendar-sync.adoc](docs/architecture/google-calendar-sync.adoc) | Google Calendar 同期（Phase 1） |
 | [docs/architecture/database.adoc](docs/architecture/database.adoc) | PostgreSQL・credentials・旧 SQLite インポート |
-| [docs/deployment/production.adoc](docs/deployment/production.adoc) | 本番デプロイ手順（Ubuntu 24.04 + nginx、https://kbmemo.net） |
+| [docs/deployment/production.adoc](docs/deployment/production.adoc) | 本番デプロイ手順（Ubuntu 24.04 + nginx、https://kbmemo.example.com） |
 | [docs/architecture/memo-properties.adoc](docs/architecture/memo-properties.adoc) | メモ `properties` JSON の設計方針 |
 | [docs/architecture/memo-directory-layout.adoc](docs/architecture/memo-directory-layout.adoc) | メモディレクトリ階層と Git パス |
 | [docs/architecture/web-clipping.adoc](docs/architecture/web-clipping.adoc) | Web クリップの保存経路・自動タグ・バックフィル |

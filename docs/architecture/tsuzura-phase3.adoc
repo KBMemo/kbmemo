@@ -9,7 +9,7 @@ link:media-platform.adoc[media-platform.adoc] の **Phase 3**。**2026-06 着手
 * **手動ぼかし矩形**（`blur_regions[]`）を Stack に保存し、派生 `web` に焼き込む。
 * KBMemo 本文の `image::media:ULID[]` は **変更不要**（署名 URL は従来どおり `/v1/media/:id/web`）。
 
-**非ゴール（Phase 3）:** 顔検出（Phase 4）、ffmpeg（Phase 5）、S3 移行（Phase 6）、KBMemo 側の編集 UI（media.kbmemo.net で編集）。
+**非ゴール（Phase 3）:** 顔検出（Phase 4）、ffmpeg（Phase 5）、S3 移行（Phase 6）、KBMemo 側の編集 UI（media.kbmemo.example.com で編集）。
 
 == データモデル
 
@@ -117,7 +117,7 @@ file（原本）
 
 == 受け入れ条件
 
-. オーナーが media.kbmemo.net で写真を 90° 回転・crop 保存できる
+. オーナーが media.kbmemo.example.com で写真を 90° 回転・crop 保存できる
 . `PATCH /v1/media/:id/edits` がトークン認証で動き、再生成後の `web` が KBMemo メモ show で反映される
 . 他アカウントの `edits` は 403
 . `edit_stack` が不正（crop 範囲外等）のとき 422

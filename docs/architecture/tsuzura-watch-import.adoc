@@ -14,11 +14,11 @@ link:media-platform.adoc[media-platform.adoc] の Dropbox カメラアップロ�
 curl -H "Authorization: Bearer $TSUZURA_API_TOKEN" \
   -F "album_ids[]=$ALBUM_A" -F "album_ids[]=$ALBUM_B" \
   -F "files[]=@photo.jpg" \
-  https://media.kbmemo.net/v1/media/batch
+  https://media.kbmemo.example.com/v1/media/batch
 
 # 取り込み前の照会（watch manifest 用）
 curl -H "Authorization: Bearer $TSUZURA_API_TOKEN" \
-  "https://media.kbmemo.net/v1/media/lookup?checksum=BASE64MD5"
+  "https://media.kbmemo.example.com/v1/media/lookup?checksum=BASE64MD5"
 ----
 
 レスポンス `stats`: `created`（新規 blob）、`linked`（既存メディアを新アルバムへ追加）、`total`。
@@ -34,7 +34,7 @@ curl -H "Authorization: Bearer $TSUZURA_API_TOKEN" \
   -F "auto_date_albums=true" \
   -F "inbox_album_title=Camera Upload" \
   -F "files[]=@photo.jpg" \
-  https://media.kbmemo.net/v1/media/batch
+  https://media.kbmemo.example.com/v1/media/batch
 
 # CLI（旅行名アルバム + 自動インボックス/日付）
 bin/tsuzura import --auto-date-albums -a "Trip 2026" ~/Dropbox/Camera\ Upload/

@@ -26,7 +26,7 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     post "/csp_reports",
       params: {
         "csp-report" => {
-          "document-uri" => "https://kbmemo.net/memos?token=secret",
+          "document-uri" => "https://kbmemo.example.com/memos?token=secret",
           "effective-directive" => "script-src",
           "blocked-uri" => "inline"
         }

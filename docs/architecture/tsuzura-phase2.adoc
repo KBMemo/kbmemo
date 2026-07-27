@@ -20,13 +20,13 @@ link:media-platform.adoc[media-platform.adoc] の **Phase 2**。**2026-06 実装
 
 * `kbmemo-media`: `tsuzura_*` テーブル・Active Storage・`POST /v1/media/batch`・`bin/tsuzura import`
 * `kbmemo_site`: `album::` / `image::media:` 表示・`POST /internal/tsuzura/sign_urls`・CLI トークン（プロフィール）
-* 環境変数: `TSUZURA_PUBLIC_URL` / `TSUZURA_BASE_URL` = `https://media.kbmemo.net`（本番）
-* nginx `media.kbmemo.net`: `client_max_body_size` **512M 以上** — link:../deployment/production.adoc#tsuzura-nginx[production.adoc]
+* 環境変数: `TSUZURA_PUBLIC_URL` / `TSUZURA_BASE_URL` = `https://media.kbmemo.example.com`（本番）
+* nginx `media.kbmemo.example.com`: `client_max_body_size` **512M 以上** — link:../deployment/production.adoc#tsuzura-nginx[production.adoc]
 * デプロイ: `kbmemo_site` → `bin/deploy`、`kbmemo-media` → `bin/deploy`（**Tsuzura テーブルは media 側 `db:migrate`**）
 
 == ユーザー向け機能
 
-* **media.kbmemo.net** — ログイン済み（`_kbmemo_session` 共有）でアルバム一覧・写真 upload
+* **media.kbmemo.example.com** — ログイン済み（`_kbmemo_session` 共有）でアルバム一覧・写真 upload
 * **メモ編集** — ツールバー「Tsuzura」からアルバム一括挿入（`album::ULID[]`）または画像複数選択（`image::media:ULID[]`）
 * **プレビュー** — 本文は ULID マクロのまま。表示・編集プレビュー・WYSIWYG で署名 URL に展開（本文に署名 URL は保存しない）
 
@@ -76,8 +76,8 @@ Web（Cookie 認証）: `/` 一覧、`/albums/:id` 詳細・upload、`/albums/ne
 
 [source,bash]
 ----
-TSUZURA_BASE_URL=https://media.kbmemo.net
-TSUZURA_PUBLIC_URL=https://media.kbmemo.net
+TSUZURA_BASE_URL=https://media.kbmemo.example.com
+TSUZURA_PUBLIC_URL=https://media.kbmemo.example.com
 KBMEMO_TSUZURA_INTERNAL_SECRET=…  # credentials と同一
 ----
 
@@ -86,15 +86,15 @@ KBMEMO_TSUZURA_INTERNAL_SECRET=…  # credentials と同一
 [source,bash]
 ----
 KBMEMO_TSUZURA_INTERNAL_SECRET=…  # KBMemo と同一
-KBMEMO_LOGIN_URL=https://kbmemo.net/login
-KBMEMO_HOME_URL=https://kbmemo.net
-# 任意（既定: kbmemo.net + localhost:3000）
-TSUZURA_CORS_ORIGINS=https://kbmemo.net,https://www.kbmemo.net,http://localhost:3000
+KBMEMO_LOGIN_URL=https://kbmemo.example.com/login
+KBMEMO_HOME_URL=https://kbmemo.example.com
+# 任意（既定: kbmemo.example.com + localhost:3000）
+TSUZURA_CORS_ORIGINS=https://kbmemo.example.com,https://www.kbmemo.example.com,http://localhost:3000
 ----
 
 == 受け入れ条件（完了）
 
-. `https://kbmemo.net` ログイン後、`https://media.kbmemo.net` でアルバム作成・upload ができる
+. `https://kbmemo.example.com` ログイン後、`https://media.kbmemo.example.com` でアルバム作成・upload ができる
 . メモ編集ピッカーで `album::` / `image::media:` を挿入し、show・ライブプレビュー・WYSIWYG で HTTPS 画像が表示される
 . 未共有メモでは他ユーザーに `sign_urls` が通らない（Phase 1 の `MemoPolicy#show?` 維持）
 . 本番で Mixed Content・413・CSRF 422 が再発しない設定（link:../deployment/production.adoc[production.adoc]）

@@ -12,8 +12,8 @@ module Tsuzura
     end
 
     test "TSUZURA_PUBLIC_URL overrides default" do
-      with_env("TSUZURA_PUBLIC_URL" => "https://media.kbmemo.net") do
-        assert_equal "https://media.kbmemo.net", Endpoints.public_url
+      with_env("TSUZURA_PUBLIC_URL" => "https://media.kbmemo.example.com") do
+        assert_equal "https://media.kbmemo.example.com", Endpoints.public_url
       end
     end
 
