@@ -33,7 +33,7 @@
   "dependencies": {
     "@asciidoctor/core": "^4.0.4",
     "@codemirror/autocomplete": "^6.20.2",
-    "@codemirror/commands": "^6.10.3",
+    "@codemirror/commands": "^6.10.4",
     "@codemirror/language": "^6.12.3",
     "@codemirror/search": "^6.5.11",
     "@codemirror/state": "^6.6.0",
