@@ -62,8 +62,8 @@ public repository を作成しない。
 
 |README とセットアップ手順
 |DONE: README.md を GitHub 表示の正本として開発・検証・関連project導線を整備
-|DOING: GitHub link・配置例更新済み
-|DOING: GitHub link・接続初期値更新済み
+|DONE: GitHub link・配置例・contribution/security導線を整備
+|DONE: GitHub link・接続初期値・contribution/security導線を整備
 
 |内部インフラ情報の一般化
 |DONE: 公開向け例示値へ置換済み
@@ -77,18 +77,18 @@ public repository を作成しない。
 
 |`SECURITY.md`
 |DONE: 報告経路を明記。Public 化直後に GitHub 側で Private Vulnerability Reporting を有効化
-|TODO
-|TODO
+|DONE: 報告対象・非公開報告方針・Public 化後の GitHub 設定を明記
+|DONE: 報告対象・非公開報告方針・Public 化後の GitHub 設定を明記
 
 |`CONTRIBUTING.md`
 |DONE: 開発・検証・PR 方針を追加
-|TODO
-|TODO
+|DONE: 開発・検証・API/media 変更時の確認方針を追加
+|DONE: 開発・検証・graph/prompt/tool 変更時の確認方針を追加
 
 |Private repository への移行確認
 |DONE: main CI、README、LICENSE、SECURITY.md を確認
-|TODO
-|TODO
+|DONE: main CI、README、LICENSE、SECURITY.md、CONTRIBUTING.md を確認
+|DONE: main CI、README、LICENSE、SECURITY.md、CONTRIBUTING.md を確認
 
 |Public 化
 |BLOCKED
@@ -115,7 +115,7 @@ public repository を作成しない。
 
 * `KBMemo/kbmemo`、`KBMemo/tsuzura`、`KBMemo/nyoy` は Private repository として
   存在し、default branch は `main`。Tsuzura の `develop` branch も GitHub へ同期済み。
-* `0555dde` の GitHub Actions CI は成功した。
+* 徒然 `0555dde`、葛籠 `30257697181`、如意 `30259846367` の GitHub Actions CI は成功した。
 * Issues と Projects は有効、Wiki と Discussions は無効。
 * `SECURITY.md` は GitHub で認識されている。Private Vulnerability Reporting は
   public 化直後に有効化して確認する。
@@ -301,6 +301,6 @@ gitea   git@gitea.example.com:organization/<old-repository>.git
 
 == 次の作業
 
-. 葛籠と如意の GitHub Actions CI を確認して、必要な依存・環境差分を解消する。
-. 葛籠と如意に `SECURITY.md`、`CONTRIBUTING.md`、公開向け README を整備する。
 . public 化直前に、3 repository を固定バージョンの gitleaks で全履歴再監査する。
+. visibility を Public に変更した直後、各 repository の GitHub Private Vulnerability
+  Reporting を有効化し、`SECURITY.md` の非公開報告経路を確認する。
