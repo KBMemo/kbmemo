@@ -106,7 +106,10 @@ public repository を作成しない。
 * `.github/workflows/ci.yml` と Dependabot 設定が存在する。
 * `gitleaks 8.30.1` の公式配布archiveをchecksum検証し、全Git履歴を
   `--redact` 付きで検査した。
-* 検出結果に実秘密情報は確認されなかった。公開前に同じ固定バージョンで再実行する。
+* 2026-07-27 の再監査では 516 commit を走査し、実秘密情報は確認されなかった。
+  検出は既知の誤検知 2 件のみ（徒然の Tsuzura 接続先を得るメソッド呼び出し、
+  WebSocket 接続確認用の RFC サンプル nonce）。visibility 変更の直前に、同じ
+  固定バージョンで再実行する。
 
 === GitHub Private repository 確認
 
@@ -153,10 +156,11 @@ public repository を作成しない。
   system test は Chrome stable の binary path を Cuprite に明示して実行する。
 * bug report / feature request の issue form と pull request template を追加し、
   秘密情報・個人データを issue に書かないことと、脆弱性報告の別経路を案内する。
-* gitleaksは2件を検出した。
-** `app/services/tsuzura/client.rb`: secretを取得するメソッド呼び出しの誤検知。
-** `docs/deployment/production.adoc`: nginx設定内の証明書private keyファイルパス。
-   key本体ではない。
+* gitleaks は 2 件を検出した（2026-07-27 の 516 commit 再監査でも同じ）。
+** `app/services/tsuzura/client.rb`: Tsuzura API の接続先 URL を得る
+   `api_base_url` 呼び出しに対する誤検知。値は含まない。
+** `docs/deployment/production.adoc`: WebSocket 接続確認で使う
+   RFC のサンプル `Sec-WebSocket-Key` nonce に対する誤検知。資格情報ではない。
 
 === 葛籠
 
