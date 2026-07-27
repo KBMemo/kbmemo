@@ -15,7 +15,10 @@ end
 
 Capybara.register_driver(:cuprite) do |app|
   browser_options = {}
-  browser_options["no-sandbox"] = nil if ENV["CI"]
+  if ENV["CI"]
+    browser_options["no-sandbox"] = nil
+    browser_options["disable-dev-shm-usage"] = nil
+  end
   browser_path = ENV["CUPRITE_BROWSER_PATH"].presence
   process_timeout = ENV.fetch("CUPRITE_PROCESS_TIMEOUT", "10").to_i
 

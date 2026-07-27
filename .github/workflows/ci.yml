@@ -197,11 +197,28 @@ jobs:
           chrome-version: stable
           install-dependencies: true
 
+      - name: Verify Chrome starts
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+        run: |
+          "$CHROME_PATH" --version
+          "$CHROME_PATH" --headless=new --no-sandbox --disable-dev-shm-usage --remote-debugging-port=9222 about:blank > /tmp/chrome.log 2>&1 &
+          chrome_pid=$!
+          trap 'kill "$chrome_pid"' EXIT
+          for _ in $(seq 1 20); do
+            if curl --fail --silent --show-error http://127.0.0.1:9222/json/version; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/chrome.log
+          exit 1
+
       - name: Run System Tests
         env:
           RAILS_ENV: test
           CUPRITE_BROWSER_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
-          CUPRITE_PROCESS_TIMEOUT: "30"
+          CUPRITE_PROCESS_TIMEOUT: "15"
           # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:create db:migrate test:system
