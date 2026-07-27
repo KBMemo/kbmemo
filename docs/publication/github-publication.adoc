@@ -151,6 +151,8 @@ public repository を作成しない。
   分離した。
 * 徒然API要件からローカルcloneの配置先とDB hostを除去した。PGroonga文書は
   production固有の実施日、revision、検索語を汎用導入チェックリストへ変更した。
+* LLM接続アーキテクチャ文書の内部hostとproduction移行記録を除去し、
+  portだけでbindingしない制約と用途assignment監査の契約へ一般化した。
 * 徒然・葛籠への文書リンクは`github.com/KBMemo/*`へ更新済み。
 * remote deployは`bin/deploy-remote`へ一般化し、`NYOY_DEPLOY_HOST`と
   `NYOY_DEPLOY_PATH`を必須化した。旧`bin/deploy-bowmore`は個人環境の既定値を
