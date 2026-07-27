@@ -141,6 +141,9 @@ public repository を作成しない。
 * 本番deploy scriptと実運用runbookに残るホスト名・配置パスは、公開用手順と
   内部運用記録へ分離する必要がある。
 * 徒然・葛籠への文書リンクは`github.com/KBMemo/*`へ更新済み。
+* remote deployは`bin/deploy-remote`へ一般化し、`NYOY_DEPLOY_HOST`と
+  `NYOY_DEPLOY_PATH`を必須化した。旧`bin/deploy-bowmore`は個人環境の既定値を
+  持たないdeprecated wrapperとして維持する。
 * 履歴書き換え後のgitleaks検出は6件。
 ** すべてrunbookの`Authorization: Bearer your-token`という例示値。
 ** 過去の`config/credentials.yml.enc`とその暗号文は全refから除去済み。
