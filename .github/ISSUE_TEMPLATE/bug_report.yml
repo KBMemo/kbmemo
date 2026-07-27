@@ -1,0 +1,43 @@
+name: Bug report
+description: Report reproducible behavior that differs from the expected result.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include credentials, API tokens, private memo content, or other personal data.
+        For security vulnerabilities, use the private reporting path in SECURITY.md instead.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and its impact.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Include the release version or commit SHA when known.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Ruby, Node.js, browser, operating system, and deployment details that may matter.
