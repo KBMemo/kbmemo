@@ -53,7 +53,7 @@
     "katex": "^0.16.11",
     "lucide": "^1.14.0",
     "open-props": "^1.7.23",
-    "stimulus-use": "^0.52.3",
+    "stimulus-use": "^0.53.0",
     "svgedit": "^7.4.1"
   },
   "overrides": {
