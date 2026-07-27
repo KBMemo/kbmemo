@@ -7,7 +7,7 @@
   ],
   "devDependencies": {
     "@hotwired/stimulus": "^3.2.2",
-    "happy-dom": "^20.9.0",
+    "happy-dom": "^20.11.1",
     "tsup": "^8.5.0",
     "typescript": "^5.9.2",
     "vite": "^8.0.10",
