@@ -61,7 +61,7 @@ public repository を作成しない。
 |DONE: MIT
 
 |README とセットアップ手順
-|DOING: GitHub link更新済み
+|DONE: README.md を GitHub 表示の正本として開発・検証・関連project導線を整備
 |DOING: GitHub link・配置例更新済み
 |DOING: GitHub link・接続初期値更新済み
 
@@ -112,7 +112,7 @@ public repository を作成しない。
 
 * MIT License が存在する。
 * ローカル`main`とGiteaの`origin/main`は同期済み。
-* `README.md` と `README.adoc` が併存している。公開時の正を決める。
+* `README.md` を GitHub 表示の正本とし、`README.adoc` は詳細な運用補足を維持する。
 * npm package publish workflow は registry と token の GitHub Actions secrets を必要とする。
 * Gitea URL、内部ホスト名、個人環境のパスを含む文書と設定がある。
 * 公開repository間リンクとnpm package metadataは`github.com/KBMemo/*`へ更新済み。
