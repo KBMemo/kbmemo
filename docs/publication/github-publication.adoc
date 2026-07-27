@@ -131,6 +131,8 @@ public repository を作成しない。
 * CI は `pull_request` / `push` で `contents: read` 権限だけを明示する。
   npm publish は手動 workflow とし、dry-run では npm registry token を runner に
   渡さない。
+* GitHub Actions は確認済みの commit SHA へ pin し、version comment を Dependabot
+  の更新情報として維持する。
 * bug report / feature request の issue form と pull request template を追加し、
   秘密情報・個人データを issue に書かないことと、脆弱性報告の別経路を案内する。
 * gitleaksは2件を検出した。
