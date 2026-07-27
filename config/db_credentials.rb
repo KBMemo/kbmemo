@@ -47,12 +47,17 @@ module DbCredentials
     end
 
     def ci_config
+      database = ENV.fetch("KBMEMO_CI_DB_DATABASE")
+
       {
         "host" => ENV.fetch("KBMEMO_CI_DB_HOST"),
         "port" => ENV.fetch("KBMEMO_CI_DB_PORT", "5432"),
         "username" => ENV.fetch("KBMEMO_CI_DB_USERNAME"),
         "password" => ENV.fetch("KBMEMO_CI_DB_PASSWORD"),
-        "database" => ENV.fetch("KBMEMO_CI_DB_DATABASE")
+        "database" => database,
+        "cache_database" => database,
+        "queue_database" => database,
+        "cable_database" => database
       }
     end
 
