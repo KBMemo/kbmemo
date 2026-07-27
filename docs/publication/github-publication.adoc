@@ -140,6 +140,9 @@ public repository を作成しない。
   `localhost`基準へ一般化した。既存環境のDBホストはGit管理外credentialsへ移行した。
 * `docs/production-setup.md`とsystemd unitは、`app.example.com`、
   `db.example.com`、`/srv/kbmemo/nyoy`を使う公開用手順へ一般化済み。
+* Memo RAG webhook runbookは例示URLと`/srv/kbmemo/*`配置へ一般化済み。
+  ImageUnderstanding runbookは手順と記録テンプレートだけを公開対象とし、
+  endpoint、media ID、AgentRun IDを含む実機ログをrepository外へ分離した。
 * 徒然・葛籠への文書リンクは`github.com/KBMemo/*`へ更新済み。
 * remote deployは`bin/deploy-remote`へ一般化し、`NYOY_DEPLOY_HOST`と
   `NYOY_DEPLOY_PATH`を必須化した。旧`bin/deploy-bowmore`は個人環境の既定値を
