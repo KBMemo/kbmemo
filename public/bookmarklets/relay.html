@@ -49,6 +49,7 @@
         const RELAY_READY = 'kbmemo-clip-relay-ready'
         const CLIP = 'kbmemo-clip'
         const CLIP_DONE = 'kbmemo-clip-done'
+        const SUCCESS_CLOSE_DELAY_MS = 1200
         const statusEl = document.getElementById('status')
 
         function setStatus(text) {
@@ -91,6 +92,10 @@
           actions.appendChild(closeBtn)
 
           if (statusEl) statusEl.after(actions)
+
+          // The relay was opened by the bookmarklet, so it can close itself without
+          // requiring a user gesture. Keep the confirmation visible briefly first.
+          window.setTimeout(() => window.close(), SUCCESS_CLOSE_DELAY_MS)
         }
 
         if (!window.opener) {
