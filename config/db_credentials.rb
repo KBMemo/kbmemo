@@ -7,6 +7,8 @@ require "active_support/core_ext/hash/keys"
 module DbCredentials
   class << self
     def config(env = Rails.env, credentials: Rails.application.credentials)
+      return ci_config if ci_config?
+
       cfg = credentials.dig(:db, env.to_sym)
       if cfg.blank?
         raise KeyError,
@@ -40,6 +42,20 @@ module DbCredentials
       (cfg.is_a?(Hash) ? cfg : cfg.to_h).stringify_keys
     end
 
-    private :normalize_section
+    def ci_config?
+      ENV["KBMEMO_CI_DB_HOST"].present?
+    end
+
+    def ci_config
+      {
+        "host" => ENV.fetch("KBMEMO_CI_DB_HOST"),
+        "port" => ENV.fetch("KBMEMO_CI_DB_PORT", "5432"),
+        "username" => ENV.fetch("KBMEMO_CI_DB_USERNAME"),
+        "password" => ENV.fetch("KBMEMO_CI_DB_PASSWORD"),
+        "database" => ENV.fetch("KBMEMO_CI_DB_DATABASE")
+      }
+    end
+
+    private :normalize_section, :ci_config?, :ci_config
   end
 end

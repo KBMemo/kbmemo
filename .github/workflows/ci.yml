@@ -10,6 +10,11 @@ permissions:
 
 env:
   CI_RUBY_VERSION: "4.0.3"
+  KBMEMO_CI_DB_HOST: 127.0.0.1
+  KBMEMO_CI_DB_PORT: "5432"
+  KBMEMO_CI_DB_USERNAME: postgres
+  KBMEMO_CI_DB_PASSWORD: postgres
+  KBMEMO_CI_DB_DATABASE: kbmemo_test
 
 jobs:
   scan_ruby:
@@ -92,6 +97,20 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kbmemo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kbmemo_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     # services:
     #  redis:
@@ -129,6 +148,20 @@ jobs:
 
   system-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kbmemo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kbmemo_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     # services:
     #  redis:
