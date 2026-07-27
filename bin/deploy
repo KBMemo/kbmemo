@@ -26,14 +26,14 @@ Options:
 
 Environment:
   KBMEMO_SYSTEMD_UNIT   systemd unit name (default: kbmemo)
-  KBMEMO_HEALTH_URL     health check URL (default: https://kbmemo.net/up)
-  KBMEMO_HEALTH_HOST    Host header for localhost checks (default: kbmemo.net)
+  KBMEMO_HEALTH_URL     health check URL (default: http://127.0.0.1:$PORT/up)
+  KBMEMO_HEALTH_HOST    optional Host header for a localhost health check
   KBMEMO_HEALTH_CHECK_DELAY
                         seconds to wait before first health check (default: 3)
   KBMEMO_GIT_REMOTE     git remote (default: origin)
 
 Example:
-  cd /home/kensei/sites/kbmemo && bin/deploy
+  cd /srv/kbmemo/site && bin/deploy
   bin/deploy --branch main
 EOF
 }
@@ -55,10 +55,6 @@ step() {
 health_check() {
   local url="$1"
   local host_header="${KBMEMO_HEALTH_HOST:-}"
-
-  if [[ -z "${host_header}" && "${url}" =~ ^https?://(127\.0\.0\.1|localhost)([:/]|$) ]]; then
-    host_header="kbmemo.net"
-  fi
 
   if [[ -n "${host_header}" ]]; then
     curl -fsS -H "Host: ${host_header}" "${url}"
@@ -100,7 +96,8 @@ done
 # shellcheck source=scripts/production_env.sh
 source "${APP_ROOT}/scripts/production_env.sh"
 
-HEALTH_URL="${KBMEMO_HEALTH_URL:-https://kbmemo.net/up}"
+PORT="${PORT:-3007}"
+HEALTH_URL="${KBMEMO_HEALTH_URL:-http://127.0.0.1:${PORT}/up}"
 HEALTH_CHECK_DELAY="${KBMEMO_HEALTH_CHECK_DELAY:-3}"
 
 if [[ ! "${HEALTH_CHECK_DELAY}" =~ ^[0-9]+([.][0-9]+)?$ ]]; then

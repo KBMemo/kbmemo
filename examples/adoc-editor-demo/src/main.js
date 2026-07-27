@@ -14,7 +14,7 @@ const asciidocHighlight = createAsciidocHighlight({ Decoration, EditorView })
 
 const initialSource = `= Demo memo
 
-This is a *minimal* AsciiDoc editor demo using link:https://kbmemo.net[kbmemo] packages.
+This is a *minimal* AsciiDoc editor demo using the kbmemo packages.
 
 * item one
 * item two

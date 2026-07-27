@@ -316,7 +316,7 @@ module MemosHelper
     attrs
   end
 
-  # ルートからのラベルパス表示（例: /Home/kensei）。ルート自身は /。
+  # ルートからのラベルパス表示（例: /Home/user）。ルート自身は /。
   def memo_directory_path_from_root_label(directory)
     return "/" if directory.nil?
 

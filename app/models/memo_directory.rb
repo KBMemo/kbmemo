@@ -74,7 +74,7 @@ class MemoDirectory < ApplicationRecord
     label.presence || path_segment.presence || full_path
   end
 
-  # ルートから各階層のラベル（未設定時は path_segment）を / で連結（例: /Home/kensei）
+  # ルートから各階層のラベル（未設定時は path_segment）を / で連結（例: /Home/user）
   def labeled_path_from_root
     return "/" if root?
 

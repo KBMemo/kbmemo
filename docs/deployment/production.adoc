@@ -685,7 +685,7 @@ sudo tail -f /var/log/nginx/kbmemo.example.com.error.log
 
 リポジトリ同梱の `bin/deploy` で pull・依存関係・マイグレーション・アセットビルド・再起動を一括実行できます。
 
-`bin/deploy` は service restart 後に既定で3秒待機し、**https://kbmemo.example.com/up**（nginx 経由）をヘルスチェックします。待機時間は `KBMEMO_HEALTH_CHECK_DELAY` で変更できます。`config.hosts` に `127.0.0.1` が無いため、`http://127.0.0.1:3007/up` を直接叩くと Host Authorization で拒否されます。アプリだけ確認する場合は `KBMEMO_HEALTH_URL=http://127.0.0.1:3007/up` とし、`bin/deploy` が `Host: kbmemo.example.com` ヘッダーを付与します。
+`bin/deploy` は service restart 後に既定で3秒待機し、`http://127.0.0.1:$PORT/up` をヘルスチェックします。待機時間は `KBMEMO_HEALTH_CHECK_DELAY` で変更できます。nginx 経由の公開 URL を確認する場合は `KBMEMO_HEALTH_URL=https://kbmemo.example.com/up` を明示します。localhost への確認に Host header が必要な構成では、`KBMEMO_HEALTH_HOST=kbmemo.example.com` を併せて指定します。
 
 [source,bash]
 ----

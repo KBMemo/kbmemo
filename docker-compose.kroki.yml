@@ -7,7 +7,7 @@ services:
   kroki:
     image: yuzutech/kroki
     environment:
-      # 末尾ドットで検索ドメイン付き解決（*.artif.org 等）を防ぐ
+      # 末尾ドットで検索ドメイン付き解決を防ぐ
       KROKI_MERMAID_HOST: kroki-mermaid.
     ports:
       - "8001:8000"

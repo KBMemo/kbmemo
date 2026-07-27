@@ -123,6 +123,9 @@ public repository を作成しない。
   `*.example.com`、`db.example.com` を使う再利用可能な運用例へ更新済み。
 * 設計文書、README、credential template、関連 test の接続例は
   `*.example.com` へ統一し、Nyoy のローカル相対参照は GitHub 上の正本へ変更済み。
+* `bin/deploy` は公開 URL や個人配置パスを既定にせず、ローカル health check を
+  既定とした。公開 URL と Host header は `KBMEMO_HEALTH_URL` /
+  `KBMEMO_HEALTH_HOST` で明示する。
 * gitleaksは2件を検出した。
 ** `app/services/tsuzura/client.rb`: secretを取得するメソッド呼び出しの誤検知。
 ** `docs/deployment/production.adoc`: nginx設定内の証明書private keyファイルパス。
@@ -162,8 +165,8 @@ public repository を作成しない。
   portだけでbindingしない制約と用途assignment監査の契約へ一般化した。
 * 徒然・葛籠への文書リンクは`github.com/KBMemo/*`へ更新済み。
 * remote deployは`bin/deploy-remote`へ一般化し、`NYOY_DEPLOY_HOST`と
-  `NYOY_DEPLOY_PATH`を必須化した。旧`bin/deploy-bowmore`は個人環境の既定値を
-  持たないdeprecated wrapperとして維持する。
+  `NYOY_DEPLOY_PATH`を必須化した。旧 host 固有 deploy wrapperは個人環境の
+  既定値を持たないdeprecated wrapperとして維持する。
 * `bin/deploy`のhealth check既定値、MCP client example、production host設定、
   API/OpenAPI文書、ServiceConnection / SD model profileのUI placeholderを
   公開向けの例示値へ一般化した。実hostは`NYOY_APP_HOST`、
@@ -244,7 +247,7 @@ Giteaの旧`main` SHAを明示した`--force-with-lease`で更新し、localとr
 [source,text]
 ----
 origin  git@github.com:KBMemo/<repository>.git
-gitea   git@gitea.artif.org:Artif.org/<old-repository>.git
+gitea   git@gitea.example.com:organization/<old-repository>.git
 ----
 
 . default branchを`main`に設定する。
