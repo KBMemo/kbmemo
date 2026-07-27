@@ -134,12 +134,12 @@ public repository を作成しない。
 
 * Nyoy本体と`agent_graph-core`はMIT Licenseを採用した。
 * `agent_graph-core.gemspec` のhomepageは`KBMemo/nyoy`を参照するよう更新済み。
-* Gitea URL、内部ホスト名、private network のアドレス、個人環境のパスを含む
-  runbook と設定がある。
+* 一部の個別runbookには、内部ホスト名、private network のアドレス、
+  個人環境のパスが残っている。
 * README、example env、database、LLM / SD / 検索 / readabilityのruntime defaultは
   `localhost`基準へ一般化した。既存環境のDBホストはGit管理外credentialsへ移行した。
-* 本番deploy scriptと実運用runbookに残るホスト名・配置パスは、公開用手順と
-  内部運用記録へ分離する必要がある。
+* `docs/production-setup.md`とsystemd unitは、`app.example.com`、
+  `db.example.com`、`/srv/kbmemo/nyoy`を使う公開用手順へ一般化済み。
 * 徒然・葛籠への文書リンクは`github.com/KBMemo/*`へ更新済み。
 * remote deployは`bin/deploy-remote`へ一般化し、`NYOY_DEPLOY_HOST`と
   `NYOY_DEPLOY_PATH`を必須化した。旧`bin/deploy-bowmore`は個人環境の既定値を
