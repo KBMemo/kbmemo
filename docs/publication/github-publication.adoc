@@ -67,8 +67,8 @@ public repository を作成しない。
 
 |内部インフラ情報の一般化
 |DONE: 公開向け例示値へ置換済み
-|TODO
-|TODO
+|DONE: 公開 HEAD を再監査し、接続先は公開 URL または例示値だけであることを確認
+|DONE: 公開 HEAD を再監査し、実サーバー名を含む旧 deploy wrapper を削除
 
 |GitHub Actions
 |DONE: 2026-07-27、main CI成功
@@ -121,6 +121,9 @@ public repository を作成しない。
 * Issues と Projects は有効、Wiki と Discussions は無効。
 * 各 repository で `SECURITY.md` を公開し、Private Vulnerability Reporting を API で有効化
   した（PUT は `204`、確認 GET は `200`）。
+* Dependabot vulnerability alerts / security updates、Secret Scanning、push protection を
+  3 repository で API により有効化した。validity checks と non-provider patterns は
+  GitHub の既定状態（disabled）を維持する。
 * 認証なしの GitHub HTTPS 到達と shallow clone、README、LICENSE、`SECURITY.md`、
   `CONTRIBUTING.md` の公開表示を確認した。
 * Actions は有効で、許可 action は `all`。workflow 側の commit SHA pin を維持する。
@@ -307,6 +310,5 @@ gitea   git@gitea.example.com:organization/<old-repository>.git
 
 == 次の作業
 
-. 各 repository の Security alerts 通知先を確認する。
+. GitHub アカウントの Security alerts 通知先を確認する。
 . 最初の release tag と release notes の対象・時期を決定する。
-. 内部インフラ情報の一般化が未完了の箇所を継続して整理する。
