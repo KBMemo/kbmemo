@@ -3,8 +3,8 @@ set -euo pipefail
 
 APP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-SYSTEMD_UNIT="${KBMEMO_SYSTEMD_UNIT:-kbmemo}"
-GIT_REMOTE="${KBMEMO_GIT_REMOTE:-origin}"
+SYSTEMD_UNIT=""
+GIT_REMOTE=""
 GIT_BRANCH=""
 SKIP_PULL=0
 SKIP_RESTART=0
@@ -96,6 +96,8 @@ done
 # shellcheck source=scripts/production_env.sh
 source "${APP_ROOT}/scripts/production_env.sh"
 
+SYSTEMD_UNIT="${KBMEMO_SYSTEMD_UNIT:-kbmemo}"
+GIT_REMOTE="${KBMEMO_GIT_REMOTE:-origin}"
 PORT="${PORT:-3007}"
 HEALTH_URL="${KBMEMO_HEALTH_URL:-http://127.0.0.1:${PORT}/up}"
 HEALTH_CHECK_DELAY="${KBMEMO_HEALTH_CHECK_DELAY:-3}"
