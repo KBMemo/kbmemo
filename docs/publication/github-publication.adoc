@@ -245,6 +245,8 @@ Giteaの旧`main` SHAを明示した`--force-with-lease`で更新し、localとr
 
 === Phase 4: GitHub 移行
 
+実行手順は link:github-migration-runbook.adoc[GitHub 移行 Runbook] を正とする。
+
 . 徒然の未 push commit を先にGiteaへ反映する。
 . 空のGitHub repositoryへ全 branchとtagをmirrorする。
 . 通常の作業remoteを次の構成へ変更する。

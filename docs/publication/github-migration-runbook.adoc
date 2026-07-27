@@ -1,0 +1,111 @@
+= KBMemo GitHub 移行 Runbook
+:toc:
+:toclevels: 2
+
+この手順は link:github-publication.adoc[GitHub 公開準備] の Phase 4 と Phase 5 を
+実施するための runbook である。対象 repository は `KBMemo/kbmemo`。最初は
+Private として移行し、公開判定が済むまで Public に変更しない。
+
+== 事前条件
+
+* GitHub Organization `KBMemo` と空の Private repository `kbmemo` がある。
+  GitHub 側で README、LICENSE、`.gitignore` を初期生成しない。
+* 実 token、password、private key を失効または rotation し、全 ref の secret
+  scan を完了している。
+* `main` と公開する tag / branch を確認し、作業ツリーが clean である。
+* link:../../SECURITY.md[SECURITY.md] の報告経路を有効にするため、GitHub
+  Private Vulnerability Reporting を利用できる権限がある。
+
+== 1. 移行前の確認
+
+[source,bash]
+----
+git status --short
+git fetch origin --prune
+git log --oneline origin/main..main
+bin/ci
+
+# gitleaks 8.30.1 を checksum 検証済みの配布物から使う
+gitleaks git --redact --log-opts="--all"
+----
+
+`gitleaks` の検出を値を含めずに記録する。実秘密情報が見つかった場合は、先に
+rotation と全 ref の履歴除去を完了してから移行する。
+
+== 2. GitHub Private repository へ push
+
+`--mirror` は使用しない。不要な ref や、監査対象外の remote-tracking ref まで
+転送するためである。公開する branch と tag を明示する。
+
+[source,bash]
+----
+git remote add github git@github.com:KBMemo/kbmemo.git
+git push github main
+git push github --tags
+----
+
+追加で公開する branch がある場合だけ、名前を確認して個別に push する。
+
+[source,bash]
+----
+git branch --format='%(refname:short)'
+git push github <branch-name>
+----
+
+== 3. Private 状態での GitHub 確認
+
+. GitHub の default branch を `main` に設定する。
+. `main` の branch protection を設定し、pull request review と必須 CI を有効にする。
+. Actions の workflow permissions を read-only にし、fork pull request の workflow
+   は secrets なし・read-only `GITHUB_TOKEN` で実行する設定を確認する。
+. Security tab で Private Vulnerability Reporting を有効にし、`Report a
+   vulnerability` を表示できることを確認する。
+. README、LICENSE、`SECURITY.md`、`CONTRIBUTING.md`、issue form、PR template の
+   表示を確認する。
+. GitHub 上の `main` に対して CI を実行し、fork を模した pull request で secrets
+   を必要としないことを確認する。
+. npm publish workflow は dry-run を実行し、実 publish は必要な時だけ
+   `NPM_TOKEN` / `NPM_PUBLISH_REGISTRY` を登録する。
+
+== 4. 通常 remote の切替
+
+GitHub 上の Private 検証に合格したら、既存の Gitea remote を backup として残し、
+GitHub を通常の `origin` にする。
+
+[source,bash]
+----
+git remote rename origin gitea
+git remote rename github origin
+git fetch --all --prune
+git remote -v
+----
+
+期待する構成:
+
+[source,text]
+----
+origin  git@github.com:KBMemo/kbmemo.git
+gitea   git@gitea.example.com:organization/kbmemo.git
+----
+
+Gitea は削除せず、公開後もしばらく read-only backup として保持する。
+
+== 5. Public 化
+
+次を確認してから GitHub の repository visibility を Public に変更する。
+
+* `bin/ci` と secret scan が成功している。
+* branch protection、Actions の read-only 権限、Private Vulnerability Reporting が
+  有効である。
+* GitHub 上の README と製品間リンクが正しく表示される。
+* npm publish secret は publish workflow 以外で利用できない。
+* `main`、tag、公開する branch に不要な ref が含まれない。
+
+Public 化後は、匿名 clone、issue form、Security tab、CI badge、Actions log を確認する。
+最初の release tag は既知の制限と互換性を release note に記載してから作成する。
+
+== ロールバック
+
+Public 化直後に問題を見つけた場合は、GitHub repository を Private に戻す。実秘密情報が
+含まれた場合は visibility の変更だけで完了とせず、直ちに credential を失効し、全 ref
+から除去して再監査する。Gitea backup も同じ履歴を持つため、必要に応じて同時に対処する。
