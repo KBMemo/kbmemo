@@ -76,7 +76,7 @@ public repository を作成しない。
 |DOING
 
 |`SECURITY.md`
-|DONE: GitHub Private Vulnerability Reporting を報告経路として明記
+|DOING: 報告経路を明記。Public 化直後に GitHub 側で有効化
 |TODO
 |TODO
 
@@ -220,7 +220,7 @@ Giteaの旧`main` SHAを明示した`--force-with-lease`で更新し、localとr
 . README だけで development 環境を構築できる。
 . 内部 DNS 名、private IP、個人の絶対パス、本番 token の取得手順を一般化している。
 . GitHub Actions が fork からの pull request でも秘密情報なしで安全に実行できる。
-. GitHub Private Vulnerability Reporting を有効化し、`SECURITY.md` の報告経路を実際に利用できることを確認する。
+. Public 化直後に GitHub Private Vulnerability Reporting を有効化し、`SECURITY.md` の報告経路を実際に利用できることを確認する。
 . GitHub の Private repository で CI、リンク、README 表示を確認している。
 
 == 作業順序

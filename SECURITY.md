@@ -4,9 +4,13 @@
 
 Do not report suspected vulnerabilities in a public issue, discussion, or pull request.
 
-Use GitHub's **Report a vulnerability** action in this repository's Security tab. This
-opens a private vulnerability report visible only to repository maintainers. Maintainers
-must enable GitHub Private Vulnerability Reporting before making the repository public.
+For public releases, use GitHub's **Report a vulnerability** action in this repository's
+Security tab. This opens a private vulnerability report visible only to repository
+maintainers.
+
+GitHub Private Vulnerability Reporting is available only for public repositories.
+Maintainers must enable it immediately after changing repository visibility to public and
+before announcing the repository.
 
 Include the affected version or commit, reproduction steps, expected and actual behavior,
 impact, and any suggested mitigation. Do not include production credentials, API tokens,

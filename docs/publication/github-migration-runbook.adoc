@@ -13,8 +13,8 @@ Private として移行し、公開判定が済むまで Public に変更しな�
 * 実 token、password、private key を失効または rotation し、全 ref の secret
   scan を完了している。
 * `main` と公開する tag / branch を確認し、作業ツリーが clean である。
-* link:../../SECURITY.md[SECURITY.md] の報告経路を有効にするため、GitHub
-  Private Vulnerability Reporting を利用できる権限がある。
+* Public 化後に link:../../SECURITY.md[SECURITY.md] の報告経路を有効にするため、
+  GitHub Private Vulnerability Reporting を利用できる権限がある。
 
 == 1. 移行前の確認
 
@@ -58,8 +58,6 @@ git push github <branch-name>
 . `main` の branch protection を設定し、pull request review と必須 CI を有効にする。
 . Actions の workflow permissions を read-only にし、fork pull request の workflow
    は secrets なし・read-only `GITHUB_TOKEN` で実行する設定を確認する。
-. Security tab で Private Vulnerability Reporting を有効にし、`Report a
-   vulnerability` を表示できることを確認する。
 . README、LICENSE、`SECURITY.md`、`CONTRIBUTING.md`、issue form、PR template の
    表示を確認する。
 . GitHub 上の `main` に対して CI を実行し、fork を模した pull request で secrets
@@ -95,13 +93,14 @@ Gitea は削除せず、公開後もしばらく read-only backup として保�
 次を確認してから GitHub の repository visibility を Public に変更する。
 
 * `bin/ci` と secret scan が成功している。
-* branch protection、Actions の read-only 権限、Private Vulnerability Reporting が
-  有効である。
+* branch protection と Actions の read-only 権限が有効である。
 * GitHub 上の README と製品間リンクが正しく表示される。
 * npm publish secret は publish workflow 以外で利用できない。
 * `main`、tag、公開する branch に不要な ref が含まれない。
 
-Public 化後は、匿名 clone、issue form、Security tab、CI badge、Actions log を確認する。
+Public 化直後、告知前に Security tab で Private Vulnerability Reporting を有効にし、
+`Report a vulnerability` を表示できることを確認する。その後、匿名 clone、issue form、
+CI badge、Actions log を確認する。
 最初の release tag は既知の制限と互換性を release note に記載してから作成する。
 
 == ロールバック
