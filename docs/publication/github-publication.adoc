@@ -116,6 +116,9 @@ public repository を作成しない。
 * npm package publish workflow は registry と token の GitHub Actions secrets を必要とする。
 * Gitea URL、内部ホスト名、個人環境のパスを含む文書と設定がある。
 * 公開repository間リンクとnpm package metadataは`github.com/KBMemo/*`へ更新済み。
+* credential template、Kamal設定コメント、example env の接続先は
+  `*.example.com` へ一般化済み。実サービス URL は runtime 設定または
+  本番運用手順で明示する。
 * gitleaksは2件を検出した。
 ** `app/services/tsuzura/client.rb`: secretを取得するメソッド呼び出しの誤検知。
 ** `docs/deployment/production.adoc`: nginx設定内の証明書private keyファイルパス。
