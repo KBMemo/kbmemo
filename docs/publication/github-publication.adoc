@@ -126,6 +126,9 @@ public repository を作成しない。
 * `bin/deploy` は公開 URL や個人配置パスを既定にせず、ローカル health check を
   既定とした。公開 URL と Host header は `KBMEMO_HEALTH_URL` /
   `KBMEMO_HEALTH_HOST` で明示する。
+* CI は `pull_request` / `push` で `contents: read` 権限だけを明示する。
+  npm publish は手動 workflow とし、dry-run では npm registry token を runner に
+  渡さない。
 * gitleaksは2件を検出した。
 ** `app/services/tsuzura/client.rb`: secretを取得するメソッド呼び出しの誤検知。
 ** `docs/deployment/production.adoc`: nginx設定内の証明書private keyファイルパス。

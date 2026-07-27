@@ -8,6 +8,9 @@ on:
         type: boolean
         default: true
 
+permissions:
+  contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -26,13 +29,13 @@ jobs:
       - name: Verify publish metadata
         run: npm run verify:publish
 
+      - name: Dry-run package publish
+        if: inputs.dry_run
+        run: npm run publish:packages -- --dry-run
+
       - name: Publish packages
+        if: ${{ !inputs.dry_run }}
         env:
           NPM_PUBLISH_REGISTRY: ${{ secrets.NPM_PUBLISH_REGISTRY }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            npm run publish:packages -- --dry-run
-          else
-            npm run publish:packages
-          fi
+        run: npm run publish:packages
