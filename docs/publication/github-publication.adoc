@@ -311,4 +311,4 @@ gitea   git@gitea.example.com:organization/<old-repository>.git
 == 次の作業
 
 . GitHub アカウントの Security alerts 通知先を確認する。
-. 最初の release tag と release notes の対象・時期を決定する。
+. link:initial-release-plan.adoc[初回 release 計画]に従い、release tag と release notes の対象・時期を決定する。

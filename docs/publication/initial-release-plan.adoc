@@ -1,0 +1,77 @@
+= KBMemo Initial Public Release Plan
+:toc:
+
+この文書は GitHub Public 化後、最初の application release を作成するための基準である。
+tag と GitHub Release の作成は、対象 commit と release note を承認してから行う。
+
+== 現在の tag
+
+* 徒然の `v0.1.0` は AsciiDoc editor npm packages の release tag であり、main branch 上の
+  徒然 application release を表さない。
+* 葛籠と如意には application release tag がない。
+
+== 初回 release の命名
+
+|===
+|Repository |初回 tag |理由
+
+|`KBMemo/kbmemo`
+|`kbmemo-v0.1.0`
+|既存の npm packages 用 `v0.1.0` との衝突を避ける。
+
+|`KBMemo/tsuzura`
+|`v0.1.0`
+|repository 内に既存 release tag がない。
+
+|`KBMemo/nyoy`
+|`v0.1.0`
+|repository 内に既存 release tag がない。`agent_graph-core` gem の version とは独立した
+application release とする。
+|===
+
+初回は public API・設定・運用手順が変化し得るため、stable compatibility を示す `1.0.0` では
+なく `0.1.0` とする。
+
+== Release gate
+
+. `main` の GitHub Actions が成功している。
+. `git status --short` が空であり、`github/main` と release 対象 HEAD が一致している。
+. 全履歴 gitleaks scan と GitHub security settings の確認結果が
+  link:github-publication.adoc[公開準備]に記録されている。
+. README、LICENSE、`SECURITY.md`、`CONTRIBUTING.md` の公開表示を確認する。
+. release note に含める機能、既知の制限、設定・migration の要否をレビューする。
+
+== Release note の内容
+
+各 release note は次を短く記載する。
+
+* 利用者に見える主な機能。
+* 必要な Ruby、Node、database、外部サービスの前提。
+* 既知の制限と、特に AI / MCP / media 接続に必要な設定。
+* security report は GitHub Security tab から行うこと。
+
+生成済みの GitHub release notes は commit 一覧の補助として使い、上記の運用情報を置き換えない。
+
+== 実行手順
+
+対象 repository で tag を作成して GitHub Release を公開する。
+
+[source,bash]
+----
+# KBMemo: kbmemo-v0.1.0
+# Tsuzura / Nyoy: v0.1.0
+tag=<approved-tag>
+
+git fetch github --tags
+git status --short
+git log --oneline "github/main..main"
+git tag -a "$tag" -m "Initial public release $tag"
+git push origin "$tag"
+git push github "$tag"
+
+gh release create "$tag" --repo KBMemo/<repository> --title "$tag" --notes-file <release-notes.md>
+----
+
+公開後、GitHub Release の tag が意図した commit を指すこと、release note、Assets、Security tab
+への導線を確認する。誤った tag は削除して作り直すのではなく、必要に応じて次の patch release を
+作成し、既に参照された tag を変更しない。
