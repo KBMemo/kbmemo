@@ -46,7 +46,7 @@ public repository を作成しない。
 |項目 |徒然 |葛籠 |如意
 
 |GitHub Organization / repository の確保
-|BLOCKED
+|DONE: `KBMemo/kbmemo` (Private)
 |BLOCKED
 |BLOCKED
 
@@ -66,17 +66,17 @@ public repository を作成しない。
 |DOING: GitHub link・接続初期値更新済み
 
 |内部インフラ情報の一般化
-|TODO
+|DONE: 公開向け例示値へ置換済み
 |TODO
 |TODO
 
 |GitHub Actions
-|DOING
+|DONE: 2026-07-27、main CI成功
 |DOING
 |DOING
 
 |`SECURITY.md`
-|DOING: 報告経路を明記。Public 化直後に GitHub 側で有効化
+|DONE: 報告経路を明記。Public 化直後に GitHub 側で Private Vulnerability Reporting を有効化
 |TODO
 |TODO
 
@@ -86,7 +86,7 @@ public repository を作成しない。
 |TODO
 
 |Private repository への移行確認
-|TODO
+|DONE: main CI、README、LICENSE、SECURITY.md を確認
 |TODO
 |TODO
 
@@ -107,6 +107,16 @@ public repository を作成しない。
 * `gitleaks 8.30.1` の公式配布archiveをchecksum検証し、全Git履歴を
   `--redact` 付きで検査した。
 * 検出結果に実秘密情報は確認されなかった。公開前に同じ固定バージョンで再実行する。
+
+=== GitHub Private repository 確認
+
+* `KBMemo/kbmemo` は Private repository として存在し、default branch は `main`。
+* `0555dde` の GitHub Actions CI は成功した。
+* Issues と Projects は有効、Wiki と Discussions は無効。
+* `SECURITY.md` は GitHub で認識されている。Private Vulnerability Reporting は
+  public 化直後に有効化して確認する。
+* Actions は有効で、許可 action は `all`。workflow 側の commit SHA pin を維持する。
+* repository description、topics、homepage は未設定であり、public 化前の設定作業として残す。
 
 === 徒然
 
@@ -282,5 +292,6 @@ gitea   git@gitea.example.com:organization/<old-repository>.git
 
 == 次の作業
 
-. 内部環境情報を、削除、一般化、公開可能な運用例のいずれに分類する。
-. 3 repositoryのREADMEと公開リンクをGitHub構成へ合わせる。
+. `KBMemo/tsuzura` と `KBMemo/nyoy` の Private repository を作成する。
+. 徒然の repository description、topics、homepage を設定する。
+. public 化直前に、固定バージョンの gitleaks で全履歴を再監査する。
