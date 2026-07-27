@@ -45,13 +45,13 @@ class DbCredentialsTest < Minitest::Test
       "KBMEMO_CI_DB_PASSWORD" => "postgres",
       "KBMEMO_CI_DB_DATABASE" => "kbmemo_test"
     ) do
-      opts = DbCredentials.connection_options(:test, credentials: ActiveSupport::OrderedOptions.new)
+      config = DbCredentials.send(:ci_config)
 
-      assert_equal "127.0.0.1", opts[:host]
-      assert_equal "55432", opts[:port]
-      assert_equal "postgres", opts[:username]
-      assert_equal "postgres", opts[:password]
-      assert_equal "kbmemo_test", DbCredentials.fetch(:cache_database, :production, credentials: ActiveSupport::OrderedOptions.new)
+      assert_equal "127.0.0.1", config["host"]
+      assert_equal "55432", config["port"]
+      assert_equal "postgres", config["username"]
+      assert_equal "postgres", config["password"]
+      assert_equal "kbmemo_test", config["cache_database"]
     end
   end
 

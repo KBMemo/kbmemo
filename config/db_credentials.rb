@@ -6,8 +6,10 @@ require "active_support/core_ext/hash/keys"
 # テンプレート: config/credentials/db.example.yml
 module DbCredentials
   class << self
-    def config(env = Rails.env, credentials: Rails.application.credentials)
-      return ci_config if ci_config?
+    def config(env = Rails.env, credentials: nil)
+      use_ci_config = credentials.nil? && ci_config?
+      credentials ||= Rails.application.credentials
+      return ci_config if use_ci_config
 
       cfg = credentials.dig(:db, env.to_sym)
       if cfg.blank?
@@ -19,7 +21,7 @@ module DbCredentials
       normalize_section(cfg)
     end
 
-    def fetch(key, env = Rails.env, credentials: Rails.application.credentials)
+    def fetch(key, env = Rails.env, credentials: nil)
       value = config(env, credentials: credentials)[key.to_s]
       if value.nil? || value == ""
         raise KeyError,
@@ -29,7 +31,7 @@ module DbCredentials
       value
     end
 
-    def connection_options(env = Rails.env, credentials: Rails.application.credentials)
+    def connection_options(env = Rails.env, credentials: nil)
       {
         host: fetch(:host, env, credentials: credentials),
         port: fetch(:port, env, credentials: credentials),

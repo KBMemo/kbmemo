@@ -81,6 +81,6 @@ class MemosControllerChecklistTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, commit_memo_path(@memo)
-    assert_includes response.body, ">コミット<"
+    assert_includes response.body, 'aria-label="コミット"'
   end
 end
