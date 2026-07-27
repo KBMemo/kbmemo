@@ -46,5 +46,5 @@ examples/*/dist
 *.local
 /vendor/bundle
 
-# Cursor MCP（Bearer トークン含む）。雛形は .cursor/mcp.json.example
-/.cursor/mcp.json
+# Cursor workspace settings may contain MCP Bearer tokens. Tracked examples and rules remain.
+/.cursor/
