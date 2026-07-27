@@ -119,7 +119,9 @@ public repository を作成しない。
 * `SECURITY.md` は GitHub で認識されている。Private Vulnerability Reporting は
   public 化直後に有効化して確認する。
 * Actions は有効で、許可 action は `all`。workflow 側の commit SHA pin を維持する。
-* repository description、topics、homepage は未設定であり、public 化前の設定作業として残す。
+* repository description と topics（`rails`、`asciidoc`、`note-taking`、`self-hosted`、
+  `kanban`、`knowledge-management`）を設定済み。製品サイトは未開設のため、homepage は
+  repository URL を重複して設定せず空欄とする。
 
 === 徒然
 
