@@ -136,6 +136,8 @@ public repository を作成しない。
 * Dependabot は Bundler、GitHub Actions、npm workspace の更新を weekly で確認する。
 * CI は Ruby 4.0.3 を提供する `ruby/setup-ruby` の current revision を full SHA で
   pin し、`ubuntu-latest` で実行する。
+* Rails test / system test の runner には Natto の検出に必要な `libmecab-dev` を
+  含める。本番は既存の `MECAB_PATH` 設定を使用する。
 * bug report / feature request の issue form と pull request template を追加し、
   秘密情報・個人データを issue に書かないことと、脆弱性報告の別経路を案内する。
 * gitleaksは2件を検出した。
