@@ -191,11 +191,17 @@ jobs:
         run: npm ci
 
       - name: Set up Chrome
+        id: setup-chrome
         uses: browser-actions/setup-chrome@c785b87e244131f27c9f19c1a33e2ead956ab7ce # v1
+        with:
+          chrome-version: stable
+          install-dependencies: true
 
       - name: Run System Tests
         env:
           RAILS_ENV: test
+          CUPRITE_BROWSER_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CUPRITE_PROCESS_TIMEOUT: "30"
           # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:create db:migrate test:system
