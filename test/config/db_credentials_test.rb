@@ -51,7 +51,7 @@ class DbCredentialsTest < Minitest::Test
       assert_equal "55432", opts[:port]
       assert_equal "postgres", opts[:username]
       assert_equal "postgres", opts[:password]
-      assert_equal "kbmemo_test", DbCredentials.fetch(:cache_database, :production)
+      assert_equal "kbmemo_test", DbCredentials.fetch(:cache_database, :production, credentials: ActiveSupport::OrderedOptions.new)
     end
   end
 
