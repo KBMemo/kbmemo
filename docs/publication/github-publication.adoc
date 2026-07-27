@@ -119,6 +119,8 @@ public repository を作成しない。
 * credential template、Kamal設定コメント、example env の接続先は
   `*.example.com` へ一般化済み。実サービス URL は runtime 設定または
   本番運用手順で明示する。
+* 本番デプロイ手順は `/srv/kbmemo/site`、`/srv/kbmemo/tsuzura`、
+  `*.example.com`、`db.example.com` を使う再利用可能な運用例へ更新済み。
 * gitleaksは2件を検出した。
 ** `app/services/tsuzura/client.rb`: secretを取得するメソッド呼び出しの誤検知。
 ** `docs/deployment/production.adoc`: nginx設定内の証明書private keyファイルパス。
