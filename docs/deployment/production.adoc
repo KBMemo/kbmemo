@@ -164,12 +164,16 @@ nginx 経由の HTTPS では、次を有効にし、ホスト名を合わせま�
 config.assume_ssl = true
 config.force_ssl = true
 
-config.action_mailer.default_url_options = { host: "kbmemo.example.com", protocol: "https" }
+app_host = ENV.fetch("KBMEMO_APP_HOST", "kbmemo.example.com")
+session_cookie_domain = ENV["KBMEMO_SESSION_COOKIE_DOMAIN"].presence || ".#{app_host}"
 
+config.action_mailer.default_url_options = { host: app_host, protocol: "https" }
 config.hosts = [
-  "kbmemo.example.com",
-  "www.kbmemo.example.com"
+  app_host,
+  "www.#{app_host}"
 ]
+
+config.session_store :cookie_store, key: "_kbmemo_session", domain: session_cookie_domain, same_site: :lax
 ----
 
 SMTP は別途 `action_mailer.smtp_settings` を設定してください。
@@ -208,6 +212,8 @@ OpenAI API キー BYOK 用の **Active Record Encryption 3 変数** は別物で
 cat > /srv/kbmemo/site/.env.production <<'EOF'
 RAILS_ENV=production
 PORT=3007
+KBMEMO_APP_HOST=kbmemo.example.com
+KBMEMO_SESSION_COOKIE_DOMAIN=.kbmemo.example.com
 
 RAILS_MASTER_KEY=<config/master.key と同じ値>
 

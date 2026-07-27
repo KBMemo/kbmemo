@@ -91,12 +91,14 @@ Rails.application.configure do
   config.assume_ssl = true
   config.force_ssl = true
 
-  config.action_mailer.default_url_options = { host: "kbmemo.net", protocol: "https" }
+  app_host = ENV.fetch("KBMEMO_APP_HOST", "kbmemo.example.com")
+  session_cookie_domain = ENV["KBMEMO_SESSION_COOKIE_DOMAIN"].presence || ".#{app_host}"
 
+  config.action_mailer.default_url_options = { host: app_host, protocol: "https" }
   config.hosts = [
-    "kbmemo.net",
-    "www.kbmemo.net"
+    app_host,
+    "www.#{app_host}"
   ]
 
-  config.session_store :cookie_store, key: "_kbmemo_session", domain: ".kbmemo.net", same_site: :lax
+  config.session_store :cookie_store, key: "_kbmemo_session", domain: session_cookie_domain, same_site: :lax
 end
