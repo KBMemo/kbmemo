@@ -1,6 +1,6 @@
 # @kbmemo/adoc-* packages
 
-AsciiDoc editor packages extracted from [kbmemo](https://gitea.artif.org/Artif.org/kbmemo_site).
+AsciiDoc editor packages extracted from [KBMemo](https://github.com/KBMemo/kbmemo).
 
 | Package | Role |
 |---------|------|
@@ -37,8 +37,8 @@ Site dev uses Vite aliases to package sources (`vite.config.ts`). Published tarb
 1. Copy `.npmrc.example` → `.npmrc` and set credentials:
 
 ```bash
-export NPM_PUBLISH_REGISTRY=https://gitea.artif.org/api/packages/Artif.org/npm/
-export NPM_PUBLISH_REGISTRY_HOST=gitea.artif.org
+export NPM_PUBLISH_REGISTRY=https://registry.npmjs.org/
+export NPM_PUBLISH_REGISTRY_HOST=registry.npmjs.org
 export NPM_TOKEN=...
 ```
 

@@ -61,9 +61,9 @@ public repository を作成しない。
 |DONE: MIT
 
 |README とセットアップ手順
-|DOING
-|DOING
-|DOING
+|DOING: GitHub link更新済み
+|DOING: GitHub link・配置例更新済み
+|DOING: GitHub link・接続初期値更新済み
 
 |内部インフラ情報の一般化
 |TODO
@@ -115,6 +115,7 @@ public repository を作成しない。
 * `README.md` と `README.adoc` が併存している。公開時の正を決める。
 * npm package publish workflow は registry と token の GitHub Actions secrets を必要とする。
 * Gitea URL、内部ホスト名、個人環境のパスを含む文書と設定がある。
+* 公開repository間リンクとnpm package metadataは`github.com/KBMemo/*`へ更新済み。
 * gitleaksは2件を検出した。
 ** `app/services/tsuzura/client.rb`: secretを取得するメソッド呼び出しの誤検知。
 ** `docs/deployment/production.adoc`: nginx設定内の証明書private keyファイルパス。
@@ -125,6 +126,8 @@ public repository を作成しない。
 * MIT Licenseを採用した。
 * 現在の repository 名は `kbmemo-media`、製品名は Tsuzura（葛籠）。
 * Gitea URLと内部環境向け deploy 設定がある。
+* READMEとAGENTSの設計リンク、systemd配置例、deployヘルプはGitHubと
+  `/srv/kbmemo/tsuzura`を使う公開向け表記へ更新済み。
 * gitleaksの検出は0件。
 
 === 如意
@@ -137,6 +140,7 @@ public repository を作成しない。
   `localhost`基準へ一般化した。既存環境のDBホストはGit管理外credentialsへ移行した。
 * 本番deploy scriptと実運用runbookに残るホスト名・配置パスは、公開用手順と
   内部運用記録へ分離する必要がある。
+* 徒然・葛籠への文書リンクは`github.com/KBMemo/*`へ更新済み。
 * 履歴書き換え後のgitleaks検出は6件。
 ** すべてrunbookの`Authorization: Bearer your-token`という例示値。
 ** 過去の`config/credentials.yml.enc`とその暗号文は全refから除去済み。

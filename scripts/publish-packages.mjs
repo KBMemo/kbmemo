@@ -14,7 +14,7 @@ const registry = process.env.NPM_PUBLISH_REGISTRY
 
 if (!dryRun && !registry) {
   console.error('Set NPM_PUBLISH_REGISTRY before publishing (or pass --dry-run).')
-  console.error('Example: NPM_PUBLISH_REGISTRY=https://gitea.artif.org/api/packages/Artif.org/npm/')
+  console.error('Example: NPM_PUBLISH_REGISTRY=https://registry.npmjs.org/')
   console.error('Copy .npmrc.example, set NPM_TOKEN, and run npm run verify:publish first.')
   process.exit(1)
 }

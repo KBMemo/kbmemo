@@ -1,7 +1,7 @@
 = 如意（Nyoy）MCP 連携
 
 徒然 Workspace から如意 MCP を使うための要約。
-**構成の正本**は如意リポジトリ link:https://gitea.artif.org/Artif.org/nyoy/blob/main/docs/architecture/nyoy-mcp.adoc[`docs/architecture/nyoy-mcp.adoc`]（エコシステム全体の責務分界・フェーズ見直し）。
+**構成の正本**は如意リポジトリ link:https://github.com/KBMemo/nyoy/blob/main/docs/architecture/nyoy-mcp.adoc[`docs/architecture/nyoy-mcp.adoc`]（エコシステム全体の責務分界・フェーズ見直し）。
 
 == セットアップ
 

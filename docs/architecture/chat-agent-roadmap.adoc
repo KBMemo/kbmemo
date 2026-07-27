@@ -394,7 +394,7 @@ development 既定 `base_url` は `http://localhost:10031`（intent）等。`emb
 * 葛籠: `list_albums`, `get_media`
 
 詳細な構成図・データ経路の比較は如意
-link:https://gitea.artif.org/Artif.org/nyoy/blob/main/docs/architecture/nyoy-mcp.adoc[`docs/architecture/nyoy-mcp.adoc`] を正本とする。
+link:https://github.com/KBMemo/nyoy/blob/main/docs/architecture/nyoy-mcp.adoc[`docs/architecture/nyoy-mcp.adoc`] を正本とする。
 徒然側 Cursor 設定は link:nyoy-mcp.adoc[nyoy-mcp.adoc]。
 
 === 11.3 `Chat::Agent` と MCP の関係

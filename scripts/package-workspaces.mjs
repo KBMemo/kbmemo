@@ -16,5 +16,5 @@ export const KBMEMO_PUBLISH_ORDER = [...KBMEMO_WORKSPACES]
 
 export const KBMEMO_REPOSITORY = {
   type: 'git',
-  url: 'https://gitea.artif.org/Artif.org/kbmemo_site.git',
+  url: 'https://github.com/KBMemo/kbmemo.git',
 }
