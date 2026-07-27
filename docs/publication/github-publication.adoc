@@ -133,6 +133,7 @@ public repository を作成しない。
   渡さない。
 * GitHub Actions は確認済みの commit SHA へ pin し、version comment を Dependabot
   の更新情報として維持する。
+* Dependabot は Bundler、GitHub Actions、npm workspace の更新を weekly で確認する。
 * bug report / feature request の issue form と pull request template を追加し、
   秘密情報・個人データを issue に書かないことと、脆弱性報告の別経路を案内する。
 * gitleaksは2件を検出した。
