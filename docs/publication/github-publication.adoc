@@ -72,8 +72,8 @@ public repository を作成しない。
 
 |GitHub Actions
 |DONE: 2026-07-27、main CI成功
-|DOING
-|DOING
+|DONE: 2026-07-27、main CI成功
+|DONE: 2026-07-27、main CI成功
 
 |`SECURITY.md`
 |DONE: 報告経路を明記。Public 化直後に GitHub 側で Private Vulnerability Reporting を有効化
