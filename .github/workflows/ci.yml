@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+env:
+  # ruby/setup-ruby does not yet provide the application's Ruby 4.0.3 on Ubuntu 24.04.
+  CI_RUBY_VERSION: "3.4"
+
 jobs:
   scan_ruby:
     runs-on: ubuntu-latest
@@ -19,6 +23,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@e5517072e87f198d9533967ae13d97c11b604005 # v1.99.0
         with:
+          ruby-version: ${{ env.CI_RUBY_VERSION }}
           bundler-cache: true
 
       - name: Scan for common Rails security vulnerabilities using static analysis
@@ -38,6 +43,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@e5517072e87f198d9533967ae13d97c11b604005 # v1.99.0
         with:
+          ruby-version: ${{ env.CI_RUBY_VERSION }}
           bundler-cache: true
 
       - name: Prepare RuboCop cache
@@ -104,6 +110,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@e5517072e87f198d9533967ae13d97c11b604005 # v1.99.0
         with:
+          ruby-version: ${{ env.CI_RUBY_VERSION }}
           bundler-cache: true
 
       - name: Set up Node
@@ -140,6 +147,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@e5517072e87f198d9533967ae13d97c11b604005 # v1.99.0
         with:
+          ruby-version: ${{ env.CI_RUBY_VERSION }}
           bundler-cache: true
 
       - name: Set up Node
