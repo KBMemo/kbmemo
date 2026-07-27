@@ -139,6 +139,7 @@ public repository を作成しない。
 * Rails test / system test の runner には Natto の検出に必要な `libmecab-dev` を
   含める。本番は既存の `MECAB_PATH` 設定を使用する。test 用 PostgreSQL service は
   `KBMEMO_CI_DB_*` の非秘密設定だけで接続し、fork PR に credentials を渡さない。
+  pgvector image で migration を実行するため、pgroonga 非導入時の検索フォールバックも検証する。
 * bug report / feature request の issue form と pull request template を追加し、
   秘密情報・個人データを issue に書かないことと、脆弱性報告の別経路を案内する。
 * gitleaksは2件を検出した。

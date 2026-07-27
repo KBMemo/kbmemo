@@ -9,7 +9,10 @@ KBMemo のアプリ DB は **PostgreSQL** です。`memos.properties` 等の JSO
 * 読み取り: `config/db_credentials.rb` → `config/database.yml`
 * GitHub Actions の test / system test だけは、fork PR でも secrets を渡さず実行できるよう、
   workflow が `KBMEMO_CI_DB_*` を設定して disposable PostgreSQL service へ接続する。
-  この変数群は CI 専用であり、開発・本番の接続情報には使用しない。
+  この変数群は CI 専用であり、開発・本番の接続情報には使用しない。CI は pgvector を
+  含む image で migration を実行し、任意拡張の pgroonga は未導入時のフォールバックも確認する。
+  `db/schema.rb` も pgroonga の availability を確認してから有効化するため、CI では schema load
+  から開始しても同じ契約になる。
 
 [cols="1,2,3"]
 |===

@@ -13,7 +13,6 @@
 ActiveRecord::Schema[8.1].define(version: 2026_07_25_073000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
-  enable_extension "pgroonga"
   enable_extension "vector"
 
   create_table "account_login_change_keys", force: :cascade do |t|
@@ -250,7 +249,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_25_073000) do
     t.string "uid", null: false
     t.datetime "updated_at", null: false
     t.integer "visibility", default: 4, null: false
-    t.index "((((title)::text || '\n'::text) || body))", name: "index_memos_on_title_body_pgroonga", using: :pgroonga
     t.index ["account_id"], name: "index_memos_on_account_id"
     t.index ["board_id"], name: "index_memos_on_board_id"
     t.index ["kanban_column_id"], name: "index_memos_on_kanban_column_id"
