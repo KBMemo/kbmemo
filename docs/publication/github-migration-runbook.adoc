@@ -9,11 +9,12 @@ runbook である。対象は `KBMemo/tsuzura`、`KBMemo/nyoy`、`KBMemo/kbmemo`
 
 == 現在の前提
 
-* 3 repository は GitHub 上で Private、default branch は `main` である。葛籠の
+* 3 repository は GitHub 上で Public、default branch は `main` である。葛籠の
   `develop` branch も GitHub に同期済みである。
 * GitHub Actions、`SECURITY.md`、`CONTRIBUTING.md`、README、LICENSE は確認済みである。
 * `gitleaks 8.30.1` による全履歴再監査は完了している。徒然・如意はリポジトリ内の
   `.gitleaks.toml` で、文書用の既知プレースホルダーだけを限定許可する。
+* 全 repository で Private Vulnerability Reporting を有効化済みである。
 * 通常 remote は変更しない。`origin` は Gitea、`github` は GitHub のままとし、公開後も
   両方へ push する。
 

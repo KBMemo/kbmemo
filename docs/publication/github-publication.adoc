@@ -46,9 +46,9 @@ public repository を作成しない。
 |項目 |徒然 |葛籠 |如意
 
 |GitHub Organization / repository の確保
-|DONE: `KBMemo/kbmemo` (Private)
-|DONE: `KBMemo/tsuzura` (Private)
-|DONE: `KBMemo/nyoy` (Private)
+|DONE: `KBMemo/kbmemo` (Public)
+|DONE: `KBMemo/tsuzura` (Public)
+|DONE: `KBMemo/nyoy` (Public)
 
 |履歴を含む secret scan
 |DONE: gitleaks 8.30.1
@@ -91,9 +91,9 @@ public repository を作成しない。
 |DONE: main CI、README、LICENSE、SECURITY.md、CONTRIBUTING.md を確認
 
 |Public 化
-|BLOCKED
-|BLOCKED
-|BLOCKED
+|DONE: 2026-07-27。匿名 clone と Private Vulnerability Reporting を確認
+|DONE: 2026-07-27。匿名 clone と Private Vulnerability Reporting を確認
+|DONE: 2026-07-27。匿名 clone と Private Vulnerability Reporting を確認
 |===
 
 == 2026-07-27 事前監査
@@ -113,14 +113,16 @@ public repository を作成しない。
   残る `Authorization: Bearer your-token` の文書用プレースホルダーだけを許可する。
   いずれも既定 rule を維持し、実 token や他の値を許可しない。
 
-=== GitHub Private repository 確認
+=== GitHub Public repository 確認
 
-* `KBMemo/kbmemo`、`KBMemo/tsuzura`、`KBMemo/nyoy` は Private repository として
+* `KBMemo/kbmemo`、`KBMemo/tsuzura`、`KBMemo/nyoy` は Public repository として
   存在し、default branch は `main`。Tsuzura の `develop` branch も GitHub へ同期済み。
-* 徒然 `0555dde`、葛籠 `30257697181`、如意 `30259846367` の GitHub Actions CI は成功した。
+* 徒然 `30269368456`、葛籠 `30267322099`、如意 `30268847142` の GitHub Actions CI は成功した。
 * Issues と Projects は有効、Wiki と Discussions は無効。
-* `SECURITY.md` は GitHub で認識されている。Private Vulnerability Reporting は
-  public 化直後に有効化して確認する。
+* 各 repository で `SECURITY.md` を公開し、Private Vulnerability Reporting を API で有効化
+  した（PUT は `204`、確認 GET は `200`）。
+* 認証なしの GitHub HTTPS 到達と shallow clone、README、LICENSE、`SECURITY.md`、
+  `CONTRIBUTING.md` の公開表示を確認した。
 * Actions は有効で、許可 action は `all`。workflow 側の commit SHA pin を維持する。
 * repository description と topics を設定済み。徒然は `rails`、`asciidoc`、
   `note-taking`、`self-hosted`、`kanban`、`knowledge-management`、葛籠は `rails`、
@@ -298,11 +300,13 @@ gitea   git@gitea.example.com:organization/<old-repository>.git
 
 . Private状態で各repositoryの`bin/ci`を実行する。
 . READMEの相互リンクとclone手順を確認する。
-. 葛籠、如意、徒然の順でpublicにし、最後に統合動作を確認する。
+. 葛籠、如意、徒然の順でpublicにし、各repositoryでPrivate Vulnerability Reportingを有効化する。
 . 最初のrelease tagを作成し、既知の制限をrelease notesへ記載する。
+
+2026-07-27 に 1. から 3. を完了した。
 
 == 次の作業
 
-. 公開順序と各 repository の visibility 変更日時を決定する。
-. visibility を Public に変更した直後、各 repository の GitHub Private Vulnerability
-  Reporting を有効化し、`SECURITY.md` の非公開報告経路を確認する。
+. 各 repository の Security alerts 通知先を確認する。
+. 最初の release tag と release notes の対象・時期を決定する。
+. 内部インフラ情報の一般化が未完了の箇所を継続して整理する。
