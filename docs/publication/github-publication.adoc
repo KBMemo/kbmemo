@@ -157,6 +157,10 @@ public repository を作成しない。
 * remote deployは`bin/deploy-remote`へ一般化し、`NYOY_DEPLOY_HOST`と
   `NYOY_DEPLOY_PATH`を必須化した。旧`bin/deploy-bowmore`は個人環境の既定値を
   持たないdeprecated wrapperとして維持する。
+* `bin/deploy`のhealth check既定値、MCP client example、production host設定、
+  API/OpenAPI文書、ServiceConnection / SD model profileのUI placeholderを
+  公開向けの例示値へ一般化した。実hostは`NYOY_APP_HOST`、
+  `NYOY_HEALTH_URL`、`NYOY_HEALTH_HOST`等で明示する。
 * 履歴書き換え後のgitleaks検出は6件。
 ** すべてrunbookの`Authorization: Bearer your-token`という例示値。
 ** 過去の`config/credentials.yml.enc`とその暗号文は全refから除去済み。
