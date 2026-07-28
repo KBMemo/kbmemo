@@ -1,0 +1,133 @@
+= LFM2.5-Audio 音声入出力設計
+
+== 目的
+
+徒然の「AI チャット」と「メモアシスト」に、ローカルで完結する音声入力と音声出力を追加する。
+音声を直接 Agent の正規入力にはせず、音声入力は文字起こし、音声出力は確定した回答本文の音声化として扱う。
+これにより既存の intent、RAG、Nyoy MCP、会話永続化、メモ参照の経路を維持する。
+
+== 採用モデル
+
+* 初期モデル: `LiquidAI/LFM2.5-Audio-1.5B-JP`
+* 用途: 日本語 ASR、TTS、将来の音声対話
+* 実行ライブラリ: `liquid-audio`
+
+LFM2.5-Audio は GGUF を提供するが、音声 encoder、audio detokenizer、vocoder と専用の generation routine を必要とする。
+既存の text-only llama-switchd / llama-server へ model profile として追加しない。
+
+== 責務境界
+
+[cols="1,2"]
+|===
+|境界 |責務
+
+|`lfm-audio-service`
+|モデルのロード、音声の decode / encode、ASR、TTS、health、認証。Python と `liquid-audio` に閉じる。
+
+|徒然 `Audio` adapter
+|録音データとテキストを API contract に変換し、タイムアウト、サイズ、content type、エラーを正規化する。モデル固有 prompt や waveform 処理を持たない。
+
+|Stimulus controller
+|マイク権限、録音、取消、アップロード、回答の再生/停止、アクセシブルな進捗表示。録音データを永続化しない。
+
+|Chat / MemoAssist
+|ASR の確定テキストを通常の入力欄に反映し、既存の送信経路を使う。TTS は確定済み assistant 本文だけを対象にする。
+|===
+
+== 初期 API contract
+
+サービスは loopback または private network のみで待受け、管理トークンを必須とする。
+OpenAI の audio API と互換な表面を採用し、徒然からモデル実装を隠す。
+
+[source,text]
+----
+GET  /health
+POST /v1/audio/transcriptions
+POST /v1/audio/speech
+----
+
+=== `POST /v1/audio/transcriptions`
+
+* request: `multipart/form-data`
+* fields: `file`、`model`、`language`（初期値 `ja`）、任意の `prompt`
+* accepted MIME: `audio/webm`, `audio/ogg`, `audio/wav`, `audio/mp4`
+* response: `{ "text": "..." }`
+* limits: 初期値 10 MiB / 120 秒。超過時は 413、形式不正は 422。
+
+=== `POST /v1/audio/speech`
+
+* request: JSON `{ "model": "...", "input": "...", "voice": "default", "response_format": "wav" }`
+* response: `audio/wav`
+* input limit: 初期値 4,000 文字。回答全文を機械的に長時間読み上げない。
+* 初期 voice はモデル既定の一種類とし、voice catalog の公開は後続フェーズにする。
+
+== 接続と用途設定
+
+音声 service の接続先と、ASR/TTS に使う model / voice は分離する。
+
+* 接続定義: `Audio::ServiceConnection`（base URL、health URL、管理トークン参照、timeout）
+* 用途割当: `Audio::UsageAssignment`（`transcription` / `speech` -> connection / model / voice）
+* 初期は credentials / environment の単一接続を使う。DB 管理画面と複数 connection 対応は、実機稼働後に追加する。
+* `Chat::ServerEndpoints` の `intent` / `main` 等に音声 endpoint を混在させない。
+
+設定名の初期契約:
+
+[source,sh]
+----
+LFM_AUDIO_URL=http://127.0.0.1:10120
+LFM_AUDIO_TOKEN=...
+LFM_AUDIO_TRANSCRIPTION_MODEL=LiquidAI/LFM2.5-Audio-1.5B-JP
+LFM_AUDIO_SPEECH_MODEL=LiquidAI/LFM2.5-Audio-1.5B-JP
+LFM_AUDIO_SPEECH_VOICE=default
+----
+
+実 token は commit しない。`env.example` と credentials example には名前と説明だけを置く。
+
+== UI フロー
+
+=== 音声入力
+
+1. ユーザーがマイク icon を押す。
+2. `getUserMedia({ audio: true })` の権限を得て `MediaRecorder` で録音する。
+3. 停止 icon で `audio/webm` を確定し、徒然の認証済み endpoint へアップロードする。
+4. サーバーが Audio adapter 経由で ASR し、返却テキストを入力欄へ設定する。
+5. ユーザーが内容を確認・編集して通常の送信を行う。録音開始で自動送信しない。
+
+録音中は二重送信、画面遷移、別録音開始を不可にする。`MediaStreamTrack.stop()` を必ず呼び、離脱時にも録音を停止する。
+
+=== 音声出力
+
+* assistant の確定回答にだけ再生 icon を表示する。
+* icon を押すと TTS endpoint から `audio/wav` を取得し、`HTMLAudioElement` で再生する。
+* 同時再生は 1 件まで。再生中は stop icon に切り替える。
+* streaming 中の断片、tool progress、thinking、エラー本文、ユーザー本文は読み上げない。
+
+== 段階導入
+
+[cols="1,3"]
+|===
+|Phase |完了条件
+
+|0: service smoke test
+|`lfm-audio-service` を bowmore の user service として起動し、`/health`、短い日本語 WAV の ASR、短文 TTS を curl で確認する。
+
+|1: ASR adapter
+|徒然に upload endpoint と `Audio::TranscriptionClient` を追加する。MIME / size / timeout / token / error の test を追加する。
+
+|2: Chat microphone UI
+|AI チャットで録音、取消、文字起こし、入力欄反映を実装する。メモアシストへ共通 controller を再利用する。
+
+|3: TTS adapter and UI
+|確定 assistant 回答の再生と停止を追加する。会話 reload 後も再生可能とするが、音声ファイルは保存しない。
+
+|4: live voice conversation
+|LFM の interleaved audio-to-audio を評価する。既存 Agent の text-first contract を壊さないことを条件とする。
+|===
+
+== 運用
+
+* service は `systemd --user` で管理し、Puma / 徒然の deploy と lifecycle を分離する。
+* `lfm-audio-service` の起動、model load、health、ASR/TTS curl を runbook 化する。
+* 監視は process、`/health`、ASR/TTS の synthetic check、GPU/CPU memory を対象にする。
+* 音声本文・waveform・Authorization header を log に残さない。
+* service が停止している場合、音声 controls は失敗理由を表示する。テキストの AI チャットは継続利用できる。
