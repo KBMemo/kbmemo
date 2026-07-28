@@ -10,6 +10,7 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
   var RELAY_READY = 'kbmemo-clip-relay-ready';
   var CLIP = 'kbmemo-clip';
   var CLIP_DONE = 'kbmemo-clip-done';
+  var CLIP_CLOSE = 'kbmemo-clip-close';
 
   function stripQuotes(value) {
     return (value || '').trim().replace(/^["']+|["']+$/g, '')
@@ -189,6 +190,7 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
     }
 
     var finished = false
+    var completed = false
     var timeout = window.setTimeout(function () {
       if (finished) return
       finished = true
@@ -202,7 +204,6 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
     }, 180000)
 
     function onMessage(event) {
-      if (finished) return
       if (event.source !== popup) return
 
       var originOk = false
@@ -213,6 +214,20 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
       }
       if (!originOk) return
 
+      if (event.data && event.data.type === CLIP_CLOSE) {
+        finished = true
+        window.clearTimeout(timeout)
+        window.removeEventListener('message', onMessage)
+        try {
+          popup.close()
+        } catch (error) {
+          /* ignore */
+        }
+        return
+      }
+
+      if (finished || completed) return
+
       if (event.data && event.data.type === RELAY_READY) {
         popup.postMessage(clipPayload, baseOrigin)
         return
@@ -220,20 +235,12 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
 
       if (!event.data || event.data.type !== CLIP_DONE) return
 
-      finished = true
       window.clearTimeout(timeout)
-      window.removeEventListener('message', onMessage)
+      completed = true
 
-      if (event.data.ok) {
-        // The relay is script-opened. Closing it from the opener is a fallback
-        // for browsers that reject a delayed close from the relay itself.
-        window.setTimeout(function () {
-          try {
-            popup.close()
-          } catch (error) {
-            /* ignore */
-          }
-        }, 0)
+      if (!event.data.ok) {
+        finished = true
+        window.removeEventListener('message', onMessage)
       }
 
       // Success and error feedback are shown in the relay popup (active window).

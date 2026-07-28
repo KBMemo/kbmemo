@@ -49,7 +49,7 @@
         const RELAY_READY = 'kbmemo-clip-relay-ready'
         const CLIP = 'kbmemo-clip'
         const CLIP_DONE = 'kbmemo-clip-done'
-        const SUCCESS_CLOSE_DELAY_MS = 1200
+        const CLIP_CLOSE = 'kbmemo-clip-close'
         const statusEl = document.getElementById('status')
 
         function setStatus(text, title) {
@@ -61,8 +61,13 @@
           try {
             window.close()
           } catch (_error) {
-            // The opener also closes the relay after a successful save.
+            // A script-opened relay may be closed by either itself or its opener.
           }
+        }
+
+        function requestClose() {
+          notifyOpener({ type: CLIP_CLOSE })
+          closeRelay()
         }
 
         function notifyOpener(message) {
@@ -89,7 +94,8 @@
             openLink.className = 'primary'
             openLink.textContent = 'メモを開く'
             openLink.addEventListener('click', () => {
-              window.setTimeout(closeRelay, 0)
+              // Let the link create its new tab before closing this relay window.
+              window.setTimeout(requestClose, 0)
             })
             actions.appendChild(openLink)
           }
@@ -97,14 +103,11 @@
           const closeBtn = document.createElement('button')
           closeBtn.type = 'button'
           closeBtn.textContent = '閉じる'
-          closeBtn.addEventListener('click', closeRelay)
+          closeBtn.addEventListener('click', requestClose)
           actions.appendChild(closeBtn)
 
           if (statusEl) statusEl.after(actions)
 
-          // The relay was opened by the bookmarklet, so it can close itself without
-          // requiring a user gesture. Keep the confirmation visible briefly first.
-          window.setTimeout(closeRelay, SUCCESS_CLOSE_DELAY_MS)
         }
 
         if (!window.opener) {

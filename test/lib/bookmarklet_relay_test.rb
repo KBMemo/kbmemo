@@ -3,14 +3,15 @@
 require "test_helper"
 
 class BookmarkletRelayTest < ActiveSupport::TestCase
-  test "closes relay popup after saving or opening the saved memo" do
+  test "keeps the success confirmation open until the user closes it" do
     source = Rails.root.join("public/bookmarklets/relay.html").read
 
     assert_includes source, "openLink.target = '_blank'"
     assert_includes source, "openLink.addEventListener('click'"
-    assert_includes source, "window.setTimeout(closeRelay, 0)"
-    assert_includes source, "const SUCCESS_CLOSE_DELAY_MS = 1200"
-    assert_includes source, "window.setTimeout(closeRelay, SUCCESS_CLOSE_DELAY_MS)"
+    assert_includes source, "window.setTimeout(requestClose, 0)"
+    assert_includes source, "const CLIP_CLOSE = 'kbmemo-clip-close'"
+    assert_includes source, "closeBtn.addEventListener('click', requestClose)"
+    assert_not_includes source, "SUCCESS_CLOSE_DELAY_MS"
     assert_includes source, "function closeRelay()"
     assert_includes source, "window.close()"
   end
@@ -23,10 +24,11 @@ class BookmarkletRelayTest < ActiveSupport::TestCase
     assert_includes source, "kbmemo への保存に失敗しました"
   end
 
-  test "new bookmarklets close the relay from the opener after a successful save" do
+  test "new bookmarklets close the relay from the opener after an explicit close request" do
     source = Rails.root.join("public/bookmarklets/kbmemo_clip_api.js").read
 
-    assert_includes source, "if (event.data.ok)"
+    assert_includes source, "var CLIP_CLOSE = 'kbmemo-clip-close';"
+    assert_includes source, "event.data.type === CLIP_CLOSE"
     assert_includes source, "popup.close()"
   end
 
