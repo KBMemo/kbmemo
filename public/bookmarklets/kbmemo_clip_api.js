@@ -224,6 +224,18 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
       window.clearTimeout(timeout)
       window.removeEventListener('message', onMessage)
 
+      if (event.data.ok) {
+        // The relay is script-opened. Closing it from the opener is a fallback
+        // for browsers that reject a delayed close from the relay itself.
+        window.setTimeout(function () {
+          try {
+            popup.close()
+          } catch (error) {
+            /* ignore */
+          }
+        }, 0)
+      }
+
       // Success and error feedback are shown in the relay popup (active window).
       // Avoid alert/confirm here: Chrome suppresses them on background tabs.
     }
