@@ -693,6 +693,25 @@ sudo tail -f /var/log/nginx/kbmemo.example.com.error.log
 
 `bin/deploy` は service restart 後に既定で3秒待機し、`http://127.0.0.1:$PORT/up` をヘルスチェックします。待機時間は `KBMEMO_HEALTH_CHECK_DELAY` で変更できます。nginx 経由の公開 URL を確認する場合は `KBMEMO_HEALTH_URL=https://kbmemo.example.com/up` を明示します。localhost への確認に Host header が必要な構成では、`KBMEMO_HEALTH_HOST=kbmemo.example.com` を併せて指定します。
 
+=== Git pull 元の選択
+
+`bin/deploy` は `.env.production` を読み込んだ後、`KBMEMO_GIT_REMOTE` を pull 元として使う。
+Gitea を同期 backup に残し、Public GitHub repository から本番を更新する場合は、application
+server で一度だけ remote を追加してから `.env.production` に指定する。
+
+[source,bash]
+----
+cd /srv/kbmemo/site
+git remote add github https://github.com/KBMemo/kbmemo.git
+printf '\nKBMEMO_GIT_REMOTE=github\n' >> .env.production
+git fetch github --prune
+git pull --ff-only github main
+----
+
+以後は通常どおり `bin/deploy` を実行する。remote tracking branch の設定には依存せず、現在の
+branch 名を明示して pull する。`KBMEMO_APP_HOST=kbmemo.example.com` を設定している場合は、
+localhost health check 用に `KBMEMO_HEALTH_HOST=kbmemo.example.com` も設定する。
+
 [source,bash]
 ----
 cd /srv/kbmemo/site
@@ -719,7 +738,7 @@ systemctl --user restart kbmemo
 [source,bash]
 ----
 cd /srv/kbmemo/site
-git pull
+git pull --ff-only "${KBMEMO_GIT_REMOTE:-origin}" main
 
 set -a && source .env.production && set +a
 bundle install
