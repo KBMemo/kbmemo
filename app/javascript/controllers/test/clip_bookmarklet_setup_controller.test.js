@@ -15,7 +15,7 @@ function response(body) {
   return Promise.resolve({ ok: true, text: () => Promise.resolve(body) })
 }
 
-async function mount({ revealedToken = "" } = {}) {
+async function mount({ revealedToken = "", waitForEnabled = true } = {}) {
   document.body.innerHTML = `
     <section
       data-controller="clip-bookmarklet-setup"
@@ -44,7 +44,7 @@ async function mount({ revealedToken = "" } = {}) {
     const link = document.querySelector(
       "[data-clip-bookmarklet-setup-target='apiBookmarkletLink']"
     )
-    expect(link.getAttribute("aria-disabled")).toBeNull()
+    expect(link.getAttribute("aria-disabled")).toBe(waitForEnabled ? null : "true")
   })
 }
 
@@ -100,5 +100,22 @@ describe("clip-bookmarklet-setup", () => {
     expect(document.querySelector("[data-clip-bookmarklet-setup-target='activeTokenMessage']").textContent).toContain(
       "自宅 Chrome"
     )
+  })
+
+  it("disables the bookmarklet when this browser's token was revoked", async () => {
+    localStorage.setItem("kbmemo_web_clip_token", "kbmemo_clip_revoked_browser_token")
+
+    await mount({ waitForEnabled: false })
+
+    const link = document.querySelector(
+      "[data-clip-bookmarklet-setup-target='apiBookmarkletLink']"
+    )
+    expect(link.classList.contains("pointer-events-none")).toBe(true)
+    await vi.waitFor(() => {
+      const status = document.querySelector(
+        "[data-clip-bookmarklet-setup-target='statusMessage']"
+      )
+      expect(status.textContent).toContain("無効化済み")
+    })
   })
 })

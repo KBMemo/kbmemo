@@ -177,6 +177,9 @@ export default class extends Controller {
     if (!TOKEN_RE.test(token)) {
       return "トークンを再発行してブックマークレットを取り直してください。"
     }
+    if (!Object.hasOwn(this.tokenLabelsValue, token.slice(0, 16))) {
+      return "このブラウザに保存された Web クリップトークンは無効化済みです。新しいトークンを発行してブックマークレットを取り直してください。"
+    }
     return ""
   }
 
