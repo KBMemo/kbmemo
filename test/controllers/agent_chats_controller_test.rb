@@ -142,6 +142,21 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     Chat::NyoyMcpConfig.define_singleton_method(:audio_client, original)
   end
 
+  test "transcribe_audio proxies an audio upload through Nyoy" do
+    original = Chat::NyoyMcpConfig.method(:audio_client)
+    client = Object.new
+    client.define_singleton_method(:transcribe) { |**| "文字起こし" }
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client) { |**| client }
+    upload = Rack::Test::UploadedFile.new(StringIO.new("wav"), "audio/wav", original_filename: "voice.wav")
+
+    post transcribe_audio_agent_chat_url, params: { file: upload }
+
+    assert_response :success
+    assert_equal "文字起こし", response.parsed_body["text"]
+  ensure
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client, original)
+  end
+
   test "memo_references searches only visible memos" do
     hidden = Memo.create!(
       title: "Secret reference",

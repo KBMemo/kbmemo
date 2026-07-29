@@ -2,6 +2,7 @@
 
 require "json"
 require "net/http"
+require "securerandom"
 require "uri"
 
 module Chat
@@ -31,6 +32,25 @@ module Chat
       response.body
     end
 
+    def transcribe(io:, filename:, content_type:)
+      raise Error, "Nyoy MCP が未設定です。" unless configured?
+
+      uri = endpoint("/api/audio/transcriptions")
+      boundary = "----kbmemo-audio-#{SecureRandom.hex(12)}"
+      request = Net::HTTP::Post.new(uri)
+      request["Authorization"] = "Bearer #{@api_token}"
+      request["Content-Type"] = "multipart/form-data; boundary=#{boundary}"
+      request["Accept"] = "application/json"
+      request.body = multipart_body(boundary, io.read, filename, content_type)
+      response = perform(uri, request)
+      payload = JSON.parse(response.body.to_s)
+      return payload.fetch("text") if response.is_a?(Net::HTTPSuccess)
+
+      raise Error, payload["error"].presence || "Nyoy 音声文字起こしに失敗しました（HTTP #{response.code}）"
+    rescue JSON::ParserError
+      raise Error, "Nyoy 音声文字起こしの応答を解析できませんでした。"
+    end
+
     private
 
     def endpoint(path)
@@ -50,6 +70,17 @@ module Chat
       http.request(request)
     rescue Net::OpenTimeout, Net::ReadTimeout, SocketError, SystemCallError => error
       raise Error.new("Nyoy 音声 API に接続できませんでした: #{error.message}"), cause: error
+    end
+
+    def multipart_body(boundary, data, filename, content_type)
+      parts = [
+        "--#{boundary}\r\nContent-Disposition: form-data; name=\"model\"\r\n\r\nLiquidAI/LFM2.5-Audio-1.5B-JP\r\n",
+        "--#{boundary}\r\nContent-Disposition: form-data; name=\"language\"\r\n\r\nja\r\n",
+        "--#{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"#{filename.to_s.tr('\\\"', '_')}\"\r\nContent-Type: #{content_type}\r\n\r\n",
+        data,
+        "\r\n--#{boundary}--\r\n"
+      ]
+      parts.join
     end
   end
 end

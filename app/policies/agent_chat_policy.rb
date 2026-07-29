@@ -15,6 +15,7 @@ class AgentChatPolicy < ApplicationPolicy
   alias upload_memo_image? show?
   alias upload_image? show?
   alias synthesize_audio? show?
+  alias transcribe_audio? show?
   alias image_generation_status? show?
   alias refine_image_generation? show?
 end
