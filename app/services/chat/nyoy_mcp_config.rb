@@ -29,6 +29,10 @@ module Chat
       NyoyMcpClient.new(url: url(account: account), api_token: api_token(account: account))
     end
 
+    def audio_client(account: nil)
+      NyoyAudioClient.new(url: url(account: account), api_token: api_token(account: account))
+    end
+
     def credentials
       Rails.application.credentials.nyoy_mcp
     rescue KeyError, ArgumentError

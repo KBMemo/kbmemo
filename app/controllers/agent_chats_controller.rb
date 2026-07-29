@@ -136,6 +136,16 @@ class AgentChatsController < ApplicationController
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  def synthesize_audio
+    authorize :agent_chat, :synthesize_audio?
+
+    text = params.require(:text).to_s
+    audio = Chat::NyoyMcpConfig.audio_client(account: rodauth.rails_account).synthesize(text)
+    send_data audio, type: "audio/wav", disposition: "inline", filename: "reply.wav"
+  rescue ActionController::ParameterMissing, Chat::NyoyAudioClient::Error => error
+    render json: { error: error.message }, status: :unprocessable_entity
+  end
+
   def image_generation_status
     authorize :agent_chat, :image_generation_status?
 

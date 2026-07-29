@@ -127,6 +127,21 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "synthesize_audio proxies a reply through Nyoy" do
+    original = Chat::NyoyMcpConfig.method(:audio_client)
+    client = Object.new
+    client.define_singleton_method(:synthesize) { |text| "wav:#{text}" }
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client) { |**| client }
+
+    post synthesize_audio_agent_chat_url, params: { text: "音声合成" }
+
+    assert_response :success
+    assert_equal "audio/wav", response.media_type
+    assert_equal "wav:音声合成", response.body
+  ensure
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client, original)
+  end
+
   test "memo_references searches only visible memos" do
     hidden = Memo.create!(
       title: "Secret reference",
