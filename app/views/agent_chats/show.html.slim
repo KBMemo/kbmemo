@@ -88,7 +88,7 @@
       textarea#agent_chat_prompt.kb-input.w-full.shrink-0.resize-none.font-sans.leading-relaxed rows=4 autocomplete="off" placeholder="例: メモを検索して RAG の設定を教えて（Ctrl+Enter で送信）" data-agent-chat-target="input" data-action="keydown->agent-chat#sendOnEnter"
       .mt-2.flex.shrink-0.flex-wrap.gap-2
         button.kb-toolbar-btn type="button" data-agent-chat-target="recordButton" data-action="agent-chat#toggleRecording" aria-label="音声入力" title="音声入力"
-          i data-lucide="mic"
+          i.h-4.w-4.kb-text-secondary aria-hidden="true" data-lucide="mic"
         span.text-xs.kb-text-muted aria-live="polite" data-agent-chat-target="audioStatus"
         button.kb-chrome-btn-primary type="button" data-theme-slot="btn-primary" data-agent-chat-target="sendButton" data-action="agent-chat#send" 送信
         button.kb-toolbar-btn type="button" data-action="agent-chat#clearChat" この会話を削除
