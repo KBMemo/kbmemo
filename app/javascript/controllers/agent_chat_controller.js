@@ -757,18 +757,53 @@ export default class extends Controller {
   async playSpeech(text, button) {
     button.disabled = true
     try {
-      const res = await fetch(this.synthesizeAudioUrlValue, {
-        method: "POST", credentials: "same-origin", headers: jsonRequestHeaders(),
-        body: JSON.stringify(withAuthenticityToken({ text }))
-      })
-      if (!res.ok) throw new Error()
-      const truncated = res.headers.get("X-Audio-Text-Truncated") === "true"
-      const url = URL.createObjectURL(await res.blob())
-      const audio = new Audio(url)
-      audio.addEventListener("ended", () => URL.revokeObjectURL(url), { once: true })
-      await audio.play()
-      if (truncated) this.setAudioStatus("先頭60文字を読み上げました")
+      const chunks = this.speechChunks(text)
+      for (const [index, chunk] of chunks.entries()) {
+        const progress = `${index + 1}/${chunks.length}`
+        this.setAudioStatus(`読み上げを生成中 (${progress})`)
+        const audio = await this.synthesizeSpeechChunk(chunk)
+        this.setAudioStatus(`再生中 (${progress})`)
+        await this.playAudio(audio)
+      }
+      this.setAudioStatus("読み上げが完了しました")
     } catch { this.showError("音声再生に失敗しました。") } finally { button.disabled = false }
+  }
+
+  speechChunks(text, maxChars = 60) {
+    const sentences = text.toString().replace(/\s+/g, " ").trim().match(/[^。！？!?]+[。！？!?]?/g) || []
+    const chunks = []
+    let chunk = ""
+
+    for (const sentence of sentences) {
+      for (let offset = 0; offset < sentence.length; offset += maxChars) {
+        const part = sentence.slice(offset, offset + maxChars)
+        if (chunk.length > 0 && chunk.length + part.length > maxChars) {
+          chunks.push(chunk)
+          chunk = ""
+        }
+        chunk += part
+      }
+    }
+    if (chunk) chunks.push(chunk)
+    return chunks
+  }
+
+  async synthesizeSpeechChunk(text) {
+    const res = await fetch(this.synthesizeAudioUrlValue, {
+      method: "POST", credentials: "same-origin", headers: jsonRequestHeaders(),
+      body: JSON.stringify(withAuthenticityToken({ text }))
+    })
+    if (!res.ok) throw new Error()
+    return new Audio(URL.createObjectURL(await res.blob()))
+  }
+
+  playAudio(audio) {
+    return new Promise((resolve, reject) => {
+      const cleanup = () => URL.revokeObjectURL(audio.src)
+      audio.addEventListener("ended", () => { cleanup(); resolve() }, { once: true })
+      audio.addEventListener("error", () => { cleanup(); reject(new Error("audio playback failed")) }, { once: true })
+      audio.play().catch((error) => { cleanup(); reject(error) })
+    })
   }
 
   generatedImagesNode(urls, entry = {}) {
