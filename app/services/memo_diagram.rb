@@ -84,11 +84,11 @@ class MemoDiagram
   def self.normalize_mermaid_source(text)
     stripped = text.strip
     if (match = stripped.match(/\A```(?:mermaid)?\s*\r?\n([\s\S]*?)\r?\n```\s*\z/i))
-      return normalize_mermaid_labels(match[1].strip)
+      return normalize_mermaid_edges(normalize_mermaid_labels(match[1].strip))
     end
 
     normalized = stripped.sub(/\A```(?:mermaid)?\s*\r?\n/i, "").sub(/\r?\n```\s*\z/, "").strip
-    normalize_mermaid_labels(normalized)
+    normalize_mermaid_edges(normalize_mermaid_labels(normalized))
   end
   private_class_method :normalize_mermaid_source
 
@@ -132,6 +132,13 @@ class MemoDiagram
     end.join.rstrip
   end
   private_class_method :normalize_mermaid_labels
+
+  # LLMs occasionally omit the trailing > from Mermaid's bidirectional thick
+  # arrow (<==>). Without it, an edge label following the arrow is rejected.
+  def self.normalize_mermaid_edges(source)
+    source.gsub(/<==(\|)/, "<==>\\1")
+  end
+  private_class_method :normalize_mermaid_edges
 
   def self.escape_mermaid_label(label)
     label.gsub("\\", "\\\\").gsub(%("), %(\\"))

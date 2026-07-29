@@ -67,6 +67,12 @@ class MemoDiagramTest < ActiveSupport::TestCase
     assert_includes out, 'Cache[("Isar DB<br>ローカルキャッシュ")]'
   end
 
+  test "normalize_source completes a Mermaid bidirectional thick arrow" do
+    out = MemoDiagram.normalize_source(:mermaid, "graph TD\n  A <==|同期| B")
+
+    assert_includes out, "A <==>|同期| B"
+  end
+
   test "normalize_source strips plantuml markdown fences" do
     fenced = <<~SRC
       ```plantuml
