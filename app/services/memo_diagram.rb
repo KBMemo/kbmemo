@@ -84,12 +84,34 @@ class MemoDiagram
   def self.normalize_mermaid_source(text)
     stripped = text.strip
     if (match = stripped.match(/\A```(?:mermaid)?\s*\r?\n([\s\S]*?)\r?\n```\s*\z/i))
-      return match[1].strip
+      return normalize_mermaid_subgraphs(match[1].strip)
     end
 
-    stripped.sub(/\A```(?:mermaid)?\s*\r?\n/i, "").sub(/\r?\n```\s*\z/, "").strip
+    normalized = stripped.sub(/\A```(?:mermaid)?\s*\r?\n/i, "").sub(/\r?\n```\s*\z/, "").strip
+    normalize_mermaid_subgraphs(normalized)
   end
   private_class_method :normalize_mermaid_source
+
+  # Mermaid treats a bare subgraph value as an identifier. LLM-generated
+  # diagrams commonly use a Japanese display title with spaces or parentheses,
+  # which must instead be written as id["title"].
+  def self.normalize_mermaid_subgraphs(source)
+    sequence = 0
+
+    source.each_line.map do |line|
+      match = line.match(/\A(\s*)subgraph\s+(.+?)\s*\z/i)
+      next line unless match
+
+      indent, label = match.captures
+      label = label.strip
+      next line if label.match?(/\A[A-Za-z_][A-Za-z0-9_-]*\z/) || label.include?("[") || label.start_with?('"')
+
+      sequence += 1
+      escaped_label = label.gsub("\\", "\\\\").gsub(%("), %(\\"))
+      %(#{indent}subgraph kbmemo_subgraph_#{sequence}["#{escaped_label}"]\n)
+    end.join.rstrip
+  end
+  private_class_method :normalize_mermaid_subgraphs
 
   def self.normalize_plantuml_source(text)
     stripped = text.strip
