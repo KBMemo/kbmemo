@@ -100,7 +100,7 @@ describe("memo-metadata-suggestions", () => {
         })
       })
     }))
-    vi.spyOn(window, "confirm").mockReturnValue(false)
+    vi.stubGlobal("confirm", vi.fn(() => false))
 
     document.querySelector("[data-action$='#generate']").click()
     await vi.waitFor(() => expect(requestSignal).toBeDefined())
@@ -122,7 +122,7 @@ describe("memo-metadata-suggestions", () => {
         })
       })
     }))
-    vi.spyOn(window, "confirm").mockReturnValue(true)
+    vi.stubGlobal("confirm", vi.fn(() => true))
 
     document.querySelector("[data-action$='#generate']").click()
     await vi.waitFor(() => expect(requestSignal).toBeDefined())
