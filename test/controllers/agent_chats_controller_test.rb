@@ -143,6 +143,25 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     Chat::NyoyMcpConfig.define_singleton_method(:audio_client, original)
   end
 
+  test "synthesize_audio limits text for the CPU speech runner" do
+    original = Chat::NyoyMcpConfig.method(:audio_client)
+    received_text = nil
+    client = Object.new
+    client.define_singleton_method(:synthesize) do |text|
+      received_text = text
+      "wav"
+    end
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client) { |**| client }
+
+    post synthesize_audio_agent_chat_url, params: { text: "あ" * 61 }
+
+    assert_response :success
+    assert_equal "あ" * 60, received_text
+    assert_equal "true", response.headers["X-Audio-Text-Truncated"]
+  ensure
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client, original)
+  end
+
   test "transcribe_audio proxies an audio upload through Nyoy" do
     original = Chat::NyoyMcpConfig.method(:audio_client)
     client = Object.new

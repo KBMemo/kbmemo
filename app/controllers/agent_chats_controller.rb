@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class AgentChatsController < ApplicationController
+  SPEECH_MAX_CHARS = 60
+
   after_action :verify_authorized
 
   def show
@@ -142,7 +144,9 @@ class AgentChatsController < ApplicationController
     authorize :agent_chat, :synthesize_audio?
 
     text = params.require(:text).to_s
-    audio = Chat::NyoyMcpConfig.audio_client(account: rodauth.rails_account).synthesize(text)
+    speech_text = text.truncate(SPEECH_MAX_CHARS, omission: "")
+    response.headers["X-Audio-Text-Truncated"] = "true" if speech_text.length < text.length
+    audio = Chat::NyoyMcpConfig.audio_client(account: rodauth.rails_account).synthesize(speech_text)
     send_data audio, type: "audio/wav", disposition: "inline", filename: "reply.wav"
   rescue ActionController::ParameterMissing, Chat::NyoyAudioClient::Error => error
     render json: { error: error.message }, status: :unprocessable_entity

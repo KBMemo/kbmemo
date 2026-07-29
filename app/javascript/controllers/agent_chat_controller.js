@@ -762,10 +762,12 @@ export default class extends Controller {
         body: JSON.stringify(withAuthenticityToken({ text }))
       })
       if (!res.ok) throw new Error()
+      const truncated = res.headers.get("X-Audio-Text-Truncated") === "true"
       const url = URL.createObjectURL(await res.blob())
       const audio = new Audio(url)
       audio.addEventListener("ended", () => URL.revokeObjectURL(url), { once: true })
       await audio.play()
+      if (truncated) this.setAudioStatus("先頭60文字を読み上げました")
     } catch { this.showError("音声再生に失敗しました。") } finally { button.disabled = false }
   }
 
