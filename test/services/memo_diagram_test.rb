@@ -54,6 +54,19 @@ class MemoDiagramTest < ActiveSupport::TestCase
     assert_includes out, "subgraph backend[Backend]"
   end
 
+  test "normalize_source quotes mermaid labels containing parentheses" do
+    source = <<~SRC
+      graph TD
+        Landing[ランディングページ<br>記事公開ページ (SEO)]
+        Cache[(Isar DB<br>ローカルキャッシュ)]
+    SRC
+
+    out = MemoDiagram.normalize_source(:mermaid, source)
+
+    assert_includes out, 'Landing["ランディングページ<br>記事公開ページ (SEO)"]'
+    assert_includes out, 'Cache[("Isar DB<br>ローカルキャッシュ")]'
+  end
+
   test "normalize_source strips plantuml markdown fences" do
     fenced = <<~SRC
       ```plantuml
