@@ -152,7 +152,8 @@ class AgentChatsController < ApplicationController
     authorize :agent_chat, :transcribe_audio?
 
     file = params.require(:file)
-    unless file.content_type.in?(%w[audio/webm audio/ogg audio/wav audio/mp4]) && file.size <= 10.megabytes
+    content_type = file.content_type.to_s.split(";", 2).first
+    unless content_type.in?(%w[audio/webm audio/ogg audio/wav audio/mp4]) && file.size <= 10.megabytes
       render json: { error: "対応していない、または大きすぎる音声ファイルです。" }, status: :unprocessable_entity
       return
     end
@@ -160,7 +161,7 @@ class AgentChatsController < ApplicationController
     text = Chat::NyoyMcpConfig.audio_client(account: rodauth.rails_account).transcribe(
       io: file.tempfile,
       filename: file.original_filename.presence || "recording.webm",
-      content_type: file.content_type
+      content_type: content_type
     )
     render json: { text: text }
   rescue ActionController::ParameterMissing, Chat::NyoyAudioClient::Error => error

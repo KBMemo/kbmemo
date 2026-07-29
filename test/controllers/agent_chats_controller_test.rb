@@ -158,6 +158,29 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
     Chat::NyoyMcpConfig.define_singleton_method(:audio_client, original)
   end
 
+  test "transcribe_audio accepts a MediaRecorder content type with codecs" do
+    original = Chat::NyoyMcpConfig.method(:audio_client)
+    received_content_type = nil
+    client = Object.new
+    client.define_singleton_method(:transcribe) do |content_type:, **|
+      received_content_type = content_type
+      "文字起こし"
+    end
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client) { |**| client }
+    upload = Rack::Test::UploadedFile.new(
+      StringIO.new("webm"),
+      "audio/webm;codecs=opus",
+      original_filename: "recording.webm"
+    )
+
+    post transcribe_audio_agent_chat_url, params: { file: upload }
+
+    assert_response :success
+    assert_equal "audio/webm", received_content_type
+  ensure
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client, original)
+  end
+
   test "memo_references searches only visible memos" do
     hidden = Memo.create!(
       title: "Secret reference",
