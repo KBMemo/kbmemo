@@ -3,9 +3,10 @@
 require "set"
 require "cgi"
 
-# 本文中で参照されている image:: / diagram:: パスを収集する。
+# 本文中で参照されている image:: / diagram:: / attachment:: パスを収集する。
 class MemoBodyReferences
   IMAGE_MACRO = /image::([^\[\]\s]+)(?:\[[^\]]*\])?|image:([^\[\]\s]+)(?:\[[^\]]*\])?/
+  ATTACHMENT_MACRO = /attachment::([^\[\]\s]+)(?:\[[^\]]*\])?/
   # 非貪欲 +? だと diagram::flow.mmd[] のパスが1文字になるため、[] 手前まで貪欲に取る
   DIAGRAM_MACRO = /diagram::([^\[\]]+)(?:\[[^\]]*\])?/
 
@@ -96,6 +97,8 @@ class MemoBodyReferences
         path = (block_path || inline_path).to_s.strip
         add_path(path)
       end
+
+      line.scan(ATTACHMENT_MACRO) { |path| add_path(Array(path).first.to_s) }
     end
   end
 

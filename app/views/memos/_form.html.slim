@@ -113,6 +113,9 @@ ruby:
                   label.cursor-pointer class=kb_toolbar_btn
                     | 画像を挿入
                     input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple=true data-memo-body-editor-target="imageInput" data-action="change->memo-body-editor#uploadImage"
+                  label.cursor-pointer class=kb_toolbar_btn
+                    | ファイルを添付
+                    input.sr-only type="file" accept="application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp" multiple=true data-memo-body-editor-target="attachmentInput" data-action="change->memo-body-editor#uploadAttachment"
                   button.inline-flex.items-center class=kb_toolbar_btn type="button" data-action="memo-attachments#toggle" aria-expanded="false" aria-controls="memo-attachment-panel" title="添付ファイル一覧を開く"
                     | 添付ファイル
                     span.ml-0.5.leading-none data-memo-attachments-target="toggleIcon" aria-hidden="true"
@@ -120,6 +123,8 @@ ruby:
                 - else
                   button.memo-body-editor__source-only.kb-toolbar-btn.is-disabled type="button" disabled=true title="メモを Git にコミットしてから画像を挿入できます"
                     | 画像を挿入
+                  button.memo-body-editor__source-only.kb-toolbar-btn.is-disabled type="button" disabled=true title="メモを Git にコミットしてからファイルを添付できます"
+                    | ファイルを添付
                 span.hidden.text-xs.kb-status-danger data-memo-body-editor-target="uploadError"
             - if memo.image_assets_uploadable?
               = render "memos/attachment_panel", memo: memo, body: memo.body

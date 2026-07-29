@@ -441,4 +441,15 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes template, "/svg_sources/__INDEX__/edit"
     assert_not_includes template, "/svg_sources/0/edit"
   end
+
+  test "memo_html renders document attachment as an authorized asset link" do
+    memo = memos(:one)
+    memo.update_columns(slug: memo_global_slug("first-memo", memo), file_committed_at: Time.current)
+    MemoRepository.new.write_asset!(memo, filename: "report.pdf", io: StringIO.new("%PDF-1.7"))
+
+    html = memo_html("attachment::report.pdf[]", source_memo: memo)
+
+    assert_includes html, "/memos/#{memo.id}/assets/report.pdf"
+    assert_includes html, ">report.pdf</a>"
+  end
 end

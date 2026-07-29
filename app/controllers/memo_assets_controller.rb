@@ -17,7 +17,10 @@ class MemoAssetsController < ApplicationController
     authorize @memo, :show_asset?
     path = MemoAssets.resolve_path!(@memo, asset_filename_from_params)
     apply_svg_asset_headers(path)
-    send_file path, disposition: :inline, type: Marcel::MimeType.for(path)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    send_file path,
+      disposition: MemoAssets.image?(path.basename.to_s) || path.extname.downcase == ".pdf" ? :inline : :attachment,
+      type: Marcel::MimeType.for(path)
   rescue MemoAssets::InvalidFile
     head :not_found
   end
@@ -26,6 +29,8 @@ class MemoAssetsController < ApplicationController
     authorize @memo, :show_asset?
     @asset_relative = asset_filename_from_params
     path = MemoAssets.resolve_path!(@memo, @asset_relative)
+    raise MemoAssets::InvalidFile unless MemoAssets.image?(path.basename.to_s)
+
     @asset_url = asset_memo_path(@memo, @asset_relative)
     render layout: "diagram_viewer"
   rescue MemoAssets::InvalidFile

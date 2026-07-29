@@ -363,7 +363,7 @@ Phase 1 で **含まない** 想定:
 . Google Photos Library API の **最新利用ポリシー** と scope を確認する
 . Phase 1 を **1 枚ピッカー** に絞るか、リンクのみ運用で足りるかを決める
 . Calendar OAuth と **トークン統合 vs 分離** を決める
-. 取り込み上限（1 回あたり枚数・ファイルサイズ）を `MemoAssets::MAX_BYTES` と整合させる
+. 取り込み上限（1 回あたり枚数・ファイルサイズ）を `MemoAssets::MAX_IMAGE_BYTES` と整合させる
 . `properties.google_photos` を Phase 1 から入れるか、Phase 2 に回すか
 . 未参照アセット削除方針（Phase 5f TODO）と Photos 一括取り込みの整合
 . プロトタイプ前に **1 アカウント・1 アルバム・10 枚** 程度の PoC 見積もり

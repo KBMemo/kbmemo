@@ -1,13 +1,31 @@
 # frozen_string_literal: true
 
-# メモ本文用の画像を Git 作業ツリー（{slug}.assets/）へ保存する。
+# メモ本文用の画像・文書を Git 作業ツリー（{slug}.assets/）へ保存する。
 class MemoAssets
   class Error < StandardError; end
   class InvalidFile < Error; end
 
-  ALLOWED_CONTENT_TYPES = %w[image/png image/jpeg image/gif image/webp image/svg+xml].freeze
+  IMAGE_CONTENT_TYPES = %w[image/png image/jpeg image/gif image/webp image/svg+xml].freeze
+  DOCUMENT_CONTENT_TYPES = {
+    ".pdf" => %w[application/pdf],
+    ".doc" => %w[application/msword],
+    ".docx" => %w[application/vnd.openxmlformats-officedocument.wordprocessingml.document],
+    ".xls" => %w[application/vnd.ms-excel],
+    ".xlsx" => %w[application/vnd.openxmlformats-officedocument.spreadsheetml.sheet],
+    ".ppt" => %w[application/vnd.ms-powerpoint],
+    ".pptx" => %w[application/vnd.openxmlformats-officedocument.presentationml.presentation],
+    ".odt" => %w[application/vnd.oasis.opendocument.text],
+    ".ods" => %w[application/vnd.oasis.opendocument.spreadsheet],
+    ".odp" => %w[application/vnd.oasis.opendocument.presentation]
+  }.freeze
+  ALLOWED_CONTENT_TYPES = (IMAGE_CONTENT_TYPES + DOCUMENT_CONTENT_TYPES.values.flatten).freeze
+  IMAGE_EXTENSIONS = %w[.png .jpg .jpeg .gif .webp .svg].freeze
+  DOCUMENT_EXTENSIONS = DOCUMENT_CONTENT_TYPES.keys.freeze
   SVG_EXTENSION = ".svg"
-  MAX_BYTES = 10 * 1024 * 1024
+  PDF_EXTENSION = ".pdf"
+  MAX_IMAGE_BYTES = 10 * 1024 * 1024
+  MAX_DOCUMENT_BYTES = 25 * 1024 * 1024
+  MAX_BYTES = MAX_IMAGE_BYTES # 既存の画像取り込みサービスとの互換用
 
   def self.upload(memo, file:, repo: MemoRepository.new)
     new(repo: repo).upload(memo, file)
@@ -39,15 +57,15 @@ class MemoAssets
 
     {
       filename: filename,
-      asciidoc: "image::#{filename}[]",
+      asciidoc: asciidoc_for(filename),
       url: asset_url_for(memo, filename)
     }
   end
 
   def resolve_path!(memo, filename)
     path = find_asset_file(memo, filename)
-    raise InvalidFile, "画像が見つかりません" unless path&.file? && path.exist?
-    raise InvalidFile, "画像が見つかりません" unless path_under_assets_dir?(memo, path)
+    raise InvalidFile, "添付ファイルが見つかりません" unless path&.file? && path.exist?
+    raise InvalidFile, "添付ファイルが見つかりません" unless path_under_assets_dir?(memo, path)
 
     path
   end
@@ -68,6 +86,14 @@ class MemoAssets
   def self.asset_url_for(memo, filename)
     relative = MemoAssetPath.normalize!(filename)
     Rails.application.routes.url_helpers.asset_memo_path(memo, relative)
+  end
+
+  def self.image?(filename)
+    IMAGE_EXTENSIONS.include?(File.extname(filename.to_s).downcase)
+  end
+
+  def self.document?(filename)
+    DOCUMENT_EXTENSIONS.include?(File.extname(filename.to_s).downcase)
   end
 
   private
@@ -115,22 +141,60 @@ class MemoAssets
   def validate!(file)
     io = io_for(file)
     size = file.respond_to?(:size) ? file.size : io.size
-    raise InvalidFile, "10MB 以下の画像にしてください" if size.to_i > MAX_BYTES
+    filename = sanitize_filename(original_filename_for(file))
+    kind = asset_kind(filename)
+    raise InvalidFile, allowed_file_message unless kind
 
-    type = content_type_for(file)
-    return if type.present? && ALLOWED_CONTENT_TYPES.include?(type)
+    max_bytes = kind == :image ? MAX_IMAGE_BYTES : MAX_DOCUMENT_BYTES
+    raise InvalidFile, size_message_for(kind) if size.to_i > max_bytes
 
-    raise InvalidFile, "PNG / JPEG / GIF / WebP / SVG のみアップロードできます"
+    type = declared_content_type_for(file)
+    unless type.blank? || type == "application/octet-stream" || allowed_content_type?(filename, type)
+      raise InvalidFile, allowed_file_message
+    end
+
+    validate_pdf_signature!(io, filename) if filename.downcase.end_with?(PDF_EXTENSION)
+  ensure
+    io.rewind if io&.respond_to?(:rewind)
+  end
+
+  def asset_kind(filename)
+    return :image if self.class.image?(filename)
+    return :document if self.class.document?(filename)
+
+    nil
+  end
+
+  def allowed_content_type?(filename, type)
+    if self.class.image?(filename)
+      IMAGE_CONTENT_TYPES.include?(type)
+    else
+      DOCUMENT_CONTENT_TYPES.fetch(File.extname(filename).downcase, []).include?(type)
+    end
+  end
+
+  def allowed_file_message
+    "PNG / JPEG / GIF / WebP / SVG / PDF / Office 文書のみアップロードできます"
+  end
+
+  def size_message_for(kind)
+    kind == :image ? "10MB 以下の画像にしてください" : "25MB 以下の文書にしてください"
+  end
+
+  def validate_pdf_signature!(io, filename)
+    header = io.read(5)
+    return if header == "%PDF-"
+
+    raise InvalidFile, "PDF ファイルとして認識できません"
   end
 
   def svg_upload?(file, filename)
-    type = content_type_for(file)
+    type = declared_content_type_for(file)
     type == "image/svg+xml" || filename.to_s.downcase.end_with?(SVG_EXTENSION)
   end
 
-  def content_type_for(file)
-    type = file.content_type.to_s.downcase.presence if file.respond_to?(:content_type)
-    type.presence || Marcel::MimeType.for(name: original_filename_for(file)).to_s.downcase
+  def declared_content_type_for(file)
+    file.content_type.to_s.downcase.presence if file.respond_to?(:content_type)
   end
 
   def io_for(file)
@@ -144,7 +208,7 @@ class MemoAssets
   end
 
   def original_filename_for(file)
-    file.respond_to?(:original_filename) ? file.original_filename : "image.png"
+    file.respond_to?(:original_filename) ? file.original_filename : "attachment"
   end
 
   def sanitize_filename(name)
@@ -164,6 +228,14 @@ class MemoAssets
       return candidate unless dir.join(candidate).exist?
 
       n += 1
+    end
+  end
+
+  def asciidoc_for(filename)
+    if self.class.image?(filename)
+      "image::#{filename}[]"
+    else
+      "attachment::#{filename}[]"
     end
   end
 end

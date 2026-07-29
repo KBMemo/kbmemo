@@ -413,6 +413,7 @@ module MemosHelper
     )
     processed = wiki_linker.substitute(text)
     processed = MemoDiagramMacro.new(memo: source_memo).substitute(processed)
+    processed = MemoAttachmentMacro.new(memo: source_memo).substitute(processed)
     processed = MemoTsuzuraMacro.new(memo: source_memo, viewer: pundit_user).substitute(processed)
     processed = MemoAdocPassthroughRestrictor.restrict(processed)
 

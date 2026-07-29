@@ -2,7 +2,7 @@
 
 require "set"
 
-# メモの Git アセット一覧（ダイアグラム + 画像）と本文参照状態。
+# メモの Git アセット一覧（ダイアグラム + 画像 + 文書）と本文参照状態。
 class MemoAttachments
   Entry = Data.define(
     :name,
@@ -46,14 +46,14 @@ class MemoAttachments
         rel = Pathname.new(abs).relative_path_from(assets_dir).to_s
         next if seen.include?(rel)
         next if skip_companion_svg?(rel, entries)
-        next unless listable_image?(rel)
+        next unless listable_asset?(rel)
 
         seen.add(rel)
-        entries << image_entry(memo, rel, refs)
+        entries << asset_entry(memo, rel, refs)
       end
     end
 
-    entries.sort_by { |e| [ e.kind == :diagram ? 0 : 1, e.name.downcase ] }
+    entries.sort_by { |e| [ e.kind == :diagram ? 0 : e.kind == :image ? 1 : 2, e.name.downcase ] }
   end
 
   private
@@ -74,16 +74,17 @@ class MemoAttachments
     )
   end
 
-  def image_entry(memo, relative_path, refs)
+  def asset_entry(memo, relative_path, refs)
     referenced = refs.asset_path?(relative_path)
+    image = MemoAssets.image?(relative_path)
     Entry.new(
       name: File.basename(relative_path),
       relative_path: relative_path,
-      kind: :image,
+      kind: image ? :image : :document,
       referenced: referenced,
       svg_missing: false,
       edit_url: nil,
-      insert_text: "image::#{relative_path}[]",
+      insert_text: image ? "image::#{relative_path}[]" : "attachment::#{relative_path}[]",
       delete_path: referenced ? nil : relative_path
     )
   end
@@ -99,10 +100,10 @@ class MemoAttachments
     end
   end
 
-  def listable_image?(relative_path)
+  def listable_asset?(relative_path)
     ext = File.extname(relative_path).downcase
     return false if relative_path.start_with?("diagrams/") && MemoDiagram::ALLOWED_EXTENSIONS.include?(ext)
 
-    IMAGE_EXTENSIONS.include?(ext)
+    IMAGE_EXTENSIONS.include?(ext) || MemoAssets.document?(relative_path)
   end
 end
