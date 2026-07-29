@@ -888,6 +888,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, %(turbo-stream action="replace" target="memos_list_panel")
     assert_includes @response.body, %(turbo-stream action="replace" target="flash-live")
     assert_includes @response.body, %(turbo-stream action="update" target="memo_ai_sidebar_panel")
+    assert_includes @response.body, "kb-memo-content-scroll"
+    assert_includes @response.body, "overflow-y-auto"
     assert_includes @response.body, "Turbo commit title"
     assert_includes @response.body, "Git に記録"
     assert memo.reload.file_committed_at.present?
