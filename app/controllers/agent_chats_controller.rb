@@ -1,10 +1,14 @@
 # frozen_string_literal: true
 
 class AgentChatsController < ApplicationController
+  SPEECH_MAX_CHARS = 60
+
   after_action :verify_authorized
 
   def show
     authorize :agent_chat, :show?
+
+    response.headers["Permissions-Policy"] = "camera=(), geolocation=(), microphone=(self)"
 
     account = rodauth.rails_account
     store = conversation_store
@@ -134,6 +138,38 @@ class AgentChatsController < ApplicationController
     }
   rescue AgentChat::TsuzuraUpload::Error => e
     render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  def synthesize_audio
+    authorize :agent_chat, :synthesize_audio?
+
+    text = params.require(:text).to_s
+    speech_text = text.truncate(SPEECH_MAX_CHARS, omission: "")
+    response.headers["X-Audio-Text-Truncated"] = "true" if speech_text.length < text.length
+    audio = Chat::NyoyMcpConfig.audio_client(account: rodauth.rails_account).synthesize(speech_text)
+    send_data audio, type: "audio/wav", disposition: "inline", filename: "reply.wav"
+  rescue ActionController::ParameterMissing, Chat::NyoyAudioClient::Error => error
+    render json: { error: error.message }, status: :unprocessable_entity
+  end
+
+  def transcribe_audio
+    authorize :agent_chat, :transcribe_audio?
+
+    file = params.require(:file)
+    content_type = file.content_type.to_s.split(";", 2).first
+    unless content_type.in?(%w[audio/webm audio/ogg audio/wav audio/mp4]) && file.size <= 10.megabytes
+      render json: { error: "対応していない、または大きすぎる音声ファイルです。" }, status: :unprocessable_entity
+      return
+    end
+
+    text = Chat::NyoyMcpConfig.audio_client(account: rodauth.rails_account).transcribe(
+      io: file.tempfile,
+      filename: file.original_filename.presence || "recording.webm",
+      content_type: content_type
+    )
+    render json: { text: text }
+  rescue ActionController::ParameterMissing, Chat::NyoyAudioClient::Error => error
+    render json: { error: error.message }, status: :unprocessable_entity
   end
 
   def image_generation_status

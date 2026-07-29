@@ -29,7 +29,7 @@
       "note": "The SQL fragment is built from fixed JSON keys quoted by the database adapter and contains no request input."
     },
     {
-      "fingerprint": "cf52daf2bf65fc9cbae85aa3dc7cc4f54ce8b417da3c10b12607f971b2be9e87",
+      "fingerprint": "5e5763a8f8f48d8d4806f11d4acf795514c2b27db1bb119d3f0da1c2e1eb6902",
       "note": "MemoAssets normalizes the requested path, rejects traversal, requires an existing file, and verifies the resolved path remains below the memo assets directory."
     },
     {

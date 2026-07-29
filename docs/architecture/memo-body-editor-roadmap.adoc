@@ -175,11 +175,11 @@ Phase 4 までの Decoration ベース WYSIWYG を、**ブロック単位**に�
 
 *現状（2026-05）:* 第1段実装済み。`|===` pipe 表。1行1セル形式は `[cols]` と空行で論理行にグループ化。表装飾は **StateField + block replace**（ViewPlugin 不可のため `table_wysiwyg_field.js`）。カーソルがブロック内のときはブロック全体 raw。
 
-==== Phase 5f — 画像（メモアセット）
+==== Phase 5f — メモアセット（画像・文書）
 
-*保存:* Git 作業ツリー上の `{slug}.assets/`（`.adoc` と同階層）。本文は `image::filename[]`、表示時 `imagesdir` を `/memos/:id/assets/` に設定。
+*保存:* Git 作業ツリー上の `{slug}.assets/`（`.adoc` と同階層）。画像本文は `image::filename[]`、文書本文は `attachment::filename[]`。表示時 `imagesdir` を `/memos/:id/assets/` に設定する。
 *API:* `POST /memos/:id/assets`（アップロード）、`GET /memos/:id/assets/:filename`（配信）。コミット時にアセットも `git add`。
-*現状（2026-05）:* 基盤実装済み（PNG/JPEG/GIF/WebP/SVG、10MB）。ファイル名は `MemoAssetFilename` で NFC 正規化し、日本語可。SVG は `MemoSvgSanitizer` で script 等を除去。挿入: ファイル選択・D&D・クリップボード貼り付け（スクリーンショット等、プレーンテキスト同時の場合は通常貼り付け）。CM 内プレビューは `image_wysiwyg.js`。
+*現状（2026-07）:* PNG/JPEG/GIF/WebP/SVG（10MB）に加え、PDF と Word/Excel/PowerPoint/OpenDocument（25MB）を受け付ける。PDF は先頭シグネチャ、他は拡張子と宣言 MIME 型を検証する。SVG は `MemoSvgSanitizer` で script 等を除去する。Office 文書はアプリ側で展開せず、`Content-Disposition: attachment` と `nosniff` を付けて配信する。挿入: 画像はファイル選択・D&D・クリップボード貼り付け、文書はファイル選択。CM 内プレビューは `image_wysiwyg.js`。
 
 *TODO — 未参照アセット:* 本文から `image::` / `image:` 行を削除しても `{slug}.assets/` 内のファイルは削除されず、メモ保存時もフォルダ内の全ファイルが `git add` される。直接 URL でも配信され続ける。方針未決定。候補: 保存時に本文をスキャンして未参照ファイルを削除してからコミット、未使用一覧＋手動削除 UI、`DELETE` API。実装前に「自動削除 vs 手動」「Git 履歴に残すか」を決める。
 

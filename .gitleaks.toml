@@ -1,0 +1,12 @@
+title = "KBMemo gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Documented non-secret values retained in history"
+regexTarget = "match"
+regexes = [
+  '''api_base_url, "[^"]+"''',
+  '''Sec-WebSocket-Key: [A-Za-z0-9+/=]+"'''
+]

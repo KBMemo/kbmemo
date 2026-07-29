@@ -1,111 +1,106 @@
-= KBMemo GitHub 移行 Runbook
+= KBMemo GitHub Public Transition Runbook
 :toc:
 :toclevels: 2
 
-この手順は link:github-publication.adoc[GitHub 公開準備] の Phase 4 と Phase 5 を
-実施するための runbook である。対象 repository は `KBMemo/kbmemo`。最初は
-Private として移行し、公開判定が済むまで Public に変更しない。
+この手順は link:github-publication.adoc[GitHub 公開準備] の Phase 5 を実施するための
+runbook である。対象は `KBMemo/tsuzura`、`KBMemo/nyoy`、`KBMemo/kbmemo` の 3 repository
+であり、順序は葛籠、如意、徒然とする。visibility を Public に変更する操作は外部公開を
+伴うため、この runbook の承認者が実行する。
 
-== 事前条件
+== 現在の前提
 
-* GitHub Organization `KBMemo` と空の Private repository `kbmemo` がある。
-  GitHub 側で README、LICENSE、`.gitignore` を初期生成しない。
-* 実 token、password、private key を失効または rotation し、全 ref の secret
-  scan を完了している。
-* `main` と公開する tag / branch を確認し、作業ツリーが clean である。
-* link:../../SECURITY.md[SECURITY.md] の報告経路を有効にするため、GitHub
-  Private Vulnerability Reporting を利用できる権限がある。
+* 3 repository は GitHub 上で Public、default branch は `main` である。葛籠の
+  `develop` branch も GitHub に同期済みである。
+* GitHub Actions、`SECURITY.md`、`CONTRIBUTING.md`、README、LICENSE は確認済みである。
+* `gitleaks 8.30.1` による全履歴再監査は完了している。徒然・如意はリポジトリ内の
+  `.gitleaks.toml` で、文書用の既知プレースホルダーだけを限定許可する。
+* 全 repository で Private Vulnerability Reporting を有効化済みである。
+* 通常 remote は変更しない。`origin` は Gitea、`github` は GitHub のままとし、公開後も
+  両方へ push する。
 
-== 1. 移行前の確認
+== 1. 切替直前の確認
+
+各 repository で次を実行する。作業ツリーに未コミット変更がある場合は中断する。
 
 [source,bash]
 ----
 git status --short
 git fetch origin --prune
-git log --oneline origin/main..main
+git fetch github --prune
+git log --oneline github/main..main
 bin/ci
 
-# gitleaks 8.30.1 を checksum 検証済みの配布物から使う
-gitleaks git --redact --log-opts="--all"
+# checksum 検証済みの gitleaks 8.30.1 を使用する
+gitleaks detect --config .gitleaks.toml --source . --log-opts='--all' --redact
 ----
 
-`gitleaks` の検出を値を含めずに記録する。実秘密情報が見つかった場合は、先に
-rotation と全 ref の履歴除去を完了してから移行する。
+葛籠には `.gitleaks.toml` がないため、最後の command から `--config .gitleaks.toml` を
+外す。実秘密情報が検出された場合は、visibility を変更せず、credential の rotation と
+全 ref からの履歴除去を完了して再監査する。
 
-== 2. GitHub Private repository へ push
-
-`--mirror` は使用しない。不要な ref や、監査対象外の remote-tracking ref まで
-転送するためである。公開する branch と tag を明示する。
+GitHub 側の状態も確認する。
 
 [source,bash]
 ----
-git remote add github git@github.com:KBMemo/kbmemo.git
-git push github main
-git push github --tags
+for repository in KBMemo/tsuzura KBMemo/nyoy KBMemo/kbmemo; do
+  gh repo view "$repository" --json nameWithOwner,isPrivate,defaultBranchRef,url
+  gh run list --repo "$repository" --branch main --limit 1
+done
 ----
 
-追加で公開する branch がある場合だけ、名前を確認して個別に push する。
+== 2. Public 化
+
+1 repository ずつ切り替え、その都度 <<public-verification,公開直後の確認>>を完了して
+から次へ進む。3 repository をまとめて切り替えない。
 
 [source,bash]
 ----
-git branch --format='%(refname:short)'
-git push github <branch-name>
+repository=KBMemo/tsuzura # 次は KBMemo/nyoy、最後に KBMemo/kbmemo
+gh repo edit "$repository" --visibility public
+gh repo view "$repository" --json nameWithOwner,isPrivate,url
 ----
 
-== 3. Private 状態での GitHub 確認
+`isPrivate` が `false` であることを確認する。visibility 変更日時、実行者、対象 commit を
+公開準備文書または release 記録に残す。
 
-. GitHub の default branch を `main` に設定する。
-. `main` の branch protection を設定し、pull request review と必須 CI を有効にする。
-. Actions の workflow permissions を read-only にし、fork pull request の workflow
-   は secrets なし・read-only `GITHUB_TOKEN` で実行する設定を確認する。
-. Security tab で Private Vulnerability Reporting を有効にし、`Report a
-   vulnerability` を表示できることを確認する。
-. README、LICENSE、`SECURITY.md`、`CONTRIBUTING.md`、issue form、PR template の
-   表示を確認する。
-. GitHub 上の `main` に対して CI を実行し、fork を模した pull request で secrets
-   を必要としないことを確認する。
-. npm publish workflow は dry-run を実行し、実 publish は必要な時だけ
-   `NPM_TOKEN` / `NPM_PUBLISH_REGISTRY` を登録する。
+== 3. 公開直後の確認 [[public-verification]]
 
-== 4. 通常 remote の切替
-
-GitHub 上の Private 検証に合格したら、既存の Gitea remote を backup として残し、
-GitHub を通常の `origin` にする。
+Public 化後、告知より先に Private Vulnerability Reporting を有効にする。GitHub の
+Administration 権限が必要で、成功時の HTTP status は `204` である。
 
 [source,bash]
 ----
-git remote rename origin gitea
-git remote rename github origin
-git fetch --all --prune
-git remote -v
+gh api --method PUT "repos/$repository/private-vulnerability-reporting"
 ----
 
-期待する構成:
+その後、GitHub の repository Settings > Advanced Security で Private Vulnerability
+Reporting が有効であること、Security tab の Advisories で `Report a vulnerability` が
+表示されることを確認する。これは Public repository のみで利用できる機能である。
 
-[source,text]
-----
-origin  git@github.com:KBMemo/kbmemo.git
-gitea   git@gitea.example.com:organization/kbmemo.git
-----
+続けて、認証していないブラウザーまたは clone で次を確認する。
 
-Gitea は削除せず、公開後もしばらく read-only backup として保持する。
+. README、LICENSE、`SECURITY.md`、`CONTRIBUTING.md` が表示される。
+. README の製品間リンクが GitHub URL を参照し、404 にならない。
+. issue form と pull request template が利用できる。
+. 最新 GitHub Actions run が成功している。
+. `git clone https://github.com/$repository.git` が認証なしで完了する。
 
-== 5. Public 化
+== 4. 公開後の運用
 
-次を確認してから GitHub の repository visibility を Public に変更する。
-
-* `bin/ci` と secret scan が成功している。
-* branch protection、Actions の read-only 権限、Private Vulnerability Reporting が
-  有効である。
-* GitHub 上の README と製品間リンクが正しく表示される。
-* npm publish secret は publish workflow 以外で利用できない。
-* `main`、tag、公開する branch に不要な ref が含まれない。
-
-Public 化後は、匿名 clone、issue form、Security tab、CI badge、Actions log を確認する。
-最初の release tag は既知の制限と互換性を release note に記載してから作成する。
+* Gitea を同期 backup として残す。push は公開前と同様に `origin` と `github` の両方へ行う。
+* 最初の release tag は、既知の制限と互換性を release note に記載してから作成する。
+* GitHub の通知設定で Security alerts を受信できることを確認する。Private Vulnerability
+  Reporting の通知は repository administrator / security manager の通知設定に従う。
 
 == ロールバック
 
-Public 化直後に問題を見つけた場合は、GitHub repository を Private に戻す。実秘密情報が
-含まれた場合は visibility の変更だけで完了とせず、直ちに credential を失効し、全 ref
-から除去して再監査する。Gitea backup も同じ履歴を持つため、必要に応じて同時に対処する。
+Public 化直後に問題を見つけた場合だけ、影響を確認した上で Private へ戻す。
+
+[source,bash]
+----
+gh repo edit "$repository" --visibility private
+----
+
+実秘密情報が含まれた場合、visibility を戻すだけでは不十分である。直ちに credential を
+失効し、全 ref から除去して再監査する。Gitea backup にも同じ履歴があるため、必要に応じて
+同時に対処する。

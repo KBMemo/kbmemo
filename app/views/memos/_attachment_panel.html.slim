@@ -24,6 +24,10 @@
                 class: "kb-action-btn kb-action-btn-sm kb-hover-row",
                 target: "_blank",
                 rel: "noopener"
+            - if entry.kind == :document
+              = link_to "ダウンロード",
+                asset_memo_path(memo, entry.relative_path),
+                class: "kb-action-btn kb-action-btn-sm kb-hover-row"
             - unless entry.referenced
               button class="kb-action-btn kb-action-btn-sm kb-hover-row" type="button" data-action="memo-attachments#insert" data-memo-attachments-text-param=entry.insert_text
                 | 挿入

@@ -138,10 +138,14 @@ class GoogleCalendar::SyncTest < ActiveSupport::TestCase
   end
 
   def with_credentials
-    original = GoogleCalendar::Credentials.method(:configured?)
-    GoogleCalendar::Credentials.define_singleton_method(:configured?) { true }
+    original = {
+      "GOOGLE_CALENDAR_CLIENT_ID" => ENV["GOOGLE_CALENDAR_CLIENT_ID"],
+      "GOOGLE_CALENDAR_CLIENT_SECRET" => ENV["GOOGLE_CALENDAR_CLIENT_SECRET"]
+    }
+    ENV["GOOGLE_CALENDAR_CLIENT_ID"] = "test-client.apps.googleusercontent.com"
+    ENV["GOOGLE_CALENDAR_CLIENT_SECRET"] = "test-secret"
     yield
   ensure
-    GoogleCalendar::Credentials.define_singleton_method(:configured?, original)
+    original.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
   end
 end

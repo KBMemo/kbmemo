@@ -12,6 +12,7 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
   test "show renders chat page when logged in" do
     get agent_chat_url
     assert_response :success
+    assert_equal "camera=(), geolocation=(), microphone=(self)", response.headers["Permissions-Policy"]
     assert_includes response.body, "agent-chat"
     assert_includes response.body, "AI チャット"
     assert_includes response.body, "Nyoy MCP"
@@ -125,6 +126,78 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
       ENV["NYOY_MCP_URL"] = original_url
       ENV["NYOY_MCP_API_TOKEN"] = original_token
     end
+  end
+
+  test "synthesize_audio proxies a reply through Nyoy" do
+    original = Chat::NyoyMcpConfig.method(:audio_client)
+    client = Object.new
+    client.define_singleton_method(:synthesize) { |text| "wav:#{text}" }
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client) { |**| client }
+
+    post synthesize_audio_agent_chat_url, params: { text: "音声合成" }
+
+    assert_response :success
+    assert_equal "audio/wav", response.media_type
+    assert_equal "wav:音声合成", response.body
+  ensure
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client, original)
+  end
+
+  test "synthesize_audio limits text for the CPU speech runner" do
+    original = Chat::NyoyMcpConfig.method(:audio_client)
+    received_text = nil
+    client = Object.new
+    client.define_singleton_method(:synthesize) do |text|
+      received_text = text
+      "wav"
+    end
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client) { |**| client }
+
+    post synthesize_audio_agent_chat_url, params: { text: "あ" * 61 }
+
+    assert_response :success
+    assert_equal "あ" * 60, received_text
+    assert_equal "true", response.headers["X-Audio-Text-Truncated"]
+  ensure
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client, original)
+  end
+
+  test "transcribe_audio proxies an audio upload through Nyoy" do
+    original = Chat::NyoyMcpConfig.method(:audio_client)
+    client = Object.new
+    client.define_singleton_method(:transcribe) { |**| "文字起こし" }
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client) { |**| client }
+    upload = Rack::Test::UploadedFile.new(StringIO.new("wav"), "audio/wav", original_filename: "voice.wav")
+
+    post transcribe_audio_agent_chat_url, params: { file: upload }
+
+    assert_response :success
+    assert_equal "文字起こし", response.parsed_body["text"]
+  ensure
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client, original)
+  end
+
+  test "transcribe_audio accepts a MediaRecorder content type with codecs" do
+    original = Chat::NyoyMcpConfig.method(:audio_client)
+    received_content_type = nil
+    client = Object.new
+    client.define_singleton_method(:transcribe) do |content_type:, **|
+      received_content_type = content_type
+      "文字起こし"
+    end
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client) { |**| client }
+    upload = Rack::Test::UploadedFile.new(
+      StringIO.new("webm"),
+      "audio/webm;codecs=opus",
+      original_filename: "recording.webm"
+    )
+
+    post transcribe_audio_agent_chat_url, params: { file: upload }
+
+    assert_response :success
+    assert_equal "audio/webm", received_content_type
+  ensure
+    Chat::NyoyMcpConfig.define_singleton_method(:audio_client, original)
   end
 
   test "memo_references searches only visible memos" do

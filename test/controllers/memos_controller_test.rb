@@ -888,6 +888,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, %(turbo-stream action="replace" target="memos_list_panel")
     assert_includes @response.body, %(turbo-stream action="replace" target="flash-live")
     assert_includes @response.body, %(turbo-stream action="update" target="memo_ai_sidebar_panel")
+    assert_includes @response.body, "kb-memo-content-scroll"
+    assert_includes @response.body, "overflow-y-auto"
     assert_includes @response.body, "Turbo commit title"
     assert_includes @response.body, "Git に記録"
     assert memo.reload.file_committed_at.present?
@@ -1357,6 +1359,18 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select "button[disabled][title*='コミット']", text: "画像を挿入"
     assert_select "input[data-memo-body-editor-target='imageInput']", count: 0
     assert_not_includes response.body, assets_memo_path(memo)
+  end
+
+  test "edit shows a file picker icon next to the attachment list button" do
+    memo = memos(:one)
+    memo.update_column(:file_committed_at, Time.current)
+
+    get edit_memo_url(memo)
+
+    assert_response :success
+    assert_select "button[data-action='memo-body-editor#openAttachmentPicker'] i[data-lucide='folder-open']"
+    assert_select "input[data-memo-body-editor-target='attachmentInput'][type='file']"
+    assert_select "button[data-action='memo-attachments#toggle']", text: /添付ファイル/
   end
 
   test "create via json assigns date directory regardless of memo_directory_id param" do

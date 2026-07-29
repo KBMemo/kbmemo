@@ -37,6 +37,24 @@ class DbCredentialsTest < Minitest::Test
     assert_match(/db\.development/, error.message)
   end
 
+  def test_connection_options_use_explicit_ci_database_configuration
+    with_env(
+      "KBMEMO_CI_DB_HOST" => "127.0.0.1",
+      "KBMEMO_CI_DB_PORT" => "55432",
+      "KBMEMO_CI_DB_USERNAME" => "postgres",
+      "KBMEMO_CI_DB_PASSWORD" => "postgres",
+      "KBMEMO_CI_DB_DATABASE" => "kbmemo_test"
+    ) do
+      config = DbCredentials.send(:ci_config)
+
+      assert_equal "127.0.0.1", config["host"]
+      assert_equal "55432", config["port"]
+      assert_equal "postgres", config["username"]
+      assert_equal "postgres", config["password"]
+      assert_equal "kbmemo_test", config["cache_database"]
+    end
+  end
+
   private
 
   def stub_credentials(sections)
@@ -45,5 +63,14 @@ class DbCredentialsTest < Minitest::Test
     creds = ActiveSupport::OrderedOptions.new
     creds[:db] = db
     creds
+  end
+
+  def with_env(overrides)
+    previous = {}
+    overrides.each_key { |key| previous[key] = ENV[key] }
+    overrides.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
+    yield
+  ensure
+    previous.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
   end
 end

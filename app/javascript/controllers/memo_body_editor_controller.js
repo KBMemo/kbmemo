@@ -198,6 +198,7 @@ export default class extends Controller {
     "field",
     "host",
     "imageInput",
+    "attachmentInput",
     "uploadError",
     "previewHost",
     "previewSkinSelect",
@@ -1109,11 +1110,29 @@ export default class extends Controller {
     input.value = ""
   }
 
+  async uploadAttachment(event) {
+    const input = event?.currentTarget ?? (this.hasAttachmentInputTarget ? this.attachmentInputTarget : null)
+    if (!input) return
+
+    const files = Array.from(input.files ?? [])
+    if (files.length === 0) return
+
+    await this.uploadFiles(files)
+    input.value = ""
+  }
+
+  openAttachmentPicker(event) {
+    event.preventDefault()
+    if (!this.hasAttachmentInputTarget) return
+
+    this.attachmentInputTarget.click()
+  }
+
   async uploadFiles(files) {
     if (!files?.length) return
 
     if (!this.hasUploadUrlValue || !this.uploadUrlValue) {
-      this.showUploadError("画像のアップロード URL が未設定です。ページを再読み込みしてください。")
+      this.showUploadError("添付ファイルのアップロード URL が未設定です。ページを再読み込みしてください。")
       return
     }
 
@@ -1150,7 +1169,7 @@ export default class extends Controller {
           break
         }
 
-        inserted.push(data.asciidoc || `image::${data.filename}[]`)
+        inserted.push(data.asciidoc || data.filename)
       } catch {
         failed = `${file.name}: アップロードに失敗しました`
         break

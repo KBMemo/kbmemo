@@ -7,12 +7,13 @@ const TOKEN_RE = /^kbmemo_clip_[A-Za-z0-9_-]+$/
 
 // プロフィール: 発行直後のトークン埋め込み、または localStorage のトークンで API ブックマークレットを有効化。
 export default class extends Controller {
-  static targets = ["apiBookmarkletLink", "clipboardBookmarkletLink", "statusMessage"]
+  static targets = ["apiBookmarkletLink", "clipboardBookmarkletLink", "statusMessage", "activeTokenMessage"]
 
   static values = {
     defaultBaseUrl: String,
     revealedToken: String,
     tokenConfigured: Boolean,
+    tokenLabels: { type: Object, default: {} },
     apiTemplateUrl: { type: String, default: "/bookmarklets/kbmemo_clip_api.bookmarklet.js" },
     clipboardTemplateUrl: { type: String, default: "/bookmarklets/kbmemo_clip.bookmarklet.js" }
   }
@@ -75,12 +76,14 @@ export default class extends Controller {
     const tokenMessage = this.validateToken(token)
 
     if (!baseUrl || tokenMessage) {
+      this.setActiveTokenMessage("")
       this.disableApiBookmarklet(tokenMessage || this.missingTokenMessage())
       return
     }
 
     link.href = this.buildApiBookmarklet(this._apiTemplate, baseUrl, token)
     this.markApiBookmarkletReady()
+    this.setActiveTokenMessage(this.activeTokenMessage(token))
     this.setStatus("")
   }
 
@@ -141,6 +144,20 @@ export default class extends Controller {
     this.statusMessageTarget.classList.toggle("hidden", !message)
   }
 
+  setActiveTokenMessage(message) {
+    if (!this.hasActiveTokenMessageTarget) return
+    this.activeTokenMessageTarget.textContent = message
+    this.activeTokenMessageTarget.classList.toggle("hidden", !message)
+  }
+
+  activeTokenMessage(token) {
+    const prefix = token.slice(0, 16)
+    const name = this.tokenLabelsValue[prefix]
+    const label = name ? `「${name}」` : "名称不明"
+
+    return `このブラウザで使用中: ${label}（先頭: ${prefix}）`
+  }
+
   normalizeBase(value) {
     const stripped = (value || "")
       .trim()
@@ -159,6 +176,9 @@ export default class extends Controller {
     if (!token) return this.missingTokenMessage()
     if (!TOKEN_RE.test(token)) {
       return "トークンを再発行してブックマークレットを取り直してください。"
+    }
+    if (!Object.hasOwn(this.tokenLabelsValue, token.slice(0, 16))) {
+      return "このブラウザに保存された Web クリップトークンは無効化済みです。新しいトークンを発行してブックマークレットを取り直してください。"
     }
     return ""
   }

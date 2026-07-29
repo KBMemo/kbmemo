@@ -37,6 +37,42 @@ class MemoDiagramTest < ActiveSupport::TestCase
     assert_not_includes out, "```"
   end
 
+  test "normalize_source gives Japanese mermaid subgraphs stable identifiers" do
+    source = <<~SRC
+      graph TD
+        subgraph アプリケーション層 (移行先)
+          A --> B
+        end
+        subgraph backend[Backend]
+          C --> D
+        end
+    SRC
+
+    out = MemoDiagram.normalize_source(:mermaid, source)
+
+    assert_includes out, 'subgraph kbmemo_subgraph_1["アプリケーション層 (移行先)"]'
+    assert_includes out, "subgraph backend[Backend]"
+  end
+
+  test "normalize_source quotes mermaid labels containing parentheses" do
+    source = <<~SRC
+      graph TD
+        Landing[ランディングページ<br>記事公開ページ (SEO)]
+        Cache[(Isar DB<br>ローカルキャッシュ)]
+    SRC
+
+    out = MemoDiagram.normalize_source(:mermaid, source)
+
+    assert_includes out, 'Landing["ランディングページ<br>記事公開ページ (SEO)"]'
+    assert_includes out, 'Cache[("Isar DB<br>ローカルキャッシュ")]'
+  end
+
+  test "normalize_source completes a Mermaid bidirectional thick arrow" do
+    out = MemoDiagram.normalize_source(:mermaid, "graph TD\n  A <==|同期| B")
+
+    assert_includes out, "A <==>|同期| B"
+  end
+
   test "normalize_source strips plantuml markdown fences" do
     fenced = <<~SRC
       ```plantuml

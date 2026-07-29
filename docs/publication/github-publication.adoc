@@ -46,9 +46,9 @@ public repository を作成しない。
 |項目 |徒然 |葛籠 |如意
 
 |GitHub Organization / repository の確保
-|BLOCKED
-|BLOCKED
-|BLOCKED
+|DONE: `KBMemo/kbmemo` (Public)
+|DONE: `KBMemo/tsuzura` (Public)
+|DONE: `KBMemo/nyoy` (Public)
 
 |履歴を含む secret scan
 |DONE: gitleaks 8.30.1
@@ -62,38 +62,38 @@ public repository を作成しない。
 
 |README とセットアップ手順
 |DONE: README.md を GitHub 表示の正本として開発・検証・関連project導線を整備
-|DOING: GitHub link・配置例更新済み
-|DOING: GitHub link・接続初期値更新済み
+|DONE: GitHub link・配置例・contribution/security導線を整備
+|DONE: GitHub link・接続初期値・contribution/security導線を整備
 
 |内部インフラ情報の一般化
-|TODO
-|TODO
-|TODO
+|DONE: 公開向け例示値へ置換済み
+|DONE: 公開 HEAD を再監査し、接続先は公開 URL または例示値だけであることを確認
+|DONE: 公開 HEAD を再監査し、実サーバー名を含む旧 deploy wrapper を削除
 
 |GitHub Actions
-|DOING
-|DOING
-|DOING
+|DONE: 2026-07-27、main CI成功
+|DONE: 2026-07-27、main CI成功
+|DONE: 2026-07-27、main CI成功
 
 |`SECURITY.md`
-|DONE: GitHub Private Vulnerability Reporting を報告経路として明記
-|TODO
-|TODO
+|DONE: 報告経路を明記。Public 化直後に GitHub 側で Private Vulnerability Reporting を有効化
+|DONE: 報告対象・非公開報告方針・Public 化後の GitHub 設定を明記
+|DONE: 報告対象・非公開報告方針・Public 化後の GitHub 設定を明記
 
 |`CONTRIBUTING.md`
 |DONE: 開発・検証・PR 方針を追加
-|TODO
-|TODO
+|DONE: 開発・検証・API/media 変更時の確認方針を追加
+|DONE: 開発・検証・graph/prompt/tool 変更時の確認方針を追加
 
 |Private repository への移行確認
-|TODO
-|TODO
-|TODO
+|DONE: main CI、README、LICENSE、SECURITY.md を確認
+|DONE: main CI、README、LICENSE、SECURITY.md、CONTRIBUTING.md を確認
+|DONE: main CI、README、LICENSE、SECURITY.md、CONTRIBUTING.md を確認
 
 |Public 化
-|BLOCKED
-|BLOCKED
-|BLOCKED
+|DONE: 2026-07-27。匿名 clone と Private Vulnerability Reporting を確認
+|DONE: 2026-07-27。匿名 clone と Private Vulnerability Reporting を確認
+|DONE: 2026-07-27。匿名 clone と Private Vulnerability Reporting を確認
 |===
 
 == 2026-07-27 事前監査
@@ -106,7 +106,32 @@ public repository を作成しない。
 * `.github/workflows/ci.yml` と Dependabot 設定が存在する。
 * `gitleaks 8.30.1` の公式配布archiveをchecksum検証し、全Git履歴を
   `--redact` 付きで検査した。
-* 検出結果に実秘密情報は確認されなかった。公開前に同じ固定バージョンで再実行する。
+* 2026-07-27 の Public 化直前再監査では、徒然 521 commit、葛籠 43 commit、如意
+  410 commit を走査し、検出は 0 件だった。
+* 徒然の `.gitleaks.toml` は、Tsuzura 接続先を得るメソッド呼び出しと WebSocket
+  接続確認用 RFC サンプル nonce だけを許可する。如意の `.gitleaks.toml` は、履歴に
+  残る `Authorization: Bearer your-token` の文書用プレースホルダーだけを許可する。
+  いずれも既定 rule を維持し、実 token や他の値を許可しない。
+
+=== GitHub Public repository 確認
+
+* `KBMemo/kbmemo`、`KBMemo/tsuzura`、`KBMemo/nyoy` は Public repository として
+  存在し、default branch は `main`。Tsuzura の `develop` branch も GitHub へ同期済み。
+* 徒然 `30269368456`、葛籠 `30267322099`、如意 `30268847142` の GitHub Actions CI は成功した。
+* Issues と Projects は有効、Wiki と Discussions は無効。
+* 各 repository で `SECURITY.md` を公開し、Private Vulnerability Reporting を API で有効化
+  した（PUT は `204`、確認 GET は `200`）。
+* Dependabot vulnerability alerts / security updates、Secret Scanning、push protection を
+  3 repository で API により有効化した。validity checks と non-provider patterns は
+  GitHub の既定状態（disabled）を維持する。
+* 認証なしの GitHub HTTPS 到達と shallow clone、README、LICENSE、`SECURITY.md`、
+  `CONTRIBUTING.md` の公開表示を確認した。
+* Actions は有効で、許可 action は `all`。workflow 側の commit SHA pin を維持する。
+* repository description と topics を設定済み。徒然は `rails`、`asciidoc`、
+  `note-taking`、`self-hosted`、`kanban`、`knowledge-management`、葛籠は `rails`、
+  `api`、`media-management`、`image-management`、`self-hosted`、如意は `rails`、
+  `ai-agents`、`llm`、`mcp`、`image-generation`、`self-hosted` を使用する。製品サイトは
+  未開設のため、homepage は repository URL を重複して設定せず空欄とする。
 
 === 徒然
 
@@ -134,12 +159,20 @@ public repository を作成しない。
 * GitHub Actions は確認済みの commit SHA へ pin し、version comment を Dependabot
   の更新情報として維持する。
 * Dependabot は Bundler、GitHub Actions、npm workspace の更新を weekly で確認する。
+* CI は Ruby 4.0.3 を提供する `ruby/setup-ruby` の current revision を full SHA で
+  pin し、`ubuntu-latest` で実行する。
+* Rails test / system test の runner には Natto の検出に必要な `libmecab-dev` を
+  含める。本番は既存の `MECAB_PATH` 設定を使用する。test 用 PostgreSQL service は
+  `KBMEMO_CI_DB_*` の非秘密設定だけで接続し、fork PR に credentials を渡さない。
+  pgvector image で migration を実行するため、pgroonga 非導入時の検索フォールバックも検証する。
+  system test は Chrome stable の binary path を Cuprite に明示して実行する。
 * bug report / feature request の issue form と pull request template を追加し、
   秘密情報・個人データを issue に書かないことと、脆弱性報告の別経路を案内する。
-* gitleaksは2件を検出した。
-** `app/services/tsuzura/client.rb`: secretを取得するメソッド呼び出しの誤検知。
-** `docs/deployment/production.adoc`: nginx設定内の証明書private keyファイルパス。
-   key本体ではない。
+* gitleaks は 2 件を検出した（2026-07-27 の 516 commit 再監査でも同じ）。
+** `app/services/tsuzura/client.rb`: Tsuzura API の接続先 URL を得る
+   `api_base_url` 呼び出しに対する誤検知。値は含まない。
+** `docs/deployment/production.adoc`: WebSocket 接続確認で使う
+   RFC のサンプル `Sec-WebSocket-Key` nonce に対する誤検知。資格情報ではない。
 
 === 葛籠
 
@@ -220,7 +253,7 @@ Giteaの旧`main` SHAを明示した`--force-with-lease`で更新し、localとr
 . README だけで development 環境を構築できる。
 . 内部 DNS 名、private IP、個人の絶対パス、本番 token の取得手順を一般化している。
 . GitHub Actions が fork からの pull request でも秘密情報なしで安全に実行できる。
-. GitHub Private Vulnerability Reporting を有効化し、`SECURITY.md` の報告経路を実際に利用できることを確認する。
+. Public 化直後に GitHub Private Vulnerability Reporting を有効化し、`SECURITY.md` の報告経路を実際に利用できることを確認する。
 . GitHub の Private repository で CI、リンク、README 表示を確認している。
 
 == 作業順序
@@ -270,10 +303,12 @@ gitea   git@gitea.example.com:organization/<old-repository>.git
 
 . Private状態で各repositoryの`bin/ci`を実行する。
 . READMEの相互リンクとclone手順を確認する。
-. 葛籠、如意、徒然の順でpublicにし、最後に統合動作を確認する。
+. 葛籠、如意、徒然の順でpublicにし、各repositoryでPrivate Vulnerability Reportingを有効化する。
 . 最初のrelease tagを作成し、既知の制限をrelease notesへ記載する。
+
+2026-07-27 に 1. から 3. を完了した。
 
 == 次の作業
 
-. 内部環境情報を、削除、一般化、公開可能な運用例のいずれに分類する。
-. 3 repositoryのREADMEと公開リンクをGitHub構成へ合わせる。
+. GitHub アカウントの Security alerts 通知先を確認する。
+. link:initial-release-plan.adoc[初回 release 計画]に従い、release tag と release notes の対象・時期を決定する。

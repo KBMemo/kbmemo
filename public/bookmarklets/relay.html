@@ -49,10 +49,25 @@
         const RELAY_READY = 'kbmemo-clip-relay-ready'
         const CLIP = 'kbmemo-clip'
         const CLIP_DONE = 'kbmemo-clip-done'
+        const CLIP_CLOSE = 'kbmemo-clip-close'
         const statusEl = document.getElementById('status')
 
-        function setStatus(text) {
+        function setStatus(text, title) {
           if (statusEl) statusEl.textContent = text
+          if (title) document.title = title
+        }
+
+        function closeRelay() {
+          try {
+            window.close()
+          } catch (_error) {
+            // A script-opened relay may be closed by either itself or its opener.
+          }
+        }
+
+        function requestClose() {
+          notifyOpener({ type: CLIP_CLOSE })
+          closeRelay()
         }
 
         function notifyOpener(message) {
@@ -65,7 +80,7 @@
         }
 
         function showSuccessActions(data) {
-          setStatus('kbmemo に保存しました。')
+          setStatus('kbmemo に保存しました。', 'kbmemo に保存しました')
 
           const actions = document.createElement('div')
           actions.className = 'actions'
@@ -79,7 +94,8 @@
             openLink.className = 'primary'
             openLink.textContent = 'メモを開く'
             openLink.addEventListener('click', () => {
-              window.setTimeout(() => window.close(), 0)
+              // Let the link create its new tab before closing this relay window.
+              window.setTimeout(requestClose, 0)
             })
             actions.appendChild(openLink)
           }
@@ -87,10 +103,11 @@
           const closeBtn = document.createElement('button')
           closeBtn.type = 'button'
           closeBtn.textContent = '閉じる'
-          closeBtn.addEventListener('click', () => window.close())
+          closeBtn.addEventListener('click', requestClose)
           actions.appendChild(closeBtn)
 
           if (statusEl) statusEl.after(actions)
+
         }
 
         if (!window.opener) {
@@ -144,12 +161,12 @@
                 throw new Error(msg)
               }
 
-              notifyOpener({ type: CLIP_DONE, ok: true, data: result.data })
               showSuccessActions(result.data)
+              notifyOpener({ type: CLIP_DONE, ok: true, data: result.data })
             })
             .catch((error) => {
               const message = error && error.message ? error.message : String(error)
-              setStatus('保存に失敗しました: ' + message)
+              setStatus('保存に失敗しました: ' + message, 'kbmemo への保存に失敗しました')
               notifyOpener({ type: CLIP_DONE, ok: false, error: message })
             })
         })

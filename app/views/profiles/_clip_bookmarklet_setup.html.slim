@@ -2,12 +2,14 @@ ruby:
   setup_base_url = local_assigns.fetch(:base_url) { request.base_url }
   revealed_token = local_assigns.fetch(:revealed_token) { nil }
   token_configured = local_assigns.fetch(:token_configured) { false }
+  web_clip_tokens = local_assigns.fetch(:web_clip_tokens) { [] }
+  token_labels = web_clip_tokens.to_h { |token| [token.token_prefix, token.name.presence || "名称なし"] }
   api_href = revealed_token.present? ? ClipBookmarkletHelper.api_bookmarklet_href(setup_base_url, revealed_token) : nil
   clipboard_href = ClipBookmarkletHelper.clipboard_bookmarklet_href
   api_link_classes = "mt-2 kb-bookmarklet-link"
   api_ready = api_href.present?
 
-.mt-8.rounded-lg.kb-chrome-panel.p-4 data-controller="clip-bookmarklet-setup" data-clip-bookmarklet-setup-default-base-url-value=setup_base_url data-clip-bookmarklet-setup-revealed-token-value=(revealed_token.to_s) data-clip-bookmarklet-setup-token-configured-value=(token_configured ? "true" : "false")
+.mt-8.rounded-lg.kb-chrome-panel.p-4 data-controller="clip-bookmarklet-setup" data-clip-bookmarklet-setup-default-base-url-value=setup_base_url data-clip-bookmarklet-setup-revealed-token-value=(revealed_token.to_s) data-clip-bookmarklet-setup-token-configured-value=(token_configured ? "true" : "false") data-clip-bookmarklet-setup-token-labels-value=token_labels.to_json
   h3.text-sm.font-semibold.kb-text-primary Web クリップ ブックマークレット
   p.mt-1.text-sm.kb-text-secondary
     | Web ページで選択した範囲を kbmemo へ保存します。Web クリップトークンを発行したら、下のリンクをブックマークバーへドラッグしてください（URL やトークンの手入力は不要です）。GitHub など CSP が厳しいサイトではポップアップが開きます。
@@ -17,6 +19,7 @@ ruby:
       | いま発行したトークンを埋め込んだブックマークレットです。このリンクをブックマークバーへドラッグしてください。
 
   p.mt-2.text-xs.kb-text-muted.hidden data-clip-bookmarklet-setup-target="statusMessage"
+  p.mt-2.text-xs.kb-text-muted.hidden data-clip-bookmarklet-setup-target="activeTokenMessage"
 
   .mt-4
     p.text-sm.font-medium.kb-text-primary API 直保存（おすすめ）

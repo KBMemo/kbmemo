@@ -110,6 +110,22 @@ describe("AgentChatController keyboard send", () => {
   })
 })
 
+describe("AgentChatController speech chunks", () => {
+  it("keeps sentences together while limiting each chunk for CPU TTS", () => {
+    const controller = controllerInstance()
+    const chunks = controller.speechChunks("最初の文です。次の文です。これはとても長い文です。", 12)
+
+    expect(chunks).toEqual([ "最初の文です。", "次の文です。", "これはとても長い文です。" ])
+    expect(chunks.every((chunk) => chunk.length <= 12)).toBe(true)
+  })
+
+  it("splits an individual long sentence at the maximum length", () => {
+    const controller = controllerInstance()
+
+    expect(controller.speechChunks("abcdefgh", 3)).toEqual([ "abc", "def", "gh" ])
+  })
+})
+
 describe("AgentChatController initial memo reference", () => {
   it("reads references embedded by the server", () => {
     const controller = controllerInstance()

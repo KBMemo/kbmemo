@@ -84,12 +84,66 @@ class MemoDiagram
   def self.normalize_mermaid_source(text)
     stripped = text.strip
     if (match = stripped.match(/\A```(?:mermaid)?\s*\r?\n([\s\S]*?)\r?\n```\s*\z/i))
-      return match[1].strip
+      return normalize_mermaid_edges(normalize_mermaid_labels(match[1].strip))
     end
 
-    stripped.sub(/\A```(?:mermaid)?\s*\r?\n/i, "").sub(/\r?\n```\s*\z/, "").strip
+    normalized = stripped.sub(/\A```(?:mermaid)?\s*\r?\n/i, "").sub(/\r?\n```\s*\z/, "").strip
+    normalize_mermaid_edges(normalize_mermaid_labels(normalized))
   end
   private_class_method :normalize_mermaid_source
+
+  # Mermaid treats a bare subgraph value as an identifier. LLM-generated
+  # diagrams commonly use a Japanese display title with spaces or parentheses,
+  # which must instead be written as id["title"].
+  def self.normalize_mermaid_subgraphs(source)
+    sequence = 0
+
+    source.each_line.map do |line|
+      match = line.match(/\A(\s*)subgraph\s+(.+?)\s*\z/i)
+      next line unless match
+
+      indent, label = match.captures
+      label = label.strip
+      next line if label.match?(/\A[A-Za-z_][A-Za-z0-9_-]*\z/) || label.include?("[") || label.start_with?('"')
+
+      sequence += 1
+      escaped_label = label.gsub("\\", "\\\\").gsub(%("), %(\\"))
+      %(#{indent}subgraph kbmemo_subgraph_#{sequence}["#{escaped_label}"]\n)
+    end.join.rstrip
+  end
+  private_class_method :normalize_mermaid_subgraphs
+
+  # Parentheses in an unquoted node label are parsed as Mermaid shape syntax.
+  # Quote labels produced by LLMs while preserving the cylinder shape, e.g.
+  # store[(Local cache)] becomes store[("Local cache")].
+  def self.normalize_mermaid_labels(source)
+    normalize_mermaid_subgraphs(source).each_line.map do |line|
+      line.gsub(/\b([A-Za-z_][A-Za-z0-9_-]*)\[([^\]\n]*)\]/) do
+        identifier = ::Regexp.last_match(1)
+        label = ::Regexp.last_match(2)
+        next ::Regexp.last_match(0) if label.start_with?('"') || !label.match?(/[()]/)
+
+        if label.start_with?("(") && label.end_with?(")")
+          %(#{identifier}[("#{escape_mermaid_label(label[1...-1])}")])
+        else
+          %(#{identifier}["#{escape_mermaid_label(label)}"])
+        end
+      end
+    end.join.rstrip
+  end
+  private_class_method :normalize_mermaid_labels
+
+  # LLMs occasionally omit the trailing > from Mermaid's bidirectional thick
+  # arrow (<==>). Without it, an edge label following the arrow is rejected.
+  def self.normalize_mermaid_edges(source)
+    source.gsub(/<==(\|)/, "<==>\\1")
+  end
+  private_class_method :normalize_mermaid_edges
+
+  def self.escape_mermaid_label(label)
+    label.gsub("\\", "\\\\").gsub(%("), %(\\"))
+  end
+  private_class_method :escape_mermaid_label
 
   def self.normalize_plantuml_source(text)
     stripped = text.strip

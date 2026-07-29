@@ -78,4 +78,17 @@ class MemoAttachmentsTest < ActiveSupport::TestCase
     assert image
     assert_equal "icon.svg", image.delete_path
   end
+
+  test "list includes document attachment with reference flag" do
+    @repo.write_asset!(@memo, filename: "report.pdf", io: StringIO.new("%PDF-1.7"))
+
+    entries = MemoAttachments.list(@memo, body: "attachment::report.pdf[]", repo: @repo)
+    document = entries.find { |e| e.name == "report.pdf" }
+
+    assert document
+    assert_equal :document, document.kind
+    assert document.referenced
+    assert_equal "attachment::report.pdf[]", document.insert_text
+    assert_nil document.delete_path
+  end
 end

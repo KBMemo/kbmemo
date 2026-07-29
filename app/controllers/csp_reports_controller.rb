@@ -8,11 +8,13 @@ class CspReportsController < ActionController::API
     disposition
     document_uri
     effective_directive
+    line_number
     original_policy
     referrer
     source_file
     status_code
     violated_directive
+    column_number
   ].freeze
   URI_KEYS = %w[blocked_uri document_uri referrer source_file].freeze
 

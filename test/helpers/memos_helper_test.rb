@@ -89,6 +89,22 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, ">1<"
   end
 
+  test "memo_html removes inline styles emitted for table column widths" do
+    body = <<~ADOC
+      [cols="50%,50%"]
+      |===
+      |A |B
+      |1 |2
+      |===
+    ADOC
+
+    html = memo_html(body, source_memo: memos(:one))
+
+    assert_includes html, "<col>"
+    assert_not_includes html, 'style="width: 50%;"'
+    assert_not_includes html, " style="
+  end
+
   test "memo_properties_summary_line summarizes checkboxes" do
     memo = memos(:one)
     memo.update_columns(
@@ -440,5 +456,16 @@ class MemosHelperTest < ActionView::TestCase
     template = memo_svg_source_edit_url_template(memo)
     assert_includes template, "/svg_sources/__INDEX__/edit"
     assert_not_includes template, "/svg_sources/0/edit"
+  end
+
+  test "memo_html renders document attachment as an authorized asset link" do
+    memo = memos(:one)
+    memo.update_columns(slug: memo_global_slug("first-memo", memo), file_committed_at: Time.current)
+    MemoRepository.new.write_asset!(memo, filename: "report.pdf", io: StringIO.new("%PDF-1.7"))
+
+    html = memo_html("attachment::report.pdf[]", source_memo: memo)
+
+    assert_includes html, "/memos/#{memo.id}/assets/report.pdf"
+    assert_includes html, ">report.pdf</a>"
   end
 end

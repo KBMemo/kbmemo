@@ -47,6 +47,7 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "clip-bookmarklet-setup"
     assert_includes response.body, "kbmemo に保存"
     assert_includes response.body, "kbmemo にコピー"
+    assert_includes response.body, "activeTokenMessage"
     assert_not_includes response.body, "clip-bookmarklet-api-token"
   end
 

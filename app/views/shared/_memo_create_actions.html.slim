@@ -3,7 +3,7 @@
     span +新規
   - if templates.any?
     .relative data-controller="user-menu"
-      button.kb-sidebar-template-trigger.inline-flex.items-center.gap-1 id="#{id_prefix}-template-create-trigger" type="button" data-user-menu-target="button" data-action="user-menu#toggle" aria-expanded="false" aria-haspopup="true"
+      button.kb-sidebar-template-trigger.inline-flex.items-center.gap-1 id="#{id_prefix}-template-create-trigger" type="button" data-user-menu-target="button" data-action="click->user-menu#toggle" aria-expanded="false" aria-haspopup="true"
         span Templateから作成
         svg.h-4.w-4.flex-shrink-0.kb-text-muted xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"
           path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"

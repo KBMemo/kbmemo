@@ -37,6 +37,31 @@ class MemoAssetsControllerTest < ActionDispatch::IntegrationTest
     assert_includes json["url"], "/memos/#{@memo.id}/assets/chart.png"
   end
 
+  test "create uploads PDF and returns attachment macro" do
+    pdf = Tempfile.new([ "test", ".pdf" ])
+    pdf.binmode
+    pdf.write("%PDF-1.7\n")
+    pdf.rewind
+
+    post assets_memo_path(@memo),
+      params: { file: Rack::Test::UploadedFile.new(pdf.path, "application/pdf", true, original_filename: "report.pdf") }
+
+    assert_response :success
+    json = JSON.parse(response.body)
+    assert_equal "attachment::report.pdf[]", json["asciidoc"]
+  end
+
+  test "show serves Office document as an attachment" do
+    repo = MemoRepository.new
+    repo.write_asset!(@memo, filename: "proposal.docx", io: StringIO.new("PK\x03\x04"))
+
+    get asset_memo_path(@memo, "proposal.docx")
+
+    assert_response :success
+    assert_equal "nosniff", response.headers["X-Content-Type-Options"]
+    assert_includes response.headers["Content-Disposition"], "attachment"
+  end
+
   test "show sets csp headers for svg" do
     repo = MemoRepository.new
     repo.write_asset!(@memo, filename: "icon.svg", io: StringIO.new('<svg xmlns="http://www.w3.org/2000/svg"></svg>'))

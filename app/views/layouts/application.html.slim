@@ -42,7 +42,7 @@ html lang="ja" data-kb-theme=kb_initial_theme_id data-kb-theme-base=kb_initial_t
           = render "layouts/nav_management_menu"
           - if rodauth.rails_account
             .relative[data-controller="user-menu"]
-              button.kb-header-menu-trigger.inline-flex.max-w-56.items-center.gap-1.text-left.font-medium[type="button" data-user-menu-target="button" data-action="user-menu#toggle" aria-expanded="false" aria-haspopup="true" title=(rodauth.rails_account.email)]
+              button.kb-header-menu-trigger.inline-flex.max-w-56.items-center.gap-1.text-left.font-medium[type="button" data-user-menu-target="button" data-action="click->user-menu#toggle" aria-expanded="false" aria-haspopup="true" title=(rodauth.rails_account.email)]
                 span.min-w-0.flex-1.truncate.kb-text-primary
                   = rodauth.rails_account.display_name
                 svg.h-4.w-4.flex-shrink-0.kb-text-muted[xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"]

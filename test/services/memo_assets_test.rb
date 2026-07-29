@@ -57,6 +57,40 @@ class MemoAssetsTest < ActiveSupport::TestCase
     assert @repo.absolute_asset_path_for(@memo, "スクリーンショット.png").file?
   end
 
+  test "upload accepts PDF and returns attachment macro" do
+    file = uploaded_file("report.pdf", "application/pdf", "%PDF-1.7\n")
+    result = MemoAssets.upload(@memo, file: file, repo: @repo)
+
+    assert_equal "report.pdf", result[:filename]
+    assert_equal "attachment::report.pdf[]", result[:asciidoc]
+    assert @repo.absolute_asset_path_for(@memo, "report.pdf").file?
+  end
+
+  test "upload accepts Office document with a matching content type" do
+    type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    file = uploaded_file("proposal.docx", type, "PK\x03\x04")
+    result = MemoAssets.upload(@memo, file: file, repo: @repo)
+
+    assert_equal "attachment::proposal.docx[]", result[:asciidoc]
+  end
+
+  test "upload rejects a PDF without its signature" do
+    file = uploaded_file("report.pdf", "application/pdf", "not a pdf")
+
+    error = assert_raises(MemoAssets::InvalidFile) do
+      MemoAssets.upload(@memo, file: file, repo: @repo)
+    end
+    assert_includes error.message, "PDF"
+  end
+
+  test "upload rejects a document with a mismatched content type" do
+    file = uploaded_file("proposal.docx", "text/plain", "not a docx")
+
+    assert_raises(MemoAssets::InvalidFile) do
+      MemoAssets.upload(@memo, file: file, repo: @repo)
+    end
+  end
+
   test "upload rejects unsupported content type" do
     file = uploaded_file("evil.txt", "text/plain", "text")
     assert_raises(MemoAssets::InvalidFile) do

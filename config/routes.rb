@@ -31,6 +31,8 @@ Rails.application.routes.draw do
     get :memo_images
     post :upload_memo_image
     post :upload_image
+    post :synthesize_audio
+    post :transcribe_audio
     get "image_generations/:id", action: :image_generation_status, as: :image_generation
     post "image_generations/:id/refine", action: :refine_image_generation, as: :refine_image_generation
   end

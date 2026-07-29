@@ -163,7 +163,7 @@ section.mt-10#web-clip-token data-controller=(@revealed_web_clip_token.present? 
               = l(token.created_at, format: :long)
           = button_to "無効化", web_clip_token_profile_path(token_id: token.id), method: :delete, class: "kb-chrome-btn-secondary kb-btn-sm", form: { data: { turbo_confirm: "この端末のWeb クリップトークンを無効化しますか？" } }
 
-  = render "profiles/clip_bookmarklet_setup", base_url: request.base_url, revealed_token: @revealed_web_clip_token, token_configured: @web_clip_tokens.any?
+  = render "profiles/clip_bookmarklet_setup", base_url: request.base_url, revealed_token: @revealed_web_clip_token, token_configured: @web_clip_tokens.any?, web_clip_tokens: @web_clip_tokens
 
 section.mt-10#tsuzura-cli-token data-controller=(@revealed_tsuzura_api_token.present? ? "scroll-into-view" : nil) tabindex=(@revealed_tsuzura_api_token.present? ? "-1" : nil)
   h2 class=kb_section_title Tsuzura CLI トークン

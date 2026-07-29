@@ -36,6 +36,26 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_response :no_content
   end
 
+  test "csp report logging keeps source location without logging inline content" do
+    controller = CspReportsController.new
+    report = {
+      "source-file" => "https://kbmemo.example.com/vite/assets/application.js",
+      "line-number" => 42,
+      "column-number" => 7,
+      "script-sample" => "sensitive inline style"
+    }
+
+    captured = nil
+    Rails.logger.stub(:info, ->(value) { captured = JSON.parse(value) }) do
+      controller.send(:log_report, report)
+    end
+
+    assert_equal "https://kbmemo.example.com/vite/assets/application.js", captured.dig("report", "source_file")
+    assert_equal "42", captured.dig("report", "line_number")
+    assert_equal "7", captured.dig("report", "column_number")
+    assert_nil captured.dig("report", "script_sample")
+  end
+
   test "logout response clears browser site data" do
     post "/logout"
 

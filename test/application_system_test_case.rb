@@ -13,21 +13,24 @@ def cuprite_headless?
   false
 end
 
-Capybara.register_driver(:cuprite) do |app|
+def cuprite_options
   browser_options = {}
-  browser_options["no-sandbox"] = nil if ENV["CI"]
+  if ENV["CI"]
+    browser_options["no-sandbox"] = nil
+    browser_options["disable-dev-shm-usage"] = nil
+  end
 
-  Capybara::Cuprite::Driver.new(
-    app,
-    window_size: [ 1400, 1400 ],
+  {
+    browser_path: ENV["CUPRITE_BROWSER_PATH"].presence || ENV["BROWSER_PATH"].presence,
     browser_options: browser_options,
     headless: cuprite_headless?,
-    inspector: ENV["CUPRITE_INSPECTOR"].present?
-  )
+    inspector: ENV["CUPRITE_INSPECTOR"].present?,
+    process_timeout: ENV.fetch("CUPRITE_PROCESS_TIMEOUT", "10").to_i
+  }
 end
 
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
-  driven_by :cuprite, screen_size: [ 1400, 1400 ]
+  driven_by :cuprite, screen_size: [ 1400, 1400 ], options: cuprite_options
 
   # Browser + Git work tree do not mix well with multi-process system tests.
   parallelize(workers: 1)
