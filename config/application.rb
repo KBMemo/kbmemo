@@ -23,6 +23,8 @@ module Kbmemo
     # in config/environments, which are processed later.
     #
     config.time_zone = "Tokyo"
+    # image_processing 2 uses MiniMagick explicitly; do not load the Vips transformer.
+    config.active_storage.variant_processor = :mini_magick
     # config.eager_load_paths << Rails.root.join("extras")
 
     # メモ本文の Git 作業ツリー（環境変数 MEMO_GIT_WORK_TREE で上書き）
