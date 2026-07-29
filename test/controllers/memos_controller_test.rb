@@ -1361,6 +1361,18 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, assets_memo_path(memo)
   end
 
+  test "edit shows a file picker icon next to the attachment list button" do
+    memo = memos(:one)
+    memo.update_column(:file_committed_at, Time.current)
+
+    get edit_memo_url(memo)
+
+    assert_response :success
+    assert_select "label[title='ファイルを選択して添付'] i[data-lucide='folder-open']"
+    assert_select "input[data-memo-body-editor-target='attachmentInput'][type='file']"
+    assert_select "button[data-action='memo-attachments#toggle']", text: /添付ファイル/
+  end
+
   test "create via json assigns date directory regardless of memo_directory_id param" do
     work = memo_directories(:work)
     assert_difference("Memo.count", 1) do

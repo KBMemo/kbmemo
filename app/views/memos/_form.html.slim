@@ -113,8 +113,9 @@ ruby:
                   label.cursor-pointer class=kb_toolbar_btn
                     | 画像を挿入
                     input.sr-only type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" multiple=true data-memo-body-editor-target="imageInput" data-action="change->memo-body-editor#uploadImage"
-                  label.cursor-pointer class=kb_toolbar_btn
-                    | ファイルを添付
+                  label.inline-flex.h-9.w-9.cursor-pointer.items-center.justify-center.p-0 class=kb_toolbar_btn title="ファイルを選択して添付" aria-label="ファイルを選択して添付"
+                    i.h-4.w-4 aria-hidden="true" data-lucide="folder-open"
+                    span.sr-only ファイルを選択して添付
                     input.sr-only type="file" accept="application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp" multiple=true data-memo-body-editor-target="attachmentInput" data-action="change->memo-body-editor#uploadAttachment"
                   button.inline-flex.items-center class=kb_toolbar_btn type="button" data-action="memo-attachments#toggle" aria-expanded="false" aria-controls="memo-attachment-panel" title="添付ファイル一覧を開く"
                     | 添付ファイル
