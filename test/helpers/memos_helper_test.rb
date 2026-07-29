@@ -89,6 +89,22 @@ class MemosHelperTest < ActionView::TestCase
     assert_includes html, ">1<"
   end
 
+  test "memo_html removes inline styles emitted for table column widths" do
+    body = <<~ADOC
+      [cols="50%,50%"]
+      |===
+      |A |B
+      |1 |2
+      |===
+    ADOC
+
+    html = memo_html(body, source_memo: memos(:one))
+
+    assert_includes html, "<col>"
+    assert_not_includes html, 'style="width: 50%;"'
+    assert_not_includes html, " style="
+  end
+
   test "memo_properties_summary_line summarizes checkboxes" do
     memo = memos(:one)
     memo.update_columns(

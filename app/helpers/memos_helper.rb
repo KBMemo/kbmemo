@@ -435,6 +435,7 @@ module MemosHelper
       standalone: false,
       attributes: attrs
     )
+    html = memo_html_remove_inline_styles(html)
     html = memo_html_lazy_load_images(html)
     html = memo_html_add_asset_viewer_links(html, source_memo)
     html = memo_html_enrich_broken_wiki_links(html, wiki_linker.broken_links, source_memo: source_memo)
@@ -522,6 +523,15 @@ module MemosHelper
     fragment.css("img:not([decoding])").each do |img|
       img["decoding"] = "async"
     end
+    fragment.to_html.html_safe
+  end
+
+  # Asciidoctor emits style attributes for table column widths. Memo bodies are
+  # user and clip input, so keep presentation in the application stylesheet and
+  # avoid requiring style-src 'unsafe-inline'.
+  def memo_html_remove_inline_styles(html)
+    fragment = Nokogiri::HTML.fragment(html.to_s)
+    fragment.css("[style]").each { |node| node.remove_attribute("style") }
     fragment.to_html.html_safe
   end
 
