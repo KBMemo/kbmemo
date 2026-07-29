@@ -1121,6 +1121,13 @@ export default class extends Controller {
     input.value = ""
   }
 
+  openAttachmentPicker(event) {
+    event.preventDefault()
+    if (!this.hasAttachmentInputTarget) return
+
+    this.attachmentInputTarget.click()
+  }
+
   async uploadFiles(files) {
     if (!files?.length) return
 

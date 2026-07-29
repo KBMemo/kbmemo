@@ -1368,7 +1368,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     get edit_memo_url(memo)
 
     assert_response :success
-    assert_select "label[title='ファイルを選択して添付'] i[data-lucide='folder-open']"
+    assert_select "button[data-action='memo-body-editor#openAttachmentPicker'] i[data-lucide='folder-open']"
     assert_select "input[data-memo-body-editor-target='attachmentInput'][type='file']"
     assert_select "button[data-action='memo-attachments#toggle']", text: /添付ファイル/
   end
