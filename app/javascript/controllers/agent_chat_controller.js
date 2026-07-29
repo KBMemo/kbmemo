@@ -49,7 +49,9 @@ export default class extends Controller {
     "memoImageDialogTitle",
     "referenceMemoImageButton",
     "memoImageLoadMoreWrap",
-    "memoImageLoadMoreButton"
+    "memoImageLoadMoreButton",
+    "recordButton",
+    "audioStatus"
   ]
 
   static values = {
@@ -68,7 +70,9 @@ export default class extends Controller {
     tsuzuraAlbumsUrl: String,
     tsuzuraAlbumUrlTemplate: String,
     memoReferencesUrl: String,
-    memoUrlTemplate: String
+    memoUrlTemplate: String,
+    transcribeAudioUrl: String,
+    synthesizeAudioUrl: String
   }
 
   static storageKey = "agent_chat_enabled_mcp_tools"
@@ -99,6 +103,7 @@ export default class extends Controller {
     this.memoImageNextCursor = null
     this.memoImageRequestController = null
     this.sending = false
+    this.mediaRecorder = null
     this.activityTracker = null
     this.streamPanel = null
     this.activeTurnId = null
@@ -120,6 +125,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.mediaRecorder?.state === "recording" && this.mediaRecorder.stop()
     if (this.memoSearchTimer) window.clearTimeout(this.memoSearchTimer)
     if (this.memoImageSearchTimer) window.clearTimeout(this.memoImageSearchTimer)
     this.memoImageRequestController?.abort()
@@ -129,6 +135,39 @@ export default class extends Controller {
     this.unsubscribeCable?.()
     this.unsubscribeCable = null
   }
+
+  async toggleRecording() {
+    if (this.mediaRecorder?.state === "recording") return this.mediaRecorder.stop()
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return this.setAudioStatus("このブラウザでは音声入力を利用できません。")
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const chunks = []
+      this.mediaRecorder = new MediaRecorder(stream)
+      this.mediaRecorder.ondataavailable = (event) => event.data.size && chunks.push(event.data)
+      this.mediaRecorder.onstop = () => this.transcribeRecording(new Blob(chunks, { type: this.mediaRecorder.mimeType || "audio/webm" }), stream)
+      this.mediaRecorder.start()
+      this.recordButtonTarget.setAttribute("aria-pressed", "true")
+      this.setAudioStatus("録音中")
+    } catch { this.setAudioStatus("マイクを利用できません。") }
+  }
+
+  async transcribeRecording(blob, stream) {
+    stream.getTracks().forEach((track) => track.stop())
+    this.recordButtonTarget.setAttribute("aria-pressed", "false")
+    this.setAudioStatus("文字起こし中")
+    const form = new FormData()
+    form.append("file", blob, "recording.webm")
+    form.append("authenticity_token", document.querySelector('meta[name="csrf-token"]')?.content || "")
+    try {
+      const res = await fetch(this.transcribeAudioUrlValue, { method: "POST", credentials: "same-origin", headers: csrfFetchHeaders(), body: form })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      this.inputTarget.value = [this.inputTarget.value.trim(), data.text].filter(Boolean).join("\n")
+      this.inputTarget.focus(); this.setAudioStatus("文字起こしを入力しました")
+    } catch (error) { this.setAudioStatus(error.message || "文字起こしに失敗しました。") }
+  }
+
+  setAudioStatus(message) { if (this.hasAudioStatusTarget) this.audioStatusTarget.textContent = message }
 
   readInitialMessages() {
     if (!this.hasInitialMessagesJsonTarget) return []
@@ -691,6 +730,17 @@ export default class extends Controller {
 
     wrapper.append(bubble)
 
+    if (!isUser && answerText.trim() && this.hasSynthesizeAudioUrlValue) {
+      const button = document.createElement("button")
+      button.type = "button"
+      button.className = "kb-toolbar-btn mt-1"
+      button.setAttribute("aria-label", "回答を読み上げる")
+      button.title = "読み上げ"
+      button.textContent = "読み上げ"
+      button.addEventListener("click", () => this.playSpeech(answerText, button))
+      wrapper.append(button)
+    }
+
     if (!isUser && entry.pending_tools) {
       wrapper.append(this.pendingToolsNoticeNode(entry))
     } else if (!isUser && Array.isArray(entry.mcp_errors) && entry.mcp_errors.length > 0) {
@@ -702,6 +752,21 @@ export default class extends Controller {
     }
 
     return wrapper
+  }
+
+  async playSpeech(text, button) {
+    button.disabled = true
+    try {
+      const res = await fetch(this.synthesizeAudioUrlValue, {
+        method: "POST", credentials: "same-origin", headers: jsonRequestHeaders(),
+        body: JSON.stringify(withAuthenticityToken({ text }))
+      })
+      if (!res.ok) throw new Error()
+      const url = URL.createObjectURL(await res.blob())
+      const audio = new Audio(url)
+      audio.addEventListener("ended", () => URL.revokeObjectURL(url), { once: true })
+      await audio.play()
+    } catch { this.showError("音声再生に失敗しました。") } finally { button.disabled = false }
   }
 
   generatedImagesNode(urls, entry = {}) {
