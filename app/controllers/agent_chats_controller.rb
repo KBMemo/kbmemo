@@ -6,6 +6,8 @@ class AgentChatsController < ApplicationController
   def show
     authorize :agent_chat, :show?
 
+    response.headers["Permissions-Policy"] = "camera=(), geolocation=(), microphone=(self)"
+
     account = rodauth.rails_account
     store = conversation_store
     @conversations = store.list_recent

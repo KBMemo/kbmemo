@@ -12,6 +12,7 @@ class AgentChatsControllerTest < ActionDispatch::IntegrationTest
   test "show renders chat page when logged in" do
     get agent_chat_url
     assert_response :success
+    assert_equal "camera=(), geolocation=(), microphone=(self)", response.headers["Permissions-Policy"]
     assert_includes response.body, "agent-chat"
     assert_includes response.body, "AI チャット"
     assert_includes response.body, "Nyoy MCP"
