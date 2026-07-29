@@ -2358,8 +2358,8 @@ html[data-kb-theme-base="minimal"][data-kb-skin="auto"] {
   --mg-surface: #ffffff;
   --mg-border: #dddddd;
   --mg-divider: #dddddd;
-  --mg-link: #222222;
-  --mg-link-hover: #444444;
+  --mg-link: #0969da;
+  --mg-link-hover: #0550ae;
   --mg-blockquote-bg: #f6f6f6;
   --mg-code-bg: #f6f6f6;
 }

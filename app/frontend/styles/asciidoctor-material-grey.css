@@ -17,8 +17,8 @@
   --mg-divider: #e0e0e0;
   --mg-warning: #bf6900;
   --mg-caution: #f44336;
-  --mg-link: #212121;
-  --mg-link-hover: #9e9e9e;
+  --mg-link: #0969da;
+  --mg-link-hover: #0550ae;
   --mg-link-alt: #f44336;
   --mg-on-primary: #ffffff;
   --mg-blockquote-bg: #f5f5f5;
@@ -210,12 +210,18 @@
   overflow-x: auto;
 }
 
-.memo-body a {
-  text-decoration: none;
+.memo-body :is(a:not(.image):not(.kb-code-btn)),
+.memo-body-editor__preview-content.asciidoctor :is(a:not(.image):not(.kb-code-btn)),
+.memo-body-editor__wysiwyg-content.asciidoctor :is(a:not(.image):not(.kb-code-btn)) {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.14em;
   color: var(--mg-link);
 }
 
-.memo-body a:hover {
+.memo-body :is(a:not(.image):not(.kb-code-btn)):hover,
+.memo-body-editor__preview-content.asciidoctor :is(a:not(.image):not(.kb-code-btn)):hover,
+.memo-body-editor__wysiwyg-content.asciidoctor :is(a:not(.image):not(.kb-code-btn)):hover {
   color: var(--mg-link-hover);
 }
 
