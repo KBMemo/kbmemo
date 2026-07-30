@@ -17,7 +17,12 @@ class Api::ClipsControllerTest < ActionDispatch::IntegrationTest
 
     assert_difference -> { @account.memos.count }, 1 do
       post api_clips_path,
-        params: { html: html, url: "https://example.com/article", title: "Article Title" },
+        params: {
+          html: html,
+          url: "https://example.com/article",
+          title: "Article Title",
+          mode: "selection"
+        },
         headers: auth_headers
     end
 
@@ -29,6 +34,7 @@ class Api::ClipsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Article Title", memo.title
     assert_includes memo.tags.pluck(:name), "web-clip"
     assert_equal "https://example.com/article", memo.properties["source_url"]
+    assert_equal "selection", memo.properties["clip_mode"]
     assert_includes memo.body, "*Clip*"
     assert_not_includes memo.body, "____"
     assert_not_includes memo.body, "<blockquote"

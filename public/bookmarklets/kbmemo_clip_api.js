@@ -238,6 +238,17 @@ void function kbmemoClipApiBookmarklet(baseUrl, apiToken) {
       window.clearTimeout(timeout)
       completed = true
 
+      if (event.data.ok && clipPayload.mode === 'selection') {
+        finished = true
+        window.removeEventListener('message', onMessage)
+        try {
+          popup.close()
+        } catch (error) {
+          /* ignore */
+        }
+        return
+      }
+
       if (!event.data.ok) {
         finished = true
         window.removeEventListener('message', onMessage)

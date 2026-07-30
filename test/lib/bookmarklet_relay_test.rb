@@ -3,7 +3,7 @@
 require "test_helper"
 
 class BookmarkletRelayTest < ActiveSupport::TestCase
-  test "keeps the success confirmation open until the user closes it" do
+  test "keeps the full-page success confirmation open until the user closes it" do
     source = Rails.root.join("public/bookmarklets/relay.html").read
 
     assert_includes source, "openLink.target = '_blank'"
@@ -14,6 +14,16 @@ class BookmarkletRelayTest < ActiveSupport::TestCase
     assert_not_includes source, "SUCCESS_CLOSE_DELAY_MS"
     assert_includes source, "function closeRelay()"
     assert_includes source, "window.close()"
+  end
+
+  test "closes selection clips after a successful save" do
+    relay_source = Rails.root.join("public/bookmarklets/relay.html").read
+    bookmarklet_source = Rails.root.join("public/bookmarklets/kbmemo_clip_api.js").read
+
+    assert_includes relay_source, "if (event.data.mode === 'selection')"
+    assert_includes relay_source, "requestClose()"
+    assert_includes bookmarklet_source, "event.data.ok && clipPayload.mode === 'selection'"
+    assert_includes bookmarklet_source, "popup.close()"
   end
 
   test "updates the relay title for success and failure" do

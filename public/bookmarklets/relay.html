@@ -161,8 +161,13 @@
                 throw new Error(msg)
               }
 
-              showSuccessActions(result.data)
               notifyOpener({ type: CLIP_DONE, ok: true, data: result.data })
+              if (event.data.mode === 'selection') {
+                requestClose()
+                return
+              }
+
+              showSuccessActions(result.data)
             })
             .catch((error) => {
               const message = error && error.message ? error.message : String(error)

@@ -21,9 +21,9 @@ class ClipCreator
       directory = MemoDirectory::UserSpace.clippings_directory(@account)
       memo = Memo.new(account: @account, memo_directory: directory)
       memo.properties = clip_properties(metadata)
-      WebClipTagging.apply!(memo)
       apply_title!(memo, metadata)
       memo.save!
+      WebClipTagging.apply!(memo)
 
       body = build_body(memo, metadata)
       raise Error, "本文が空です。" if body.blank?
