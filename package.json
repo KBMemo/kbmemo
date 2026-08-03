@@ -51,7 +51,7 @@
     "font-awesome": "^4.7.0",
     "highlight.js": "^11.11.1",
     "katex": "^0.18.1",
-    "lucide": "^1.27.0",
+    "lucide": "^1.28.0",
     "open-props": "^1.7.23",
     "stimulus-use": "^0.53.0",
     "svgedit": "^7.4.1"
