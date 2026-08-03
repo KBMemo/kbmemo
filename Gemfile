@@ -80,7 +80,7 @@ end
 gem "natto", "~> 1.2"
 gem "romaji", "~> 0.3.0"
 
-gem "rodauth-rails", "~> 2.1"
+gem "rodauth-rails", "~> 2.2"
 gem "bcrypt", "~> 3.1"
 gem "pundit", "~> 2.5"
 # Enables Sequel to use Active Record's database connection
