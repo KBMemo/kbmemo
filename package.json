@@ -31,7 +31,7 @@
     "postinstall": "node scripts/copy-svgedit-assets.mjs"
   },
   "dependencies": {
-    "@asciidoctor/core": "^4.0.4",
+    "@asciidoctor/core": "^4.0.7",
     "@codemirror/autocomplete": "^6.20.2",
     "@codemirror/commands": "^6.10.4",
     "@codemirror/language": "^6.12.4",
