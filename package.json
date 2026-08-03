@@ -54,7 +54,7 @@
     "lucide": "^1.27.0",
     "open-props": "^1.7.23",
     "stimulus-use": "^0.53.0",
-    "svgedit": "^7.4.1"
+    "svgedit": "^7.4.2"
   },
   "overrides": {
     "esbuild": "0.28.1",
