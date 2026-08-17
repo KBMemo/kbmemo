@@ -1015,6 +1015,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "#memo_form_actions button[data-memo-draft-target='discardDraftButton'].hidden"
     assert_select "#memo_form_actions a[aria-label='表示'][title='表示'] i[data-lucide='eye']"
+    assert_select "#memo_form_actions a[data-memo-context-action='show'][aria-label='表示']"
+    assert_select "#memo_form_actions button[data-memo-context-action='commit']"
 
     patch draft_memo_url(memo),
       params: { memo: { body: "= Changed\n\nx" } },
@@ -1074,8 +1076,11 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     end
     assert_select "#memo_form_actions button[data-memo-commit='true'][form='#{form_id}']", text: "コミット"
     assert_select "#memo_form_actions button[data-memo-commit='true'][aria-label='コミット'][title='コミット'] i[data-lucide='git-commit-horizontal']"
+    assert_select "#memo_form_actions button[data-memo-context-action='commit']", text: "コミット"
     assert_select "#memo_form_actions button", text: "削除"
     assert_select "#memo_form_actions button[aria-label='削除'][title='削除'] i[data-lucide='trash-2']"
+    assert_select "#memo_form_actions button[data-memo-context-action='delete']", text: "削除"
+    assert_select "#memo_form_actions a[data-memo-context-action='show'][aria-label='表示']"
     assert_select "#memo_form_actions input[name='_method'][value='delete']"
   end
 
@@ -1303,6 +1308,8 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "#memo_form_actions button", text: "削除"
     assert_select "#memo_form_actions button[data-memo-commit='true']", text: "コミット"
+    assert_select "#memo_form_actions button[data-memo-context-action='delete']", text: "削除"
+    assert_select "#memo_form_actions button[data-memo-context-action='commit']", text: "コミット"
     assert_select "#memo_form_actions button", text: "ドラフトを破棄", count: 0
   end
 

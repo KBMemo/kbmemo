@@ -376,19 +376,22 @@ export default class extends Controller {
       parent: this.hostTarget
     })
 
+    const getExtraItems = () => this.memoContextMenuItems()
     const contextMenuTargets = {
       live: {
         container: this.hostTarget,
-        getView: () => this.view
+        getView: () => this.view,
+        getExtraItems
       }
     }
     if (this.hasPreviewHostTarget) {
       contextMenuTargets.preview = {
         container: this.previewHostTarget,
-        getView: () => this.view
+        getView: () => this.view,
+        getExtraItems
       }
     }
-    editorChrome.initEditorContextMenus(contextMenuTargets)
+    this._disposeContextMenus = editorChrome.initEditorContextMenus(contextMenuTargets)
 
     textarea.addEventListener("change", this._onTextareaExternalChange)
 
@@ -631,7 +634,52 @@ export default class extends Controller {
     return this.hasUploadUrlValue && this.uploadUrlValue
   }
 
+  memoContextMenuItems() {
+    const chrome = this.element.closest(".memo-draft-shell")?.querySelector("#memo_form_actions")
+    if (!(chrome instanceof HTMLElement) || chrome.closest(".hidden")) return []
+
+    const items = []
+    const commit = this.memoContextActionControl(chrome, "commit")
+    if (commit) {
+      items.push({
+        label: "コミット",
+        action: () => commit.click()
+      })
+    }
+
+    const showLink = this.memoContextActionControl(chrome, "show")
+    if (showLink) {
+      items.push({
+        label: "表示",
+        action: () => {
+          showLink.dispatchEvent(new MouseEvent("mousedown", { button: 0, bubbles: true }))
+          showLink.click()
+        }
+      })
+    }
+
+    const destroy = this.memoContextActionControl(chrome, "delete")
+    if (destroy) {
+      items.push({
+        label: "削除",
+        action: () => destroy.click()
+      })
+    }
+
+    return items
+  }
+
+  /** @param {HTMLElement} chrome @param {string} action */
+  memoContextActionControl(chrome, action) {
+    const control = chrome.querySelector(`[data-memo-context-action="${action}"]`)
+    if (!(control instanceof HTMLElement)) return null
+    if (control.classList.contains("hidden") || control.closest(".hidden")) return null
+    return control
+  }
+
   disconnect() {
+    this._disposeContextMenus?.()
+    this._disposeContextMenus = null
     if (this._onResetBody) {
       this.element.removeEventListener("kbmemo:reset-body-editor", this._onResetBody)
     }

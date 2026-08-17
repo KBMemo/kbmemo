@@ -16,7 +16,7 @@ ruby:
       i class="h-3.5 w-3.5" aria-hidden="true" data-lucide="arrow-left"
       span = "#{memo.notebook.title} に戻る"
   - if uncommitted && memo.persisted?
-    = button_to memo_path(memo, memo_sidebar_nav_query), method: :delete, form: { data: { turbo_confirm: "このメモを削除しますか？" } }, class: delete_btn_class, title: "削除", aria: { label: "削除" } do
+    = button_to memo_path(memo, memo_sidebar_nav_query), method: :delete, form: { data: { turbo_confirm: "このメモを削除しますか？" } }, class: delete_btn_class, title: "削除", aria: { label: "削除" }, data: { memo_context_action: "delete" } do
       i.h-4.w-4 aria-hidden="true" data-lucide="trash-2"
       span.sr-only 削除
   - if memo.file_committed_at.present?
@@ -24,9 +24,9 @@ ruby:
       i.h-4.w-4 aria-hidden="true" data-lucide="rotate-ccw"
       span.sr-only ドラフトを破棄
   - show_href = memo.persisted? ? memo_path(memo) : "#"
-  = link_to show_href, class: show_link_class, title: "表示", aria: { label: "表示" }, data: { memo_draft_target: "showMemoLink", action: "mousedown->memo-draft#prepareShowNavigation" } do
+  = link_to show_href, class: show_link_class, title: "表示", aria: { label: "表示" }, data: { memo_draft_target: "showMemoLink", memo_context_action: "show", action: "mousedown->memo-draft#prepareShowNavigation" } do
     i.h-4.w-4 aria-hidden="true" data-lucide="eye"
     span.sr-only 表示
-  button type="submit" form=memo_edit_form_id title="コミット" aria-label="コミット" data-memo-commit="true" class=commit_btn_class data-theme-slot="btn-primary" data-promote-hidden=("" unless memo.persisted?)
+  button type="submit" form=memo_edit_form_id title="コミット" aria-label="コミット" data-memo-commit="true" data-memo-context-action="commit" class=commit_btn_class data-theme-slot="btn-primary" data-promote-hidden=("" unless memo.persisted?)
     i.h-4.w-4 aria-hidden="true" data-lucide="git-commit-horizontal"
     span.sr-only コミット

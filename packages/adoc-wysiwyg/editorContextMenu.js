@@ -22,30 +22,37 @@ import { MENU_SHORTCUTS } from './contextMenuShortcut.js'
 /** @type {HTMLElement | null} */
 let menuEl = null
 
+let documentListenersBound = false
+
 /**
  * @param {{
- *   live: { container: HTMLElement, getView: () => import('@codemirror/view').EditorView | null | undefined }
- *   preview: { container: HTMLElement, getView: () => import('@codemirror/view').EditorView | null | undefined }
+ *   live?: { container: HTMLElement, getView: () => import('@codemirror/view').EditorView | null | undefined, getExtraItems?: () => ContextMenuItem[] }
+ *   preview?: { container: HTMLElement, getView: () => import('@codemirror/view').EditorView | null | undefined, getExtraItems?: () => ContextMenuItem[] }
+ *   [scope: string]: { container: HTMLElement, getView: () => import('@codemirror/view').EditorView | null | undefined, getExtraItems?: () => ContextMenuItem[] } | undefined
  * }} targets
+ * @returns {() => void}
  */
 export function initEditorContextMenus(targets) {
-  createContextMenuElement()
+  ensureContextMenuElement()
+  ensureDocumentListeners()
+
+  /** @type {(() => void)[]} */
+  const cleanups = []
 
   for (const [scope, config] of Object.entries(targets)) {
-    config.container.addEventListener('contextmenu', (event) => {
+    if (!config?.container) continue
+
+    /** @param {MouseEvent} event */
+    const onContextMenu = (event) => {
       void openEditorContextMenu(event, { scope, ...config })
-    })
+    }
+    config.container.addEventListener('contextmenu', onContextMenu)
+    cleanups.push(() => config.container.removeEventListener('contextmenu', onContextMenu))
   }
 
-  document.addEventListener('click', hideContextMenu)
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      hideContextMenu()
-      closeSearchReplaceDialog()
-    }
-  })
-  window.addEventListener('scroll', hideContextMenu, true)
-  window.addEventListener('resize', hideContextMenu)
+  return () => {
+    for (const cleanup of cleanups) cleanup()
+  }
 }
 
 /**
@@ -55,15 +62,16 @@ export function initEditorContextMenus(targets) {
  *   getView: () => import('@codemirror/view').EditorView | null | undefined
  *   getDocumentSearchController?: () => import('./searchReplaceDialog.js').DocumentSearchController
  *   getDocumentHistoryController?: () => import('./wysiwygHistory.js').DocumentHistoryController
+ *   getExtraItems?: () => ContextMenuItem[]
  *   onBeforeEdit?: (event: MouseEvent) => void | Promise<void>
  * }} config
  */
-export async function openEditorContextMenu(event, { scope = 'editor', getView, getDocumentSearchController, getDocumentHistoryController, onBeforeEdit }) {
+export async function openEditorContextMenu(event, { scope = 'editor', getView, getDocumentSearchController, getDocumentHistoryController, getExtraItems, onBeforeEdit }) {
   if (event.target instanceof HTMLElement && event.target.closest('.editor-context-menu, .search-replace-dialog')) {
     return
   }
 
-  createContextMenuElement()
+  ensureContextMenuElement()
 
   event.preventDefault()
   event.stopPropagation()
@@ -79,16 +87,48 @@ export async function openEditorContextMenu(event, { scope = 'editor', getView, 
       ? buildPreviewMenuItems(view, event)
       : buildEditorMenuItems(view, event, scope, getDocumentSearchController, getDocumentHistoryController)
 
+  const extraItems = normalizeExtraItems(getExtraItems?.() ?? [])
+  if (extraItems.length > 0) {
+    items.push({ label: '---' }, ...extraItems)
+  }
+
   showContextMenu(event.clientX, event.clientY, items)
 }
 
-function createContextMenuElement() {
-  if (menuEl) return
+function ensureContextMenuElement() {
+  if (menuEl?.isConnected) return
+
   menuEl = document.createElement('div')
   menuEl.className = 'editor-context-menu'
   menuEl.hidden = true
   menuEl.setAttribute('role', 'menu')
   document.body.append(menuEl)
+}
+
+function ensureDocumentListeners() {
+  if (documentListenersBound) return
+  documentListenersBound = true
+  document.addEventListener('click', hideContextMenu)
+  document.addEventListener('keydown', onDocumentKeydown)
+  window.addEventListener('scroll', hideContextMenu, true)
+  window.addEventListener('resize', hideContextMenu)
+}
+
+/** @param {KeyboardEvent} event */
+function onDocumentKeydown(event) {
+  if (event.key === 'Escape') {
+    hideContextMenu()
+    closeSearchReplaceDialog()
+  }
+}
+
+/**
+ * @param {unknown} items
+ * @returns {ContextMenuItem[]}
+ */
+function normalizeExtraItems(items) {
+  if (!Array.isArray(items)) return []
+  return items.filter((item) => item && typeof item === 'object' && typeof item.label === 'string')
 }
 
 /**
@@ -256,6 +296,7 @@ function buildPreviewMenuItems(view, event) {
  * @param {ContextMenuItem[]} items
  */
 function showContextMenu(x, y, items) {
+  ensureContextMenuElement()
   if (!menuEl) return
 
   menuEl.replaceChildren()
