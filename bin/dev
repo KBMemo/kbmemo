@@ -2,6 +2,23 @@
 # frozen_string_literal: true
 
 APP_ROOT = File.expand_path("..", __dir__)
+
+def load_env_file(path)
+  return unless File.exist?(path)
+
+  File.foreach(path, chomp: true) do |line|
+    line = line.strip
+    next if line.empty? || line.start_with?("#")
+
+    key, value = line.split("=", 2)
+    next if key.nil? || value.nil?
+
+    ENV[key] = value.delete_prefix('"').delete_suffix('"')
+  end
+end
+
+load_env_file(File.join(APP_ROOT, ".env.development"))
+
 COMMANDS = [
   ["vite", "./bin/vite", "dev"],
   ["web", "./bin/rails", "server"],
