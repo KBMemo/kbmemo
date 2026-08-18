@@ -95,10 +95,13 @@ export default class extends Controller {
     this.sending = true
     this.updateSendState()
 
-    const selection =
-      this.hasIncludeSelectionTarget && this.includeSelectionTarget.checked
-        ? this.selectedEditorText()
-        : ""
+    const includeSelection = this.includeSelectionEnabled()
+    const editor = this.bodyEditorController()
+    const editorContext = editor?.getEditContext ? await editor.getEditContext() : null
+    if (editorContext && !includeSelection) editorContext.selection = ""
+    const selection = includeSelection
+      ? (editorContext?.selection || this.selectedEditorText() || "")
+      : ""
 
     try {
       const token = document.querySelector('meta[name="csrf-token"]')?.content
@@ -113,6 +116,7 @@ export default class extends Controller {
         body: JSON.stringify({
           messages: this.history,
           selection: selection || null,
+          editor_context: editorContext,
           model_role: this.selectedModelRole()
         })
       })
@@ -139,6 +143,7 @@ export default class extends Controller {
         model: data.model
       })
       this.renderMessages()
+      await this.applyEditFromResponse(data.edit, { includeSelection })
     } catch {
       this.showError("AI との通信に失敗しました。")
     } finally {
@@ -205,6 +210,44 @@ export default class extends Controller {
     return editor?.getSelectedText?.() || ""
   }
 
+  includeSelectionEnabled() {
+    return !this.hasIncludeSelectionTarget || this.includeSelectionTarget.checked
+  }
+
+  async applyEditFromResponse(edit, { includeSelection } = {}) {
+    const target = String(edit?.target || "none")
+    if (target === "none") return
+
+    const editor = this.bodyEditorController()
+    if (!editor?.applyAiEdit) return
+
+    if (target === "selection" && !includeSelection) {
+      this.showError("選択範囲の置換は、選択範囲をコンテキストに含める設定がオフのため適用しませんでした。")
+      return
+    }
+
+    try {
+      const result = await editor.applyAiEdit(edit)
+      if (result?.applied) {
+        this.showStatus(`${this.statusForAppliedEdit(result)} 元に戻すなら Ctrl+Z またはドラフト復元が使えます。`)
+        return
+      }
+      if (result?.error) this.showError(result.error)
+    } catch {
+      this.showError("本文への適用に失敗しました。")
+    }
+  }
+
+  statusForAppliedEdit(result) {
+    if (result.target === "selection") return "選択範囲を書き換えました。"
+    if (result.target === "section") return "この節を書き換えました。"
+    if (result.target === "body") return "本文を整形しました。"
+    if (result.target === "unit" && result.kind === "table") return "表を書き換えました。"
+    if (result.target === "unit" && result.kind === "list") return "箇条書きを書き換えました。"
+    if (result.target === "unit") return "ブロックを書き換えました。"
+    return "本文を更新しました。"
+  }
+
   bodyEditorController() {
     const el = document.querySelector(
       "#memos_editor_scroll [data-controller~=\"memo-body-editor\"]"
@@ -218,8 +261,12 @@ export default class extends Controller {
 
     this.messagesTarget.replaceChildren()
 
-    if (this.history.length === 0) return
+    if (this.history.length === 0) {
+      this.messagesTarget.classList.add("hidden")
+      return
+    }
 
+    this.messagesTarget.classList.remove("hidden")
     for (const entry of this.history) {
       this.messagesTarget.append(this.messageNode(entry))
     }

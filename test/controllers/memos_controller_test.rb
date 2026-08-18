@@ -1157,6 +1157,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select ".memo-draft-shell [data-memo-draft-target='formActionsChrome'].hidden"
     assert_select "#memo_ai_sidebar_region"
     assert_select "#memo_ai_sidebar_panel .memo-ai-panel[aria-label='メモアシスト']"
+    assert_select "#memo_ai_sidebar_panel .kb-ai-messages.hidden"
     assert_select "#new_memo_ai_prompt[disabled]"
   end
 

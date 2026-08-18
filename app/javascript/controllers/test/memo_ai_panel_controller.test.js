@@ -19,12 +19,13 @@ async function mount({ modelOptions = false, append = false } = {}) {
         <option value="main">Main · large-model</option>
         <option value="fast_chat">Fast chat · small-model</option>
       </select>
-      <div data-memo-ai-panel-target="messages"></div>
+      <div class="hidden" data-memo-ai-panel-target="messages"></div>
       <p class="hidden" data-memo-ai-panel-target="error"></p>
       <p class="hidden" role="status" data-memo-ai-panel-target="status"></p>
       <textarea data-memo-ai-panel-target="input" data-action="keydown->memo-ai-panel#sendOnEnter"></textarea>
       <button type="button" data-memo-ai-panel-target="sendButton" data-action="memo-ai-panel#send">送信</button>
       <button type="button" data-memo-ai-panel-target="insertButton" data-action="memo-ai-panel#insertLastReply">応答を末尾へ追記</button>
+      <button type="button" data-action="memo-ai-panel#clearChat">履歴を消去</button>
     </section>
   `
   application = Application.start()
@@ -48,6 +49,26 @@ afterEach(() => {
 })
 
 describe("memo-ai-panel", () => {
+  it("hides the messages pane until the first prompt is sent", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ reply: "Response", backend: "local", model: "model" })
+    })))
+    await mount()
+
+    const messages = document.querySelector("[data-memo-ai-panel-target='messages']")
+    expect(messages.classList.contains("hidden")).toBe(true)
+
+    document.querySelector("textarea").value = "Hello"
+    document.querySelector("[data-memo-ai-panel-target='sendButton']").click()
+    await vi.waitFor(() => expect(messages.classList.contains("hidden")).toBe(false))
+    expect(messages.textContent).toContain("Hello")
+
+    document.querySelector("[data-action='memo-ai-panel#clearChat']").click()
+    expect(messages.classList.contains("hidden")).toBe(true)
+    expect(messages.childElementCount).toBe(0)
+  })
+
   it("sends the selected model role and displays the returned model", async () => {
     vi.stubGlobal("fetch", vi.fn(async (_url, options) => ({
       ok: true,
@@ -116,6 +137,75 @@ describe("memo-ai-panel", () => {
       new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true })
     )
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce())
+  })
+
+  it("applies a selection edit to the body editor", async () => {
+    const applyAiEdit = vi.fn(async () => ({ applied: true, target: "selection" }))
+    const getEditContext = vi.fn(async () => ({
+      body: "Hello world",
+      selection: "Hello",
+      active_unit: { kind: "paragraph", adoc: "Hello world" },
+      section: null
+    }))
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        reply: "書き換えました",
+        backend: "local",
+        model: "model",
+        edit: { target: "selection", content: "Hi" }
+      })
+    })))
+    await mount()
+
+    const element = document.querySelector("[data-controller='memo-ai-panel']")
+    const controller = application.getControllerForElementAndIdentifier(element, "memo-ai-panel")
+    controller.bodyEditorController = () => ({
+      applyAiEdit,
+      getEditContext,
+      getSelectedText: () => "Hello"
+    })
+
+    document.querySelector("textarea").value = "直して"
+    document.querySelector("[data-memo-ai-panel-target='sendButton']").click()
+
+    await vi.waitFor(() => expect(applyAiEdit).toHaveBeenCalledOnce())
+    expect(applyAiEdit).toHaveBeenCalledWith({ target: "selection", content: "Hi" })
+    expect(JSON.parse(fetch.mock.calls[0][1].body).editor_context).toMatchObject({
+      body: "Hello world",
+      selection: "Hello"
+    })
+    await vi.waitFor(() =>
+      expect(document.querySelector("[role='status']").textContent).toContain("選択範囲を書き換えました")
+    )
+  })
+
+  it("does not apply when the edit target is none", async () => {
+    const applyAiEdit = vi.fn()
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        reply: "要点はこれです",
+        backend: "local",
+        model: "model",
+        edit: { target: "none", content: "" }
+      })
+    })))
+    await mount()
+
+    const element = document.querySelector("[data-controller='memo-ai-panel']")
+    const controller = application.getControllerForElementAndIdentifier(element, "memo-ai-panel")
+    controller.bodyEditorController = () => ({
+      applyAiEdit,
+      getEditContext: async () => ({ body: "Hello", selection: "", active_unit: null, section: null })
+    })
+
+    document.querySelector("textarea").value = "要約して"
+    document.querySelector("[data-memo-ai-panel-target='sendButton']").click()
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("要点はこれです"))
+    expect(applyAiEdit).not.toHaveBeenCalled()
+    expect(document.querySelector("[role='status']").textContent).toBe("")
   })
 
   it("appends the last reply from the show panel", async () => {

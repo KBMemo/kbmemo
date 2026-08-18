@@ -5,8 +5,8 @@ require "test_helper"
 class MemoAiChatTest < ActiveSupport::TestCase
   def fake_client(reply: "== Reply", &capture)
     client = Object.new
-    client.define_singleton_method(:chat) do |messages|
-      capture&.call(messages)
+    client.define_singleton_method(:chat) do |messages, **options|
+      capture&.call(messages, options)
       reply
     end
     client
@@ -48,7 +48,7 @@ class MemoAiChatTest < ActiveSupport::TestCase
     account.update!(openai_api_key: "sk-test")
 
     local = Object.new
-    local.define_singleton_method(:chat) { |_m| raise Chat::LlmClient::ConnectionError, "refused" }
+    local.define_singleton_method(:chat) { |_m, **_k| raise Chat::LlmClient::ConnectionError, "refused" }
     byok = fake_client(reply: "== BYOK reply")
 
     result = MemoAiChat.new(
@@ -87,7 +87,7 @@ class MemoAiChatTest < ActiveSupport::TestCase
     account.update!(openai_api_key: nil)
 
     local = Object.new
-    local.define_singleton_method(:chat) { |_m| raise Chat::LlmClient::ConnectionError, "refused" }
+    local.define_singleton_method(:chat) { |_m, **_k| raise Chat::LlmClient::ConnectionError, "refused" }
 
     error = assert_raises(Chat::LlmClient::ConnectionError) do
       MemoAiChat.new(
@@ -108,6 +108,78 @@ class MemoAiChatTest < ActiveSupport::TestCase
 
     assert_equal :fast_chat, result[:model_role]
     assert_equal accounts(:one).chat_server_model(:fast_chat), result[:model]
+  end
+
+  test "call requests JSON and parses an edit payload" do
+    payload = {
+      "reply" => "表を更新しました",
+      "edit" => { "target" => "unit", "content" => "|===\n| a | b\n|===" }
+    }
+    captured_options = nil
+    local = fake_client(reply: payload.to_json) { |_messages, options| captured_options = options }
+
+    result = MemoAiChat.new(
+      account: accounts(:one),
+      memo: memos(:one),
+      messages: [ { role: "user", content: "列を足して" } ],
+      local_client: local
+    ).call
+
+    assert_equal({ "type" => "json_object" }, captured_options[:response_format])
+    assert_equal "表を更新しました", result[:reply]
+    assert_equal "unit", result[:edit][:target]
+    assert_includes result[:edit][:content], "| a | b"
+  end
+
+  test "call treats non-JSON replies as chat-only" do
+    result = MemoAiChat.new(
+      account: accounts(:one),
+      memo: memos(:one),
+      messages: [ { role: "user", content: "hi" } ],
+      local_client: fake_client(reply: "== Reply")
+    ).call
+
+    assert_equal "== Reply", result[:reply]
+    assert_equal "none", result[:edit][:target]
+    assert_equal "", result[:edit][:content]
+  end
+
+  test "call prefers live editor body and unit context" do
+    captured = nil
+    local = fake_client { |messages| captured = messages }
+
+    MemoAiChat.new(
+      account: accounts(:one),
+      memo: memos(:one),
+      messages: [ { role: "user", content: "整形して" } ],
+      editor_context: {
+        "body" => "LIVE BODY",
+        "selection" => "BODY SEL",
+        "active_unit" => { "kind" => "table", "adoc" => "|===\n| a\n|===" },
+        "section" => { "heading" => "== Alpha", "adoc" => "== Alpha\nfoo" }
+      },
+      local_client: local
+    ).call
+
+    system_prompt = captured.first[:content]
+    assert_includes system_prompt, "LIVE BODY"
+    assert_includes system_prompt, "BODY SEL"
+    assert_includes system_prompt, "カーソル位置のブロック (table)"
+    assert_includes system_prompt, "|===\n| a\n|==="
+    assert_includes system_prompt, "カーソル位置の節 (== Alpha)"
+  end
+
+  test "call ignores an unknown edit target" do
+    result = MemoAiChat.new(
+      account: accounts(:one),
+      memo: memos(:one),
+      messages: [ { role: "user", content: "hi" } ],
+      local_client: fake_client(reply: { reply: "ok", edit: { target: "cells", content: "x" } }.to_json)
+    ).call
+
+    assert_equal "ok", result[:reply]
+    assert_equal "none", result[:edit][:target]
+    assert_equal "", result[:edit][:content]
   end
 
   test "initialize rejects an unknown model role" do

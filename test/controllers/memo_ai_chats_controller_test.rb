@@ -36,7 +36,12 @@ class MemoAiChatsControllerTest < ActionDispatch::IntegrationTest
       post ai_chat_memo_url(memo),
         params: {
           messages: [ { role: "user", content: "見出しを追加" } ],
-          model_role: "fast_chat"
+          model_role: "fast_chat",
+          editor_context: {
+            body: "LIVE BODY",
+            selection: "Hello",
+            active_unit: { kind: "table", adoc: "|===" }
+          }
         },
         as: :json
 
@@ -48,6 +53,8 @@ class MemoAiChatsControllerTest < ActionDispatch::IntegrationTest
       assert_equal "fast_chat", captured[:model_role]
       assert_includes captured[:existing_tags], "Ideas"
       refute_includes captured[:existing_tags], "PrivateTag"
+      assert_equal "LIVE BODY", captured[:editor_context]["body"]
+      assert_equal "table", captured[:editor_context]["active_unit"]["kind"]
     ensure
       MemoAiChat.define_singleton_method(:new, original_new)
     end
@@ -113,5 +120,6 @@ class MemoAiChatsControllerTest < ActionDispatch::IntegrationTest
       assert_select "option[value='main']", text: /Main.*gemma-4-e4b/
       assert_select "option[value='fast_chat']", text: /Fast chat.*gemma-4-e4b/
     end
+    assert_select "[data-memo-ai-panel-target='messages'].hidden"
   end
 end

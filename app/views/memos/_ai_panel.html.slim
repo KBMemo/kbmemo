@@ -20,7 +20,7 @@
         | OpenAI フォールバックを使うには
         = link_to "プロフィールでキーを登録", edit_profile_path, class: "underline"
         | 。
-    .kb-ai-messages.min-h-0.flex-1.overflow-y-auto.rounded-md.p-2 data-memo-ai-panel-target="messages"
+    .kb-ai-messages.hidden.min-h-0.flex-1.overflow-y-auto.rounded-md.p-2 data-memo-ai-panel-target="messages"
     p.hidden.shrink-0.text-xs.kb-status-danger data-memo-ai-panel-target="error"
     p.hidden.shrink-0.text-xs.kb-status-success role="status" aria-live="polite" data-memo-ai-panel-target="status"
     - if editing
