@@ -75,7 +75,7 @@ class MemoAiChat
   end
 
   def byok_available?
-    @account.openai_api_key.present?
+    @account.openai_api_key_decryptable?
   end
 
   def byok_client

@@ -111,6 +111,7 @@ bin/rails runner "c=GoogleCalendar::Credentials; puts({ valid: c.valid?, reason:
 ----
 
 プロフィール画面に表示される **承認済みリダイレクト URI** を Google Cloud Console に完全一致で登録する（不一致の場合は通常 `redirect_uri_mismatch`）。
+`PORT` を変えている開発環境（Talisker は `3010`）では `http://localhost:3000/...` だけでは足りず、実際にブラウザが開いている URL のホスト・ポートを追加する。`localhost` と `127.0.0.1` は別 URI として扱う。
 
 == 操作
 

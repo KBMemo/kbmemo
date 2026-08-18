@@ -97,6 +97,16 @@ module ActiveSupport
     def memo_global_slug(stem, memo)
       Memo.global_slug_for(stem, memo.uid)
     end
+
+    def corrupt_encrypted_attribute!(record, attr, plaintext = "secret")
+      record.update!(attr => plaintext) if record.public_send(attr).blank?
+      payload = ::JSON.parse(record.read_attribute_before_type_cast(attr.to_s))
+      payload["p"] = payload.fetch("p").reverse
+      ActiveRecord::Encryption.without_encryption do
+        record.update_column(attr, payload.to_json)
+      end
+      record.reload
+    end
   end
 end
 

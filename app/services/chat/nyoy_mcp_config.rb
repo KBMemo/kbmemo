@@ -15,7 +15,7 @@ module Chat
     end
 
     def api_token(account: nil)
-      account_token = account&.nyoy_mcp_api_token.to_s.strip
+      account_token = account&.nyoy_mcp_api_token_decryptable? ? account.nyoy_mcp_api_token.to_s.strip : ""
       return account_token if account_token.present?
 
       ENV["NYOY_MCP_API_TOKEN"].presence || credentials&.dig(:api_token).presence

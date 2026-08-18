@@ -30,6 +30,7 @@
 #
 class Account < ApplicationRecord
   include Rodauth::Rails.model
+  include EncryptedAttributeSafety
   include AccountThemePreference
   include AccountChatServerSettings
   include AccountNyoyMcpSettings
@@ -52,7 +53,11 @@ class Account < ApplicationRecord
   after_create_commit :provision_memo_directory_user_space
 
   def openai_api_key_configured?
-    openai_api_key.present?
+    encrypted_ciphertext_present?(:openai_api_key)
+  end
+
+  def openai_api_key_decryptable?
+    encrypted_attribute_decryptable?(:openai_api_key)
   end
 
   def api_token_configured?

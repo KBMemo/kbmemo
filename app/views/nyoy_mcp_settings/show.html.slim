@@ -30,8 +30,10 @@
                 =< @effective_url
           div
             = f.label :nyoy_mcp_api_token, "API トークン", class: kb_label
-            - if @account.nyoy_mcp_api_token_configured?
+            - if @account.nyoy_mcp_api_token_configured? && @account.nyoy_mcp_api_token_decryptable?
               p.text-xs.kb-text-muted 保存済みトークンがあります。変更するときだけ入力してください。
+            - elsif @account.nyoy_mcp_api_token_configured?
+              p.text-xs.kb-status-warning 保存済みトークンを復号できません。再入力するか、下のチェックで削除してください。
             = f.password_field :nyoy_mcp_api_token, class: "#{kb_field_input_classes} w-full max-w-md font-mono text-sm", autocomplete: "new-password", placeholder: "Bearer トークン"
             - if @account.nyoy_mcp_api_token_configured?
               .mt-2.flex.items-center.gap-2
