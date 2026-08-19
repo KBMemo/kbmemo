@@ -5,6 +5,13 @@ import {
   filterMemoSourceSnippets,
 } from "../adoc_editor/snippet_support"
 import { codeMirrorCspNonceExtension } from "../security/csp_nonce"
+import {
+  cursorLineFromOffset,
+  replaceLineRange,
+  sectionRangeAtLine,
+  sliceLineRange,
+  unitRangeAtLine
+} from "../lib/adoc_edit_targets"
 
 const ACCEPTED_IMAGE_TYPE = /^image\/(png|jpeg|gif|webp|svg\+xml)$/i
 const ACCEPTED_IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i
@@ -1241,10 +1248,122 @@ export default class extends Controller {
   }
 
   getSelectedText() {
+    if (this._editMode === "wysiwyg" && this._wysiwygEditor) {
+      return this._wysiwygEditor.createDocumentSearchController?.().getSelectedText?.() || ""
+    }
     if (!this.view) return ""
     const { from, to } = this.view.state.selection.main
     if (from === to) return ""
     return this.view.state.doc.sliceString(from, to)
+  }
+
+  currentSource() {
+    if (this._editMode === "wysiwyg" && this._wysiwygEditor) {
+      return this._wysiwygEditor.flush()
+    }
+    return this.view?.state.doc.toString() ?? this.fieldTarget?.value ?? ""
+  }
+
+  currentCursorOffset() {
+    if (this._editMode === "wysiwyg" && this._wysiwygEditor) {
+      return this._wysiwygEditor.createDocumentSearchController?.().getCursorPosition?.() ?? 0
+    }
+    return this.view?.state.selection.main.head ?? 0
+  }
+
+  async getEditContext() {
+    const body = this.currentSource()
+    const cursorLine = cursorLineFromOffset(body, this.currentCursorOffset())
+    const selection = this.getSelectedText()
+    let unit = null
+    try {
+      unit = await unitRangeAtLine(body, cursorLine)
+    } catch {
+      unit = null
+    }
+    const section = sectionRangeAtLine(body, cursorLine)
+
+    return {
+      body,
+      selection,
+      active_unit: unit
+        ? { kind: unit.kind, adoc: unit.adoc }
+        : null,
+      section: section
+        ? {
+            heading: section.heading,
+            adoc: sliceLineRange(body, section.startLine, section.endLine)
+          }
+        : null
+    }
+  }
+
+  async applyAiEdit({ target, content } = {}) {
+    const nextTarget = String(target || "none")
+    const text = String(content ?? "")
+    if (nextTarget === "none") return { applied: false, target: "none" }
+    if (!text.trim()) {
+      return { applied: false, error: "置換する内容が空でした。" }
+    }
+
+    if (nextTarget === "selection") {
+      if (!this.getSelectedText()) {
+        return { applied: false, error: "選択範囲がありません。" }
+      }
+      if (this._editMode === "wysiwyg") {
+        if (!this._wysiwygEditor?.insertTextAtSelection?.(text)) {
+          return { applied: false, error: "選択範囲を置換できませんでした。編集中のブロックを選んでください。" }
+        }
+        return { applied: true, target: nextTarget }
+      }
+      this.insertTextAtSelection(text)
+      return { applied: true, target: nextTarget }
+    }
+
+    if (nextTarget === "body") {
+      await this.replaceDocumentBody(text)
+      return { applied: true, target: nextTarget }
+    }
+
+    const source = this.currentSource()
+    const cursorLine = cursorLineFromOffset(source, this.currentCursorOffset())
+
+    if (nextTarget === "unit") {
+      let unit = null
+      try {
+        unit = await unitRangeAtLine(source, cursorLine)
+      } catch {
+        unit = null
+      }
+      if (!unit) return { applied: false, error: "置換するブロックが見つかりません。" }
+      await this.replaceLineRangeInEditor(unit.startLine, unit.endLine, text)
+      return { applied: true, target: nextTarget, kind: unit.kind }
+    }
+
+    if (nextTarget === "section") {
+      const section = sectionRangeAtLine(source, cursorLine)
+      if (!section) return { applied: false, error: "置換する節が見つかりません。" }
+      await this.replaceLineRangeInEditor(section.startLine, section.endLine, text)
+      return { applied: true, target: nextTarget }
+    }
+
+    return { applied: false, error: "未対応の編集対象です。" }
+  }
+
+  async replaceLineRangeInEditor(startLine, endLine, content) {
+    const source = this.currentSource()
+    await this.replaceDocumentBody(replaceLineRange(source, startLine, endLine, content))
+  }
+
+  async replaceDocumentBody(body) {
+    const next = String(body ?? "")
+    if (this._editMode === "wysiwyg" && this._wysiwygEditor) {
+      this.syncSourceFromWysiwyg(next)
+      await this._wysiwygEditor.renderFromSource(next)
+      return
+    }
+    this.applyExternalBody(next)
+    this.fieldTarget?.dispatchEvent(new Event("input", { bubbles: true }))
   }
 
   insertTextAtSelection(text) {

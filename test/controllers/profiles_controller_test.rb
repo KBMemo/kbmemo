@@ -41,6 +41,16 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_not account.reload.openai_api_key_configured?
   end
 
+  test "edit profile succeeds when openai api key cannot be decrypted" do
+    account = accounts(:one)
+    corrupt_encrypted_attribute!(account, :openai_api_key, "sk-test-key-123")
+
+    get edit_profile_url
+
+    assert_response :success
+    assert_includes response.body, "復号できません"
+  end
+
   test "signed-in user sees clip bookmarklet setup on profile" do
     get edit_profile_url
     assert_response :success

@@ -26,7 +26,7 @@ module Chat
 
     def initialize(url: nil, api_token: nil, timeout: DEFAULT_TIMEOUT, open_timeout: DEFAULT_OPEN_TIMEOUT)
       @url = (url || NyoyMcpConfig.url).to_s.strip.chomp("/")
-      @api_token = (api_token || NyoyMcpConfig.api_token).to_s.strip
+      @api_token = NyoyMcpConfig.normalize_api_token(api_token || NyoyMcpConfig.api_token).to_s
       @timeout = timeout
       @open_timeout = open_timeout
       @request_id = 0
@@ -155,7 +155,7 @@ module Chat
       when 404
         "Nyoy MCP API エラー（404）— #{uri} が見つかりません。URL（例: https://host/mcp）を確認するか、接続先 Nyoy で MCP_API_TOKEN が設定されているか確認してください。"
       when 401, 403
-        "Nyoy MCP API エラー（#{code}）— API トークンが正しくないか、接続先で MCP が拒否しました。"
+        "Nyoy MCP API エラー（#{code}）— API トークンが接続先 Nyoy の MCP_API_TOKEN と一致しません。Nyoy MCP 設定でトークンを入れ直し「接続確認」してください（Bearer は付けない）。アカウント保存値が credentials / 環境変数より優先されます。"
       else
         "Nyoy MCP API エラー（#{code}）"
       end

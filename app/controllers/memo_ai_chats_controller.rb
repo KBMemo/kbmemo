@@ -12,6 +12,7 @@ class MemoAiChatsController < ApplicationController
       memo: @memo,
       messages: chat_messages_param,
       selection: params[:selection],
+      editor_context: editor_context_param,
       model_role: model_role_param,
       existing_tags: existing_tag_names
     ).call
@@ -41,6 +42,19 @@ class MemoAiChatsController < ApplicationController
       h = entry.is_a?(ActionController::Parameters) ? entry : ActionController::Parameters.new(entry)
       h.permit(:role, :content).to_h.symbolize_keys.presence
     end
+  end
+
+  def editor_context_param
+    raw = params[:editor_context]
+    return {} unless raw.is_a?(ActionController::Parameters) || raw.is_a?(Hash)
+
+    h = raw.is_a?(ActionController::Parameters) ? raw : ActionController::Parameters.new(raw)
+    h.permit(
+      :body,
+      :selection,
+      active_unit: [ :kind, :adoc ],
+      section: [ :heading, :adoc ]
+    ).to_h
   end
 
   def existing_tag_names

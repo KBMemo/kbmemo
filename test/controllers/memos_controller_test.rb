@@ -1157,6 +1157,7 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_select ".memo-draft-shell [data-memo-draft-target='formActionsChrome'].hidden"
     assert_select "#memo_ai_sidebar_region"
     assert_select "#memo_ai_sidebar_panel .memo-ai-panel[aria-label='メモアシスト']"
+    assert_select "#memo_ai_sidebar_panel .kb-ai-messages.hidden"
     assert_select "#new_memo_ai_prompt[disabled]"
   end
 
@@ -1538,6 +1539,49 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal "= Existing\n\nBody\n\n== AI response\n\nAdded.", memo.reload.body
     assert memo.display_as_draft?
+  end
+
+  test "append ai reply converts markdown to AsciiDoc" do
+    memo = memos(:one)
+    memo.update_columns(body: "= Existing\n\nBody", file_committed_at: 1.hour.ago)
+
+    PandocMarkdownToAsciidoc.stub(:convert, proc { raise PandocRunner::NotFound, "missing" }) do
+      patch append_ai_reply_memo_url(memo), params: { content: "## Hello\n\n- item" }, as: :json
+    end
+
+    assert_response :success
+    assert_equal "= Existing\n\nBody\n\n== Hello\n\n* item", memo.reload.body
+  end
+
+  test "append ai reply strips a truncated JSON envelope prefix" do
+    memo = memos(:one)
+    memo.update_columns(body: "= Existing\n\nBody", file_committed_at: 1.hour.ago)
+    raw = <<~TEXT
+      {"reply":"注目選手に関する分析セクションを追加しました。","edit":{"target":"section","content":"
+
+      == 注目選手
+
+      * キープレイヤー
+    TEXT
+
+    patch append_ai_reply_memo_url(memo), params: { content: raw }, as: :json
+
+    assert_response :success
+    assert_equal "= Existing\n\nBody\n\n== 注目選手\n\n* キープレイヤー", memo.reload.body
+  end
+
+  test "append ai reply stores AsciiDoc from a JSON envelope" do
+    memo = memos(:one)
+    memo.update_columns(body: "= Existing\n\nBody", file_committed_at: 1.hour.ago)
+    payload = {
+      reply: "追記しました",
+      edit: { target: "none", content: "== Added\n\nFrom JSON" }
+    }
+
+    patch append_ai_reply_memo_url(memo), params: { content: payload.to_json }, as: :json
+
+    assert_response :success
+    assert_equal "= Existing\n\nBody\n\n== Added\n\nFrom JSON", memo.reload.body
   end
 
   test "append ai reply rejects an empty response" do

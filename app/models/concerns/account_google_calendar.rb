@@ -8,7 +8,12 @@ module AccountGoogleCalendar
   end
 
   def google_calendar_connected?
-    google_calendar_refresh_token.present?
+    encrypted_attribute_decryptable?(:google_calendar_refresh_token)
+  end
+
+  def google_calendar_refresh_token_undecryptable?
+    encrypted_ciphertext_present?(:google_calendar_refresh_token) &&
+      !encrypted_attribute_decryptable?(:google_calendar_refresh_token)
   end
 
   def google_calendar_meta

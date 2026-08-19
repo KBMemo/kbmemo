@@ -70,4 +70,64 @@ class AccountTest < ActiveSupport::TestCase
     assert_nil Account.find_by_api_token(web_clip_token)
     assert_nil WebClipToken.authenticate(api_token)
   end
+
+  test "openai_api_key_configured? survives undecryptable ciphertext" do
+    account = accounts(:one)
+    corrupt_encrypted_attribute!(account, :openai_api_key, "sk-test")
+
+    assert_raises(ActiveRecord::Encryption::Errors::Base) { account.openai_api_key }
+    assert account.openai_api_key_configured?
+    assert_not account.openai_api_key_decryptable?
+  end
+
+  test "google_calendar_connected? is false when refresh token cannot be decrypted" do
+    account = accounts(:one)
+    account.connect_google_calendar!(refresh_token: "refresh-test")
+    corrupt_encrypted_attribute!(account, :google_calendar_refresh_token)
+
+    assert account.google_calendar_refresh_token_undecryptable?
+    assert_not account.google_calendar_connected?
+  end
+
+  test "connect_google_calendar! overwrites an undecryptable refresh token" do
+    account = accounts(:one)
+    account.connect_google_calendar!(refresh_token: "old-token")
+    corrupt_encrypted_attribute!(account, :google_calendar_refresh_token)
+
+    account.connect_google_calendar!(refresh_token: "new-token")
+
+    assert_equal "new-token", account.google_calendar_refresh_token
+    assert account.google_calendar_connected?
+  end
+
+  test "connect_google_calendar! succeeds when another encrypted attribute is undecryptable" do
+    account = accounts(:one)
+    corrupt_encrypted_attribute!(account, :openai_api_key, "sk-test")
+
+    account.connect_google_calendar!(refresh_token: "new-token")
+
+    assert_equal "new-token", account.google_calendar_refresh_token
+    assert account.openai_api_key_configured?
+    assert_not account.openai_api_key_decryptable?
+  end
+
+  test "disconnect_google_calendar! succeeds when refresh token is undecryptable" do
+    account = accounts(:one)
+    account.connect_google_calendar!(refresh_token: "old-token")
+    corrupt_encrypted_attribute!(account, :google_calendar_refresh_token)
+
+    account.disconnect_google_calendar!
+
+    assert_not account.google_calendar_connected?
+    assert_not account.google_calendar_refresh_token_undecryptable?
+  end
+
+  test "openai_api_key can be replaced when existing ciphertext is undecryptable" do
+    account = accounts(:one)
+    corrupt_encrypted_attribute!(account, :openai_api_key, "sk-old")
+
+    account.update!(openai_api_key: "sk-new")
+
+    assert_equal "sk-new", account.openai_api_key
+  end
 end

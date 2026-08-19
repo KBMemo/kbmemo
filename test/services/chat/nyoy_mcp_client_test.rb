@@ -93,5 +93,15 @@ module Chat
       assert_includes error.message, "404"
       assert_includes error.message, "MCP_API_TOKEN"
     end
+
+    test "http 401 explains token mismatch and settings" do
+      client = Chat::NyoyMcpClient.new(url: "http://nyoy.test/mcp", api_token: "Bearer leftover")
+      message = client.send(:http_error_message, 401, URI.parse("http://nyoy.test/mcp"))
+
+      assert_includes message, "401"
+      assert_includes message, "MCP_API_TOKEN"
+      assert_includes message, "Bearer は付けない"
+      assert_equal "leftover", client.instance_variable_get(:@api_token)
+    end
   end
 end

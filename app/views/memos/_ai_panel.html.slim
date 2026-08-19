@@ -1,6 +1,6 @@
 - account = rodauth.rails_account
 - editing = local_assigns.fetch(:editing, true)
-.memo-ai-panel.kb-ai-panel.flex.h-full.min-h-0.flex-col.overflow-hidden data-theme-slot="memo-sidebar" data-controller="memo-ai-panel" data-memo-ai-panel-chat-url-value=ai_chat_memo_path(memo, format: :json) data-memo-ai-panel-append-url-value=(append_ai_reply_memo_path(memo, format: :json) unless editing) data-memo-ai-panel-model-options-url-value=model_options_chat_server_path(format: :json) data-memo-ai-panel-profile-url-value=edit_profile_path data-memo-ai-panel-has-api-key-value=account.openai_api_key_configured? aria-label="メモアシスト"
+.memo-ai-panel.kb-ai-panel.flex.h-full.min-h-0.flex-col.overflow-hidden data-theme-slot="memo-sidebar" data-controller="memo-ai-panel" data-memo-ai-panel-chat-url-value=ai_chat_memo_path(memo, format: :json) data-memo-ai-panel-append-url-value=(append_ai_reply_memo_path(memo, format: :json) unless editing) data-memo-ai-panel-model-options-url-value=model_options_chat_server_path(format: :json) data-memo-ai-panel-profile-url-value=edit_profile_path data-memo-ai-panel-has-api-key-value=account.openai_api_key_decryptable? aria-label="メモアシスト"
   .kb-memo-ai-header
     h2.text-sm.font-semibold.kb-text-primary メモアシスト
     = label_tag "memo_ai_model_role", "使用モデル", class: "sr-only"
@@ -15,12 +15,12 @@
         | メモの執筆・推敲を支援します。既定でローカル AI を使います。
       - else
         | 表示中のメモ本文をコンテキストにして質問できます。既定でローカル AI を使います。
-    - unless account.openai_api_key_configured?
+    - unless account.openai_api_key_decryptable?
       p class="shrink-0 kb-text-2xs leading-snug kb-text-muted"
         | OpenAI フォールバックを使うには
         = link_to "プロフィールでキーを登録", edit_profile_path, class: "underline"
         | 。
-    .kb-ai-messages.min-h-0.flex-1.overflow-y-auto.rounded-md.p-2 data-memo-ai-panel-target="messages"
+    .kb-ai-messages.hidden.min-h-0.flex-1.overflow-y-auto.rounded-md.p-2 data-memo-ai-panel-target="messages"
     p.hidden.shrink-0.text-xs.kb-status-danger data-memo-ai-panel-target="error"
     p.hidden.shrink-0.text-xs.kb-status-success role="status" aria-live="polite" data-memo-ai-panel-target="status"
     - if editing

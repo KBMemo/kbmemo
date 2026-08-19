@@ -29,8 +29,10 @@ section.mt-10
 
   div
     = f.label :openai_api_key, "OpenAI API キー", class: kb_label
-    - if @account.openai_api_key_configured?
+    - if @account.openai_api_key_configured? && @account.openai_api_key_decryptable?
       p.mt-1.text-xs.kb-status-success 設定済み（再入力すると上書きします）
+    - elsif @account.openai_api_key_configured?
+      p.mt-1.text-xs.kb-status-warning 保存済みのキーを復号できません。開発用の暗号化鍵が本番と異なるためです。再入力するか、下のチェックで削除してください。
     - else
       p.mt-1.text-xs.kb-text-muted 未設定 — ローカル AI のみ使用します
     = f.password_field :openai_api_key, class: "#{kb_field_input_classes} max-w-md font-mono", autocomplete: "off", placeholder: "sk-…", aria: kb_field_error_aria(@account, :openai_api_key, describedby: "account-openai-api-key-help")
@@ -53,6 +55,8 @@ section.mt-10
   p.mt-1.text-sm.kb-text-secondary
     | 予定をメモとして取り込み、カンバンの予定日（scheduled_on）に反映します。読み取り専用で同期されます。
   - if GoogleCalendar::Credentials.valid?
+    - if @account.google_calendar_refresh_token_undecryptable?
+      p.mt-2.text-xs.kb-status-warning 保存済みの連携トークンを復号できません。開発用の暗号化鍵が本番と異なるためです。再連携してください。
     - if @account.google_calendar_connected?
       p.mt-2.text-xs.kb-status-success Google Calendar 連携済み
       - if @account.google_calendar_meta["last_synced_at"].present?

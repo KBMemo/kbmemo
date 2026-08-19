@@ -418,7 +418,7 @@ module Chat
       end
 
       error = Array(result.errors).first
-      parts << error[:message].to_s.truncate(80) if error.is_a?(Hash) && error[:message].present?
+      parts << error[:message].to_s.truncate(140) if error.is_a?(Hash) && error[:message].present?
       parts.join(" — ")
     end
 
