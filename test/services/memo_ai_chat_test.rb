@@ -49,7 +49,8 @@ class MemoAiChatTest < ActiveSupport::TestCase
 
     local = Object.new
     local.define_singleton_method(:chat) { |_m, **_k| raise Chat::LlmClient::ConnectionError, "refused" }
-    byok = fake_client(reply: "== BYOK reply")
+    captured_options = nil
+    byok = fake_client(reply: "== BYOK reply") { |_messages, options| captured_options = options }
 
     result = MemoAiChat.new(
       account: account,
@@ -60,6 +61,7 @@ class MemoAiChatTest < ActiveSupport::TestCase
     ).call
 
     assert_equal "== BYOK reply", result[:reply]
+    assert_equal({ "type" => "json_object" }, captured_options[:response_format])
     assert_equal :openai, result[:backend]
     assert_equal :main, result[:model_role]
     assert_equal MemoAiChat::OPENAI_MODEL, result[:model]
@@ -110,7 +112,7 @@ class MemoAiChatTest < ActiveSupport::TestCase
     assert_equal accounts(:one).chat_server_model(:fast_chat), result[:model]
   end
 
-  test "call requests JSON and parses an edit payload" do
+  test "call parses JSON edits without forcing response_format on local llama-server" do
     payload = {
       "reply" => "表を更新しました",
       "edit" => { "target" => "unit", "content" => "|===\n| a | b\n|===" }
@@ -125,7 +127,7 @@ class MemoAiChatTest < ActiveSupport::TestCase
       local_client: local
     ).call
 
-    assert_equal({ "type" => "json_object" }, captured_options[:response_format])
+    assert_nil captured_options[:response_format]
     assert_equal "表を更新しました", result[:reply]
     assert_equal "unit", result[:edit][:target]
     assert_includes result[:edit][:content], "| a | b"
@@ -164,9 +166,9 @@ class MemoAiChatTest < ActiveSupport::TestCase
     system_prompt = captured.first[:content]
     assert_includes system_prompt, "LIVE BODY"
     assert_includes system_prompt, "BODY SEL"
-    assert_includes system_prompt, "カーソル位置のブロック (table)"
-    assert_includes system_prompt, "|===\n| a\n|==="
-    assert_includes system_prompt, "カーソル位置の節 (== Alpha)"
+    assert_includes system_prompt, "カーソル位置のブロック種別: table"
+    refute_includes system_prompt, "|===\n| a\n|==="
+    assert_includes system_prompt, "カーソル位置の節見出し: == Alpha"
   end
 
   test "call ignores an unknown edit target" do
@@ -179,7 +181,76 @@ class MemoAiChatTest < ActiveSupport::TestCase
 
     assert_equal "ok", result[:reply]
     assert_equal "none", result[:edit][:target]
-    assert_equal "", result[:edit][:content]
+    assert_equal "x", result[:edit][:content]
+    assert_equal "x", result[:insert_content]
+  end
+
+  test "call extracts AsciiDoc insert_content from a JSON envelope" do
+    payload = {
+      "reply" => "追記しました",
+      "edit" => { "target" => "none", "content" => "== Added\n\nBody" }
+    }
+    result = MemoAiChat.new(
+      account: accounts(:one),
+      memo: memos(:one),
+      messages: [ { role: "user", content: "追記して" } ],
+      local_client: fake_client(reply: payload.to_json)
+    ).call
+
+    assert_equal "追記しました", result[:reply]
+    assert_equal "none", result[:edit][:target]
+    assert_equal "== Added\n\nBody", result[:insert_content]
+  end
+
+  test "call unwraps a JSON dump so it is not used as the chat reply" do
+    result = MemoAiChat.new(
+      account: accounts(:one),
+      memo: memos(:one),
+      messages: [ { role: "user", content: "hi" } ],
+      local_client: fake_client(reply: '{"reply":"","edit":{"target":"none","content":"* item"}}')
+    ).call
+
+    assert_equal "* item", result[:insert_content]
+    refute_includes result[:reply], '{"reply"'
+  end
+
+  test "call converts markdown edit content to AsciiDoc" do
+    payload = {
+      "reply" => "節を書き換えました",
+      "edit" => { "target" => "section", "content" => "## Hello\n\n- one\n- **two**" }
+    }
+
+    with_pandoc_unavailable do
+      result = MemoAiChat.new(
+        account: accounts(:one),
+        memo: memos(:one),
+        messages: [ { role: "user", content: "この節を直して" } ],
+        local_client: fake_client(reply: payload.to_json)
+      ).call
+
+      assert_equal "section", result[:edit][:target]
+      assert_equal "== Hello\n\n* one\n* *two*", result[:edit][:content]
+      assert_equal "== Hello\n\n* one\n* *two*", result[:insert_content]
+    end
+  end
+
+  test "asciidoc_from_text converts markdown headings lists and links" do
+    markdown = "## Hello\n\n- first\n- **second**\n\n[Example](https://example.com)"
+
+    with_pandoc_unavailable do
+      assert_equal(
+        "== Hello\n\n* first\n* *second*\n\nhttps://example.com[Example]",
+        MemoAiChat.asciidoc_from_text(markdown)
+      )
+    end
+  end
+
+  test "asciidoc_from_text leaves AsciiDoc source unchanged" do
+    adoc = "== Hello\n\n* first\n* *second*\n\n[source,ruby]\n----\nputs 1\n----"
+
+    with_pandoc_unavailable do
+      assert_equal adoc, MemoAiChat.asciidoc_from_text(adoc)
+    end
   end
 
   test "initialize rejects an unknown model role" do
@@ -190,6 +261,12 @@ class MemoAiChatTest < ActiveSupport::TestCase
         messages: [],
         model_role: :arbitrary
       )
+    end
+  end
+
+  def with_pandoc_unavailable
+    PandocMarkdownToAsciidoc.stub(:convert, proc { raise PandocRunner::NotFound, "missing" }) do
+      yield
     end
   end
 end

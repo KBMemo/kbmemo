@@ -1541,6 +1541,32 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert memo.display_as_draft?
   end
 
+  test "append ai reply converts markdown to AsciiDoc" do
+    memo = memos(:one)
+    memo.update_columns(body: "= Existing\n\nBody", file_committed_at: 1.hour.ago)
+
+    PandocMarkdownToAsciidoc.stub(:convert, proc { raise PandocRunner::NotFound, "missing" }) do
+      patch append_ai_reply_memo_url(memo), params: { content: "## Hello\n\n- item" }, as: :json
+    end
+
+    assert_response :success
+    assert_equal "= Existing\n\nBody\n\n== Hello\n\n* item", memo.reload.body
+  end
+
+  test "append ai reply stores AsciiDoc from a JSON envelope" do
+    memo = memos(:one)
+    memo.update_columns(body: "= Existing\n\nBody", file_committed_at: 1.hour.ago)
+    payload = {
+      reply: "追記しました",
+      edit: { target: "none", content: "== Added\n\nFrom JSON" }
+    }
+
+    patch append_ai_reply_memo_url(memo), params: { content: payload.to_json }, as: :json
+
+    assert_response :success
+    assert_equal "= Existing\n\nBody\n\n== Added\n\nFrom JSON", memo.reload.body
+  end
+
   test "append ai reply rejects an empty response" do
     memo = memos(:one)
 

@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { asciiDocFromAiReply, jsonEnvelope } from "../lib/ai_reply_asciidoc"
 import { appendChatMarkdown } from "../lib/chat_markdown"
 
 const MODEL_ROLE_STORAGE_KEY = "kbmemo_memo_ai_model_role_v1"
@@ -131,14 +132,18 @@ export default class extends Controller {
       }
 
       const reply = (data.reply || "").trim()
-      if (!reply) {
+      const insertContent = (data.insert_content || "").trim() || asciiDocFromAiReply(reply, data.edit)
+      const display = jsonEnvelope(reply) ? (insertContent || "本文案を用意しました。") : reply
+      if (!display) {
         this.showError("応答が空でした。")
         return
       }
 
       this.history.push({
         role: "assistant",
-        content: reply,
+        content: display,
+        insertContent,
+        edit: data.edit,
         backend: data.backend,
         model: data.model
       })
@@ -155,13 +160,14 @@ export default class extends Controller {
   async insertLastReply(event) {
     event?.preventDefault()
     const last = [...this.history].reverse().find((m) => m.role === "assistant")
-    if (!last?.content) {
-      this.showError("挿入する応答がありません。")
+    const content = this.insertableAsciiDoc(last)
+    if (!content) {
+      this.showError("挿入する AsciiDoc がありません。")
       return
     }
     const editor = this.bodyEditorController()
     if (editor) {
-      await editor.insertAtCursor(last.content)
+      await editor.insertAtCursor(content)
       this.clearError()
       this.showStatus("応答をカーソル位置へ挿入しました。")
       return
@@ -182,7 +188,7 @@ export default class extends Controller {
           "Content-Type": "application/json",
           ...(token ? { "X-CSRF-Token": token } : {})
         },
-        body: JSON.stringify({ content: last.content })
+        body: JSON.stringify({ content })
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -210,6 +216,11 @@ export default class extends Controller {
     return editor?.getSelectedText?.() || ""
   }
 
+  insertableAsciiDoc(entry) {
+    if (!entry) return ""
+    return asciiDocFromAiReply(entry.insertContent || entry.content, entry.edit)
+  }
+
   includeSelectionEnabled() {
     return !this.hasIncludeSelectionTarget || this.includeSelectionTarget.checked
   }
@@ -227,7 +238,10 @@ export default class extends Controller {
     }
 
     try {
-      const result = await editor.applyAiEdit(edit)
+      const result = await editor.applyAiEdit({
+        target: edit?.target,
+        content: asciiDocFromAiReply(edit?.content, edit)
+      })
       if (result?.applied) {
         this.showStatus(`${this.statusForAppliedEdit(result)} 元に戻すなら Ctrl+Z またはドラフト復元が使えます。`)
         return

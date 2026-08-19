@@ -6,7 +6,6 @@
 # ローカルへ接続できない場合のみ、登録済み OpenAI キー（BYOK）へフォールバックする。
 class MemoAiChat
   MAX_BODY_CHARS = 12_000
-  MAX_CONTEXT_CHARS = 4_000
   MAX_HISTORY = 12
   MAX_EXISTING_TAGS = 200
   MODEL_ROLES = %i[main fast_chat].freeze
@@ -19,6 +18,131 @@ class MemoAiChat
 
   OPENAI_BASE_URL = "https://api.openai.com"
   OPENAI_MODEL = "gpt-4o-mini"
+
+  class << self
+    def asciidoc_from_text(text)
+      stripped = strip_code_fence(text)
+      data = extract_json_object(stripped)
+      extracted =
+        if schema_payload?(data)
+          content = nested_edit_content(data)
+          if content.present? && !json_envelope?(content)
+            content
+          else
+            reply = hash_value(data, "reply").to_s.strip
+            reply.present? && !json_envelope?(reply) ? reply : ""
+          end
+        else
+          stripped
+        end
+
+      coerce_asciidoc(extracted)
+    end
+
+    def coerce_asciidoc(text)
+      value = text.to_s.gsub("\r\n", "\n").strip
+      return value if value.blank? || !looks_like_markdown?(value)
+
+      PandocMarkdownToAsciidoc.convert(value).strip
+    rescue PandocRunner::NotFound, PandocRunner::Error
+      markdown_to_asciidoc_lite(value)
+    end
+
+    def looks_like_markdown?(text)
+      value = text.to_s
+      return false if value.blank?
+      return true if value.match?(/\[[^\]]+\]\([^)\s]+\)/)
+
+      lines = value.each_line
+      return true if lines.any? do |line|
+        line.match?(/^\#{1,6}\s+\S/) ||
+          line.match?(/^\s*```/) ||
+          line.match?(/^\s*\|.*-{3,}/)
+      end
+
+      has_asciidoc_structure = value.each_line.any? do |line|
+        line.match?(/^=+\s+\S/) ||
+          line.match?(/^\s*\*\s+\S/) ||
+          line.match?(/^\|===/) ||
+          line.match?(/^\[source/)
+      end
+      return false if has_asciidoc_structure
+
+      value.each_line.any? do |line|
+        line.match?(/^\s*[-+]\s+\S/) || line.match?(/^\s*\d+\.\s+\S/)
+      end
+    end
+
+    def markdown_to_asciidoc_lite(text)
+      value = convert_fenced_code(text.to_s.gsub("\r\n", "\n"))
+      value = value.gsub(/^\#\#\#\#\#\#\s+/m, "====== ")
+      value = value.gsub(/^\#\#\#\#\#\s+/m, "===== ")
+      value = value.gsub(/^\#\#\#\#\s+/m, "==== ")
+      value = value.gsub(/^\#\#\#\s+/m, "=== ")
+      value = value.gsub(/^\#\#\s+/m, "== ")
+      value = value.gsub(/^\#\s+/m, "= ")
+      value = value.gsub(/\[([^\]]+)\]\((https?:[^)\s]+)\)/, '\2[\1]')
+      value = value.gsub(/^(\s*)[-+]\s+/m, '\1* ')
+      value = value.gsub(/^(\s*)\d+\.\s+/m, '\1. ')
+      value = value.gsub(/\*\*(.+?)\*\*/, '*\1*')
+      value.strip
+    end
+
+    def json_envelope?(text)
+      schema_payload?(extract_json_object(text))
+    end
+
+    def extract_json_object(raw)
+      text = strip_code_fence(raw)
+      return if text.blank?
+
+      start = text.index("{")
+      return unless start
+
+      candidate = text[start..]
+      begin
+        JSON.parse(candidate)
+      rescue JSON::ParserError
+        snippet = candidate[/\{.*\}/m]
+        return if snippet.blank?
+
+        JSON.parse(snippet)
+      end
+    rescue JSON::ParserError
+      nil
+    end
+
+    def schema_payload?(data)
+      data.is_a?(Hash) && (
+        data.key?("reply") || data.key?(:reply) || data.key?("edit") || data.key?(:edit)
+      )
+    end
+
+    def nested_edit_content(data)
+      edit = hash_value(data, "edit")
+      content = edit.is_a?(Hash) ? hash_value(edit, "content") : nil
+      content.to_s.strip
+    end
+
+    def hash_value(data, key)
+      return unless data.is_a?(Hash)
+
+      data[key] || data[key.to_sym]
+    end
+
+    def strip_code_fence(text)
+      text.to_s.strip.sub(/\A```(?:json|markdown|md|asciidoc|adoc)?\s*/i, "").sub(/```\s*\z/, "").strip
+    end
+
+    def convert_fenced_code(text)
+      text.to_s.gsub(/^```([^\n]*)\n(.*?)^```[ \t]*$/m) do
+        language = Regexp.last_match(1).to_s.strip
+        body = Regexp.last_match(2).to_s.sub(/\n\z/, "")
+        header = language.present? ? "[source,#{language}]" : "[source]"
+        "#{header}\n----\n#{body}\n----"
+      end
+    end
+  end
 
   def initialize(account:, memo:, messages:, selection: nil, editor_context: nil, model_role: :main,
     existing_tags: [], local_client: nil, byok_client: nil)
@@ -43,6 +167,7 @@ class MemoAiChat
     {
       reply: parsed[:reply],
       edit: parsed[:edit],
+      insert_content: parsed[:insert_content],
       backend: backend,
       model_role: @model_role,
       model: model
@@ -61,7 +186,9 @@ class MemoAiChat
     end
 
     begin
-      [ chat_json(client, messages), :local, local_model ]
+      # llama-server の json_object 制約は巨大プロンプトで生成が止まって ReadTimeout になりやすい。
+      # JSON は system prompt と応答パースに任せ、API 側では強制しない。
+      [ chat_completion(client, messages), :local, local_model ]
     rescue Chat::LlmClient::ConnectionError => e
       fallback_or_raise(messages, e)
     end
@@ -70,11 +197,15 @@ class MemoAiChat
   def fallback_or_raise(messages, cause)
     raise unavailable_error(cause) unless byok_available?
 
-    [ chat_json(byok_client, messages), :openai, OPENAI_MODEL ]
+    [ chat_completion(byok_client, messages, json_object: true), :openai, OPENAI_MODEL ]
   end
 
-  def chat_json(client, messages)
-    client.chat(messages, response_format: JSON_RESPONSE_FORMAT)
+  def chat_completion(client, messages, json_object: false)
+    if json_object
+      client.chat(messages, response_format: JSON_RESPONSE_FORMAT)
+    else
+      client.chat(messages)
+    end
   end
 
   def local_client
@@ -147,14 +278,12 @@ class MemoAiChat
 
     if (unit = @editor_context[:active_unit]).present?
       parts << ""
-      parts << "カーソル位置のブロック (#{unit[:kind].presence || "paragraph"}):"
-      parts << truncate_context(unit[:adoc])
+      parts << "カーソル位置のブロック種別: #{unit[:kind].presence || "paragraph"}"
     end
 
     if (section = @editor_context[:section]).present?
       parts << ""
-      parts << "カーソル位置の節 (#{section[:heading].presence || "（見出しなし）"}):"
-      parts << truncate_context(section[:adoc])
+      parts << "カーソル位置の節見出し: #{section[:heading].presence || "（見出しなし）"}"
     end
 
     { role: "system", content: parts.join("\n") }
@@ -176,26 +305,42 @@ class MemoAiChat
   end
 
   def parse_model_response(raw)
-    data = extract_json(raw)
-    unless data.is_a?(Hash)
-      return { reply: raw.to_s, edit: none_edit }
+    data = self.class.extract_json_object(raw)
+    unless self.class.schema_payload?(data)
+      insert_content = self.class.asciidoc_from_text(raw)
+      return {
+        reply: display_reply(raw.to_s, insert_content),
+        edit: none_edit,
+        insert_content: insert_content
+      }
     end
 
     edit = normalize_edit(data["edit"] || data[:edit])
     reply = (data["reply"] || data[:reply]).to_s.strip
-    reply = "本文を更新しました。" if reply.blank? && edit[:target] != "none"
-    reply = raw.to_s if reply.blank?
-    { reply: reply, edit: edit }
-  rescue JSON::ParserError
-    { reply: raw.to_s, edit: none_edit }
+    insert_content = insert_content_for(edit: edit, reply: reply)
+    {
+      reply: display_reply(reply, insert_content),
+      edit: edit,
+      insert_content: insert_content
+    }
   end
 
-  def extract_json(raw)
-    text = raw.to_s
-    return if text.blank?
+  def insert_content_for(edit:, reply:)
+    content = edit[:content].to_s.strip
+    return content if content.present? && !self.class.json_envelope?(content)
 
-    candidate = text[/\{.*\}/m] || text
-    JSON.parse(candidate)
+    fallback = reply.to_s.strip
+    return self.class.coerce_asciidoc(fallback) if fallback.present? && !self.class.json_envelope?(fallback)
+
+    ""
+  end
+
+  def display_reply(reply, insert_content)
+    text = reply.to_s.strip
+    return insert_content if text.blank? && insert_content.present?
+    return insert_content.presence || "本文案を用意しました。" if self.class.json_envelope?(text)
+
+    text
   end
 
   def normalize_edit(raw)
@@ -203,8 +348,7 @@ class MemoAiChat
 
     target = (raw["target"] || raw[:target]).to_s.strip
     target = "none" unless EDIT_TARGETS.include?(target)
-    content = (raw["content"] || raw[:content]).to_s
-    content = "" if target == "none"
+    content = self.class.coerce_asciidoc((raw["content"] || raw[:content]).to_s)
     { target: target, content: content }
   end
 
@@ -243,14 +387,6 @@ class MemoAiChat
     return body if body.length <= MAX_BODY_CHARS
 
     "#{body[0, MAX_BODY_CHARS]}\n\n…（以降 #{body.length - MAX_BODY_CHARS} 文字省略）"
-  end
-
-  def truncate_context(text)
-    value = text.to_s
-    return "（空）" if value.blank?
-    return value if value.length <= MAX_CONTEXT_CHARS
-
-    "#{value[0, MAX_CONTEXT_CHARS]}\n\n…（以降 #{value.length - MAX_CONTEXT_CHARS} 文字省略）"
   end
 
   def normalize_tags(tags)

@@ -180,6 +180,36 @@ describe("memo-ai-panel", () => {
     )
   })
 
+  it("converts markdown edit content to AsciiDoc before applying", async () => {
+    const applyAiEdit = vi.fn(async () => ({ applied: true, target: "section" }))
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        reply: "書き換えました",
+        backend: "local",
+        model: "model",
+        edit: { target: "section", content: "## Hello\n\n- item" }
+      })
+    })))
+    await mount()
+
+    const element = document.querySelector("[data-controller='memo-ai-panel']")
+    const controller = application.getControllerForElementAndIdentifier(element, "memo-ai-panel")
+    controller.bodyEditorController = () => ({
+      applyAiEdit,
+      getEditContext: async () => ({ body: "Hello", selection: "", active_unit: null, section: null })
+    })
+
+    document.querySelector("textarea").value = "この節を直して"
+    document.querySelector("[data-memo-ai-panel-target='sendButton']").click()
+
+    await vi.waitFor(() => expect(applyAiEdit).toHaveBeenCalledOnce())
+    expect(applyAiEdit).toHaveBeenCalledWith({
+      target: "section",
+      content: "== Hello\n\n* item"
+    })
+  })
+
   it("does not apply when the edit target is none", async () => {
     const applyAiEdit = vi.fn()
     vi.stubGlobal("fetch", vi.fn(async () => ({
@@ -234,6 +264,57 @@ describe("memo-ai-panel", () => {
         "応答をメモ末尾へ追記しました。"
       )
     )
+  })
+
+  it("appends AsciiDoc from a JSON edit payload", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url) => ({
+      ok: true,
+      json: async () => (
+        String(url).includes("ai_chat")
+          ? {
+              reply: "追記しました",
+              backend: "local",
+              model: "model",
+              edit: { target: "none", content: "== Added\n\nBody" },
+              insert_content: "== Added\n\nBody"
+            }
+          : { saved_at: "2026-07-26T00:00:00.000Z", display_as_draft: true }
+      )
+    })))
+    await mount({ append: true })
+
+    document.querySelector("textarea").value = "追記して"
+    document.querySelector("[data-memo-ai-panel-target='sendButton']").click()
+    await vi.waitFor(() => expect(document.body.textContent).toContain("追記しました"))
+
+    document.querySelector("[data-memo-ai-panel-target='insertButton']").click()
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ content: "== Added\n\nBody" })
+  })
+
+  it("converts markdown when appending the last reply", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url) => ({
+      ok: true,
+      json: async () => (
+        String(url).includes("ai_chat")
+          ? {
+              reply: "追記しました",
+              backend: "local",
+              model: "model",
+              edit: { target: "none", content: "## Hello\n\n- item" }
+            }
+          : { saved_at: "2026-07-26T00:00:00.000Z", display_as_draft: true }
+      )
+    })))
+    await mount({ append: true })
+
+    document.querySelector("textarea").value = "追記して"
+    document.querySelector("[data-memo-ai-panel-target='sendButton']").click()
+    await vi.waitFor(() => expect(document.body.textContent).toContain("追記しました"))
+
+    document.querySelector("[data-memo-ai-panel-target='insertButton']").click()
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ content: "== Hello\n\n* item" })
   })
 
   it("restores the append action after an append failure", async () => {

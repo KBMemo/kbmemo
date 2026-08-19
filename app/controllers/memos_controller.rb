@@ -367,7 +367,7 @@ class MemosController < ApplicationController
 
   def append_ai_reply
     authorize @memo
-    reply = params[:content].to_s.strip
+    reply = MemoAiChat.asciidoc_from_text(params[:content])
     if reply.blank?
       render json: { error: "追記する応答がありません。" }, status: :unprocessable_entity
       return
