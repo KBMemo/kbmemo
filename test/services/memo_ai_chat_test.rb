@@ -245,6 +245,41 @@ class MemoAiChatTest < ActiveSupport::TestCase
     end
   end
 
+  test "call unwraps JSON content that contains raw newlines" do
+    raw = <<~JSON
+      {"reply":"注目選手に関する分析セクションを追加しました。各チームの戦術的な強みを活かすキープレイヤーを想定して追記しています。","edit":{"target":"section","content":"
+      == 注目選手
+
+      * キープレイヤー
+      "}}
+    JSON
+
+    result = MemoAiChat.new(
+      account: accounts(:one),
+      memo: memos(:one),
+      messages: [ { role: "user", content: "追記して" } ],
+      local_client: fake_client(reply: raw)
+    ).call
+
+    assert_equal "section", result[:edit][:target]
+    assert_equal "== 注目選手\n\n* キープレイヤー", result[:insert_content]
+    refute_includes result[:insert_content], '{"reply"'
+    refute_includes result[:reply], '{"reply"'
+  end
+
+  test "asciidoc_from_text strips a truncated JSON envelope prefix" do
+    raw = <<~TEXT
+      {"reply":"注目選手に関する分析セクションを追加しました。","edit":{"target":"section","content":"
+
+      == 注目選手
+
+      * キープレイヤー
+    TEXT
+
+    assert_equal "== 注目選手\n\n* キープレイヤー", MemoAiChat.asciidoc_from_text(raw)
+    refute_includes MemoAiChat.asciidoc_from_text(raw), '"edit"'
+  end
+
   test "asciidoc_from_text leaves AsciiDoc source unchanged" do
     adoc = "== Hello\n\n* first\n* *second*\n\n[source,ruby]\n----\nputs 1\n----"
 

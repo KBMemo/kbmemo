@@ -1553,6 +1553,23 @@ class MemosControllerTest < ActionDispatch::IntegrationTest
     assert_equal "= Existing\n\nBody\n\n== Hello\n\n* item", memo.reload.body
   end
 
+  test "append ai reply strips a truncated JSON envelope prefix" do
+    memo = memos(:one)
+    memo.update_columns(body: "= Existing\n\nBody", file_committed_at: 1.hour.ago)
+    raw = <<~TEXT
+      {"reply":"注目選手に関する分析セクションを追加しました。","edit":{"target":"section","content":"
+
+      == 注目選手
+
+      * キープレイヤー
+    TEXT
+
+    patch append_ai_reply_memo_url(memo), params: { content: raw }, as: :json
+
+    assert_response :success
+    assert_equal "= Existing\n\nBody\n\n== 注目選手\n\n* キープレイヤー", memo.reload.body
+  end
+
   test "append ai reply stores AsciiDoc from a JSON envelope" do
     memo = memos(:one)
     memo.update_columns(body: "= Existing\n\nBody", file_committed_at: 1.hour.ago)

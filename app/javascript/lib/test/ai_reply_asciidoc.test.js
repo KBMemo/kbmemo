@@ -55,4 +55,17 @@ describe("asciiDocFromAiReply", () => {
       asciiDocFromAiReply("短い説明", { target: "section", content: "## Hello\n\n- item" })
     ).toBe("== Hello\n\n* item")
   })
+
+  it("unwraps a JSON envelope with unescaped newlines in content", () => {
+    const raw = '{"reply":"注目選手に関する分析セクションを追加しました。各チームの戦術的な強みを活かすキープレイヤーを想定して追記しています。","edit":{"target":"section","content":"\n\n== 注目選手\n\n* キープレイヤー\n"}}'
+    expect(asciiDocFromAiReply(raw)).toBe("== 注目選手\n\n* キープレイヤー")
+    expect(asciiDocFromAiReply(raw)).not.toContain('{"reply"')
+    expect(jsonEnvelope(raw)).toBe(true)
+  })
+
+  it("strips a truncated JSON envelope prefix from appended text", () => {
+    const raw = '{"reply":"注目選手に関する分析セクションを追加しました。","edit":{"target":"section","content":"\n\n== 注目選手\n\n* キープレイヤー'
+    expect(asciiDocFromAiReply(raw)).toBe("== 注目選手\n\n* キープレイヤー")
+    expect(asciiDocFromAiReply(raw)).not.toContain('"edit"')
+  })
 })

@@ -292,6 +292,35 @@ describe("memo-ai-panel", () => {
     expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ content: "== Added\n\nBody" })
   })
 
+  it("strips a truncated JSON envelope when appending", async () => {
+    const raw = '{"reply":"注目選手に関する分析セクションを追加しました。","edit":{"target":"section","content":"\n\n== 注目選手\n\n* キープレイヤー'
+    vi.stubGlobal("fetch", vi.fn(async (url) => ({
+      ok: true,
+      json: async () => (
+        String(url).includes("ai_chat")
+          ? {
+              reply: raw,
+              backend: "local",
+              model: "model",
+              edit: { target: "none", content: "" },
+              insert_content: raw
+            }
+          : { saved_at: "2026-07-26T00:00:00.000Z", display_as_draft: true }
+      )
+    })))
+    await mount({ append: true })
+
+    document.querySelector("textarea").value = "追記して"
+    document.querySelector("[data-memo-ai-panel-target='sendButton']").click()
+    await vi.waitFor(() => expect(document.body.textContent).toContain("注目選手"))
+
+    document.querySelector("[data-memo-ai-panel-target='insertButton']").click()
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({
+      content: "== 注目選手\n\n* キープレイヤー"
+    })
+  })
+
   it("converts markdown when appending the last reply", async () => {
     vi.stubGlobal("fetch", vi.fn(async (url) => ({
       ok: true,

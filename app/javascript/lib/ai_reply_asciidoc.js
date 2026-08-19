@@ -6,13 +6,56 @@ function stripCodeFence(text) {
     .trim()
 }
 
-function parseJsonObject(raw) {
-  const text = stripCodeFence(raw)
-  if (!text) return null
-  const start = text.indexOf("{")
-  if (start < 0) return null
+function unescapeJsonString(value) {
+  return String(value ?? "")
+    .replace(/\\n/g, "\n")
+    .replace(/\\t/g, "\t")
+    .replace(/\\r/g, "\r")
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, "\\")
+}
 
-  const candidate = text.slice(start)
+function repairJsonStrings(text) {
+  let out = ""
+  let inString = false
+  let escape = false
+  for (const ch of String(text ?? "")) {
+    if (!inString) {
+      out += ch
+      if (ch === '"') inString = true
+      continue
+    }
+
+    if (escape) {
+      out += ch
+      escape = false
+      continue
+    }
+    if (ch === "\\") {
+      out += ch
+      escape = true
+      continue
+    }
+    if (ch === '"') {
+      out += ch
+      inString = false
+      continue
+    }
+    if (ch === "\n") {
+      out += "\\n"
+      continue
+    }
+    if (ch === "\r") continue
+    if (ch === "\t") {
+      out += "\\t"
+      continue
+    }
+    out += ch
+  }
+  return out
+}
+
+function tryParseJson(candidate) {
   try {
     return JSON.parse(candidate)
   } catch {
@@ -21,9 +64,63 @@ function parseJsonObject(raw) {
     try {
       return JSON.parse(match[0])
     } catch {
-      return null
+      try {
+        return JSON.parse(repairJsonStrings(match[0]))
+      } catch {
+        return null
+      }
     }
   }
+}
+
+function looksLikeJsonEnvelope(text) {
+  const value = String(text ?? "").trim()
+  return value.startsWith("{") && /"(?:reply|edit)"\s*:/.test(value) && /"edit"\s*:/.test(value)
+}
+
+function extractBrokenReply(text) {
+  const match = String(text ?? "").match(/"reply"\s*:\s*"((?:\\.|[^"\\])*)"/)
+  return match ? unescapeJsonString(match[1]).trim() : ""
+}
+
+function extractBrokenContent(text) {
+  const value = String(text ?? "")
+  const closed = value.match(/"content"\s*:\s*"([\s\S]*)"\s*\}\s*\}\s*$/)
+  if (closed) return unescapeJsonString(closed[1]).trim()
+
+  const open = /"content"\s*:\s*"/.exec(value)
+  if (!open) return ""
+  return unescapeJsonString(
+    value.slice(open.index + open[0].length).replace(/"\s*\}[\s\}]*$/, "")
+  ).trim()
+}
+
+function synthesizeBrokenEnvelope(text) {
+  if (!looksLikeJsonEnvelope(text)) return null
+  const content = extractBrokenContent(text)
+  const reply = extractBrokenReply(text)
+  if (!content && !reply) return null
+
+  const targetMatch = text.match(/"target"\s*:\s*"(none|selection|unit|section|body)"/)
+  return {
+    reply,
+    edit: {
+      target: targetMatch?.[1] || "none",
+      content
+    }
+  }
+}
+
+function parseJsonObject(raw) {
+  const text = stripCodeFence(raw)
+  if (!text) return null
+  const start = text.indexOf("{")
+  if (start < 0) return null
+
+  const candidate = text.slice(start)
+  return tryParseJson(candidate)
+    || tryParseJson(repairJsonStrings(candidate))
+    || synthesizeBrokenEnvelope(candidate)
 }
 
 function schemaPayload(data) {
@@ -81,7 +178,7 @@ export function asciiDocFromAiReply(reply, edit = null) {
   if (fromEdit && !jsonEnvelope(fromEdit)) return markdownToAsciidocLite(fromEdit)
 
   const text = String(reply ?? "").trim()
-  const parsed = parseJsonObject(text)
+  const parsed = parseJsonObject(fromEdit) || parseJsonObject(text)
   if (schemaPayload(parsed)) {
     const nested = String(parsed.edit?.content ?? "").trim()
     if (nested && !jsonEnvelope(nested)) return markdownToAsciidocLite(nested)
@@ -90,7 +187,7 @@ export function asciiDocFromAiReply(reply, edit = null) {
     return ""
   }
 
-  if (!jsonEnvelope(text)) return markdownToAsciidocLite(text)
+  if (!jsonEnvelope(text) && !looksLikeJsonEnvelope(text)) return markdownToAsciidocLite(text)
   return ""
 }
 

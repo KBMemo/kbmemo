@@ -132,7 +132,7 @@ export default class extends Controller {
       }
 
       const reply = (data.reply || "").trim()
-      const insertContent = (data.insert_content || "").trim() || asciiDocFromAiReply(reply, data.edit)
+      const insertContent = asciiDocFromAiReply(data.insert_content || reply, data.edit)
       const display = jsonEnvelope(reply) ? (insertContent || "本文案を用意しました。") : reply
       if (!display) {
         this.showError("応答が空でした。")

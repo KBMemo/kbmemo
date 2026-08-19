@@ -100,16 +100,107 @@ class MemoAiChat
       return unless start
 
       candidate = text[start..]
-      begin
-        JSON.parse(candidate)
-      rescue JSON::ParserError
-        snippet = candidate[/\{.*\}/m]
-        return if snippet.blank?
+      try_parse_json(candidate) || try_parse_json(repair_json_strings(candidate)) || synthesize_broken_envelope(candidate)
+    end
 
-        JSON.parse(snippet)
-      end
+    def try_parse_json(candidate)
+      JSON.parse(candidate)
     rescue JSON::ParserError
-      nil
+      snippet = candidate[/\{.*\}/m]
+      return if snippet.blank?
+
+      begin
+        JSON.parse(snippet)
+      rescue JSON::ParserError
+        begin
+          JSON.parse(repair_json_strings(snippet))
+        rescue JSON::ParserError
+          nil
+        end
+      end
+    end
+
+    def looks_like_json_envelope?(text)
+      value = text.to_s.strip
+      value.start_with?("{") && value.match?(/"(?:reply|edit)"\s*:/) && value.match?(/"edit"\s*:/)
+    end
+
+    def synthesize_broken_envelope(text)
+      return unless looks_like_json_envelope?(text)
+
+      content = extract_broken_content(text)
+      reply = extract_broken_reply(text)
+      return if content.blank? && reply.blank?
+
+      target = text[/"target"\s*:\s*"(none|selection|unit|section|body)"/, 1] || "none"
+      { "reply" => reply.to_s, "edit" => { "target" => target, "content" => content.to_s } }
+    end
+
+    def extract_broken_reply(text)
+      match = text.to_s[/"reply"\s*:\s*"((?:\\.|[^"\\])*)"/, 1]
+      unescape_json_string(match).strip
+    end
+
+    def extract_broken_content(text)
+      value = text.to_s
+      if (closed = value.match(/"content"\s*:\s*"([\s\S]*)"\s*\}\s*\}\s*\z/))
+        return unescape_json_string(closed[1]).strip
+      end
+
+      open = value.match(/"content"\s*:\s*"/)
+      return "" unless open
+
+      rest = value[open.end(0)..]
+      unescape_json_string(rest.sub(/"\s*\}[\s\}]*\z/, "")).strip
+    end
+
+    def unescape_json_string(value)
+      value.to_s
+        .gsub('\\n', "\n")
+        .gsub('\\t', "\t")
+        .gsub('\\r', "\r")
+        .gsub('\\"', '"')
+        .gsub("\\\\", "\\")
+    end
+
+    def repair_json_strings(text)
+      out = +""
+      in_string = false
+      escape = false
+      text.to_s.each_char do |ch|
+        unless in_string
+          out << ch
+          in_string = true if ch == '"'
+          next
+        end
+
+        if escape
+          out << ch
+          escape = false
+          next
+        end
+        if ch == "\\"
+          out << ch
+          escape = true
+          next
+        end
+        if ch == '"'
+          out << ch
+          in_string = false
+          next
+        end
+        if ch == "\n"
+          out << "\\n"
+          next
+        end
+        next if ch == "\r"
+        if ch == "\t"
+          out << "\\t"
+          next
+        end
+        out << ch
+      end
+      out
     end
 
     def schema_payload?(data)
@@ -326,11 +417,11 @@ class MemoAiChat
   end
 
   def insert_content_for(edit:, reply:)
-    content = edit[:content].to_s.strip
-    return content if content.present? && !self.class.json_envelope?(content)
+    content = self.class.asciidoc_from_text(edit[:content].to_s)
+    return content if content.present?
 
-    fallback = reply.to_s.strip
-    return self.class.coerce_asciidoc(fallback) if fallback.present? && !self.class.json_envelope?(fallback)
+    fallback = self.class.asciidoc_from_text(reply.to_s)
+    return fallback if fallback.present? && !self.class.json_envelope?(fallback)
 
     ""
   end
