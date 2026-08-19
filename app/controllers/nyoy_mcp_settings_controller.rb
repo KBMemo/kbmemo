@@ -72,7 +72,7 @@ class NyoyMcpSettingsController < ApplicationController
     url = permitted[:nyoy_mcp_url].to_s.strip.chomp("/")
     {
       nyoy_mcp_url: url.presence,
-      nyoy_mcp_api_token: permitted[:nyoy_mcp_api_token].to_s.strip.presence
+      nyoy_mcp_api_token: Chat::NyoyMcpConfig.normalize_api_token(permitted[:nyoy_mcp_api_token])
     }
   end
 
@@ -86,6 +86,9 @@ class NyoyMcpSettingsController < ApplicationController
 
     url = permitted[:nyoy_mcp_url].to_s.strip.chomp("/")
     permitted[:nyoy_mcp_url] = url.presence
+    if permitted.key?(:nyoy_mcp_api_token)
+      permitted[:nyoy_mcp_api_token] = Chat::NyoyMcpConfig.normalize_api_token(permitted[:nyoy_mcp_api_token])
+    end
     permitted
   end
 end

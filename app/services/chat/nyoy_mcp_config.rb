@@ -15,10 +15,15 @@ module Chat
     end
 
     def api_token(account: nil)
-      account_token = account&.nyoy_mcp_api_token_decryptable? ? account.nyoy_mcp_api_token.to_s.strip : ""
-      return account_token if account_token.present?
+      account_token = account&.nyoy_mcp_api_token_decryptable? ? account.nyoy_mcp_api_token.to_s : ""
+      normalize_api_token(
+        account_token.presence || ENV["NYOY_MCP_API_TOKEN"].presence || credentials&.dig(:api_token)
+      )
+    end
 
-      ENV["NYOY_MCP_API_TOKEN"].presence || credentials&.dig(:api_token).presence
+    def normalize_api_token(value)
+      token = value.to_s.strip.sub(/\ABearer\s+/i, "").strip
+      token.presence
     end
 
     def configured?(account: nil)

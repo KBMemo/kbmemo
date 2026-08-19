@@ -11,7 +11,7 @@ module Chat
 
     def initialize(url:, api_token:)
       @mcp_url = url.to_s
-      @api_token = api_token.to_s
+      @api_token = Chat::NyoyMcpConfig.normalize_api_token(api_token).to_s
     end
 
     def configured?

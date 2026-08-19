@@ -8,6 +8,8 @@
     p.mt-1.text-xs.kb-text-muted
       | Cursor の .cursor/mcp.json と同じ MCP API トークンを使えます。未入力の項目は credentials / 環境変数（NYOY_MCP_*）にフォールバックします。接続確認はフォームの値で試します（保存前でも可）。
     p.mt-1.text-xs.kb-text-muted
+      | 401 になる場合は、如意の MCP_API_TOKEN そのものを入力してください（先頭に Bearer は付けない）。アカウントに保存したトークンは credentials / 環境変数より優先されます。
+    p.mt-1.text-xs.kb-text-muted
       | 404 になる場合は URL（末尾 /mcp）と、接続先 Nyoy で MCP_API_TOKEN が設定されているかを確認してください。
 
   - if flash[:notice].present?
@@ -34,7 +36,7 @@
               p.text-xs.kb-text-muted 保存済みトークンがあります。変更するときだけ入力してください。
             - elsif @account.nyoy_mcp_api_token_configured?
               p.text-xs.kb-status-warning 保存済みトークンを復号できません。再入力するか、下のチェックで削除してください。
-            = f.password_field :nyoy_mcp_api_token, class: "#{kb_field_input_classes} w-full max-w-md font-mono text-sm", autocomplete: "new-password", placeholder: "Bearer トークン"
+            = f.password_field :nyoy_mcp_api_token, class: "#{kb_field_input_classes} w-full max-w-md font-mono text-sm", autocomplete: "new-password", placeholder: "MCP_API_TOKEN"
             - if @account.nyoy_mcp_api_token_configured?
               .mt-2.flex.items-center.gap-2
                 = f.check_box :clear_nyoy_mcp_api_token, class: "rounded kb-border"

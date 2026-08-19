@@ -56,6 +56,19 @@ class NyoyMcpSettingsControllerTest < ActionDispatch::IntegrationTest
     assert account.nyoy_mcp_configured?
   end
 
+  test "update strips a Bearer prefix from the api token" do
+    account = accounts(:one)
+    patch nyoy_mcp_url, params: {
+      account: {
+        nyoy_mcp_url: "http://nyoy.test/mcp",
+        nyoy_mcp_api_token: "Bearer secret-token"
+      }
+    }
+
+    assert_redirected_to nyoy_mcp_url
+    assert_equal "secret-token", account.reload.nyoy_mcp_api_token
+  end
+
   test "update clears api token when requested" do
     account = accounts(:one)
     account.update!(nyoy_mcp_url: "http://nyoy.test/mcp", nyoy_mcp_api_token: "secret-token")
